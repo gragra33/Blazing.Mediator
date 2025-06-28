@@ -29,6 +29,24 @@ Get up and running with Blazing.Mediator in under 5 minutes:
 
 ### 1. Install the Package
 
+#### Install the package via .NET CLI or the NuGet Package Manager.
+
+Add the Blazing.Mediator NuGet package to your project.
+
+##### .NET CLI
+
+```bash
+dotnet add package Blazing.Mediator
+```
+
+##### NuGet Package Manager
+
+```bash
+Install-Package Blazing.Mediator
+``` 
+
+#### Manually adding to your project
+
 ```xml
 <PackageReference Include="Blazing.Mediator" Version="1.0.0" />
 ```

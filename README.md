@@ -30,6 +30,30 @@ For complete implementation instructions, CQRS concepts, and best practices, see
 -   Visual Studio 2022 or VS Code
 -   SQL Server LocalDB (for production mode) or In-Memory database (development mode)
 
+### Installation
+
+Add the Blazing.Mediator NuGet package to your project.
+
+#### Install the package via .NET CLI or the NuGet Package Manager.
+
+##### .NET CLI
+
+```bash
+dotnet add package Blazing.Mediator
+```
+
+##### NuGet Package Manager
+
+```bash
+Install-Package Blazing.Mediator
+``` 
+
+#### Manually adding to your project
+
+```xml
+<PackageReference Include="Blazing.Mediator" Version="1.0.0" />
+```
+
 ### Running the Sample Projects
 
 #### Option 1: Visual Studio

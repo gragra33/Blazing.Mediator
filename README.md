@@ -1,4 +1,4 @@
-# Blazing.Mediator Sample Projects
+# Blazing.Mediator with Sample Projects
 
 This repository demonstrates the implementation of the Mediator pattern with CQRS using the `Blazing.Mediator` library. It includes a lightweight library implementation and two comprehensive sample projects.
 

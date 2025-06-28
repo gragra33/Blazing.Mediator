@@ -42,7 +42,7 @@ For complete implementation instructions, CQRS concepts, and best practices, see
 
 ```powershell
 # Clone or navigate to the project directory
-cd "c:\Documents\Downloads\MyMediator-master"
+cd "c:\dev\Blazing.Mediator"
 
 # Build the solution
 dotnet build

@@ -1,0 +1,342 @@
+###
+# E-Commerce API - Sample HTTP Requests
+# This file demonstrates all endpoints available in the ECommerce.Api sample project
+# which showcases the Blazing.Mediator library with CQRS pattern implementation.
+#
+# To use these requests:
+# 1. Start the ECommerce.Api project
+# 2. Execute requests individually using your HTTP client
+###
+
+###
+# Health Check - Swagger UI
+GET {{$projectUrl}}/swagger/index.html
+
+###
+# PRODUCT ENDPOINTS - Product management operations
+
+###
+# Get all products with pagination
+GET {{$projectUrl}}/api/products?page=1&pageSize=10&searchTerm=&inStockOnly=false&activeOnly=true
+
+###
+# Get products with search filter
+GET {{$projectUrl}}/api/products?page=1&pageSize=5&searchTerm=laptop&inStockOnly=false&activeOnly=true
+
+###
+# Get only products in stock
+GET {{$projectUrl}}/api/products?page=1&pageSize=10&searchTerm=&inStockOnly=true&activeOnly=true
+
+###
+# Get all products including inactive ones
+GET {{$projectUrl}}/api/products?page=1&pageSize=10&searchTerm=&inStockOnly=false&activeOnly=false
+
+###
+# Get product by ID
+GET {{$projectUrl}}/api/products/1
+
+###
+# Get product by ID - Not found example
+GET {{$projectUrl}}/api/products/9999
+
+###
+# Get low stock products (default threshold: 10)
+GET {{$projectUrl}}/api/products/low-stock
+
+###
+# Get low stock products with custom threshold
+GET {{$projectUrl}}/api/products/low-stock?threshold=5
+
+###
+# Create new product
+POST {{$projectUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Gaming Laptop",
+  "description": "High-performance gaming laptop with RTX graphics",
+  "price": 1299.99,
+  "stockQuantity": 15
+}
+
+###
+# Create another product
+POST {{$projectUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Wireless Mouse",
+  "description": "Ergonomic wireless mouse with RGB lighting",
+  "price": 49.99,
+  "stockQuantity": 100
+}
+
+###
+# Create product with validation error (invalid data)
+POST {{$projectUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "",
+  "description": "Invalid product",
+  "price": -10.00,
+  "stockQuantity": -5
+}
+
+###
+# Update existing product
+PUT {{$projectUrl}}/api/products/1
+Content-Type: application/json
+
+{
+  "productId": 1,
+  "name": "Gaming Laptop Pro",
+  "description": "Updated high-performance gaming laptop with RTX graphics",
+  "price": 1399.99
+}
+
+###
+# Update product stock quantity
+PUT {{$projectUrl}}/api/products/1/stock
+Content-Type: application/json
+
+{
+  "productId": 1,
+  "stockQuantity": 25
+}
+
+###
+# Deactivate product
+POST {{$projectUrl}}/api/products/1/deactivate
+
+###
+# ORDER ENDPOINTS - Order management operations
+
+###
+# Get all orders with pagination
+GET {{$projectUrl}}/api/orders?page=1&pageSize=10
+
+###
+# Get orders by customer ID
+GET {{$projectUrl}}/api/orders?page=1&pageSize=10&customerId=1
+
+###
+# Get orders by status (0=Pending, 1=Processing, 2=Shipped, 3=Delivered, 4=Cancelled)
+GET {{$projectUrl}}/api/orders?page=1&pageSize=10&status=1
+
+###
+# Get orders by date range
+GET {{$projectUrl}}/api/orders?page=1&pageSize=10&fromDate=2024-01-01&toDate=2024-12-31
+
+###
+# Get order by ID
+GET {{$projectUrl}}/api/orders/1
+
+###
+# Get order by ID - Not found example
+GET {{$projectUrl}}/api/orders/9999
+
+###
+# Get customer orders
+GET {{$projectUrl}}/api/orders/customer/1
+
+###
+# Get customer orders with date filter
+GET {{$projectUrl}}/api/orders/customer/1?fromDate=2024-01-01&toDate=2024-12-31
+
+###
+# Get order statistics
+GET {{$projectUrl}}/api/orders/statistics
+
+###
+# Get order statistics with date filter
+GET {{$projectUrl}}/api/orders/statistics?fromDate=2024-01-01&toDate=2024-12-31
+
+###
+# Create new order
+POST {{$projectUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "email@test.com",
+  "orderItems": [
+    {
+      "productId": 1,
+      "quantity": 2,
+      "unitPrice": 1299.99
+    },
+    {
+      "productId": 2,
+      "quantity": 1,
+      "unitPrice": 49.99
+    }
+  ]
+}
+
+###
+# Process complete order (create and process in one step)
+POST {{$projectUrl}}/api/orders/process
+Content-Type: application/json
+
+{
+  "customerId": 2,
+  "orderItems": [
+    {
+      "productId": 1,
+      "quantity": 1,
+      "unitPrice": 1299.99
+    }
+  ],
+  "shippingAddress": {
+    "street": "123 Main St",
+    "city": "Anytown",
+    "state": "ST",
+    "zipCode": "12345",
+    "country": "USA"
+  },
+  "paymentInfo": {
+    "paymentMethod": "CreditCard",
+    "cardNumber": "**** **** **** 1234",
+    "expiryMonth": 12,
+    "expiryYear": 2025
+  }
+}
+
+###
+# Update order status
+PUT {{$projectUrl}}/api/orders/1/status
+Content-Type: application/json
+
+{
+  "orderId": 1,
+  "status": 2,
+  "notes": "Order has been shipped via FedEx"
+}
+
+###
+# Cancel order
+POST {{$projectUrl}}/api/orders/1/cancel
+Content-Type: application/json
+
+{
+  "orderId": 1,
+  "reason": "Customer requested cancellation"
+}
+
+###
+# BATCH OPERATIONS - Create test data
+
+###
+# Create test product 1
+POST {{$projectUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Mechanical Keyboard",
+  "description": "RGB mechanical keyboard with blue switches",
+  "price": 129.99,
+  "stockQuantity": 50
+}
+
+###
+# Create test product 2
+POST {{$projectUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "4K Monitor",
+  "description": "32-inch 4K IPS monitor with USB-C connectivity",
+  "price": 599.99,
+  "stockQuantity": 8
+}
+
+###
+# Create test product 3 (low stock)
+POST {{$projectUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Webcam HD",
+  "description": "1080p webcam with auto-focus",
+  "price": 79.99,
+  "stockQuantity": 3
+}
+
+###
+# Create test order 1
+POST {{$projectUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 101,
+  "orderItems": [
+    {
+      "productId": 2,
+      "quantity": 1,
+      "unitPrice": 129.99
+    },
+    {
+      "productId": 3,
+      "quantity": 1,
+      "unitPrice": 599.99
+    }
+  ]
+}
+
+###
+# Create test order 2
+POST {{$projectUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 102,
+  "orderItems": [
+    {
+      "productId": 4,
+      "quantity": 2,
+      "unitPrice": 79.99
+    }
+  ]
+}
+
+###
+# ERROR SCENARIOS - Testing error handling
+
+###
+# Try to update non-existent product
+PUT {{$projectUrl}}/api/products/9999
+Content-Type: application/json
+
+{
+  "productId": 9999,
+  "name": "Non-existent Product",
+  "description": "This should fail",
+  "price": 99.99
+}
+
+###
+# Try to create order with invalid product
+POST {{$projectUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 999,
+  "orderItems": [
+    {
+      "productId": 9999,
+      "quantity": 1,
+      "unitPrice": 99.99
+    }
+  ]
+}
+
+###
+# Try to cancel non-existent order
+POST {{$projectUrl}}/api/orders/9999/cancel
+Content-Type: application/json
+
+{
+  "orderId": 9999,
+  "reason": "Test cancellation"
+}

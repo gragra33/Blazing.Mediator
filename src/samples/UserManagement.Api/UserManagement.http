@@ -1,0 +1,190 @@
+###
+# User Management API - Sample HTTP Requests
+# This file demonstrates all endpoints available in the UserManagement.Api sample project
+# which showcases the Blazing.Mediator library with CQRS pattern implementation.
+#
+# To use these requests:
+# 1. Start the UserManagement.Api project
+# 2. Execute requests individually using your HTTP client
+#
+###
+
+###
+# Health Check - Swagger UI
+GET {{$projectUrl}}/swagger/index.html
+
+###
+# QUERY ENDPOINTS - Read operations using CQRS queries
+
+###
+# Get all users with pagination
+GET {{$projectUrl}}/api/users?page=1&pageSize=10&searchTerm=&includeInactive=false
+
+###
+# Get all users with search filter
+GET {{$projectUrl}}/api/users?page=1&pageSize=5&searchTerm=john&includeInactive=false
+
+###
+# Get all users including inactive ones
+GET {{$projectUrl}}/api/users?page=1&pageSize=10&searchTerm=&includeInactive=true
+
+###
+# Get user by ID
+GET {{$projectUrl}}/api/users/1
+
+###
+# Get user by ID - Not found example
+GET {{$projectUrl}}/api/users/9999
+
+###
+# Get all active users
+GET {{$projectUrl}}/api/users/active
+
+###
+# Get user statistics by ID
+GET {{$projectUrl}}/api/users/1/statistics
+
+###
+# Get user statistics - Not found example
+GET {{$projectUrl}}/api/users/9999/statistics
+
+###
+# COMMAND ENDPOINTS - Write operations using CQRS commands
+
+###
+# Create new user (void response)
+POST {{$projectUrl}}/api/users
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "dateOfBirth": "1990-05-15T00:00:00"
+}
+
+###
+# Create new user with ID return
+POST {{$projectUrl}}/api/users/with-id
+Content-Type: application/json
+
+{
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "email": "jane.smith@example.com",
+  "dateOfBirth": "1985-03-22T00:00:00"
+}
+
+###
+# Create user with validation error (empty first name)
+POST {{$projectUrl}}/api/users
+Content-Type: application/json
+
+{
+  "firstName": "",
+  "lastName": "Invalid",
+  "email": "invalid-email",
+  "dateOfBirth": "2025-01-01T00:00:00"
+}
+
+###
+# Update existing user
+PUT {{$projectUrl}}/api/users/1
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "firstName": "John Updated",
+  "lastName": "Doe Updated",
+  "email": "john.updated@example.com",
+  "dateOfBirth": "1990-05-15T00:00:00"
+}
+
+###
+# Update user with ID mismatch (should return 400)
+PUT {{$projectUrl}}/api/users/1
+Content-Type: application/json
+
+{
+  "userId": 2,
+  "firstName": "Wrong ID",
+  "lastName": "Test",
+  "email": "wrong@example.com",
+  "dateOfBirth": "1990-05-15T00:00:00"
+}
+
+###
+# Update user with result return
+PUT {{$projectUrl}}/api/users/1/with-result
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "firstName": "John Result",
+  "lastName": "Doe Result",
+  "email": "john.result@example.com",
+  "dateOfBirth": "1990-05-15T00:00:00"
+}
+
+###
+# Delete user
+DELETE {{$projectUrl}}/api/users/1?reason=User requested account deletion
+
+###
+# Delete user - Not found example
+DELETE {{$projectUrl}}/api/users/9999?reason=Test deletion
+
+###
+# Activate user account
+POST {{$projectUrl}}/api/users/1/activate
+
+###
+# Activate user account - Not found example
+POST {{$projectUrl}}/api/users/9999/activate
+
+###
+# Deactivate user account
+POST {{$projectUrl}}/api/users/1/deactivate
+
+###
+# Deactivate user account - Not found example
+POST {{$projectUrl}}/api/users/9999/deactivate
+
+###
+# BATCH OPERATIONS - Create multiple users for testing
+
+###
+# Create test user 1
+POST {{$projectUrl}}/api/users/with-id
+Content-Type: application/json
+
+{
+  "firstName": "Alice",
+  "lastName": "Johnson",
+  "email": "alice.johnson@example.com",
+  "dateOfBirth": "1992-07-10T00:00:00"
+}
+
+###
+# Create test user 2
+POST {{$projectUrl}}/api/users/with-id
+Content-Type: application/json
+
+{
+  "firstName": "Bob",
+  "lastName": "Wilson",
+  "email": "bob.wilson@example.com",
+  "dateOfBirth": "1988-12-03T00:00:00"
+}
+
+###
+# Create test user 3
+POST {{$projectUrl}}/api/users/with-id
+Content-Type: application/json
+
+{
+  "firstName": "Carol",
+  "lastName": "Brown",
+  "email": "carol.brown@example.com",
+  "dateOfBirth": "1995-09-18T00:00:00"
+}

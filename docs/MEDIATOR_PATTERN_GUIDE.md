@@ -106,7 +106,7 @@ That's it! You now have a working Mediator implementation. Continue reading for 
 <ProjectReference Include="..\..\Blazing.Mediator\Blazing.Mediator.csproj" />
 ```
 
-### Option 2: Package Reference (if published)
+### Option 2: Package Reference
 
 ```xml
 <PackageReference Include="Blazing.Mediator" Version="1.0.0" />

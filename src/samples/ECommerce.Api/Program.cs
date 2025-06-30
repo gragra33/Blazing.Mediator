@@ -3,7 +3,7 @@ using ECommerce.Api.Infrastructure.Data;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder? builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -30,7 +30,7 @@ builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 // Register Mediator with CQRS handlers
 builder.Services.AddMediator(typeof(Program).Assembly);
 
-var app = builder.Build();
+WebApplication? app = builder.Build();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
@@ -39,8 +39,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 
     // Ensure database is created and seeded in development
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<ECommerceDbContext>();
+    using IServiceScope? scope = app.Services.CreateScope();
+    ECommerceDbContext? context = scope.ServiceProvider.GetRequiredService<ECommerceDbContext>();
     context.Database.EnsureCreated();
 }
 

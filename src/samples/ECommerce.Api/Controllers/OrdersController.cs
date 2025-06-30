@@ -14,8 +14,8 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
     [HttpGet("{id}")]
     public async Task<ActionResult<OrderDto>> GetOrder(int id)
     {
-        var query = new GetOrderByIdQuery { OrderId = id };
-        var order = await mediator.Send(query);
+        GetOrderByIdQuery? query = new GetOrderByIdQuery { OrderId = id };
+        OrderDto? order = await mediator.Send(query);
         return Ok(order);
     }
 
@@ -28,7 +28,7 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null)
     {
-        var query = new GetOrdersQuery
+        GetOrdersQuery? query = new GetOrdersQuery
         {
             Page = page,
             PageSize = pageSize,
@@ -38,7 +38,7 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
             ToDate = toDate
         };
 
-        var result = await mediator.Send(query);
+        PagedResult<OrderDto>? result = await mediator.Send(query);
         return Ok(result);
     }
 
@@ -48,14 +48,14 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null)
     {
-        var query = new GetCustomerOrdersQuery
+        GetCustomerOrdersQuery? query = new GetCustomerOrdersQuery
         {
             CustomerId = customerId,
             FromDate = fromDate,
             ToDate = toDate
         };
 
-        var orders = await mediator.Send(query);
+        List<OrderDto>? orders = await mediator.Send(query);
         return Ok(orders);
     }
 
@@ -64,13 +64,13 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null)
     {
-        var query = new GetOrderStatisticsQuery
+        GetOrderStatisticsQuery? query = new GetOrderStatisticsQuery
         {
             FromDate = fromDate,
             ToDate = toDate
         };
 
-        var statistics = await mediator.Send(query);
+        OrderStatisticsDto? statistics = await mediator.Send(query);
         return Ok(statistics);
     }
 
@@ -81,7 +81,7 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
         {
             logger.LogInformation("Creating order for customer {CustomerId}", command.CustomerId);
 
-            var result = await mediator.Send(command);
+            OperationResult<int>? result = await mediator.Send(command);
 
             if (result.Success && result.Data > 0)
             {
@@ -107,7 +107,7 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
         {
             logger.LogInformation("Processing complete order for customer {CustomerId}", command.CustomerId);
 
-            var result = await mediator.Send(command);
+            OperationResult<ProcessOrderResponse>? result = await mediator.Send(command);
 
             if (result.Success)
             {
@@ -137,7 +137,7 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
     public async Task<ActionResult<OperationResult<bool>>> CancelOrder(int id, [FromBody] CancelOrderCommand command)
     {
         command.OrderId = id;
-        var result = await mediator.Send(command);
+        OperationResult<bool>? result = await mediator.Send(command);
 
         if (result.Success)
             return Ok(result);

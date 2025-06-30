@@ -12,7 +12,7 @@ public class CancelOrderHandler(ECommerceDbContext context) : IRequestHandler<Ca
     {
         try
         {
-            var order = await context.Orders.FindAsync(request.OrderId);
+            Order? order = await context.Orders.FindAsync(request.OrderId);
             if (order == null)
                 return OperationResult<bool>.ErrorResult($"Order with ID {request.OrderId} not found");
 

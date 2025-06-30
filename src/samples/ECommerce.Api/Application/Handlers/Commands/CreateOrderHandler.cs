@@ -4,6 +4,7 @@ using ECommerce.Api.Application.DTOs;
 using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
 using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Api.Application.Handlers.Commands;
@@ -15,7 +16,7 @@ public class CreateOrderHandler(ECommerceDbContext context, IValidator<CreateOrd
     {
         try
         {
-            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+            ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);
             if (!validationResult.IsValid)
             {
                 return OperationResult<int>.ErrorResult(
@@ -24,14 +25,14 @@ public class CreateOrderHandler(ECommerceDbContext context, IValidator<CreateOrd
             }
 
             // Check product availability
-            var productIds = request.Items.Select(i => i.ProductId).ToList();
-            var products = await context.Products
+            List<int>? productIds = request.Items.Select(i => i.ProductId).ToList();
+            List<Product>? products = await context.Products
                 .Where(p => productIds.Contains(p.Id) && p.IsActive)
                 .ToListAsync(cancellationToken);
 
-            foreach (var item in request.Items)
+            foreach (OrderItemRequest? item in request.Items)
             {
-                var product = products.FirstOrDefault(p => p.Id == item.ProductId);
+                Product? product = products.FirstOrDefault(p => p.Id == item.ProductId);
                 if (product == null)
                 {
                     return OperationResult<int>.ErrorResult($"Product with ID {item.ProductId} not found or inactive");
@@ -44,11 +45,11 @@ public class CreateOrderHandler(ECommerceDbContext context, IValidator<CreateOrd
             }
 
             // Create order
-            var order = Order.Create(request.CustomerId, request.CustomerEmail, request.ShippingAddress);
+            Order? order = Order.Create(request.CustomerId, request.CustomerEmail, request.ShippingAddress);
 
-            foreach (var item in request.Items)
+            foreach (OrderItemRequest? item in request.Items)
             {
-                var product = products.First(p => p.Id == item.ProductId);
+                Product? product = products.First(p => p.Id == item.ProductId);
                 order.AddItem(item.ProductId, item.Quantity, product.Price);
                 product.ReserveStock(item.Quantity);
             }

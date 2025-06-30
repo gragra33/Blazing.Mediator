@@ -2,6 +2,7 @@ using Blazing.Mediator;
 using ECommerce.Api.Application.DTOs;
 using ECommerce.Api.Application.Mappings;
 using ECommerce.Api.Application.Queries;
+using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,7 @@ public class GetProductByIdHandler(ECommerceDbContext context) : IRequestHandler
 {
     public async Task<ProductDto> Handle(GetProductByIdQuery request, CancellationToken cancellationToken = default)
     {
-        var product = await context.Products
+        Product? product = await context.Products
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == request.ProductId, cancellationToken);
 

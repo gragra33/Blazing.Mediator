@@ -1,5 +1,6 @@
 using Blazing.Mediator;
 using ECommerce.Api.Application.Commands;
+using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
 
 namespace ECommerce.Api.Application.Handlers.Commands;
@@ -8,7 +9,7 @@ public class UpdateOrderStatusHandler(ECommerceDbContext context) : IRequestHand
 {
     public async Task Handle(UpdateOrderStatusCommand request, CancellationToken cancellationToken = default)
     {
-        var order = await context.Orders.FindAsync(request.OrderId);
+        Order? order = await context.Orders.FindAsync(request.OrderId);
         if (order == null)
             throw new InvalidOperationException($"Order with ID {request.OrderId} not found");
 

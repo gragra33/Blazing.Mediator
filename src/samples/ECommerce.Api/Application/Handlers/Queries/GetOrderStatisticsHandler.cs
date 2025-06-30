@@ -1,6 +1,7 @@
 using Blazing.Mediator;
 using ECommerce.Api.Application.DTOs;
 using ECommerce.Api.Application.Queries;
+using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,7 @@ public class GetOrderStatisticsHandler(ECommerceDbContext context)
 {
     public async Task<OrderStatisticsDto> Handle(GetOrderStatisticsQuery request, CancellationToken cancellationToken = default)
     {
-        var query = context.Orders.AsNoTracking();
+        IQueryable<Order>? query = context.Orders.AsNoTracking();
 
         if (request.FromDate.HasValue)
             query = query.Where(o => o.CreatedAt >= request.FromDate.Value);
@@ -19,16 +20,16 @@ public class GetOrderStatisticsHandler(ECommerceDbContext context)
         if (request.ToDate.HasValue)
             query = query.Where(o => o.CreatedAt <= request.ToDate.Value);
 
-        var orders = await query.ToListAsync(cancellationToken);
+        List<Order>? orders = await query.ToListAsync(cancellationToken);
 
-        var totalOrders = orders.Count;
-        var totalRevenue = orders.Sum(o => o.TotalAmount);
-        var pendingOrders = orders.Count(o => o.Status == Domain.Entities.OrderStatus.Pending);
-        var completedOrders = orders.Count(o => o.Status == Domain.Entities.OrderStatus.Delivered);
-        var averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+        int totalOrders = orders.Count;
+        decimal totalRevenue = orders.Sum(o => o.TotalAmount);
+        int pendingOrders = orders.Count(o => o.Status == Domain.Entities.OrderStatus.Pending);
+        int completedOrders = orders.Count(o => o.Status == Domain.Entities.OrderStatus.Delivered);
+        decimal averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
         // Get top products
-        var topProducts = await context.OrderItems
+        List<ProductSalesDto>? topProducts = await context.OrderItems
             .AsNoTracking()
             .Include(oi => oi.Product)
             .GroupBy(oi => new { oi.ProductId, oi.Product.Name })

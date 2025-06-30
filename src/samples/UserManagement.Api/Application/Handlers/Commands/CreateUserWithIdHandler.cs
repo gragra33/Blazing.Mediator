@@ -1,5 +1,6 @@
 using Blazing.Mediator;
 using FluentValidation;
+using FluentValidation.Results;
 using UserManagement.Api.Application.Commands;
 using UserManagement.Api.Domain.Entities;
 using UserManagement.Api.Infrastructure.Data;
@@ -13,11 +14,11 @@ public class CreateUserWithIdHandler(
 {
     public async Task<int> Handle(CreateUserWithIdCommand request, CancellationToken cancellationToken = default)
     {
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
             throw new Exceptions.ValidationException(validationResult.Errors);
 
-        var user = User.Create(
+        User? user = User.Create(
             request.FirstName,
             request.LastName,
             request.Email,

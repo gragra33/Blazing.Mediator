@@ -12,219 +12,219 @@ public class ServiceCollectionExtensionsTests
     public void AddMediator_WithAssemblies_RegistersMediator()
     {
         // Arrange
-        var services = new ServiceCollection();
-        var assembly = typeof(TestRegistrationCommand).Assembly;
+        ServiceCollection? services = new ServiceCollection();
+        Assembly? assembly = typeof(TestRegistrationCommand).Assembly;
 
         // Act
         services.AddMediator(assembly);
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetService<IMediator>();
-        mediator.Should().NotBeNull();
-        mediator.Should().BeOfType<Mediator>();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IMediator? mediator = serviceProvider.GetService<IMediator>();
+        mediator.ShouldNotBeNull();
+        mediator.ShouldBeOfType<Mediator>();
     }
 
     [Fact]
     public void AddMediator_WithAssemblies_RegistersHandlers()
     {
         // Arrange
-        var services = new ServiceCollection();
-        var assembly = typeof(TestRegistrationCommand).Assembly;
+        ServiceCollection? services = new ServiceCollection();
+        Assembly? assembly = typeof(TestRegistrationCommand).Assembly;
 
         // Act
         services.AddMediator(assembly);
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var commandHandler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
-        var queryHandler = serviceProvider.GetService<IRequestHandler<TestRegistrationQuery, string>>();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IRequestHandler<TestRegistrationCommand>? commandHandler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
+        IRequestHandler<TestRegistrationQuery, string>? queryHandler = serviceProvider.GetService<IRequestHandler<TestRegistrationQuery, string>>();
 
-        commandHandler.Should().NotBeNull();
-        queryHandler.Should().NotBeNull();
+        commandHandler.ShouldNotBeNull();
+        queryHandler.ShouldNotBeNull();
     }
 
     [Fact]
     public void AddMediator_WithTypes_RegistersFromCorrectAssemblies()
     {
         // Arrange
-        var services = new ServiceCollection();
+        ServiceCollection? services = new ServiceCollection();
 
         // Act
         services.AddMediator(typeof(TestRegistrationCommand), typeof(ServiceCollectionExtensionsTests));
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetService<IMediator>();
-        var handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IMediator? mediator = serviceProvider.GetService<IMediator>();
+        IRequestHandler<TestRegistrationCommand>? handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
 
-        mediator.Should().NotBeNull();
-        handler.Should().NotBeNull();
+        mediator.ShouldNotBeNull();
+        handler.ShouldNotBeNull();
     }
 
     [Fact]
     public void AddMediator_WithNullAssemblies_RegistersMediatorOnly()
     {
         // Arrange
-        var services = new ServiceCollection();
+        ServiceCollection? services = new ServiceCollection();
 
         // Act
         services.AddMediator((Assembly[])null!);
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetService<IMediator>();
-        mediator.Should().NotBeNull();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IMediator? mediator = serviceProvider.GetService<IMediator>();
+        mediator.ShouldNotBeNull();
     }
 
     [Fact]
     public void AddMediator_WithEmptyAssemblies_RegistersMediatorOnly()
     {
         // Arrange
-        var services = new ServiceCollection();
+        ServiceCollection? services = new ServiceCollection();
 
         // Act
         services.AddMediator(Array.Empty<Assembly>());
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetService<IMediator>();
-        mediator.Should().NotBeNull();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IMediator? mediator = serviceProvider.GetService<IMediator>();
+        mediator.ShouldNotBeNull();
     }
 
     [Fact]
     public void AddMediator_WithNullTypes_RegistersMediatorOnly()
     {
         // Arrange
-        var services = new ServiceCollection();
+        ServiceCollection? services = new ServiceCollection();
 
         // Act
         services.AddMediator((Type[])null!);
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetService<IMediator>();
-        mediator.Should().NotBeNull();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IMediator? mediator = serviceProvider.GetService<IMediator>();
+        mediator.ShouldNotBeNull();
     }
 
     [Fact]
     public void AddMediatorFromCallingAssembly_RegistersMediatorAndHandlers()
     {
         // Arrange
-        var services = new ServiceCollection();
+        ServiceCollection? services = new ServiceCollection();
 
         // Act
         services.AddMediatorFromCallingAssembly();
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetService<IMediator>();
-        var handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IMediator? mediator = serviceProvider.GetService<IMediator>();
+        IRequestHandler<TestRegistrationCommand>? handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
 
-        mediator.Should().NotBeNull();
-        handler.Should().NotBeNull();
+        mediator.ShouldNotBeNull();
+        handler.ShouldNotBeNull();
     }
 
     [Fact]
     public void AddMediatorFromLoadedAssemblies_WithoutFilter_RegistersFromAllAssemblies()
     {
         // Arrange
-        var services = new ServiceCollection();
+        ServiceCollection? services = new ServiceCollection();
 
         // Act
         services.AddMediatorFromLoadedAssemblies();
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetService<IMediator>();
-        mediator.Should().NotBeNull();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IMediator? mediator = serviceProvider.GetService<IMediator>();
+        mediator.ShouldNotBeNull();
     }
 
     [Fact]
     public void AddMediatorFromLoadedAssemblies_WithFilter_RegistersFromFilteredAssemblies()
     {
         // Arrange
-        var services = new ServiceCollection();
+        ServiceCollection? services = new ServiceCollection();
 
         // Act
         services.AddMediatorFromLoadedAssemblies(assembly =>
             assembly.FullName?.Contains("Blazing.Mediator.Tests") == true);
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetService<IMediator>();
-        var handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IMediator? mediator = serviceProvider.GetService<IMediator>();
+        IRequestHandler<TestRegistrationCommand>? handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
 
-        mediator.Should().NotBeNull();
-        handler.Should().NotBeNull();
+        mediator.ShouldNotBeNull();
+        handler.ShouldNotBeNull();
     }
 
     [Fact]
     public void AddMediator_WithDuplicateAssemblies_RegistersHandlersOnce()
     {
         // Arrange
-        var services = new ServiceCollection();
-        var assembly = typeof(TestRegistrationCommand).Assembly;
+        ServiceCollection? services = new ServiceCollection();
+        Assembly? assembly = typeof(TestRegistrationCommand).Assembly;
 
         // Act
         services.AddMediator(assembly, assembly); // Same assembly twice
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var handlers = serviceProvider.GetServices<IRequestHandler<TestRegistrationCommand>>();
-        handlers.Should().HaveCount(1); // Should only register once
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IEnumerable<IRequestHandler<TestRegistrationCommand>>? handlers = serviceProvider.GetServices<IRequestHandler<TestRegistrationCommand>>();
+        handlers.Count().ShouldBe(1); // Should only register once
     }
 
     [Fact]
     public void AddMediator_WithMultipleInterfaces_RegistersAllInterfaces()
     {
         // Arrange
-        var services = new ServiceCollection();
-        var assembly = typeof(TestMultiInterfaceHandler).Assembly;
+        ServiceCollection? services = new ServiceCollection();
+        Assembly? assembly = typeof(TestMultiInterfaceHandler).Assembly;
 
         // Act
         services.AddMediator(assembly);
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var commandHandler = serviceProvider.GetService<IRequestHandler<TestMultiCommand>>();
-        var queryHandler = serviceProvider.GetService<IRequestHandler<TestMultiQuery, string>>();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IRequestHandler<TestMultiCommand>? commandHandler = serviceProvider.GetService<IRequestHandler<TestMultiCommand>>();
+        IRequestHandler<TestMultiQuery, string>? queryHandler = serviceProvider.GetService<IRequestHandler<TestMultiQuery, string>>();
 
-        commandHandler.Should().NotBeNull();
-        queryHandler.Should().NotBeNull();
-        commandHandler.Should().BeSameAs(queryHandler); // Same instance
+        commandHandler.ShouldNotBeNull();
+        queryHandler.ShouldNotBeNull();
+        commandHandler.ShouldBeSameAs(queryHandler); // Same instance
     }
 
     [Fact]
     public void AddMediator_WithAbstractHandler_DoesNotRegisterHandler()
     {
         // Arrange
-        var services = new ServiceCollection();
-        var assembly = typeof(TestAbstractHandler).Assembly;
+        ServiceCollection? services = new ServiceCollection();
+        Assembly? assembly = typeof(TestAbstractHandler).Assembly;
 
         // Act
         services.AddMediator(assembly);
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var handler = serviceProvider.GetService<IRequestHandler<TestAbstractCommand>>();
-        handler.Should().BeNull();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IRequestHandler<TestAbstractCommand>? handler = serviceProvider.GetService<IRequestHandler<TestAbstractCommand>>();
+        handler.ShouldBeNull();
     }
 
     [Fact]
     public void AddMediator_WithInterfaceHandler_DoesNotRegisterHandler()
     {
         // Arrange
-        var services = new ServiceCollection();
-        var assembly = typeof(ITestInterfaceHandler).Assembly;
+        ServiceCollection? services = new ServiceCollection();
+        Assembly? assembly = typeof(ITestInterfaceHandler).Assembly;
 
         // Act
         services.AddMediator(assembly);
 
         // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var handler = serviceProvider.GetService<IRequestHandler<TestInterfaceCommand>>();
-        handler.Should().BeNull();
+        ServiceProvider? serviceProvider = services.BuildServiceProvider();
+        IRequestHandler<TestInterfaceCommand>? handler = serviceProvider.GetService<IRequestHandler<TestInterfaceCommand>>();
+        handler.ShouldBeNull();
     }
 }
 

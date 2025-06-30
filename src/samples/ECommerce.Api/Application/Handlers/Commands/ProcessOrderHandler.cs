@@ -13,7 +13,7 @@ public class ProcessOrderHandler(IMediator mediator)
         try
         {
             // Step 1: Create the order
-            var createOrderCommand = new CreateOrderCommand
+            CreateOrderCommand? createOrderCommand = new CreateOrderCommand
             {
                 CustomerId = request.CustomerId,
                 CustomerEmail = request.CustomerEmail,
@@ -21,16 +21,16 @@ public class ProcessOrderHandler(IMediator mediator)
                 Items = request.Items
             };
 
-            var orderResult = await mediator.Send(createOrderCommand, cancellationToken);
+            OperationResult<int>? orderResult = await mediator.Send(createOrderCommand, cancellationToken);
             if (!orderResult.Success || orderResult.Data <= 0)
             {
                 return OperationResult<ProcessOrderResponse>.ErrorResult(orderResult.Message, orderResult.Errors);
             }
 
-            var orderId = orderResult.Data;
+            int orderId = orderResult.Data;
 
             // Step 2: Update order status to confirmed
-            var updateStatusCommand = new UpdateOrderStatusCommand
+            UpdateOrderStatusCommand? updateStatusCommand = new UpdateOrderStatusCommand
             {
                 OrderId = orderId,
                 Status = OrderStatus.Confirmed

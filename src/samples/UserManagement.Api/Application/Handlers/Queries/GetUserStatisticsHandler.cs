@@ -2,6 +2,7 @@ using Blazing.Mediator;
 using Microsoft.EntityFrameworkCore;
 using UserManagement.Api.Application.Exceptions;
 using UserManagement.Api.Application.Queries;
+using UserManagement.Api.Domain.Entities;
 using UserManagement.Api.Infrastructure.Data;
 
 namespace UserManagement.Api.Application.Handlers.Queries;
@@ -11,7 +12,7 @@ public class GetUserStatisticsHandler(UserManagementDbContext context)
 {
     public async Task<UserStatisticsDto> Handle(GetUserStatisticsQuery request, CancellationToken cancellationToken = default)
     {
-        var user = await context.Users
+        User? user = await context.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 

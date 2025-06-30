@@ -34,9 +34,9 @@ public class GetOrdersHandler(ECommerceDbContext context) : IRequestHandler<GetO
             query = query.Where(o => o.CreatedAt <= request.ToDate.Value);
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
+        int totalCount = await query.CountAsync(cancellationToken);
 
-        var orders = await query
+        List<Order>? orders = await query
             .OrderByDescending(o => o.CreatedAt)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)

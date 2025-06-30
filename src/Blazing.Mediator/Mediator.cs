@@ -1,3 +1,7 @@
+using System.Reflection;
+using Blazing.Mediator.Abstractions;
+using Blazing.Mediator.Pipeline;
+
 namespace Blazing.Mediator;
 
 /// <summary>
@@ -11,65 +15,169 @@ namespace Blazing.Mediator;
 public class Mediator : IMediator
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly IMiddlewarePipelineBuilder _pipelineBuilder;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Mediator"/> class.
     /// </summary>
     /// <param name="serviceProvider">The service provider to resolve handlers.</param>
-    /// <exception cref="ArgumentNullException">Thrown when serviceProvider is null.</exception>
-    public Mediator(IServiceProvider serviceProvider)
+    /// <param name="pipelineBuilder">The middleware pipeline builder.</param>
+    /// <exception cref="ArgumentNullException">Thrown when serviceProvider or pipelineBuilder is null.</exception>
+    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _pipelineBuilder = pipelineBuilder ?? throw new ArgumentNullException(nameof(pipelineBuilder));
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Sends a command request through the middleware pipeline to its corresponding handler.
+    /// </summary>
+    /// <param name="request">The command request to send</param>
+    /// <param name="cancellationToken">Token to cancel the operation</param>
+    /// <returns>A task representing the asynchronous operation</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no handler is found for the request type</exception>
     public async Task Send(IRequest request, CancellationToken cancellationToken = default)
     {
-        var requestType = request.GetType();
-        var handlerType = typeof(IRequestHandler<>).MakeGenericType(requestType);
+        Type requestType = request.GetType();
+        Type handlerType = typeof(IRequestHandler<>).MakeGenericType(requestType);
 
-        var handler = _serviceProvider.GetRequiredService(handlerType);
-        var method = handlerType.GetMethod("Handle")
-            ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
-
-        try
+        // Create final handler delegate that executes the actual handler
+        RequestHandlerDelegate finalHandler = async () =>
         {
-            var task = (Task?)method.Invoke(handler, [request, cancellationToken]);
-
-            if (task != null)
+            // Check for multiple handler registrations
+            IEnumerable<object?> handlers = _serviceProvider.GetServices(handlerType);
+            object[] handlerArray = handlers.Where(h => h != null).ToArray()!;
+            
+            if (handlerArray.Length == 0)
             {
-                await task;
+                throw new InvalidOperationException($"No handler found for request type {requestType.Name}");
             }
-        }
-        catch (TargetInvocationException ex) when (ex.InnerException != null)
+            
+            if (handlerArray.Length > 1)
+            {
+                throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
+            }
+            
+            object handler = handlerArray[0];
+            MethodInfo method = handlerType.GetMethod("Handle")
+                                ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
+
+            try
+            {
+                Task? task = (Task?)method.Invoke(handler, [request, cancellationToken]);
+
+                if (task != null)
+                {
+                    await task;
+                }
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException != null)
+            {
+                throw ex.InnerException;
+            }
+        };
+
+        // Execute through middleware pipeline using reflection to call the generic method
+        MethodInfo? executeMethod = _pipelineBuilder
+            .GetType()
+            .GetMethods()
+            .FirstOrDefault(m =>
+                m.Name == "ExecutePipeline" &&
+                m.GetParameters().Length == 4 &&
+                m.GetParameters()[2].ParameterType == typeof(RequestHandlerDelegate) &&
+                m.IsGenericMethodDefinition);
+
+        if (executeMethod == null)
         {
-            throw ex.InnerException;
+            // Fallback to direct execution if pipeline method not found
+            await finalHandler();
+            return;
+        }
+
+        MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(requestType);
+        Task? pipelineTask = (Task?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, finalHandler, cancellationToken]);
+        
+        if (pipelineTask != null)
+        {
+            await pipelineTask;
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Sends a query request through the middleware pipeline to its corresponding handler and returns the response.
+    /// </summary>
+    /// <typeparam name="TResponse">The type of response expected from the handler</typeparam>
+    /// <param name="request">The query request to send</param>
+    /// <param name="cancellationToken">Token to cancel the operation</param>
+    /// <returns>A task containing the response from the handler</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no handler is found for the request type or the handler returns null</exception>
     public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
-        var requestType = request.GetType();
-        var handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
+        Type requestType = request.GetType();
+        Type handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
 
-        var handler = _serviceProvider.GetRequiredService(handlerType);
-        var method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
-
-        try
+        // Create final handler delegate that executes the actual handler
+        RequestHandlerDelegate<TResponse> finalHandler = async () =>
         {
-            var task = (Task<TResponse>?)method.Invoke(handler, [request, cancellationToken]);
-
-            if (task != null)
+            // Check for multiple handler registrations
+            IEnumerable<object?> handlers = _serviceProvider.GetServices(handlerType);
+            object[] handlerArray = handlers.Where(h => h != null).ToArray()!;
+            
+            if (handlerArray.Length == 0)
             {
-                return await task;
+                throw new InvalidOperationException($"No handler found for request type {requestType.Name}");
             }
+            
+            if (handlerArray.Length > 1)
+            {
+                throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
+            }
+            
+            object handler = handlerArray[0];
+            MethodInfo method = handlerType.GetMethod("Handle")
+                                ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
 
-            throw new InvalidOperationException($"Handler for {requestType.Name} returned null");
-        }
-        catch (TargetInvocationException ex) when (ex.InnerException != null)
+            try
+            {
+                Task<TResponse>? task = (Task<TResponse>?)method.Invoke(handler, [request, cancellationToken]);
+
+                if (task != null)
+                {
+                    return await task;
+                }
+
+                throw new InvalidOperationException($"Handler for {requestType.Name} returned null");
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException != null)
+            {
+                throw ex.InnerException;
+            }
+        };
+
+        // Execute through middleware pipeline using reflection to call the generic method with the correct runtime type
+        MethodInfo? executeMethod = _pipelineBuilder
+            .GetType()
+            .GetMethods()
+            .FirstOrDefault(m =>
+                m.Name == "ExecutePipeline" &&
+                m.GetParameters().Length == 4 &&
+                m.GetParameters()[2].ParameterType.IsGenericType &&
+                m.IsGenericMethodDefinition);
+
+        if (executeMethod == null)
         {
-            throw ex.InnerException;
+            // Fallback to direct execution if pipeline method not found
+            return await finalHandler();
         }
+
+        MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(requestType, typeof(TResponse));
+        Task<TResponse>? pipelineTask = (Task<TResponse>?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, finalHandler, cancellationToken]);
+        
+        if (pipelineTask != null)
+        {
+            return await pipelineTask;
+        }
+        
+        return await finalHandler();
     }
 }

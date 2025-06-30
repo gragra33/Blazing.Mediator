@@ -2,6 +2,7 @@ using Blazing.Mediator;
 using ECommerce.Api.Application.DTOs;
 using ECommerce.Api.Application.Mappings;
 using ECommerce.Api.Application.Queries;
+using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,7 @@ public class GetCustomerOrdersHandler(ECommerceDbContext context)
 {
     public async Task<List<OrderDto>> Handle(GetCustomerOrdersQuery request, CancellationToken cancellationToken = default)
     {
-        var orders = await context.Orders
+        List<Order>? orders = await context.Orders
             .AsNoTracking()
             .Include(o => o.Items)
             .ThenInclude(i => i.Product)

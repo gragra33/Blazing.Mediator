@@ -30,7 +30,7 @@ public class Order
 
     public void AddItem(int productId, int quantity, decimal unitPrice)
     {
-        var existingItem = Items.FirstOrDefault(i => i.ProductId == productId);
+        OrderItem? existingItem = Items.FirstOrDefault(i => i.ProductId == productId);
         if (existingItem != null)
         {
             existingItem.Quantity += quantity;

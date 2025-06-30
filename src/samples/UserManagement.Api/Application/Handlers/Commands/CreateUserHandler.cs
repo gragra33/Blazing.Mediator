@@ -1,5 +1,6 @@
 using Blazing.Mediator;
 using FluentValidation;
+using FluentValidation.Results;
 using UserManagement.Api.Application.Commands;
 using UserManagement.Api.Domain.Entities;
 using UserManagement.Api.Infrastructure.Data;
@@ -16,14 +17,14 @@ public class CreateUserHandler(
     public async Task Handle(CreateUserCommand request, CancellationToken cancellationToken = default)
     {
         // Business validation
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
             throw new Exceptions.ValidationException(validationResult.Errors);
 
         logger.LogInformation("Creating user with email {Email}", request.Email);
 
         // Create domain entity with business logic
-        var user = User.Create(
+        User? user = User.Create(
             request.FirstName,
             request.LastName,
             request.Email,

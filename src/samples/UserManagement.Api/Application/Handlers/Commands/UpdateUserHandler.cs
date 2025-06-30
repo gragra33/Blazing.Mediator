@@ -1,8 +1,10 @@
 using Blazing.Mediator;
 using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
 using UserManagement.Api.Application.Commands;
 using UserManagement.Api.Application.Exceptions;
+using UserManagement.Api.Domain.Entities;
 using UserManagement.Api.Infrastructure.Data;
 
 namespace UserManagement.Api.Application.Handlers.Commands;
@@ -14,11 +16,11 @@ public class UpdateUserHandler(
 {
     public async Task Handle(UpdateUserCommand request, CancellationToken cancellationToken = default)
     {
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
             throw new Exceptions.ValidationException(validationResult.Errors);
 
-        var user = await context.Users
+        User? user = await context.Users
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
         if (user == null)

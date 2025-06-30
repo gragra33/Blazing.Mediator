@@ -26,8 +26,8 @@ public class ProductsController(IMediator mediator) : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductDto>> GetProduct(int id)
     {
-        var query = new GetProductByIdQuery { ProductId = id };
-        var product = await mediator.Send(query);
+        GetProductByIdQuery? query = new GetProductByIdQuery { ProductId = id };
+        ProductDto? product = await mediator.Send(query);
         return Ok(product);
     }
 
@@ -49,7 +49,7 @@ public class ProductsController(IMediator mediator) : ControllerBase
         [FromQuery] bool inStockOnly = false,
         [FromQuery] bool activeOnly = true)
     {
-        var query = new GetProductsQuery
+        GetProductsQuery? query = new GetProductsQuery
         {
             Page = page,
             PageSize = pageSize,
@@ -58,7 +58,7 @@ public class ProductsController(IMediator mediator) : ControllerBase
             ActiveOnly = activeOnly
         };
 
-        var result = await mediator.Send(query);
+        PagedResult<ProductDto>? result = await mediator.Send(query);
         return Ok(result);
     }
 
@@ -71,8 +71,8 @@ public class ProductsController(IMediator mediator) : ControllerBase
     [HttpGet("low-stock")]
     public async Task<ActionResult<List<ProductDto>>> GetLowStockProducts([FromQuery] int threshold = 10)
     {
-        var query = new GetLowStockProductsQuery { Threshold = threshold };
-        var products = await mediator.Send(query);
+        GetLowStockProductsQuery? query = new GetLowStockProductsQuery { Threshold = threshold };
+        List<ProductDto>? products = await mediator.Send(query);
         return Ok(products);
     }
 
@@ -88,7 +88,7 @@ public class ProductsController(IMediator mediator) : ControllerBase
     {
         try
         {
-            var productId = await mediator.Send(command);
+            int productId = await mediator.Send(command);
             return CreatedAtAction(nameof(GetProduct), new { id = productId }, productId);
         }
         catch (ValidationException ex)
@@ -163,7 +163,7 @@ public class ProductsController(IMediator mediator) : ControllerBase
     [HttpPost("{id}/deactivate")]
     public async Task<ActionResult> DeactivateProduct(int id)
     {
-        var command = new DeactivateProductCommand { ProductId = id };
+        DeactivateProductCommand? command = new DeactivateProductCommand { ProductId = id };
         await mediator.Send(command);
         return NoContent();
     }

@@ -4,6 +4,7 @@ using ECommerce.Api.Application.Exceptions;
 using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
 using FluentValidation;
+using FluentValidation.Results;
 
 namespace ECommerce.Api.Application.Handlers.Commands;
 
@@ -13,11 +14,11 @@ public class CreateProductHandler(ECommerceDbContext context, IValidator<CreateP
 {
     public async Task<int> Handle(CreateProductCommand request, CancellationToken cancellationToken = default)
     {
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
             throw new Application.Exceptions.ValidationException(validationResult.Errors);
 
-        var product = Product.Create(request.Name, request.Description, request.Price, request.StockQuantity);
+        Product? product = Product.Create(request.Name, request.Description, request.Price, request.StockQuantity);
 
         context.Products.Add(product);
         await context.SaveChangesAsync(cancellationToken);

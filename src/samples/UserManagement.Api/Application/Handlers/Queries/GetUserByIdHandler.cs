@@ -4,6 +4,7 @@ using UserManagement.Api.Application.DTOs;
 using UserManagement.Api.Application.Exceptions;
 using UserManagement.Api.Application.Mappings;
 using UserManagement.Api.Application.Queries;
+using UserManagement.Api.Domain.Entities;
 using UserManagement.Api.Infrastructure.Data;
 
 namespace UserManagement.Api.Application.Handlers.Queries;
@@ -13,7 +14,7 @@ public class GetUserByIdHandler(UserManagementDbContext context) : IRequestHandl
 {
     public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken = default)
     {
-        var user = await context.Users
+        User? user = await context.Users
             .AsNoTracking() // Read-only optimization
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 

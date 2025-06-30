@@ -30,152 +30,152 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
     public async Task GetProduct_WithValidId_ReturnsOkWithProduct()
     {
         // Act
-        var response = await _client.GetAsync("/api/products/1");
+        HttpResponseMessage? response = await _client.GetAsync("/api/products/1");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
-        var product = JsonSerializer.Deserialize<ProductDto>(content, _jsonOptions);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        string? content = await response.Content.ReadAsStringAsync();
+        ProductDto? product = JsonSerializer.Deserialize<ProductDto>(content, _jsonOptions);
 
-        product.Should().NotBeNull();
-        product!.Id.Should().Be(1);
+        product.ShouldNotBeNull();
+        product!.Id.ShouldBe(1);
     }
 
     [Fact]
     public async Task GetProducts_WithDefaultParameters_ReturnsPagedResult()
     {
         // Act
-        var response = await _client.GetAsync("/api/products");
+        HttpResponseMessage? response = await _client.GetAsync("/api/products");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<PagedResult<ProductDto>>(content, _jsonOptions);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        string? content = await response.Content.ReadAsStringAsync();
+        PagedResult<ProductDto>? result = JsonSerializer.Deserialize<PagedResult<ProductDto>>(content, _jsonOptions);
 
-        result.Should().NotBeNull();
-        result!.Items.Should().NotBeNull();
-        result.TotalCount.Should().BeGreaterThan(0);
-        result.Page.Should().Be(1);
-        result.PageSize.Should().Be(10);
+        result.ShouldNotBeNull();
+        result!.Items.ShouldNotBeNull();
+        result.TotalCount.ShouldBeGreaterThan(0);
+        result.Page.ShouldBe(1);
+        result.PageSize.ShouldBe(10);
     }
 
     [Fact]
     public async Task GetProducts_WithCustomParameters_ReturnsFilteredResult()
     {
         // Act
-        var response = await _client.GetAsync("/api/products?page=1&pageSize=5&searchTerm=test&inStockOnly=true&activeOnly=true");
+        HttpResponseMessage? response = await _client.GetAsync("/api/products?page=1&pageSize=5&searchTerm=test&inStockOnly=true&activeOnly=true");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<PagedResult<ProductDto>>(content, _jsonOptions);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        string? content = await response.Content.ReadAsStringAsync();
+        PagedResult<ProductDto>? result = JsonSerializer.Deserialize<PagedResult<ProductDto>>(content, _jsonOptions);
 
-        result.Should().NotBeNull();
-        result!.Page.Should().Be(1);
-        result.PageSize.Should().Be(5);
+        result.ShouldNotBeNull();
+        result!.Page.ShouldBe(1);
+        result.PageSize.ShouldBe(5);
     }
 
     [Fact]
     public async Task GetLowStockProducts_WithDefaultThreshold_ReturnsLowStockProducts()
     {
         // Act
-        var response = await _client.GetAsync("/api/products/low-stock");
+        HttpResponseMessage? response = await _client.GetAsync("/api/products/low-stock");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
-        var products = JsonSerializer.Deserialize<List<ProductDto>>(content, _jsonOptions);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        string? content = await response.Content.ReadAsStringAsync();
+        List<ProductDto>? products = JsonSerializer.Deserialize<List<ProductDto>>(content, _jsonOptions);
 
-        products.Should().NotBeNull();
-        products!.Should().OnlyContain(p => p.StockQuantity <= 10);
+        products.ShouldNotBeNull();
+        products!.ShouldAllBe(p => p.StockQuantity <= 10);
     }
 
     [Fact]
     public async Task GetLowStockProducts_WithCustomThreshold_ReturnsFilteredProducts()
     {
         // Act
-        var response = await _client.GetAsync("/api/products/low-stock?threshold=5");
+        HttpResponseMessage? response = await _client.GetAsync("/api/products/low-stock?threshold=5");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
-        var products = JsonSerializer.Deserialize<List<ProductDto>>(content, _jsonOptions);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        string? content = await response.Content.ReadAsStringAsync();
+        List<ProductDto>? products = JsonSerializer.Deserialize<List<ProductDto>>(content, _jsonOptions);
 
-        products.Should().NotBeNull();
-        products!.Should().OnlyContain(p => p.StockQuantity <= 5);
+        products.ShouldNotBeNull();
+        products!.ShouldAllBe(p => p.StockQuantity <= 5);
     }
 
     [Fact]
     public async Task CreateProduct_WithValidData_ReturnsCreatedWithId()
     {
         // Arrange
-        var command = new CreateProductCommand
+        CreateProductCommand? command = new CreateProductCommand
         {
             Name = "Test Product",
             Description = "Test Description",
             Price = 29.99m,
             StockQuantity = 100
         };
-        var json = JsonSerializer.Serialize(command, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        string? json = JsonSerializer.Serialize(command, _jsonOptions);
+        StringContent? content = new StringContent(json, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.PostAsync("/api/products", content);
+        HttpResponseMessage? response = await _client.PostAsync("/api/products", content);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var productId = JsonSerializer.Deserialize<int>(responseContent, _jsonOptions);
-        productId.Should().BeGreaterThan(0);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        string? responseContent = await response.Content.ReadAsStringAsync();
+        int productId = JsonSerializer.Deserialize<int>(responseContent, _jsonOptions);
+        productId.ShouldBeGreaterThan(0);
     }
 
     [Fact]
     public async Task UpdateProduct_WithValidData_ReturnsNoContent()
     {
         // Arrange
-        var command = new UpdateProductCommand
+        UpdateProductCommand? command = new UpdateProductCommand
         {
             Name = "Updated Product",
             Description = "Updated Description",
             Price = 39.99m,
             StockQuantity = 150
         };
-        var json = JsonSerializer.Serialize(command, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        string? json = JsonSerializer.Serialize(command, _jsonOptions);
+        StringContent? content = new StringContent(json, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.PutAsync("/api/products/1", content);
+        HttpResponseMessage? response = await _client.PutAsync("/api/products/1", content);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }
 
     [Fact]
     public async Task UpdateProductStock_WithValidData_ReturnsNoContent()
     {
         // Arrange
-        var command = new UpdateProductStockCommand
+        UpdateProductStockCommand? command = new UpdateProductStockCommand
         {
             StockQuantity = 200
         };
-        var json = JsonSerializer.Serialize(command, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        string? json = JsonSerializer.Serialize(command, _jsonOptions);
+        StringContent? content = new StringContent(json, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.PutAsync("/api/products/1/stock", content);
+        HttpResponseMessage? response = await _client.PutAsync("/api/products/1/stock", content);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }
 
     [Fact]
     public async Task DeactivateProduct_WithValidId_ReturnsNoContent()
     {
         // Act
-        var response = await _client.PostAsync("/api/products/1/deactivate", null);
+        HttpResponseMessage? response = await _client.PostAsync("/api/products/1/deactivate", null);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }
 
     // Validation Tests
@@ -183,147 +183,147 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
     public async Task CreateProduct_WithInvalidData_ReturnsBadRequestWithValidationErrors()
     {
         // Arrange
-        var command = new CreateProductCommand
+        CreateProductCommand? command = new CreateProductCommand
         {
             Name = "", // Invalid - empty name
             Description = "Invalid product",
             Price = -10.00m, // Invalid - negative price
             StockQuantity = -5 // Invalid - negative stock
         };
-        var json = JsonSerializer.Serialize(command, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        string? json = JsonSerializer.Serialize(command, _jsonOptions);
+        StringContent? content = new StringContent(json, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.PostAsync("/api/products", content);
+        HttpResponseMessage? response = await _client.PostAsync("/api/products", content);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        string? responseContent = await response.Content.ReadAsStringAsync();
+        string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
         
-        errors.Should().NotBeNull();
-        errors!.Should().Contain("Product name is required");
-        errors.Should().Contain("Price must be greater than 0");
-        errors.Should().Contain("Stock quantity must be 0 or greater");
+        errors.ShouldNotBeNull();
+        errors!.ShouldContain("Product name is required");
+        errors.ShouldContain("Price must be greater than 0");
+        errors.ShouldContain("Stock quantity must be 0 or greater");
     }
 
     [Fact]
     public async Task CreateProduct_WithEmptyName_ReturnsBadRequestWithValidationError()
     {
         // Arrange
-        var command = new CreateProductCommand
+        CreateProductCommand? command = new CreateProductCommand
         {
             Name = "", // Invalid - empty name
             Description = "Valid description",
             Price = 29.99m,
             StockQuantity = 100
         };
-        var json = JsonSerializer.Serialize(command, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        string? json = JsonSerializer.Serialize(command, _jsonOptions);
+        StringContent? content = new StringContent(json, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.PostAsync("/api/products", content);
+        HttpResponseMessage? response = await _client.PostAsync("/api/products", content);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        string? responseContent = await response.Content.ReadAsStringAsync();
+        string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
         
-        errors.Should().NotBeNull();
-        errors!.Should().Contain("Product name is required");
+        errors.ShouldNotBeNull();
+        errors!.ShouldContain("Product name is required");
     }
 
     [Fact]
     public async Task UpdateProduct_WithInvalidData_ReturnsBadRequestWithValidationErrors()
     {
         // Arrange
-        var command = new UpdateProductCommand
+        UpdateProductCommand? command = new UpdateProductCommand
         {
             Name = "", // Invalid - empty name
             Description = "Invalid update",
             Price = -5.00m, // Invalid - negative price
             StockQuantity = -10 // Invalid - negative stock
         };
-        var json = JsonSerializer.Serialize(command, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        string? json = JsonSerializer.Serialize(command, _jsonOptions);
+        StringContent? content = new StringContent(json, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.PutAsync("/api/products/1", content);
+        HttpResponseMessage? response = await _client.PutAsync("/api/products/1", content);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        string? responseContent = await response.Content.ReadAsStringAsync();
+        string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
         
-        errors.Should().NotBeNull();
-        errors!.Should().Contain("Product name is required");
-        errors.Should().Contain("Product price must be greater than 0");
-        errors.Should().Contain("Stock quantity cannot be negative");
+        errors.ShouldNotBeNull();
+        errors!.ShouldContain("Product name is required");
+        errors.ShouldContain("Product price must be greater than 0");
+        errors.ShouldContain("Stock quantity cannot be negative");
     }
 
     [Fact]
     public async Task UpdateProduct_WithNonExistentId_ReturnsNotFound()
     {
         // Arrange
-        var command = new UpdateProductCommand
+        UpdateProductCommand? command = new UpdateProductCommand
         {
             Name = "Non-existent Product",
             Description = "This should fail",
             Price = 99.99m,
             StockQuantity = 10
         };
-        var json = JsonSerializer.Serialize(command, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        string? json = JsonSerializer.Serialize(command, _jsonOptions);
+        StringContent? content = new StringContent(json, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.PutAsync("/api/products/9999", content);
+        HttpResponseMessage? response = await _client.PutAsync("/api/products/9999", content);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        responseContent.Should().Contain("Product with ID 9999 not found");
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        string? responseContent = await response.Content.ReadAsStringAsync();
+        responseContent.ShouldContain("Product with ID 9999 not found");
     }
 
     [Fact]
     public async Task UpdateProductStock_WithNegativeStock_ReturnsBadRequestWithValidationError()
     {
         // Arrange
-        var command = new UpdateProductStockCommand
+        UpdateProductStockCommand? command = new UpdateProductStockCommand
         {
             StockQuantity = -5 // Invalid - negative stock
         };
-        var json = JsonSerializer.Serialize(command, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        string? json = JsonSerializer.Serialize(command, _jsonOptions);
+        StringContent? content = new StringContent(json, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.PutAsync("/api/products/1/stock", content);
+        HttpResponseMessage? response = await _client.PutAsync("/api/products/1/stock", content);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        string? responseContent = await response.Content.ReadAsStringAsync();
+        string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
         
-        errors.Should().NotBeNull();
-        errors!.Should().Contain("Stock quantity cannot be negative");
+        errors.ShouldNotBeNull();
+        errors!.ShouldContain("Stock quantity cannot be negative");
     }
 
     [Fact]
     public async Task UpdateProductStock_WithNonExistentId_ReturnsNotFound()
     {
         // Arrange
-        var command = new UpdateProductStockCommand
+        UpdateProductStockCommand? command = new UpdateProductStockCommand
         {
             StockQuantity = 100
         };
-        var json = JsonSerializer.Serialize(command, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        string? json = JsonSerializer.Serialize(command, _jsonOptions);
+        StringContent? content = new StringContent(json, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.PutAsync("/api/products/9999/stock", content);
+        HttpResponseMessage? response = await _client.PutAsync("/api/products/9999/stock", content);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        responseContent.Should().Contain("Product with ID 9999 not found");
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        string? responseContent = await response.Content.ReadAsStringAsync();
+        responseContent.ShouldContain("Product with ID 9999 not found");
     }
 }

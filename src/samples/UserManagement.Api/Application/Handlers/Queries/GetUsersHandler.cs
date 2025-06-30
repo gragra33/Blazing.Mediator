@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using UserManagement.Api.Application.DTOs;
 using UserManagement.Api.Application.Mappings;
 using UserManagement.Api.Application.Queries;
+using UserManagement.Api.Domain.Entities;
 using UserManagement.Api.Infrastructure.Data;
 
 namespace UserManagement.Api.Application.Handlers.Queries;
@@ -11,7 +12,7 @@ public class GetUsersHandler(UserManagementDbContext context) : IRequestHandler<
 {
     public async Task<PagedResult<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken = default)
     {
-        var query = context.Users.AsNoTracking();
+        IQueryable<User>? query = context.Users.AsNoTracking();
 
         // Apply filters
         if (!request.IncludeInactive)
@@ -19,16 +20,16 @@ public class GetUsersHandler(UserManagementDbContext context) : IRequestHandler<
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
-            var searchTerm = request.SearchTerm.ToLower();
+            string? searchTerm = request.SearchTerm.ToLower();
             query = query.Where(u =>
                 u.FirstName.ToLower().Contains(searchTerm) ||
                 u.LastName.ToLower().Contains(searchTerm) ||
                 u.Email.ToLower().Contains(searchTerm));
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
+        int totalCount = await query.CountAsync(cancellationToken);
 
-        var users = await query
+        List<User>? users = await query
             .OrderBy(u => u.LastName)
             .ThenBy(u => u.FirstName)
             .Skip((request.Page - 1) * request.PageSize)

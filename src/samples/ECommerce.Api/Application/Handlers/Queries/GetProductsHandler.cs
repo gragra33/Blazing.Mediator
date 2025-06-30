@@ -2,6 +2,7 @@ using Blazing.Mediator;
 using ECommerce.Api.Application.DTOs;
 using ECommerce.Api.Application.Mappings;
 using ECommerce.Api.Application.Queries;
+using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,7 @@ public class GetProductsHandler(ECommerceDbContext context) : IRequestHandler<Ge
 {
     public async Task<PagedResult<ProductDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken = default)
     {
-        var query = context.Products.AsNoTracking();
+        IQueryable<Product>? query = context.Products.AsNoTracking();
 
         if (request.ActiveOnly)
             query = query.Where(p => p.IsActive);
@@ -21,15 +22,15 @@ public class GetProductsHandler(ECommerceDbContext context) : IRequestHandler<Ge
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
-            var searchTerm = request.SearchTerm.ToLower();
+            string? searchTerm = request.SearchTerm.ToLower();
             query = query.Where(p =>
                 p.Name.ToLower().Contains(searchTerm) ||
                 p.Description.ToLower().Contains(searchTerm));
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
+        int totalCount = await query.CountAsync(cancellationToken);
 
-        var products = await query
+        List<Product>? products = await query
             .OrderBy(p => p.Name)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)

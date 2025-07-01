@@ -24,7 +24,6 @@ The Blazing.Mediator library provides:
 
 <!-- TOC -->
 
--   [Key Features](#key-features)
 -   [Quick Start](#quick-start)
 -   [Installation](#installation)
     -   [.NET CLI](#net-cli)

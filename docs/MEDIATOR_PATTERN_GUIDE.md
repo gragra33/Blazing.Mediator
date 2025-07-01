@@ -1815,34 +1815,91 @@ This sample demonstrates a traditional e-commerce API using Controllers with con
 
 ```
 ECommerce.Api/
-├── Application/
+├── Application/           # Application layer (CQRS & business logic)
 │   ├── Commands/          # Write operations (CQRS Commands)
+│   │   ├── CancelOrderCommand.cs
 │   │   ├── CreateOrderCommand.cs
 │   │   ├── CreateProductCommand.cs
+│   │   ├── DeactivateProductCommand.cs
+│   │   ├── ProcessOrderCommand.cs
+│   │   ├── ProcessOrderResponse.cs
+│   │   ├── UpdateOrderStatusCommand.cs
 │   │   ├── UpdateProductCommand.cs
-│   │   └── ProcessOrderCommand.cs
+│   │   └── UpdateProductStockCommand.cs
 │   ├── Queries/           # Read operations (CQRS Queries)
+│   │   ├── GetCustomerOrdersQuery.cs
+│   │   ├── GetLowStockProductsQuery.cs
 │   │   ├── GetOrderByIdQuery.cs
+│   │   ├── GetOrdersQuery.cs
+│   │   ├── GetOrderStatisticsQuery.cs
 │   │   ├── GetProductByIdQuery.cs
 │   │   └── GetProductsQuery.cs
 │   ├── Handlers/          # Business logic handlers
-│   │   ├── Commands/
-│   │   └── Queries/
+│   │   ├── Commands/      # Command handlers
+│   │   │   ├── CancelOrderHandler.cs
+│   │   │   ├── CreateOrderHandler.cs
+│   │   │   ├── CreateProductHandler.cs
+│   │   │   ├── DeactivateProductHandler.cs
+│   │   │   ├── ProcessOrderHandler.cs
+│   │   │   ├── UpdateOrderStatusHandler.cs
+│   │   │   ├── UpdateProductHandler.cs
+│   │   │   └── UpdateProductStockHandler.cs
+│   │   └── Queries/       # Query handlers
+│   │       ├── GetCustomerOrdersHandler.cs
+│   │       ├── GetLowStockProductsHandler.cs
+│   │       ├── GetOrderByIdHandler.cs
+│   │       ├── GetOrdersHandler.cs
+│   │       ├── GetOrderStatisticsHandler.cs
+│   │       ├── GetProductByIdHandler.cs
+│   │       └── GetProductsHandler.cs
 │   ├── Middleware/        # Conditional middleware
 │   │   ├── OrderLoggingMiddleware.cs
 │   │   └── ProductLoggingMiddleware.cs
 │   ├── DTOs/              # Data transfer objects
+│   │   ├── CreateOrderRequest.cs
+│   │   ├── OperationResult.cs
+│   │   ├── OrderDto.cs
+│   │   ├── OrderItemDto.cs
+│   │   ├── OrderItemRequest.cs
+│   │   ├── OrderStatisticsDto.cs
+│   │   ├── PagedResult.cs
+│   │   ├── ProductDto.cs
+│   │   └── ProductSalesDto.cs
+│   ├── Mappings/          # Object mapping profiles
+│   │   └── ECommerceMappingExtensions.cs
 │   ├── Validators/        # FluentValidation validators
+│   │   ├── CreateOrderCommandValidator.cs
+│   │   ├── CreateProductCommandValidator.cs
+│   │   ├── ProcessOrderCommandValidator.cs
+│   │   ├── UpdateProductCommandValidator.cs
+│   │   └── UpdateProductStockCommandValidator.cs
 │   └── Exceptions/        # Custom exceptions
-├── Controllers/           # API Controllers
+│       └── ValidationException.cs
+├── Controllers/           # API Controllers (MVC approach)
 │   ├── OrdersController.cs
 │   └── ProductsController.cs
-├── Infrastructure/        # Data access layer
-│   ├── Data/
-│   │   ├── ECommerceDbContext.cs
-│   │   └── Entities/
-│   └── Repositories/
-└── Program.cs            # Application configuration
+├── Domain/                # Domain layer
+│   └── Entities/          # Domain entities
+│       ├── Order.cs
+│       ├── OrderItem.cs
+│       ├── OrderStatus.cs
+│       └── Product.cs
+├── Infrastructure/        # Infrastructure layer
+│   └── Data/              # Data access
+│       └── ECommerceDbContext.cs
+├── Endpoints/             # Minimal API endpoints (alternative to controllers)
+│   └── ProductEndpoints.cs
+├── Extensions/            # Service registration extensions
+│   ├── ServiceCollectionExtensions.cs
+│   └── WebApplicationExtensions.cs
+├── Properties/            # Assembly properties
+│   └── launchSettings.json
+├── ECommerce.http         # HTTP test file
+├── test-product.json      # Sample test data
+├── Add-XmlDocs.ps1        # PowerShell script for XML documentation
+├── Program.cs             # Application configuration & startup
+├── appsettings.json       # Configuration settings
+└── ECommerce.Api.csproj   # Project file
 ```
 
 #### Sample Request/Response Flow
@@ -1950,25 +2007,71 @@ This sample demonstrates a modern user management API using Minimal APIs with co
 
 ```
 UserManagement.Api/
-├── Application/
-│   ├── Commands/          # Write operations
+├── Application/           # Application layer (CQRS & business logic)
+│   ├── Commands/          # Write operations (CQRS Commands)
+│   │   ├── ActivateUserAccountCommand.cs
 │   │   ├── CreateUserCommand.cs
+│   │   ├── CreateUserWithIdCommand.cs
+│   │   ├── DeactivateUserAccountCommand.cs
+│   │   ├── DeleteUserCommand.cs
 │   │   ├── UpdateUserCommand.cs
-│   │   └── DeleteUserCommand.cs
-│   ├── Queries/           # Read operations
+│   │   └── UpdateUserWithResultCommand.cs
+│   ├── Queries/           # Read operations (CQRS Queries)
+│   │   ├── GetActiveUsersQuery.cs
 │   │   ├── GetUserByIdQuery.cs
 │   │   ├── GetUsersQuery.cs
-│   │   └── GetUserStatisticsQuery.cs
+│   │   ├── GetUserStatisticsQuery.cs
+│   │   └── UserStatisticsDto.cs
 │   ├── Handlers/          # Business logic handlers
-│   ├── Middleware/        # Standard middleware
+│   │   ├── Commands/      # Command handlers
+│   │   │   ├── ActivateUserAccountHandler.cs
+│   │   │   ├── CreateUserHandler.cs
+│   │   │   ├── CreateUserWithIdHandler.cs
+│   │   │   ├── DeactivateUserAccountHandler.cs
+│   │   │   ├── DeleteUserHandler.cs
+│   │   │   ├── UpdateUserHandler.cs
+│   │   │   └── UpdateUserWithResultHandler.cs
+│   │   └── Queries/       # Query handlers
+│   │       ├── GetActiveUsersHandler.cs
+│   │       ├── GetUserByIdHandler.cs
+│   │       ├── GetUsersHandler.cs
+│   │       └── GetUserStatisticsHandler.cs
+│   ├── Middleware/        # Standard middleware (logs all operations)
 │   │   ├── GeneralLoggingMiddleware.cs
 │   │   └── GeneralCommandLoggingMiddleware.cs
 │   ├── DTOs/              # Data transfer objects
-│   └── Models/            # Domain models
+│   │   ├── OperationResult.cs
+│   │   ├── PagedResult.cs
+│   │   └── UserDto.cs
+│   ├── Mappings/          # Object mapping profiles
+│   │   └── UserMappingExtensions.cs
+│   ├── Validators/        # FluentValidation validators
+│   │   ├── CreateUserCommandValidator.cs
+│   │   ├── CreateUserWithIdCommandValidator.cs
+│   │   ├── UpdateUserCommandValidator.cs
+│   │   └── UpdateUserWithResultCommandValidator.cs
+│   └── Exceptions/        # Custom exceptions
+│       ├── BusinessException.cs
+│       ├── NotFoundException.cs
+│       └── ValidationException.cs
+├── Domain/                # Domain layer
+│   └── Entities/          # Domain entities
+│       └── User.cs
+├── Infrastructure/        # Infrastructure layer
+│   └── Data/              # Data access
+│       └── UserManagementDbContext.cs
 ├── Endpoints/             # Minimal API endpoints
-│   └── UserEndpoints.cs
-├── Infrastructure/        # Data access layer
-└── Program.cs            # Application configuration
+│   ├── UserCommandEndpoints.cs
+│   └── UserQueryEndpoints.cs
+├── Extensions/            # Service registration extensions
+│   ├── ServiceCollectionExtensions.cs
+│   └── WebApplicationExtensions.cs
+├── Properties/            # Assembly properties
+│   └── launchSettings.json
+├── UserManagement.http    # HTTP test file
+├── Program.cs             # Application configuration & startup
+├── appsettings.json       # Configuration settings
+└── UserManagement.Api.csproj # Project file
 ```
 
 #### Sample Request/Response Flow

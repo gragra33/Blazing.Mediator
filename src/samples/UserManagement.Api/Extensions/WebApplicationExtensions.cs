@@ -28,12 +28,11 @@ public static class WebApplicationExtensions
     /// </summary>
     private static void ConfigureDevelopmentEnvironment(this WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-            app.EnsureDatabaseCreated();
-        }
+        if (!app.Environment.IsDevelopment()) return;
+
+        app.UseSwagger();
+        app.UseSwaggerUI();
+        app.EnsureDatabaseCreated();
     }
 
     /// <summary>

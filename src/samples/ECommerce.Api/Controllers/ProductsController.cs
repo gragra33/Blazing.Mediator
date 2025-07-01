@@ -26,8 +26,8 @@ public class ProductsController(IMediator mediator) : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductDto>> GetProduct(int id)
     {
-        GetProductByIdQuery? query = new GetProductByIdQuery { ProductId = id };
-        ProductDto? product = await mediator.Send(query);
+        GetProductByIdQuery query = new() { ProductId = id };
+        ProductDto product = await mediator.Send(query);
         return Ok(product);
     }
 
@@ -49,7 +49,7 @@ public class ProductsController(IMediator mediator) : ControllerBase
         [FromQuery] bool inStockOnly = false,
         [FromQuery] bool activeOnly = true)
     {
-        GetProductsQuery? query = new GetProductsQuery
+        GetProductsQuery query = new()
         {
             Page = page,
             PageSize = pageSize,
@@ -58,7 +58,7 @@ public class ProductsController(IMediator mediator) : ControllerBase
             ActiveOnly = activeOnly
         };
 
-        PagedResult<ProductDto>? result = await mediator.Send(query);
+        PagedResult<ProductDto> result = await mediator.Send(query);
         return Ok(result);
     }
 
@@ -71,8 +71,8 @@ public class ProductsController(IMediator mediator) : ControllerBase
     [HttpGet("low-stock")]
     public async Task<ActionResult<List<ProductDto>>> GetLowStockProducts([FromQuery] int threshold = 10)
     {
-        GetLowStockProductsQuery? query = new GetLowStockProductsQuery { Threshold = threshold };
-        List<ProductDto>? products = await mediator.Send(query);
+        GetLowStockProductsQuery query = new() { Threshold = threshold };
+        List<ProductDto> products = await mediator.Send(query);
         return Ok(products);
     }
 
@@ -163,7 +163,7 @@ public class ProductsController(IMediator mediator) : ControllerBase
     [HttpPost("{id}/deactivate")]
     public async Task<ActionResult> DeactivateProduct(int id)
     {
-        DeactivateProductCommand? command = new DeactivateProductCommand { ProductId = id };
+        DeactivateProductCommand command = new() { ProductId = id };
         await mediator.Send(command);
         return NoContent();
     }

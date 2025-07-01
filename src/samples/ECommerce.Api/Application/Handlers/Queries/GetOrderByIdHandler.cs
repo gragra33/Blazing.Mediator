@@ -8,8 +8,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Api.Application.Handlers.Queries;
 
+/// <summary>
+/// Handler for retrieving a specific order by its unique identifier.
+/// </summary>
+/// <param name="context">The database context for accessing order data.</param>
 public class GetOrderByIdHandler(ECommerceDbContext context) : IRequestHandler<GetOrderByIdQuery, OrderDto>
 {
+    /// <summary>
+    /// Handles the get order by ID query by retrieving the order with its items and product details.
+    /// </summary>
+    /// <param name="request">The query containing the order ID to retrieve.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The order details if found.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the order is not found.</exception>
     public async Task<OrderDto> Handle(GetOrderByIdQuery request, CancellationToken cancellationToken = default)
     {
         Order? order = await context.Orders

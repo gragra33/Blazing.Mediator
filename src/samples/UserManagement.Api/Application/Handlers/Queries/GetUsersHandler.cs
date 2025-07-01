@@ -12,7 +12,7 @@ public class GetUsersHandler(UserManagementDbContext context) : IRequestHandler<
 {
     public async Task<PagedResult<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken = default)
     {
-        IQueryable<User>? query = context.Users.AsNoTracking();
+        IQueryable<User> query = context.Users.AsNoTracking();
 
         // Apply filters
         if (!request.IncludeInactive)
@@ -20,7 +20,7 @@ public class GetUsersHandler(UserManagementDbContext context) : IRequestHandler<
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
-            string? searchTerm = request.SearchTerm.ToLower();
+            string searchTerm = request.SearchTerm.ToLower();
             query = query.Where(u =>
                 u.FirstName.ToLower().Contains(searchTerm) ||
                 u.LastName.ToLower().Contains(searchTerm) ||
@@ -29,7 +29,7 @@ public class GetUsersHandler(UserManagementDbContext context) : IRequestHandler<
 
         int totalCount = await query.CountAsync(cancellationToken);
 
-        List<User>? users = await query
+        List<User> users = await query
             .OrderBy(u => u.LastName)
             .ThenBy(u => u.FirstName)
             .Skip((request.Page - 1) * request.PageSize)

@@ -1,5 +1,4 @@
 using Blazing.Mediator;
-using UserManagement.Api.Application.Commands;
 using UserManagement.Api.Application.DTOs;
 using UserManagement.Api.Application.Exceptions;
 using UserManagement.Api.Application.Queries;

@@ -13,7 +13,7 @@ public class GetActiveUsersHandler(UserManagementDbContext context)
 {
     public async Task<List<UserDto>> Handle(GetActiveUsersQuery request, CancellationToken cancellationToken = default)
     {
-        List<User>? users = await context.Users
+        List<User> users = await context.Users
             .AsNoTracking()
             .Where(u => u.IsActive)
             .OrderBy(u => u.LastName)

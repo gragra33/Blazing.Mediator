@@ -18,7 +18,7 @@ public class CreateUserWithIdHandler(
         if (!validationResult.IsValid)
             throw new Exceptions.ValidationException(validationResult.Errors);
 
-        User? user = User.Create(
+        User user = User.Create(
             request.FirstName,
             request.LastName,
             request.Email,

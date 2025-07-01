@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace Blazing.Mediator.Pipeline;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace Blazing.Mediator.Pipeline;
 /// </summary>
 public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddlewarePipelineInspector
 {
-    private readonly List<MiddlewareInfo> _middlewareInfos = new();
+    private readonly List<MiddlewareInfo> _middlewareInfos = [];
 
     private record MiddlewareInfo(Type Type, int Order, object? Configuration = null);
 
@@ -110,8 +108,11 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
     }
 
     /// <summary>
-    /// Adds middleware with configuration.
+    /// Adds middleware with configuration to the pipeline.
     /// </summary>
+    /// <typeparam name="TMiddleware">The middleware type that implements IRequestMiddleware.</typeparam>
+    /// <param name="configuration">Optional configuration object for the middleware.</param>
+    /// <returns>The pipeline builder for chaining.</returns>
     public IMiddlewarePipelineBuilder AddMiddleware<TMiddleware>(object? configuration)
         where TMiddleware : class
     {
@@ -153,13 +154,12 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
         CancellationToken cancellationToken)
         where TRequest : IRequest<TResponse>
     {
-        string requestId = Guid.NewGuid().ToString("N")[..8];
-        string requestType = request.GetType().Name;
-        
+        _ = Guid.NewGuid().ToString("N")[..8];
+
         RequestHandlerDelegate<TResponse> pipeline = finalHandler;
 
         // Get middleware types that can handle this request type, sorted by order
-        List<(Type Type, int Order)> applicableMiddleware = new List<(Type Type, int Order)>();
+        List<(Type Type, int Order)> applicableMiddleware = [];
 
         foreach (MiddlewareInfo middlewareInfo in _middlewareInfos)
         {
@@ -171,20 +171,18 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
             {
                 // Check if this middleware supports the 2-parameter IRequestMiddleware<TRequest, TResponse>
                 var genericParams = middlewareType.GetGenericArguments();
-                if (genericParams.Length == 2)
+                switch (genericParams)
                 {
-                    // Create the specific generic type for this request/response pair
-                    actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest), typeof(TResponse));
-                }
-                else if (genericParams.Length == 1)
-                {
-                    // This is a 1-parameter middleware, skip it in this pipeline (it's for commands without response)
-                    continue;
-                }
-                else
-                {
-                    // Unsupported number of generic parameters
-                    continue;
+                    case { Length: 2 }:
+                        // Create the specific generic type for this request/response pair
+                        actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest), typeof(TResponse));
+                        break;
+                    case { Length: 1 }:
+                        // This is a 1-parameter middleware, skip it in this pipeline (it's for commands without response)
+                        continue;
+                    default:
+                        // Unsupported number of generic parameters
+                        continue;
                 }
             }
             else
@@ -225,7 +223,7 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
         // Build pipeline in reverse order so the first middleware in the sorted list runs first
         for (int i = applicableMiddleware.Count - 1; i >= 0; i--)
         {
-            (Type middlewareType, int middlewareOrder) = applicableMiddleware[i];
+            (Type middlewareType, int _) = applicableMiddleware[i];
             RequestHandlerDelegate<TResponse> currentPipeline = pipeline;
             string middlewareName = middlewareType.Name;
 
@@ -233,20 +231,16 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
             {
                 // Create middleware instance using DI container
                 IRequestMiddleware<TRequest, TResponse>? middleware = serviceProvider.GetService(middlewareType) as IRequestMiddleware<TRequest, TResponse>;
-                
-                if (middleware == null)
-                {
-                    throw new InvalidOperationException($"Could not create instance of middleware {middlewareName}. Make sure the middleware is registered in the DI container.");
-                }
 
-                // Check if this is conditional middleware and should execute
-                if (middleware is IConditionalMiddleware<TRequest, TResponse> conditionalMiddleware && !conditionalMiddleware.ShouldExecute(request))
+                return middleware switch
                 {
-                    // Skip this middleware
-                    return await currentPipeline();
-                }
-
-                return await middleware.HandleAsync(request, currentPipeline, cancellationToken);
+                    null => throw new InvalidOperationException(
+                        $"Could not create instance of middleware {middlewareName}. Make sure the middleware is registered in the DI container."),
+                    // Check if this is conditional middleware and should execute
+                    IConditionalMiddleware<TRequest, TResponse> conditionalMiddleware when !conditionalMiddleware
+                        .ShouldExecute(request) => await currentPipeline(),
+                    _ => await middleware.HandleAsync(request, currentPipeline, cancellationToken)
+                };
             };
         }
         TResponse result = await pipeline();
@@ -263,38 +257,31 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
         CancellationToken cancellationToken)
         where TRequest : IRequest
     {
-        string requestId = Guid.NewGuid().ToString("N")[..8];
-        string requestType = request.GetType().Name;
-        
         RequestHandlerDelegate pipeline = finalHandler;
 
         // Get middleware types that can handle this request type, sorted by order
-        List<(Type Type, int Order)> applicableMiddleware = new List<(Type Type, int Order)>();
+        List<(Type Type, int Order)> applicableMiddleware = [];
 
-        foreach (MiddlewareInfo middlewareInfo in _middlewareInfos)
+        foreach ((Type? middlewareType, int order, var _) in _middlewareInfos)
         {
-            Type middlewareType = middlewareInfo.Type;
-            
             // Handle open generic types by making them closed generic types
             Type actualMiddlewareType;
             if (middlewareType.IsGenericTypeDefinition)
             {
                 // Check if this middleware supports the 1-parameter IRequestMiddleware<TRequest>
                 var genericParams = middlewareType.GetGenericArguments();
-                if (genericParams.Length == 1)
+                switch (genericParams)
                 {
-                    // Create the specific generic type for this command
-                    actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest));
-                }
-                else if (genericParams.Length == 2)
-                {
-                    // This is a 2-parameter middleware, skip it in this pipeline (it's for queries/commands with response)
-                    continue;
-                }
-                else
-                {
-                    // Unsupported number of generic parameters
-                    continue;
+                    case { Length: 1 }:
+                        // Create the specific generic type for this command
+                        actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest));
+                        break;
+                    case { Length: 2 }:
+                        // This is a 2-parameter middleware, skip it in this pipeline (it's for queries/commands with response)
+                        continue;
+                    default:
+                        // Unsupported number of generic parameters
+                        continue;
                 }
             }
             else
@@ -305,14 +292,14 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
             // Check if this middleware type implements IRequestMiddleware<TRequest>
             Type genericMiddlewareType = typeof(IRequestMiddleware<>).MakeGenericType(typeof(TRequest));
             
-            if (!actualMiddlewareType.GetInterfaces().Any(i => i == genericMiddlewareType))
+            if (actualMiddlewareType.GetInterfaces().All(i => i != genericMiddlewareType))
             {
                 // This middleware doesn't handle this request type, skip it
                 continue;
             }
 
             // Use the cached order from registration
-            applicableMiddleware.Add((actualMiddlewareType, middlewareInfo.Order));
+            applicableMiddleware.Add((actualMiddlewareType, Order: order));
         }
 
 
@@ -335,7 +322,7 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
         // Build pipeline in reverse order so the first middleware in the sorted list runs first
         for (int i = applicableMiddleware.Count - 1; i >= 0; i--)
         {
-            (Type middlewareType, int middlewareOrder) = applicableMiddleware[i];
+            (Type middlewareType, int _) = applicableMiddleware[i];
             RequestHandlerDelegate currentPipeline = pipeline;
             string middlewareName = middlewareType.Name;
 
@@ -345,20 +332,19 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
                 // Create middleware instance using DI container
                 IRequestMiddleware<TRequest>? middleware = serviceProvider.GetService(middlewareType) as IRequestMiddleware<TRequest>;
                 
-                if (middleware == null)
+                switch (middleware)
                 {
-                    throw new InvalidOperationException($"Could not create instance of middleware {middlewareName}. Make sure the middleware is registered in the DI container.");
+                    case null:
+                        throw new InvalidOperationException($"Could not create instance of middleware {middlewareName}. Make sure the middleware is registered in the DI container.");
+                    // Check if this is conditional middleware and should execute
+                    case IConditionalMiddleware<TRequest> conditionalMiddleware when !conditionalMiddleware.ShouldExecute(request):
+                        // Skip this middleware
+                        await currentPipeline();
+                        return;
+                    default:
+                        await middleware.HandleAsync(request, currentPipeline, cancellationToken);
+                        break;
                 }
-
-                // Check if this is conditional middleware and should execute
-                if (middleware is IConditionalMiddleware<TRequest> conditionalMiddleware && !conditionalMiddleware.ShouldExecute(request))
-                {
-                    // Skip this middleware
-                    await currentPipeline();
-                    return;
-                }
-
-                await middleware.HandleAsync(request, currentPipeline, cancellationToken);
             };
         }
 

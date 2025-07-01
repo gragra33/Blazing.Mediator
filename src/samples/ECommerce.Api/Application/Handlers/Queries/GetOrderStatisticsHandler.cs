@@ -7,12 +7,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Api.Application.Handlers.Queries;
 
+/// <summary>
+/// Handler for retrieving order statistics within a specified date range.
+/// </summary>
+/// <param name="context">The database context for accessing order data.</param>
 public class GetOrderStatisticsHandler(ECommerceDbContext context)
     : IRequestHandler<GetOrderStatisticsQuery, OrderStatisticsDto>
 {
+    /// <summary>
+    /// Handles the get order statistics query by calculating various order metrics.
+    /// </summary>
+    /// <param name="request">The query containing date range filters.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Order statistics for the specified period.</returns>
     public async Task<OrderStatisticsDto> Handle(GetOrderStatisticsQuery request, CancellationToken cancellationToken = default)
     {
-        IQueryable<Order>? query = context.Orders.AsNoTracking();
+        IQueryable<Order> query = context.Orders.AsNoTracking();
 
         if (request.FromDate.HasValue)
             query = query.Where(o => o.CreatedAt >= request.FromDate.Value);
@@ -20,7 +30,7 @@ public class GetOrderStatisticsHandler(ECommerceDbContext context)
         if (request.ToDate.HasValue)
             query = query.Where(o => o.CreatedAt <= request.ToDate.Value);
 
-        List<Order>? orders = await query.ToListAsync(cancellationToken);
+        List<Order> orders = await query.ToListAsync(cancellationToken);
 
         int totalOrders = orders.Count;
         decimal totalRevenue = orders.Sum(o => o.TotalAmount);
@@ -29,7 +39,7 @@ public class GetOrderStatisticsHandler(ECommerceDbContext context)
         decimal averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
         // Get top products
-        List<ProductSalesDto>? topProducts = await context.OrderItems
+        List<ProductSalesDto> topProducts = await context.OrderItems
             .AsNoTracking()
             .Include(oi => oi.Product)
             .GroupBy(oi => new { oi.ProductId, oi.Product.Name })

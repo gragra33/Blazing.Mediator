@@ -24,7 +24,7 @@ public class CreateUserHandler(
         logger.LogInformation("Creating user with email {Email}", request.Email);
 
         // Create domain entity with business logic
-        User? user = User.Create(
+        User user = User.Create(
             request.FirstName,
             request.LastName,
             request.Email,

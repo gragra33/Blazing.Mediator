@@ -1,7 +1,3 @@
-using System.Reflection;
-using Blazing.Mediator.Abstractions;
-using Blazing.Mediator.Pipeline;
-
 namespace Blazing.Mediator;
 
 /// <summary>
@@ -48,16 +44,14 @@ public class Mediator : IMediator
             IEnumerable<object?> handlers = _serviceProvider.GetServices(handlerType);
             object[] handlerArray = handlers.Where(h => h != null).ToArray()!;
             
-            if (handlerArray.Length == 0)
+            switch (handlerArray)
             {
-                throw new InvalidOperationException($"No handler found for request type {requestType.Name}");
+                case { Length: 0 }:
+                    throw new InvalidOperationException($"No handler found for request type {requestType.Name}");
+                case { Length: > 1 }:
+                    throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
             }
-            
-            if (handlerArray.Length > 1)
-            {
-                throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
-            }
-            
+
             object handler = handlerArray[0];
             MethodInfo method = handlerType.GetMethod("Handle")
                                 ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
@@ -123,16 +117,14 @@ public class Mediator : IMediator
             IEnumerable<object?> handlers = _serviceProvider.GetServices(handlerType);
             object[] handlerArray = handlers.Where(h => h != null).ToArray()!;
             
-            if (handlerArray.Length == 0)
+            switch (handlerArray)
             {
-                throw new InvalidOperationException($"No handler found for request type {requestType.Name}");
+                case { Length: 0 }:
+                    throw new InvalidOperationException($"No handler found for request type {requestType.Name}");
+                case { Length: > 1 }:
+                    throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
             }
-            
-            if (handlerArray.Length > 1)
-            {
-                throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
-            }
-            
+
             object handler = handlerArray[0];
             MethodInfo method = handlerType.GetMethod("Handle")
                                 ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");

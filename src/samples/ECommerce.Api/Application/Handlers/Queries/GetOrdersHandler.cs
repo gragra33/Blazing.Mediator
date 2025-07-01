@@ -8,8 +8,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Api.Application.Handlers.Queries;
 
+/// <summary>
+/// Handler for retrieving a paginated list of orders with optional filtering.
+/// </summary>
+/// <param name="context">The database context for accessing order data.</param>
 public class GetOrdersHandler(ECommerceDbContext context) : IRequestHandler<GetOrdersQuery, PagedResult<OrderDto>>
 {
+    /// <summary>
+    /// Handles the get orders query by applying filters and pagination.
+    /// </summary>
+    /// <param name="request">The query containing filtering and pagination parameters.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A paginated result of orders matching the specified criteria.</returns>
     public async Task<PagedResult<OrderDto>> Handle(GetOrdersQuery request, CancellationToken cancellationToken = default)
     {
         IQueryable<Order> query = context.Orders.AsNoTracking().Include(o => o.Items).ThenInclude(i => i.Product);
@@ -36,7 +46,7 @@ public class GetOrdersHandler(ECommerceDbContext context) : IRequestHandler<GetO
 
         int totalCount = await query.CountAsync(cancellationToken);
 
-        List<Order>? orders = await query
+        List<Order> orders = await query
             .OrderByDescending(o => o.CreatedAt)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)

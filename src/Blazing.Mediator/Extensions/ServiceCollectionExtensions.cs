@@ -1,7 +1,3 @@
-using Blazing.Mediator.Abstractions;
-using Blazing.Mediator.Configuration;
-using Blazing.Mediator.Pipeline;
-
 namespace Blazing.Mediator;
 
 /// <summary>  
@@ -32,12 +28,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMediator, Mediator>();
 
         // Configure middleware if provided
-        MediatorConfiguration configuration = new MediatorConfiguration(services);
+        MediatorConfiguration configuration = new(services);
         configureMiddleware?.Invoke(configuration);
         services.AddSingleton(configuration);
         
         // Register the configured pipeline builder as the scoped pipeline builder
-        services.AddScoped<IMiddlewarePipelineBuilder>(provider => 
+        services.AddScoped(provider => 
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
 
         // Register pipeline inspector for debugging (same instance as pipeline builder)
@@ -183,6 +179,8 @@ public static class ServiceCollectionExtensions
                 }
             }
         }
+
+        return;
 
         static bool IsHandlerType(Type i) =>
             i.IsGenericType &&

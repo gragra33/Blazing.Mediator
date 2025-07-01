@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using UserManagement.Api.Application.Commands;
 using UserManagement.Api.Application.DTOs;
 using UserManagement.Api.Application.Exceptions;
+using UserManagement.Api.Application.Middleware;
 using UserManagement.Api.Application.Queries;
 using UserManagement.Api.Infrastructure.Data;
 
@@ -26,8 +27,14 @@ else
 // Add FluentValidation
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
-// Register Mediator with CQRS handlers
-builder.Services.AddMediator(typeof(Program).Assembly);
+// Register Mediator with CQRS handlers and general logging middleware
+builder.Services.AddMediator(config =>
+{
+    // Add general logging middleware for all requests (queries with responses)
+    config.AddMiddleware(typeof(GeneralLoggingMiddleware<,>));
+    // Add general logging middleware for all commands (void commands)
+    config.AddMiddleware(typeof(GeneralCommandLoggingMiddleware<>));
+}, typeof(Program).Assembly);
 
 WebApplication app = builder.Build();
 

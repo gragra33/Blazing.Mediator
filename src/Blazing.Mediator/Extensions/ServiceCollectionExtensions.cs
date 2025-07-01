@@ -32,7 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMediator, Mediator>();
 
         // Configure middleware if provided
-        MediatorConfiguration configuration = new MediatorConfiguration();
+        MediatorConfiguration configuration = new MediatorConfiguration(services);
         configureMiddleware?.Invoke(configuration);
         services.AddSingleton(configuration);
         

@@ -1,403 +1,316 @@
-# Blazing.Mediator with Sample Projects
+# Blazing.Mediator
 
-This repository demonstrates the implementation of the Mediator pattern with CQRS using the `Blazing.Mediator` library. It includes a lightweight library implementation and two comprehensive sample projects.
+A lightweight implementation of the Mediator pattern with built-in **Command Query Responsibility Segregation (CQRS)** support for .NET applications. Provides a simple, clean API for implementing CQRS patterns in your applications with optional middleware pipeline support.
 
-## 📚 Documentation
+## Key Features
 
-For complete implementation instructions, CQRS concepts, and best practices, see the [**📖 Mediator Pattern Implementation Guide**](docs/MEDIATOR_PATTERN_GUIDE.md).
+The Blazing.Mediator library provides:
 
-## Projects Structure
+-   **🎯 Pure CQRS Implementation**: Built-in Command Query Responsibility Segregation with separate interfaces for commands (`IRequest`) and queries (`IRequest<TResponse>`)
+-   **🚀 Lightweight & Fast**: Minimal overhead with efficient request dispatching
+-   **⚙️ Dependency Injection**: Full integration with .NET's built-in DI container
+-   **🔒 Type Safety**: Compile-time type checking for requests and handlers
+-   **🔧 Advanced Middleware Pipeline**: Optional middleware support with both standard and conditional middleware execution
+    -   **Pipeline Inspection**: `IMiddlewarePipelineInspector` for debugging and monitoring
+    -   **Conditional Execution**: Execute middleware only for specific request types for optimal performance
+    -   **Ordered Execution**: Control middleware execution order with priority-based sequencing
+    -   **Full DI Support**: Complete dependency injection support for middleware components
+-   **📦 Multiple Assembly Support**: Automatically scan and register handlers from multiple assemblies
+-   **⚡ Error Handling**: Comprehensive error handling with detailed exception messages
+-   **🔄 Async/Await Support**: Full asynchronous programming support throughout
+-   **🧪 Testing Friendly**: Easy to mock and test individual handlers with full test coverage using Shouldly
 
-```
-├── src/
-│   └── Blazing.Mediator/          # Core mediator library
-├── samples/
-│   ├── UserManagement.Api/        # User management CRUD operations
-│   │   └── UserManagement.http    # Ready-to-use HTTP requests
-│   └── ECommerce.Api/             # E-commerce order management system
-│       └── ECommerce.http         # Ready-to-use HTTP requests
-├── docs/
-│   ├── README.md                  # Documentation index
-│   └── MEDIATOR_PATTERN_GUIDE.md  # Comprehensive implementation guide
-└── Blazing.Mediator.sln           # Solution file
-```
+## Table of Contents
+
+<!-- TOC -->
+
+-   [Key Features](#key-features)
+-   [Quick Start](#quick-start)
+-   [Installation](#installation)
+    -   [.NET CLI](#net-cli)
+    -   [NuGet Package Manager](#nuget-package-manager)
+-   [Configuration](#configuration)
+    -   [Basic Registration](#basic-registration)
+    -   [With Middleware Pipeline](#with-middleware-pipeline)
+-   [Usage](#usage)
+    -   [Create a Query (CQRS Read Side)](#create-a-query-cqrs-read-side)
+    -   [Create a Command (CQRS Write Side)](#create-a-command-cqrs-write-side)
+    -   [Use in API Controllers](#use-in-api-controllers)
+-   [Give a ⭐](#give-a-)
+-   [Documentation](#documentation)
+-   [CQRS Implementation](#cqrs-implementation)
+-   [Middleware Pipeline](#middleware-pipeline)
+-   [Sample Projects](#sample-projects)
+-   [History](#history)
+-   [V1.1.0](#v110)
+<!-- TOC -->
 
 ## Quick Start
 
-### Prerequisites
-
--   .NET 9.0 SDK
--   Visual Studio 2022 or VS Code
--   SQL Server LocalDB (for production mode) or In-Memory database (development mode)
-
 ### Installation
 
-Add the Blazing.Mediator NuGet package to your project.
+Add the [Blazing.Mediator](https://www.nuget.org/packages/Blazing.Mediator) NuGet package to your project.
 
-#### Install the package via .NET CLI or the NuGet Package Manager.
+Install the package via .NET CLI or the NuGet Package Manager.
 
-##### .NET CLI
+#### .NET CLI
 
 ```bash
 dotnet add package Blazing.Mediator
 ```
 
-##### NuGet Package Manager
+#### NuGet Package Manager
 
-```bash
+```powershell
 Install-Package Blazing.Mediator
-``` 
+```
 
 #### Manually adding to your project
 
 ```xml
-<PackageReference Include="Blazing.Mediator" Version="1.0.0" />
+<PackageReference Include="Blazing.Mediator" Version="1.1.0" />
 ```
 
-### Running the Sample Projects
+### Configuration
 
-#### Option 1: Visual Studio
+Configure the library in your `Program.cs` file. The `AddMediator` method will add the required services and automatically register request handlers from the specified assemblies.
 
-1. Open `Blazing.Mediator.sln` in Visual Studio
-2. Set either `UserManagement.Api` or `ECommerce.Api` as the startup project
-3. Press F5 to run
+#### Basic Registration
 
-#### Option 2: Command Line
+```csharp
+using Blazing.Mediator;
 
-```powershell
-# Clone or navigate to the project directory
-cd "c:\dev\Blazing.Mediator"
+var builder = WebApplication.CreateBuilder(args);
 
-# Build the solution
-dotnet build
+// Add services to the container
+builder.Services.AddControllers();
 
-# Run User Management API
-cd samples\UserManagement.Api
-dotnet run
+// Register Mediator with CQRS handlers
+builder.Services.AddMediator(typeof(Program).Assembly);
 
-# Or run E-commerce API
-cd samples\ECommerce.Api
-dotnet run
+var app = builder.Build();
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();
 ```
 
-Both projects will start with Swagger UI available at `https://localhost:7xxx/swagger`
+#### With Middleware Pipeline
 
-## Testing the APIs
+```csharp
+using Blazing.Mediator;
 
-Each sample project includes comprehensive `.http` files with ready-to-use HTTP requests:
-
--   **UserManagement.Api**: `UserManagement.http` - Contains all user management endpoints
--   **ECommerce.Api**: `ECommerce.http` - Contains all product and order management endpoints
-
-These files can be used with:
-
--   **VS Code REST Client extension**
--   **JetBrains HTTP Client** (IntelliJ IDEA, WebStorm, etc.)
--   **Postman** (import the requests)
--   Any HTTP client that supports `.http` format
-
-The `.http` files include:
-
--   ✅ All available endpoints with sample data
--   ✅ Query parameters and filtering examples
--   ✅ Error scenarios and validation testing
--   ✅ Batch operations for creating test data
--   ✅ Comprehensive documentation and comments
-
-## Sample Projects Overview
-
-### 1. UserManagement.Api
-
-A comprehensive user management system demonstrating CQRS patterns:
-
-**Features:**
-
--   ✅ User CRUD operations
--   ✅ Pagination and filtering
--   ✅ User activation/deactivation
--   ✅ User statistics queries
--   ✅ FluentValidation integration
--   ✅ Manual mapping with extension methods (no AutoMapper dependency)
--   ✅ Comprehensive error handling
--   ✅ Minimal API implementation for clean, functional endpoints
-
-**Key Endpoints:**
-
--   `GET /api/users` - Get paginated users with filtering
--   `GET /api/users/{id}` - Get user by ID
--   `GET /api/users/active` - Get all active users
--   `GET /api/users/{id}/statistics` - Get user statistics
--   `POST /api/users` - Create new user
--   `PUT /api/users/{id}` - Update user
--   `DELETE /api/users/{id}` - Delete user
--   `POST /api/users/{id}/activate` - Activate user account
--   `POST /api/users/{id}/deactivate` - Deactivate user account
-
-### 2. ECommerce.Api
-
-An e-commerce order management system showcasing advanced CQRS scenarios:
-
-**Features:**
-
--   ✅ Product catalog management
--   ✅ Order processing with inventory management
--   ✅ Stock validation and reservation
--   ✅ Order status tracking
--   ✅ Sales analytics and reporting
--   ✅ Composite command handlers
--   ✅ Advanced error handling with operation results
--   ✅ Traditional MVC Controller implementation
-
-**Key Endpoints:**
-
-**Products:**
-
--   `GET /api/products` - Get products with filtering
--   `GET /api/products/{id}` - Get product by ID
--   `GET /api/products/low-stock` - Get low stock products
--   `POST /api/products` - Create product
--   `PUT /api/products/{id}` - Update product
--   `PUT /api/products/{id}/stock` - Update product stock
-
-**Orders:**
-
--   `GET /api/orders` - Get orders with filtering
--   `GET /api/orders/{id}` - Get order by ID
--   `GET /api/orders/customer/{customerId}` - Get customer orders
--   `GET /api/orders/statistics` - Get order statistics
--   `POST /api/orders` - Create order
--   `POST /api/orders/process` - Process complete order (composite operation)
--   `PUT /api/orders/{id}/status` - Update order status
--   `POST /api/orders/{id}/cancel` - Cancel order
-
-## Database Configuration
-
-### Development Mode (Default)
-
-Both projects use **In-Memory Database** by default for easy testing:
-
--   No setup required
--   Data is seeded automatically
--   Data is lost when application stops
-
-### Production Mode
-
-To use SQL Server LocalDB:
-
-1. Update `appsettings.json`:
-
-```json
+// Register Mediator with optional middleware pipeline
+builder.Services.AddMediator(config =>
 {
-    "ConnectionStrings": {
-        "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=YourDbName;Trusted_Connection=true;MultipleActiveResultSets=true"
+    // Add logging middleware for all requests
+    config.AddMiddleware<LoggingMiddleware<,>>();
+
+    // Add conditional middleware for specific request types
+    config.AddMiddleware<ValidationMiddleware<,>>();
+}, typeof(Program).Assembly);
+```
+
+### Usage
+
+#### Create a Query (CQRS Read Side)
+
+```csharp
+// Query - Request with response (Read operation)
+public class GetUserByIdQuery : IRequest<UserDto>
+{
+    public int UserId { get; set; }
+}
+
+// Query Handler - Handles read operations
+public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UserDto>
+{
+    private readonly IUserRepository _repository;
+
+    public GetUserByIdHandler(IUserRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
+    {
+        var user = await _repository.GetByIdAsync(request.UserId);
+        return new UserDto { Id = user.Id, Name = user.Name, Email = user.Email };
     }
 }
 ```
 
-2. Set environment:
+#### Create a Command (CQRS Write Side)
 
-```powershell
-$env:ASPNETCORE_ENVIRONMENT = "Production"
-```
-
-3. Run migrations:
-
-```powershell
-dotnet ef database update
-```
-
-## Key CQRS Implementations Demonstrated
-
-### 1. Clear Command/Query Separation
-
--   **Commands**: `CreateUserCommand`, `UpdateOrderStatusCommand`, `ProcessOrderCommand`
--   **Queries**: `GetUserByIdQuery`, `GetOrderStatisticsQuery`, `GetProductsQuery`
-
-### 2. Optimized Read Operations
-
--   Read-only queries use `AsNoTracking()`
--   Pagination and filtering
--   Projection to DTOs
--   Caching strategies (in UserManagement example)
-
-### 3. Business Logic in Command Handlers
-
--   Domain entity methods
--   Validation with FluentValidation
--   Transaction management
--   Error handling with custom exceptions
-
-### 4. Composite Operations
-
--   `ProcessOrderCommand` orchestrates multiple operations
--   Calls other commands through mediator
--   Demonstrates command composition patterns
-
-### 5. Advanced Scenarios
-
--   Operation results with success/failure status
--   Background processing patterns
--   Domain events (structure prepared)
--   Repository pattern separation
-
-## Testing the APIs
-
-### Using .http Files (Recommended)
-
-Both sample projects include comprehensive `.http` files for easy API testing:
-
-**UserManagement.Api** - `samples/UserManagement.Api/UserManagement.http`:
-
-```http
-# Get all users with pagination
-GET {{baseUrl}}/api/users?page=1&pageSize=10&includeInactive=false
-
-# Create new user
-POST {{baseUrl}}/api/users
-Content-Type: application/json
-
+```csharp
+// Command - Request without response (Write operation)
+public class CreateUserCommand : IRequest
 {
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "john.doe@example.com",
-  "dateOfBirth": "1990-05-15T00:00:00"
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+}
+
+// Command Handler - Handles write operations
+public class CreateUserHandler : IRequestHandler<CreateUserCommand>
+{
+    private readonly IUserRepository _repository;
+
+    public CreateUserHandler(IUserRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    {
+        var user = new User { Name = request.Name, Email = request.Email };
+        await _repository.AddAsync(user);
+        await _repository.SaveChangesAsync();
+    }
 }
 ```
 
-**ECommerce.Api** - `samples/ECommerce.Api/ECommerce.http`:
+#### Use in API Controllers
 
-```http
-# Get all products
-GET {{baseUrl}}/api/products?page=1&pageSize=10
-
-# Create new product
-POST {{baseUrl}}/api/products
-Content-Type: application/json
-
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
 {
-  "name": "Gaming Laptop",
-  "description": "High-performance gaming laptop",
-  "price": 1299.99,
-  "stockQuantity": 15
+    private readonly IMediator _mediator;
+
+    public UsersController(IMediator mediator) => _mediator = mediator;
+
+    // Query endpoint (CQRS Read)
+    [HttpGet("{id}")]
+    public async Task<ActionResult<UserDto>> GetUser(int id)
+    {
+        var query = new GetUserByIdQuery { UserId = id };
+        var result = await _mediator.Send(query);
+        return Ok(result);
+    }
+
+    // Command endpoint (CQRS Write)
+    [HttpPost]
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserCommand command)
+    {
+        await _mediator.Send(command);
+        return CreatedAtAction(nameof(GetUser), new { id = 0 }, null);
+    }
 }
 ```
 
-**To use the .http files:**
+## Give a ⭐
 
-1. Open the `.http` file in VS Code with REST Client extension
-2. Update the `@baseUrl` variable if needed
-3. Click "Send Request" above any HTTP request
-4. View the response in the adjacent panel
+If you like or are using this project to learn or start your solution, please give it a star. Thanks!
 
-### Sample cURL Commands
+Also, if you find this library useful, and you're feeling really generous, then please consider [buying me a coffee ☕](https://bmc.link/gragra33).
 
-#### User Management API
+## Documentation
 
-```bash
-# Create a user
-curl -X POST "https://localhost:7001/api/users" \
--H "Content-Type: application/json" \
--d '{
-  "firstName": "Alice",
-  "lastName": "Johnson",
-  "email": "alice.johnson@example.com",
-  "dateOfBirth": "1990-05-15T00:00:00"
-}'
+For comprehensive documentation, examples, and advanced scenarios, see the [Mediator Pattern Implementation Guide](docs/MEDIATOR_PATTERN_GUIDE.md).
 
-# Get users with filtering
-curl "https://localhost:7001/api/users?page=1&pageSize=5&searchTerm=alice&includeInactive=false"
+### CQRS Implementation
 
-# Get user statistics
-curl "https://localhost:7001/api/users/1/statistics"
+Blazing.Mediator naturally implements the **Command Query Responsibility Segregation (CQRS)** pattern:
+
+**Commands (Write Operations)**
+
+-   Use `IRequest` for operations that change state
+-   Don't return data (void operations)
+-   Focus on business intent and state changes
+-   Examples: `CreateUserCommand`, `UpdateProductCommand`, `DeleteOrderCommand`
+
+**Queries (Read Operations)**
+
+-   Use `IRequest<TResponse>` for operations that retrieve data
+-   Return data without changing state
+-   Can be optimized with caching and read models
+-   Examples: `GetUserByIdQuery`, `GetProductsQuery`, `GetOrderHistoryQuery`
+
+This separation enables:
+
+-   **Performance Optimization**: Different strategies for reads vs writes
+-   **Scalability**: Independent scaling of read and write operations
+-   **Security**: Different validation and authorization rules
+-   **Maintainability**: Clear separation of concerns
+
+### Middleware Pipeline
+
+The optional middleware pipeline allows you to add cross-cutting concerns without modifying your core business logic:
+
+```csharp
+// Standard middleware - executes for all requests
+public class LoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    {
+        // Pre-processing
+        Console.WriteLine($"Processing {typeof(TRequest).Name}");
+
+        var response = await next();
+
+        // Post-processing
+        Console.WriteLine($"Completed {typeof(TRequest).Name}");
+        return response;
+    }
+}
+
+// Conditional middleware - executes only for specific requests
+public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public bool ShouldExecute(TRequest request) =>
+        request.GetType().Name.Contains("Order", StringComparison.OrdinalIgnoreCase);
+
+    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"🛒 Processing order: {typeof(TRequest).Name}");
+        var response = await next();
+        Console.WriteLine($"🛒 Order completed");
+        return response;
+    }
+}
 ```
 
-#### E-commerce API
+### Sample Projects
 
-```bash
-# Create a product
-curl -X POST "https://localhost:7002/api/products" \
--H "Content-Type: application/json" \
--d '{
-  "name": "Gaming Keyboard",
-  "description": "Mechanical RGB gaming keyboard",
-  "price": 89.99,
-  "stockQuantity": 50
-}'
+The library includes two comprehensive sample projects demonstrating different approaches:
 
-# Create an order
-curl -X POST "https://localhost:7002/api/orders" \
--H "Content-Type: application/json" \
--d '{
-  "customerId": 1,
-  "customerEmail": "customer@example.com",
-  "shippingAddress": "123 Main St, City, State 12345",
-  "items": [
-    {"productId": 1, "quantity": 1},
-    {"productId": 2, "quantity": 2}
-  ]
-}'
+1. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware
 
-# Get order statistics
-curl "https://localhost:7002/api/orders/statistics"
-```
+    - Product and Order management
+    - Conditional logging middleware for performance
+    - Entity Framework integration
+    - FluentValidation integration
 
-## Learning Resources
+2. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
+    - User management operations
+    - Comprehensive logging middleware
+    - Clean architecture patterns
+    - Error handling examples
 
-### 1. Implementation Guide
+## History
 
-Read the comprehensive [MEDIATOR_PATTERN_GUIDE.md](docs/MEDIATOR_PATTERN_GUIDE.md) for:
+### V1.1.0
 
--   CQRS concepts and benefits
--   Step-by-step implementation instructions
--   Best practices and patterns
--   Testing strategies
--   Real-world examples
+-   Enhanced middleware pipeline with conditional middleware support
+-   Added `IMiddlewarePipelineInspector` for debugging and monitoring middleware execution
+-   Full dependency injection support for middleware components
+-   Performant middleware with conditional execution and optional priority-based execution
+-   Enhanced pipeline inspection capabilities
+-   Full test coverage with Shouldly assertions (replacing FluentAssertions)
+-   Cleaned up samples and added middleware
+-   Improved documentation with detailed examples and usage patterns
 
-### 2. Code Examples
+### V1.0.0
 
-Explore the sample projects to see:
-
--   Handler organization and structure
--   Validation patterns
--   Error handling strategies
--   Repository patterns
--   Minimal API implementations (UserManagement) and Controller implementations (ECommerce)
--   **Ready-to-use .http files** for comprehensive API testing
-
-### 3. Architecture Patterns
-
-The samples demonstrate:
-
--   Clean Architecture principles
--   Domain-Driven Design (DDD) concepts
--   SOLID principles
--   Dependency Injection patterns
--   Separation of Concerns
-
-## Extending the Samples
-
-### Adding Cross-Cutting Concerns
-
--   **Logging**: Already integrated via ILogger
--   **Caching**: Implement caching decorators for query handlers
--   **Authorization**: Add authorization policies to minimal APIs or attributes to controllers
--   **Audit Logging**: Implement audit trail in command handlers
--   **Performance Monitoring**: Add performance counters to handlers
-
-## Additional Notes
-
-### Error Handling
-
--   Custom exceptions for domain errors
--   Validation exceptions with detailed error messages
--   Global exception handling in minimal APIs and controllers
--   Operation result patterns for complex scenarios
-
-### Testing Strategy
-
--   Unit test handlers in isolation
--   Integration tests for complete flows
--   Mock repositories for testing
--   Validation rule testing
-
-This implementation provides a solid foundation for building scalable applications using the Mediator pattern with CQRS principles.
+-   Initial release of Blazing.Mediator
+-   Full CQRS support with separate Command and Query interfaces
+-   Dependency injection integration with automatic handler registration
+-   Multiple assembly scanning support
+-   Comprehensive documentation and sample projects
+-   .NET 9.0 support with nullable reference types
+-   Extensive test coverage with unit and integration tests

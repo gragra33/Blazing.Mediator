@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Blazing.Mediator.Configuration;
 
 /// <summary>
@@ -5,10 +7,21 @@ namespace Blazing.Mediator.Configuration;
 /// </summary>
 public class MediatorConfiguration
 {
+    private readonly IServiceCollection? _services;
+
     /// <summary>
     /// Gets the middleware pipeline builder.
     /// </summary>
     public IMiddlewarePipelineBuilder PipelineBuilder { get; } = new MiddlewarePipelineBuilder();
+
+    /// <summary>
+    /// Initializes a new instance of the MediatorConfiguration class.
+    /// </summary>
+    /// <param name="services">The service collection for automatic DI registration of middleware</param>
+    public MediatorConfiguration(IServiceCollection? services = null)
+    {
+        _services = services;
+    }
 
     /// <summary>
     /// Adds a middleware to the pipeline.
@@ -19,6 +32,13 @@ public class MediatorConfiguration
         where TMiddleware : class
     {
         PipelineBuilder.AddMiddleware<TMiddleware>();
+        
+        // Automatically register the middleware in DI if services collection is available
+        if (_services != null)
+        {
+            RegisterMiddlewareInDI(typeof(TMiddleware));
+        }
+        
         return this;
     }
 
@@ -30,6 +50,34 @@ public class MediatorConfiguration
     public MediatorConfiguration AddMiddleware(Type middlewareType)
     {
         PipelineBuilder.AddMiddleware(middlewareType);
+        
+        // Automatically register the middleware in DI if services collection is available
+        if (_services != null)
+        {
+            RegisterMiddlewareInDI(middlewareType);
+        }
+        
         return this;
+    }
+
+    /// <summary>
+    /// Registers middleware in the dependency injection container.
+    /// </summary>
+    /// <param name="middlewareType">The middleware type to register</param>
+    private void RegisterMiddlewareInDI(Type middlewareType)
+    {
+        if (_services == null)
+        {
+            return;
+        }
+
+        // Check if already registered to avoid duplicates
+        if (_services.Any(s => s.ServiceType == middlewareType))
+        {
+            return;
+        }
+
+        // Register as scoped service
+        _services.AddScoped(middlewareType);
     }
 }

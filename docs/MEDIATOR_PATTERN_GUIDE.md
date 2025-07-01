@@ -1,4 +1,4 @@
-# Blazing.Mediator - Implementation Guide
+# Blazing.Mediator - Complete Implementation Guide
 
 ## Overview
 
@@ -6,22 +6,35 @@ The Mediator pattern decouples components by having them communicate through a c
 
 `Blazing.Mediator` provides a lightweight implementation of the Mediator pattern for .NET applications that naturally implements **Command Query Responsibility Segregation (CQRS)** by separating read operations (queries) from write operations (commands). This separation allows for optimized data models, improved performance, and better scalability.
 
+### Key Features
+
+-   **🎯 Pure CQRS Implementation**: Clean separation of Commands and Queries with distinct interfaces
+-   **🔧 Optional Middleware Pipeline**: Add cross-cutting concerns like logging, validation, and caching
+-   **⚡ Conditional Middleware**: Execute middleware only for specific request types for optimal performance
+-   **⚙️ Zero Configuration**: Works out of the box with minimal setup and automatic handler discovery
+-   **🚀 High Performance**: Lightweight implementation optimized for speed with minimal overhead
+-   **🧪 Fully Testable**: Built with testing in mind - easy to mock and unit test handlers
+-   **📦 Multiple Assembly Support**: Automatically scan and register handlers from multiple assemblies
+-   **🔒 Type Safety**: Compile-time type checking for requests, handlers, and responses
+-   **📖 Comprehensive Documentation**: Complete guides, examples, and sample projects
+
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [Installation](#installation)
-3. [Core Concepts](#core-concepts)
-4. [Creating Requests](#creating-requests)
-5. [Implementing Handlers](#implementing-handlers)
-6. [Setup and Registration](#setup-and-registration)
-7. [Usage in APIs](#usage-in-apis)
+2. [Core Concepts](#core-concepts)
+3. [Creating Requests](#creating-requests)
+4. [Implementing Handlers](#implementing-handlers)
+5. [Setup and Registration](#setup-and-registration)
+6. [Usage in APIs](#usage-in-apis)
+7. [Middleware Pipeline](#middleware-pipeline)
 8. [Validation and Error Handling](#validation-and-error-handling)
 9. [Testing Strategies](#testing-strategies)
 10. [Advanced Scenarios](#advanced-scenarios)
 11. [Best Practices](#best-practices)
 12. [Common Mistakes](#common-mistakes)
 13. [Troubleshooting](#troubleshooting)
-14. [Complete Examples](#complete-examples)
+14. [Sample Projects](#sample-projects)
+15. [Complete Examples](#complete-examples)
 
 ## Quick Start
 
@@ -43,12 +56,12 @@ dotnet add package Blazing.Mediator
 
 ```bash
 Install-Package Blazing.Mediator
-``` 
+```
 
 #### Manually adding to your project
 
 ```xml
-<PackageReference Include="Blazing.Mediator" Version="1.0.0" />
+<PackageReference Include="Blazing.Mediator" Version="1.1.0" />
 ```
 
 ### 2. Create Your First Query
@@ -98,20 +111,6 @@ public class UsersController : ControllerBase
 
 That's it! You now have a working Mediator implementation. Continue reading for detailed explanations and advanced scenarios.
 
-## Installation
-
-### Option 1: Add as Project Reference
-
-```xml
-<ProjectReference Include="..\..\Blazing.Mediator\Blazing.Mediator.csproj" />
-```
-
-### Option 2: Package Reference
-
-```xml
-<PackageReference Include="Blazing.Mediator" Version="1.0.0" />
-```
-
 ## Core Concepts
 
 ### CQRS Implementation
@@ -144,7 +143,9 @@ This separation enables:
 
 ### How the Mediator Pattern Works
 
-The following diagram illustrates the flow of requests through the Blazing.Mediator system:
+The following diagram illustrates the basic flow of requests through the Blazing.Mediator system:
+
+> **Note**: This is a simplified overview. For a detailed middleware pipeline flow diagram that includes exception handling and middleware execution order, see the [Middleware Pipeline Flow](#pipeline-flow) section.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -892,7 +893,7 @@ public class ExceptionHandlingMiddleware
 
 ## Testing Strategies
 
-Testing handlers is straightforward because they're isolated and have clear dependencies:
+Testing handlers is straightforward because they're isolated and have clear dependencies. We prefer to use **Shouldly** for assertions as it provides more readable and expressive test assertions.
 
 ### Unit Testing Handlers
 
@@ -913,9 +914,9 @@ public async Task Handle_ValidRequest_ReturnsUser()
     // Act
     var result = await handler.Handle(query, CancellationToken.None);
 
-    // Assert
-    Assert.That(result.Id, Is.EqualTo(1));
-    Assert.That(result.FirstName, Is.EqualTo("John"));
+    // Assert using Shouldly for more expressive assertions
+    result.Id.ShouldBe(1);
+    result.FirstName.ShouldBe("John");
     mockRepository.Verify(r => r.GetByIdAsync(1), Times.Once);
 }
 ```
@@ -945,7 +946,7 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
         var content = await response.Content.ReadAsStringAsync();
         var user = JsonSerializer.Deserialize<UserDto>(content);
 
-        Assert.That(user.Id, Is.EqualTo(1));
+        user.Id.ShouldBe(1); // Using Shouldly for cleaner assertions
     }
 }
 ```
@@ -1100,6 +1101,10 @@ public class UsersController : ControllerBase
         {
             return BadRequest(ex.Errors);
         }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
     }
 
     [HttpPost("with-id")]
@@ -1113,6 +1118,10 @@ public class UsersController : ControllerBase
         catch (ValidationException ex)
         {
             return BadRequest(ex.Errors);
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
         }
     }
 
@@ -1134,6 +1143,10 @@ public class UsersController : ControllerBase
         catch (ValidationException ex)
         {
             return BadRequest(ex.Errors);
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
         }
     }
 
@@ -1223,1050 +1236,939 @@ public class OrdersController : ControllerBase
 }
 ```
 
-### Choosing Between Minimal APIs and Controllers
+## Middleware Pipeline
 
-**Use Minimal APIs when:**
+The middleware pipeline in Blazing.Mediator provides a powerful way to add cross-cutting concerns like logging, validation, and caching, and authorization to your CQRS implementation without modifying your core business logic.
 
--   Building simple, focused APIs
--   Preferring functional programming style
--   Wanting minimal ceremony and boilerplate
--   Building microservices with few endpoints
--   Starting new projects with .NET 6+
+### Overview
 
-**Use Controllers when:**
+Middleware components execute before and after your request handlers, providing a clean separation of concerns. The pipeline is completely optional - use it only when needed.
 
--   Building complex APIs with many endpoints
--   Preferring object-oriented structure
--   Needing advanced features like model binding, filters
--   Working with existing controller-based codebases
--   Requiring fine-grained control over HTTP behavior
+#### Key Middleware Features
 
-Both approaches work equally well with the Blazing.Mediator library and CQRS patterns.
+-   ✅ **Optional**: Middleware is completely optional - use it only when needed
+-   ✅ **Type-Safe**: Full generic type support with compile-time checking
+-   ✅ **Ordered Execution**: Control middleware execution order with priorities
+-   ✅ **Conditional**: Execute middleware only for specific request types
+-   ✅ **Composable**: Chain multiple middleware components together
+-   ✅ **Async Support**: Full async/await support throughout the pipeline
+-   ✅ **Pipeline Inspection**: `IMiddlewarePipelineInspector` interface for debugging and monitoring middleware execution
+-   ✅ **Full DI Support**: Complete dependency injection support for middleware components
 
-## Advanced Scenarios
+### Middleware Types
 
-### Composite Handlers
+There are two main types of middleware in Blazing.Mediator:
 
-```csharp
-// Handler that calls multiple other handlers
-public class ProcessOrderHandler : IRequestHandler<ProcessOrderCommand, ProcessOrderResponse>
-{
-    private readonly IMediator _mediator;
+#### 1. Standard Middleware (IRequestMiddleware)
 
-    public ProcessOrderHandler(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
-
-    public async Task<ProcessOrderResponse> Handle(ProcessOrderCommand request, CancellationToken cancellationToken)
-    {
-        // Step 1: Create the order
-        var createOrderCommand = new CreateOrderCommand
-        {
-            UserId = request.UserId,
-            Items = request.Items
-        };
-        var orderId = await _mediator.Send(createOrderCommand, cancellationToken);
-
-        // Step 2: Process payment
-        var processPaymentCommand = new ProcessPaymentCommand
-        {
-            OrderId = orderId,
-            PaymentMethod = request.PaymentMethod
-        };
-        var paymentResult = await _mediator.Send(processPaymentCommand, cancellationToken);
-
-        // Step 3: Update inventory
-        var updateInventoryCommand = new UpdateInventoryCommand
-        {
-            OrderId = orderId
-        };
-        await _mediator.Send(updateInventoryCommand, cancellationToken);
-
-        // Step 4: Send confirmation email
-        var sendEmailCommand = new SendOrderConfirmationEmailCommand
-        {
-            OrderId = orderId
-        };
-        await _mediator.Send(sendEmailCommand, cancellationToken);
-
-        return new ProcessOrderResponse
-        {
-            OrderId = orderId,
-            PaymentId = paymentResult.PaymentId
-        };
-    }
-}
-```
-
-### Background Processing
+Standard middleware executes for **all requests** that match its generic type signature.
 
 ```csharp
-// Handler for background tasks
-public class SendWelcomeEmailHandler : IRequestHandler<SendWelcomeEmailCommand>
+// Query middleware - executes for all queries
+public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
 {
-    private readonly IEmailService _emailService;
-    private readonly ILogger<SendWelcomeEmailHandler> _logger;
+    private readonly ILogger<GeneralLoggingMiddleware<TRequest, TResponse>> _logger;
 
-    public SendWelcomeEmailHandler(IEmailService emailService, ILogger<SendWelcomeEmailHandler> logger)
+    public GeneralLoggingMiddleware(ILogger<GeneralLoggingMiddleware<TRequest, TResponse>> logger)
     {
-        _emailService = emailService;
         _logger = logger;
     }
 
-    public async Task Handle(SendWelcomeEmailCommand request, CancellationToken cancellationToken)
+    public int Order => 0; // Execution order (lower numbers execute first)
+
+    public async Task<TResponse> HandleAsync(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
     {
+        var requestType = typeof(TRequest).Name;
+        var startTime = DateTime.UtcNow;
+
+        // Pre-processing logic
+        _logger.LogInformation("🔍 REQUEST: {RequestType} started at {StartTime}",
+            requestType, startTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+
         try
         {
-            await _emailService.SendWelcomeEmailAsync(request.UserId, request.Email);
-            _logger.LogInformation("Welcome email sent to user {UserId}", request.UserId);
+            // Call next middleware or handler
+            var response = await next();
+
+            // Post-processing logic
+            var endTime = DateTime.UtcNow;
+            var duration = endTime - startTime;
+            _logger.LogInformation("🔍 RESPONSE: {RequestType} completed successfully in {Duration}ms",
+                requestType, duration.TotalMilliseconds);
+
+            return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send welcome email to user {UserId}", request.UserId);
-            // Don't rethrow - this is a background operation
+            var endTime = DateTime.UtcNow;
+            var duration = endTime - startTime;
+            _logger.LogError(ex, "🔍 ERROR: {RequestType} failed after {Duration}ms",
+                requestType, duration.TotalMilliseconds);
+            throw;
         }
     }
 }
 
-// Usage in another handler
-public class CreateUserHandler : IRequestHandler<CreateUserCommand, int>
+// Command middleware - executes for all commands
+public class GeneralCommandLoggingMiddleware<TRequest> : IRequestMiddleware<TRequest>
+    where TRequest : IRequest
 {
-    private readonly IUserRepository _userRepository;
-    private readonly IMediator _mediator;
+    private readonly ILogger<GeneralCommandLoggingMiddleware<TRequest>> _logger;
 
-    public CreateUserHandler(IUserRepository userRepository, IMediator mediator)
+    public GeneralCommandLoggingMiddleware(ILogger<GeneralCommandLoggingMiddleware<TRequest>> logger)
     {
-        _userRepository = userRepository;
-        _mediator = mediator;
+        _logger = logger;
     }
 
-    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    public int Order => 0;
+
+    public async Task HandleAsync(
+        TRequest request,
+        RequestHandlerDelegate next,
+        CancellationToken cancellationToken)
     {
-        // Create user
-        var user = new User
+        var requestType = typeof(TRequest).Name;
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("🔍 COMMAND: {RequestType} started at {StartTime}",
+            requestType, startTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+
+        try
         {
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Email = request.Email
+            await next();
+
+            var endTime = DateTime.UtcNow;
+            var duration = endTime - startTime;
+            _logger.LogInformation("🔍 COMMAND COMPLETED: {RequestType} completed successfully in {Duration}ms",
+                requestType, duration.TotalMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            var endTime = DateTime.UtcNow;
+            var duration = endTime - startTime;
+            _logger.LogError(ex, "🔍 COMMAND ERROR: {RequestType} failed after {Duration}ms",
+                requestType, duration.TotalMilliseconds);
+            throw;
+        }
+    }
+}
+```
+
+#### 2. Conditional Middleware (IConditionalMiddleware)
+
+Conditional middleware executes **only when** the `ShouldExecute` method returns `true`. This is perfect for performance optimization when you only want middleware to run for specific request types.
+
+```csharp
+// Order-specific logging middleware
+public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    private readonly ILogger<OrderLoggingMiddleware<TRequest, TResponse>> _logger;
+
+    public OrderLoggingMiddleware(ILogger<OrderLoggingMiddleware<TRequest, TResponse>> logger)
+    {
+        _logger = logger;
+    }
+
+    public int Order => 1; // Execution order
+
+    public bool ShouldExecute(TRequest request)
+    {
+        // Only execute for order-related requests
+        var requestType = request.GetType().Name;
+        return requestType.Contains("Order", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public async Task<TResponse> HandleAsync(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        var requestType = request.GetType().Name;
+        var startTime = DateTime.UtcNow;
+
+        // Log the request
+        _logger.LogInformation("🛒 ORDER REQUEST: {RequestType} started at {StartTime}",
+            requestType, startTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+
+        try
+        {
+            // Serialize and log request details (be careful with sensitive data in production)
+            var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+            _logger.LogInformation("🛒 ORDER REQUEST DATA: {RequestData}", requestJson);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("🛒 Could not serialize order request: {Error}", ex.Message);
+        }
+
+        TResponse response;
+        try
+        {
+            // Execute the next middleware or handler
+            response = await next();
+
+            var endTime = DateTime.UtcNow;
+            var duration = endTime - startTime;
+
+            // Log successful response
+            _logger.LogInformation("🛒 ORDER RESPONSE: {RequestType} completed successfully in {Duration}ms",
+                requestType, duration.TotalMilliseconds);
+
+            try
+            {
+                var responseJson = JsonSerializer.Serialize(response, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+                _logger.LogInformation("🛒 ORDER RESPONSE DATA: {ResponseData}", responseJson);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("🛒 Could not serialize order response: {Error}", ex.Message);
+            }
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            var endTime = DateTime.UtcNow;
+            var duration = endTime - startTime;
+
+            // Log error
+            _logger.LogError(ex, "🛒 ORDER ERROR: {RequestType} failed after {Duration}ms with error: {ErrorMessage}",
+                requestType, duration.TotalMilliseconds, ex.Message);
+
+            throw;
+        }
+    }
+}
+
+// Product-specific logging middleware
+public class ProductLoggingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    private readonly ILogger<ProductLoggingMiddleware<TRequest, TResponse>> _logger;
+
+    public ProductLoggingMiddleware(ILogger<ProductLoggingMiddleware<TRequest, TResponse>> logger)
+    {
+        _logger = logger;
+    }
+
+    public int Order => 2; // Executes after order middleware
+
+    public bool ShouldExecute(TRequest request)
+    {
+        // Only execute for product-related requests
+        var requestType = request.GetType().Name;
+        return requestType.Contains("Product", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public async Task<TResponse> HandleAsync(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        var requestType = request.GetType().Name;
+        var startTime = DateTime.UtcNow;
+
+        _logger.LogInformation("📦 PRODUCT REQUEST: {RequestType} started at {StartTime}",
+            requestType, startTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+
+        try
+        {
+            var response = await next();
+
+            var endTime = DateTime.UtcNow;
+            var duration = endTime - startTime;
+
+            _logger.LogInformation("📦 PRODUCT RESPONSE: {RequestType} completed successfully in {Duration}ms",
+                requestType, duration.TotalMilliseconds);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            var endTime = DateTime.UtcNow;
+            var duration = endTime - startTime;
+
+            _logger.LogError(ex, "📦 PRODUCT ERROR: {RequestType} failed after {Duration}ms",
+                requestType, duration.TotalMilliseconds);
+
+            throw;
+        }
+    }
+}
+```
+
+### Pipeline Flow
+
+The middleware pipeline executes in a specific order, wrapping around your request handlers. Here's a detailed flow diagram that shows how requests move through the middleware pipeline, including exception handling:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        Middleware Pipeline Flow                                 │
+│                     (with Exception Handling)                                   │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+📥 Incoming Request
+    │
+    ├─── 🔧 Middleware 1 (Order: 0) ─── LoggingMiddleware
+    │    │                              ├─ Pre: Log request start
+    │    │                              ├─ Execution: await next()
+    │    │                              └─ Post: Log request completion/error
+    │    │
+    │    ├─── 🔧 Middleware 2 (Order: 1) ─── ValidationMiddleware
+    │    │    │                              ├─ Pre: Validate request
+    │    │    │                              ├─ Execution: await next()
+    │    │    │                              └─ Post: Handle validation errors
+    │    │    │
+    │    │    ├─── 🔧 Middleware 3 (Order: 2) ─── CachingMiddleware (Conditional)
+    │    │    │    │                              ├─ Pre: Check cache
+    │    │    │    │                              ├─ Execution: await next() (if not cached)
+    │    │    │    │                              └─ Post: Store in cache
+    │    │    │    │
+    │    │    │    └─── 🎯 REQUEST HANDLER ─── Business Logic
+    │    │    │         │                      ├─ Query: Read data
+    │    │    │         │                      ├─ Command: Write data
+    │    │    │         │                      └─ Return response/void
+    │    │    │         │
+    │    │    │    ┌─── 📤 SUCCESS RESPONSE
+    │    │    │    │    │
+    │    │    │    │    ├─ Cache response (if applicable)
+    │    │    │    │    ├─ Log completion
+    │    │    │    │    └─ Return to client
+    │    │    │    │
+    │    │    │    └─── ❌ EXCEPTION PATH
+    │    │    │         │
+    │    │    │         ├─ Middleware 3: Handle/log cache errors
+    │    │    │         │               └─ throw; (preserve stack trace)
+    │    │    │         │
+    │    │    │         ├─ Middleware 2: Handle validation errors
+    │    │    │         │               ├─ Transform ValidationException
+    │    │    │         │               └─ throw; (preserve stack trace)
+    │    │    │         │
+    │    │    │         └─ Middleware 1: Log all errors
+    │    │    │                         ├─ Log error details
+    │    │    │                         ├─ Log execution time
+    │    │    │                         └─ throw; (preserve stack trace)
+    │    │    │
+    │    │    └─── 🔄 UNWIND STACK (Post-processing in reverse order)
+    │    │
+    │    └─── 🔄 UNWIND STACK (Post-processing in reverse order)
+    │
+    └─── 📤 Final Response or Exception to Client
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+Key Pipeline Characteristics:
+
+✅ Execution Order: Lower Order values execute first (outer middleware)
+✅ Exception Flow: Exceptions bubble up through middleware in reverse order
+✅ Post-Processing: Happens in reverse order (LIFO - Last In, First Out)
+✅ Conditional Execution: Middleware can skip execution based on request type
+✅ Error Preservation: Use throw; to preserve original stack traces
+✅ Pipeline Inspection: Use IMiddlewarePipelineInspector for debugging
+
+Example Exception Flow:
+┌─ Handler throws ValidationException
+├─ CachingMiddleware: Skips caching, lets exception bubble up
+├─ ValidationMiddleware: Catches ValidationException, transforms to HTTP 400
+├─ LoggingMiddleware: Logs error details and timing
+└─ Exception returned to client as proper HTTP response
+
+═══════════════════════════════════════════════════════════════════════════════════
+```
+
+### Simplified Flow Summary
+
+For a basic understanding, the middleware pipeline follows this pattern:
+
+```
+📥 Request
+    ↓
+🔧 Middleware 1 (Order: 0) - Pre-processing
+    ↓
+🔧 Middleware 2 (Order: 1) - Pre-processing
+    ↓
+🔧 Middleware 3 (Order: 2) - Pre-processing
+    ↓
+🎯 Request Handler - Business Logic
+    ↓
+🔧 Middleware 3 (Order: 2) - Post-processing
+    ↓
+🔧 Middleware 2 (Order: 1) - Post-processing
+    ↓
+🔧 Middleware 1 (Order: 0) - Post-processing
+    ↓
+📤 Response
+```
+
+### Configuration
+
+#### Basic Configuration (No Middleware)
+
+```csharp
+// Program.cs - No middleware
+builder.Services.AddMediator(typeof(Program).Assembly);
+```
+
+#### Standard Middleware Configuration
+
+```csharp
+// Program.cs - Standard middleware for all requests
+builder.Services.AddMediator(config =>
+{
+    // Add standard middleware that logs all requests
+    config.AddMiddleware<GeneralLoggingMiddleware<,>>();
+    config.AddMiddleware<GeneralCommandLoggingMiddleware<>>();
+}, typeof(Program).Assembly);
+```
+
+#### Conditional Middleware Configuration
+
+```csharp
+// Program.cs - Conditional middleware for performance
+builder.Services.AddMediator(config =>
+{
+    // Add conditional middleware - only logs specific request types
+    config.AddMiddleware<OrderLoggingMiddleware<,>>();
+    config.AddMiddleware<ProductLoggingMiddleware<,>>();
+}, typeof(Program).Assembly);
+```
+
+#### Advanced Configuration with Multiple Middleware Types
+
+```csharp
+// Program.cs - Mixed middleware approach
+builder.Services.AddMediator(config =>
+{
+    // Global validation middleware (standard)
+    config.AddMiddleware<ValidationMiddleware<,>>();
+
+    // Conditional logging for performance
+    config.AddMiddleware<OrderLoggingMiddleware<,>>();
+    config.AddMiddleware<ProductLoggingMiddleware<,>>();
+
+    // Global caching middleware (standard)
+    config.AddMiddleware<CachingMiddleware<,>>();
+}, typeof(Program).Assembly);
+```
+
+### Advanced Middleware Examples
+
+#### Validation Middleware
+
+```csharp
+public class ValidationMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<ValidationMiddleware<TRequest, TResponse>> _logger;
+
+    public ValidationMiddleware(IServiceProvider serviceProvider, ILogger<ValidationMiddleware<TRequest, TResponse>> logger)
+    {
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+
+    public int Order => -1; // Execute early in the pipeline
+
+    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    {
+        // Try to get a validator for this request type
+        var validatorType = typeof(IValidator<>).MakeGenericType(typeof(TRequest));
+        var validator = _serviceProvider.GetService(validatorType) as IValidator;
+
+        if (validator != null)
+        {
+            _logger.LogDebug("Validating request of type {RequestType}", typeof(TRequest).Name);
+
+            var validationResult = await validator.ValidateAsync(new ValidationContext<TRequest>(request), cancellationToken);
+
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage);
+                _logger.LogWarning("Validation failed for {RequestType}: {Errors}",
+                    typeof(TRequest).Name, string.Join(", ", errors));
+
+                throw new ValidationException(validationResult.Errors);
+            }
+        }
+
+        return await next();
+    }
+}
+```
+
+#### Caching Middleware
+
+```csharp
+public class CachingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<CachingMiddleware<TRequest, TResponse>> _logger;
+
+    public CachingMiddleware(IMemoryCache cache, ILogger<CachingMiddleware<TRequest, TResponse>> logger)
+    {
+        _cache = cache;
+        _logger = logger;
+    }
+
+    public int Order => 10; // Execute late in the pipeline
+
+    public bool ShouldExecute(TRequest request)
+    {
+        // Only cache query operations (not commands)
+        return request is IRequest<TResponse> &&
+               request.GetType().Name.EndsWith("Query", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    {
+        // Generate cache key based on request type and properties
+        var cacheKey = GenerateCacheKey(request);
+
+        // Try to get from cache first
+        if (_cache.TryGetValue(cacheKey, out TResponse? cachedResponse))
+        {
+            _logger.LogInformation("Cache hit for {RequestType}", typeof(TRequest).Name);
+            return cachedResponse!;
+        }
+
+        // Execute handler and cache the result
+        var response = await next();
+
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+            SlidingExpiration = TimeSpan.FromMinutes(1)
         };
 
-        await _userRepository.AddAsync(user);
-        await _userRepository.SaveChangesAsync();
+        _cache.Set(cacheKey, response, cacheOptions);
+        _logger.LogInformation("Cached response for {RequestType}", typeof(TRequest).Name);
 
-        // Send welcome email asynchronously (fire and forget)
-        _ = Task.Run(async () =>
-        {
-            var emailCommand = new SendWelcomeEmailCommand
-            {
-                UserId = user.Id,
-                Email = user.Email
-            };
-            await _mediator.Send(emailCommand);
-        });
+        return response;
+    }
 
-        return user.Id;
+    private string GenerateCacheKey(TRequest request)
+    {
+        // Simple cache key generation - improve this for production use
+        var requestType = typeof(TRequest).Name;
+        var requestJson = JsonSerializer.Serialize(request);
+        var hash = requestJson.GetHashCode();
+        return $"{requestType}_{hash}";
     }
 }
 ```
 
-## Best Practices
+### Middleware Best Practices
 
-### 1. Request Naming Conventions (CQRS Best Practices)
+#### 1. Performance Considerations
 
--   **Queries**: Use descriptive names ending with "Query" that describe what data is being retrieved (e.g., `GetUserByIdQuery`, `GetActiveUsersQuery`, `GetMonthlyRevenueQuery`)
--   **Commands**: Use verb-noun patterns ending with "Command" that describe the business intent (e.g., `CreateUserCommand`, `ActivateUserAccountCommand`, `ProcessOrderCommand`)
+-   **Use Conditional Middleware**: For performance-critical applications, use conditional middleware to avoid unnecessary processing
+-   **Order Matters**: Put expensive middleware later in the pipeline (higher Order values)
+-   **Async All The Way**: Always use async/await in middleware
 
-### 2. Handler Organization (Separate Read and Write Concerns)
+#### 2. Error Handling
+
+-   **Let Exceptions Bubble**: Don't catch exceptions unless you're handling them specifically
+-   **Log Errors**: Always log errors with sufficient context
+-   **Preserve Stack Traces**: Use `throw;` instead of `throw ex;`
+
+#### 3. Logging Guidelines
+
+-   **Use Structured Logging**: Include relevant properties in log messages
+-   **Be Mindful of Sensitive Data**: Don't log passwords, tokens, or personal information
+-   **Use Log Levels Appropriately**: Information for normal flow, Warning for business issues, Error for exceptions
+
+## Sample Projects
+
+The Blazing.Mediator library includes two comprehensive sample projects that demonstrate different architectural approaches and middleware usage patterns. Both projects showcase real-world implementations of CQRS with the Mediator pattern.
+
+### ECommerce.Api - Traditional Controller Architecture
+
+**📁 Location**: `src/samples/ECommerce.Api/`
+
+This sample demonstrates a traditional e-commerce API using Controllers with conditional middleware for optimal performance.
+
+#### Key Features
+
+-   **Product Management**: CRUD operations for products with stock management
+-   **Order Processing**: Complete order lifecycle from creation to completion
+-   **Conditional Middleware**: Performance-optimized logging for specific request types
+-   **Entity Framework**: In-memory database for development, SQL Server for production
+-   **FluentValidation**: Comprehensive validation using FluentValidation library
+-   **Error Handling**: Robust error handling with proper HTTP status codes
+
+#### Architecture Overview
 
 ```
-Application/
-├── Commands/           # Write operations (CQRS Commands)
-│   ├── CreateUser/
+ECommerce.Api/
+├── Application/
+│   ├── Commands/          # Write operations (CQRS Commands)
+│   │   ├── CreateOrderCommand.cs
+│   │   ├── CreateProductCommand.cs
+│   │   ├── UpdateProductCommand.cs
+│   │   └── ProcessOrderCommand.cs
+│   ├── Queries/           # Read operations (CQRS Queries)
+│   │   ├── GetOrderByIdQuery.cs
+│   │   ├── GetProductByIdQuery.cs
+│   │   └── GetProductsQuery.cs
+│   ├── Handlers/          # Business logic handlers
+│   │   ├── Commands/
+│   │   └── Queries/
+│   ├── Middleware/        # Conditional middleware
+│   │   ├── OrderLoggingMiddleware.cs
+│   │   └── ProductLoggingMiddleware.cs
+│   ├── DTOs/              # Data transfer objects
+│   ├── Validators/        # FluentValidation validators
+│   └── Exceptions/        # Custom exceptions
+├── Controllers/           # API Controllers
+│   ├── OrdersController.cs
+│   └── ProductsController.cs
+├── Infrastructure/        # Data access layer
+│   ├── Data/
+│   │   ├── ECommerceDbContext.cs
+│   │   └── Entities/
+│   └── Repositories/
+└── Program.cs            # Application configuration
+```
+
+#### Sample Request/Response Flow
+
+**Creating an Order:**
+
+```http
+POST /api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "customerEmail": "customer@example.com",
+  "shippingAddress": "123 Main St, City, State",
+  "items": [
+    {
+      "productId": 1,
+      "quantity": 2,
+      "unitPrice": 29.99
+    }
+  ]
+}
+```
+
+**Middleware Output:**
+
+```
+🛒 ORDER REQUEST: CreateOrderCommand started at 2025-07-01 10:30:15.123
+🛒 ORDER REQUEST DATA: {
+  "customerId": 1,
+  "customerEmail": "customer@example.com",
+  "shippingAddress": "123 Main St, City, State",
+  "items": [...]
+}
+🛒 ORDER RESPONSE: CreateOrderCommand completed successfully in 45ms
+```
+
+**Response:**
+
+```json
+{
+    "success": true,
+    "data": 12345,
+    "message": "Order created successfully"
+}
+```
+
+#### Testing the ECommerce API
+
+Use the provided HTTP file for testing:
+
+```http
+### Get all products
+GET http://localhost:5000/api/products
+
+### Get specific product
+GET http://localhost:5000/api/products/1
+
+### Create new product
+POST http://localhost:5000/api/products
+Content-Type: application/json
+
+{
+  "name": "Wireless Headphones",
+  "description": "High-quality wireless headphones",
+  "price": 99.99,
+  "stockQuantity": 50,
+  "categoryId": 1
+}
+
+### Create order
+POST http://localhost:5000/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "customerEmail": "test@example.com",
+  "shippingAddress": "123 Test Street, Test City",
+  "items": [
+    {
+      "productId": 1,
+      "quantity": 2,
+      "unitPrice": 99.99
+    }
+  ]
+}
+```
+
+### UserManagement.Api - Modern Minimal API Architecture
+
+**📁 Location**: `src/samples/UserManagement.Api/`
+
+This sample demonstrates a modern user management API using Minimal APIs with comprehensive standard middleware.
+
+#### Key Features
+
+-   **User Management**: Complete CRUD operations for users
+-   **Minimal APIs**: Modern .NET approach with functional endpoints
+-   **Standard Middleware**: Comprehensive logging for all operations
+-   **Clean Architecture**: Separation of concerns with clear layer boundaries
+-   **Error Handling**: Centralized error handling with proper responses
+-   **Swagger Integration**: Complete API documentation
+
+#### Architecture Overview
+
+```
+UserManagement.Api/
+├── Application/
+│   ├── Commands/          # Write operations
 │   │   ├── CreateUserCommand.cs
-│   │   ├── CreateUserHandler.cs
-│   │   └── CreateUserValidator.cs
-│   └── UpdateUser/
-│       ├── UpdateUserCommand.cs
-│       ├── UpdateUserHandler.cs
-│       └── UpdateUserValidator.cs
-└── Queries/            # Read operations (CQRS Queries)
-    ├── GetUser/
-    │   ├── GetUserQuery.cs
-    │   └── GetUserHandler.cs
-    └── GetUsers/
-        ├── GetUsersQuery.cs
-        └── GetUsersHandler.cs
+│   │   ├── UpdateUserCommand.cs
+│   │   └── DeleteUserCommand.cs
+│   ├── Queries/           # Read operations
+│   │   ├── GetUserByIdQuery.cs
+│   │   ├── GetUsersQuery.cs
+│   │   └── GetUserStatisticsQuery.cs
+│   ├── Handlers/          # Business logic handlers
+│   ├── Middleware/        # Standard middleware
+│   │   ├── GeneralLoggingMiddleware.cs
+│   │   └── GeneralCommandLoggingMiddleware.cs
+│   ├── DTOs/              # Data transfer objects
+│   └── Models/            # Domain models
+├── Endpoints/             # Minimal API endpoints
+│   └── UserEndpoints.cs
+├── Infrastructure/        # Data access layer
+└── Program.cs            # Application configuration
 ```
 
-### 3. Keep Handlers Focused and Small
+#### Sample Request/Response Flow
 
-Each handler should have a single responsibility:
+**Getting User by ID:**
 
-```csharp
-// ✅ Good - focused handler
-public class CreateUserHandler : IRequestHandler<CreateUserCommand, int>
+```http
+GET /api/users/123
+```
+
+**Middleware Output:**
+
+```
+🔍 REQUEST: GetUserByIdQuery started at 2025-07-01 10:30:20.456
+🔍 REQUEST DATA: { "userId": 123 }
+🔍 RESPONSE: GetUserByIdQuery completed successfully in 12ms
+```
+
+**Response:**
+
+```json
 {
-    private readonly IUserRepository _userRepository;
-    private readonly IValidator<CreateUserCommand> _validator;
-
-    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken)
-    {
-        // 1. Validate
-        await _validator.ValidateAndThrowAsync(request, cancellationToken);
-
-        // 2. Create entity
-        var user = new User(request.FirstName, request.LastName, request.Email);
-
-        // 3. Persist
-        await _userRepository.AddAsync(user);
-
-        return user.Id;
-    }
+    "id": 123,
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "isActive": true,
+    "createdAt": "2025-01-01T00:00:00Z"
 }
 ```
 
-### 4. Use DTOs for Responses
+**Creating a User:**
 
-Don't expose domain entities directly:
+```http
+POST /api/users
+Content-Type: application/json
 
-```csharp
-// ✅ Good - use DTOs
-public class UserDto
 {
-    public int Id { get; set; }
-    public string FullName { get; set; }
-    public string Email { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
-
-// ❌ Avoid - exposing domain entities
-public class User // Domain entity
-{
-    public int Id { get; set; }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string Email { get; set; }
-    public string PasswordHash { get; set; } // Sensitive data!
-    public DateTime CreatedAt { get; set; }
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "email": "jane.smith@example.com",
+  "dateOfBirth": "1990-05-15"
 }
 ```
 
-### 5. Implement Proper Error Handling
+**Middleware Output:**
 
-Use consistent error handling patterns:
-
-```csharp
-public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
-{
-    public async Task<UserDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
-    {
-        var user = await _userRepository.GetByIdAsync(request.UserId);
-
-        if (user == null)
-            throw new NotFoundException($"User with ID {request.UserId} not found");
-
-        return _mapper.Map<UserDto>(user);
-    }
+```
+🔍 COMMAND: CreateUserCommand started at 2025-07-01 10:31:15.789
+🔍 COMMAND DATA: {
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "email": "jane.smith@example.com",
+  "dateOfBirth": "1990-05-15"
 }
+🔍 COMMAND COMPLETED: CreateUserCommand completed successfully in 25ms
 ```
 
-### 6. Use Cancellation Tokens
+#### Testing the UserManagement API
 
-Always accept and use cancellation tokens:
+Use the provided HTTP file for testing:
 
-```csharp
-public async Task<UserDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
+```http
+### Get all users
+GET http://localhost:5001/api/users
+
+### Get specific user
+GET http://localhost:5001/api/users/1
+
+### Create new user
+POST http://localhost:5001/api/users
+Content-Type: application/json
+
 {
-    // Pass cancellation token to all async operations
-    var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
-    var orders = await _orderRepository.GetByUserIdAsync(request.UserId, cancellationToken);
-
-    return new UserDto { /* ... */ };
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "dateOfBirth": "1985-03-20"
 }
-```
 
-### 7. Separate Validation Logic
+### Update user
+PUT http://localhost:5001/api/users/1
+Content-Type: application/json
 
-Use dedicated validators instead of inline validation:
-
-```csharp
-// ✅ Good - separate validator
-public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
 {
-    public CreateUserCommandValidator()
-    {
-        RuleFor(x => x.Email)
-            .NotEmpty()
-            .EmailAddress()
-            .MustAsync(BeUniqueEmail)
-            .WithMessage("Email already exists");
-    }
-
-    private async Task<bool> BeUniqueEmail(string email, CancellationToken cancellationToken)
-    {
-        // Custom validation logic
-        return await _userRepository.IsEmailUniqueAsync(email);
-    }
+  "userId": 1,
+  "firstName": "John",
+  "lastName": "Smith",
+  "email": "john.smith@example.com"
 }
+
+### Delete user
+DELETE http://localhost:5001/api/users/1
 ```
 
-## Common Mistakes
+### Running the Sample Projects
 
-Understanding common pitfalls helps new users avoid frustrating debugging sessions:
+#### Prerequisites
 
-### 1. Forgetting to Register Handlers
+-   .NET 9.0 SDK
+-   Visual Studio 2022 or VS Code
+-   SQL Server LocalDB (for production mode) or uses In-Memory database (development mode)
 
-**Problem**: `InvalidOperationException: No service for type 'IRequestHandler<MyQuery, MyResult>' has been registered.`
+#### Getting Started
 
-**Solution**: Ensure all assemblies containing handlers are registered:
+1. **Clone the repository:**
 
-```csharp
-// ❌ Wrong - missing assembly with handlers
-builder.Services.AddMediator(typeof(Program).Assembly);
-
-// ✅ Correct - include all assemblies
-builder.Services.AddMediator(
-    typeof(Program).Assembly,
-    typeof(GetUserHandler).Assembly  // Include application layer
-);
-```
-
-### 2. Inconsistent Request/Response Types
-
-**Problem**: Handler return type doesn't match request definition.
-
-```csharp
-// ❌ Wrong - mismatched types
-public class GetUserQuery : IRequest<UserDto> { }
-
-public class GetUserHandler : IRequestHandler<GetUserQuery, String> // Wrong return type
-{
-    public async Task<String> Handle(GetUserQuery request, CancellationToken cancellationToken)
-    {
-        return "some string"; // Should return UserDto
-    }
-}
-```
-
-**Solution**: Ensure types match exactly:
-
-```csharp
-// ✅ Correct - matching types
-public class GetUserQuery : IRequest<UserDto> { }
-
-public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
-{
-    public async Task<UserDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
-    {
-        return new UserDto(); // Correct return type
-    }
-}
-```
-
-### 3. Multiple Handlers for Same Request
-
-**Problem**: Multiple handlers registered for the same request type causes ambiguity.
-
-**Solution**: Ensure only one handler per request type:
-
-```csharp
-// ❌ Wrong - multiple handlers
-public class GetUserHandler1 : IRequestHandler<GetUserQuery, UserDto> { }
-public class GetUserHandler2 : IRequestHandler<GetUserQuery, UserDto> { } // Duplicate!
-
-// ✅ Correct - one handler per request
-public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto> { }
-```
-
-### 4. Blocking Async Operations
-
-**Problem**: Using `.Result` or `.Wait()` can cause deadlocks.
-
-```csharp
-// ❌ Wrong - blocking async
-public class SomeService
-{
-    public UserDto GetUser(int id)
-    {
-        return _mediator.Send(new GetUserQuery { Id = id }).Result; // Deadlock risk!
-    }
-}
-```
-
-**Solution**: Use async/await throughout:
-
-```csharp
-// ✅ Correct - async all the way
-public class SomeService
-{
-    public async Task<UserDto> GetUserAsync(int id)
-    {
-        return await _mediator.Send(new GetUserQuery { Id = id });
-    }
-}
-```
-
-### 5. Fat Controllers vs Thin Controllers
-
-**Problem**: Putting business logic in controllers defeats the purpose of the mediator pattern.
-
-```csharp
-// ❌ Wrong - business logic in controller
-[HttpPost]
-public async Task<IActionResult> CreateUser(CreateUserRequest request)
-{
-    // Validation logic
-    if (string.IsNullOrEmpty(request.Email))
-        return BadRequest("Email is required");
-
-    // Business logic
-    if (await _userService.EmailExistsAsync(request.Email))
-        return BadRequest("Email already exists");
-
-    // Data access logic
-    var user = new User { Email = request.Email };
-    await _userRepository.AddAsync(user);
-
-    return Ok(user.Id);
-}
-```
-
-**Solution**: Keep controllers thin, put logic in handlers:
-
-```csharp
-// ✅ Correct - thin controller
-[HttpPost]
-public async Task<IActionResult> CreateUser(CreateUserCommand command)
-{
-    try
-    {
-        var userId = await _mediator.Send(command);
-        return Ok(userId);
-    }
-    catch (ValidationException ex)
-    {
-        return BadRequest(ex.Errors);
-    }
-}
-```
-
-## Troubleshooting
-
-### Handler Not Found Exception
-
-**Error**: `InvalidOperationException: No service for type 'IRequestHandler<...>' has been registered`
-
-**Causes & Solutions**:
-
-1. **Handler not in registered assembly**:
-
-    ```csharp
-    // Check if handler's assembly is registered
-    builder.Services.AddMediator(typeof(YourHandler).Assembly);
+    ```bash
+    git clone https://github.com/gragra33/blazing.mediator.git
+    cd blazing.mediator
     ```
 
-2. **Handler class not public**:
+2. **Run ECommerce API:**
 
-    ```csharp
-    // ❌ Wrong
-    internal class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
-
-    // ✅ Correct
-    public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
+    ```bash
+    cd src/samples/ECommerce.Api
+    dotnet run
     ```
 
-3. **Missing parameterless constructor or unresolvable dependencies**:
-    ```csharp
-    // ✅ Ensure handler can be instantiated by DI
-    public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
-    {
-        private readonly IUserRepository _repository;
+    Navigate to: `https://localhost:5000/swagger`
 
-        public GetUserHandler(IUserRepository repository)
-        {
-            _repository = repository;
-        }
-    }
+3. **Run UserManagement API:**
+    ```bash
+    cd src/samples/UserManagement.Api
+    dotnet run
     ```
+    Navigate to: `https://localhost:5001/swagger`
 
-### Circular Dependencies
+#### Sample Comparison
 
-**Error**: `InvalidOperationException: A circular dependency was detected`
+| Feature          | ECommerce.Api          | UserManagement.Api     |
+| ---------------- | ---------------------- | ---------------------- |
+| **API Style**    | Controllers            | Minimal APIs           |
+| **Middleware**   | Conditional            | Standard               |
+| **Database**     | Entity Framework       | In-Memory/Repository   |
+| **Validation**   | FluentValidation       | Built-in               |
+| **Architecture** | Traditional Layers     | Clean Architecture     |
+| **Use Case**     | Complex Business Logic | Simple CRUD Operations |
+| **Performance**  | Optimized Middleware   | Comprehensive Logging  |
 
-**Solution**: Avoid handlers calling other handlers directly. Use composition or domain services:
-
-```csharp
-// ❌ Wrong - circular dependency risk
-public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, int>
-{
-    private readonly IMediator _mediator; // Avoid this pattern
-
-    public async Task<int> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
-    {
-        // Don't call other handlers from within handlers
-        var user = await _mediator.Send(new GetUserQuery { Id = request.UserId });
-        // ...
-    }
-}
-
-// ✅ Correct - use direct services
-public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, int>
-{
-    private readonly IUserRepository _userRepository;
-    private readonly IOrderRepository _orderRepository;
-
-    public async Task<int> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
-    {
-        var user = await _userRepository.GetByIdAsync(request.UserId);
-        // ...
-    }
-}
-```
-
-### Performance Issues
-
-**Problem**: Slow response times or high memory usage.
-
-**Solutions**:
-
-1. **Use cancellation tokens**:
-
-    ```csharp
-    public async Task<UserDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
-    {
-        return await _repository.GetByIdAsync(request.Id, cancellationToken);
-    }
-    ```
-
-2. **Optimize database queries**:
-
-    ```csharp
-    // Use projection instead of full entities
-    var userDto = await _context.Users
-        .Where(u => u.Id == request.Id)
-        .Select(u => new UserDto { Id = u.Id, Name = u.Name })
-        .FirstOrDefaultAsync(cancellationToken);
-    ```
-
-3. **Implement caching for queries**:
-    ```csharp
-    public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
-    {
-        private readonly IMemoryCache _cache;
-
-        public async Task<UserDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
-        {
-            var cacheKey = $"user-{request.Id}";
-            if (_cache.TryGetValue(cacheKey, out UserDto cachedUser))
-                return cachedUser;
-
-            var user = await _repository.GetByIdAsync(request.Id);
-            _cache.Set(cacheKey, user, TimeSpan.FromMinutes(5));
-            return user;
-        }
-    }
-    ```
-
-### Debugging Tips
-
-1. **Enable detailed logging**:
-
-    ```csharp
-    // In appsettings.Development.json
-    {
-      "Logging": {
-        "LogLevel": {
-          "Default": "Information",
-          "Blazing.Mediator": "Debug"
-        }
-      }
-    }
-    ```
-
-2. **Use middleware to log requests**:
-
-    ```csharp
-    public class RequestLoggingMiddleware
-    {
-        private readonly RequestDelegate _next;
-        private readonly ILogger<RequestLoggingMiddleware> _logger;
-
-        public RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggingMiddleware> logger)
-        {
-            _next = next;
-            _logger = logger;
-        }
-
-        public async Task InvokeAsync(HttpContext context)
-        {
-            _logger.LogInformation("Processing request: {Method} {Path}",
-                context.Request.Method, context.Request.Path);
-
-            await _next(context);
-
-            _logger.LogInformation("Completed request: {Method} {Path} - Status: {StatusCode}",
-                context.Request.Method, context.Request.Path, context.Response.StatusCode);
-        }
-    }
-    ```
-
-## Best Practices
-
-### 1. Request Naming Conventions (CQRS Best Practices)
-
--   **Queries**: Use descriptive names ending with "Query" that describe what data is being retrieved (e.g., `GetUserByIdQuery`, `GetActiveUsersQuery`, `GetMonthlyRevenueQuery`)
--   **Commands**: Use verb-noun patterns ending with "Command" that describe the business intent (e.g., `CreateUserCommand`, `ActivateUserAccountCommand`, `ProcessOrderCommand`)
-
-### 2. Handler Organization (Separate Read and Write Concerns)
-
-```
-Application/
-├── Commands/           # Write operations (CQRS Commands)
-│   ├── CreateUser/
-│   │   ├── CreateUserCommand.cs
-│   │   ├── CreateUserHandler.cs
-│   │   └── CreateUserValidator.cs
-│   └── UpdateUser/
-│       ├── UpdateUserCommand.cs
-│       ├── UpdateUserHandler.cs
-│       └── UpdateUserValidator.cs
-└── Queries/            # Read operations (CQRS Queries)
-    ├── GetUser/
-    │   ├── GetUserQuery.cs
-    │   └── GetUserHandler.cs
-    └── GetUsers/
-        ├── GetUsersQuery.cs
-        └── GetUsersHandler.cs
-```
-
-### 3. Keep Handlers Focused and Small
-
-Each handler should have a single responsibility:
-
-```csharp
-// ✅ Good - focused handler
-public class CreateUserHandler : IRequestHandler<CreateUserCommand, int>
-{
-    private readonly IUserRepository _userRepository;
-    private readonly IValidator<CreateUserCommand> _validator;
-
-    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken)
-    {
-        // 1. Validate
-        await _validator.ValidateAndThrowAsync(request, cancellationToken);
-
-        // 2. Create entity
-        var user = new User(request.FirstName, request.LastName, request.Email);
-
-        // 3. Persist
-        await _userRepository.AddAsync(user);
-
-        return user.Id;
-    }
-}
-```
-
-### 4. Use DTOs for Responses
-
-Don't expose domain entities directly:
-
-```csharp
-// ✅ Good - use DTOs
-public class UserDto
-{
-    public int Id { get; set; }
-    public string FullName { get; set; }
-    public string Email { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
-
-// ❌ Avoid - exposing domain entities
-public class User // Domain entity
-{
-    public int Id { get; set; }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string Email { get; set; }
-    public string PasswordHash { get; set; } // Sensitive data!
-    public DateTime CreatedAt { get; set; }
-}
-```
-
-### 5. Implement Proper Error Handling
-
-Use consistent error handling patterns:
-
-```csharp
-public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
-{
-    public async Task<UserDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
-    {
-        var user = await _userRepository.GetByIdAsync(request.UserId);
-
-        if (user == null)
-            throw new NotFoundException($"User with ID {request.UserId} not found");
-
-        return _mapper.Map<UserDto>(user);
-    }
-}
-```
-
-### 6. Use Cancellation Tokens
-
-Always accept and use cancellation tokens:
-
-```csharp
-public async Task<UserDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
-{
-    // Pass cancellation token to all async operations
-    var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
-    var orders = await _orderRepository.GetByUserIdAsync(request.UserId, cancellationToken);
-
-    return new UserDto { /* ... */ };
-}
-```
-
-### 7. Separate Validation Logic
-
-Use dedicated validators instead of inline validation:
-
-```csharp
-// ✅ Good - separate validator
-public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
-{
-    public CreateUserCommandValidator()
-    {
-        RuleFor(x => x.Email)
-            .NotEmpty()
-            .EmailAddress()
-            .MustAsync(BeUniqueEmail)
-            .WithMessage("Email already exists");
-    }
-
-    private async Task<bool> BeUniqueEmail(string email, CancellationToken cancellationToken)
-    {
-        // Custom validation logic
-        return await _userRepository.IsEmailUniqueAsync(email);
-    }
-}
-```
+Both samples demonstrate the flexibility of Blazing.Mediator and show that the library works equally well with different architectural approaches and API styles.
 
 ## Complete Examples
 
-### E-Commerce Product Management
+This section provides complete, runnable examples that demonstrate various aspects of Blazing.Mediator implementation.
 
-This complete example shows a typical product management scenario with full CQRS implementation:
+### Complete CRUD Implementation
+
+Here's a complete implementation showing all aspects of a User management system:
 
 #### 1. Domain Models
 
 ```csharp
-public class Product
+// Domain/Entities/User.cs
+public class User
 {
     public int Id { get; set; }
-    public string Name { get; set; }
-    public string Description { get; set; }
-    public decimal Price { get; set; }
-    public int StockQuantity { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public DateTime DateOfBirth { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
+
+    public string FullName => $"{FirstName} {LastName}";
+    public int Age => DateTime.Now.Year - DateOfBirth.Year;
 }
 ```
 
 #### 2. DTOs
 
 ```csharp
-public class ProductDto
+// Application/DTOs/UserDto.cs
+public class UserDto
 {
     public int Id { get; set; }
-    public string Name { get; set; }
-    public string Description { get; set; }
-    public decimal Price { get; set; }
-    public int StockQuantity { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public DateTime DateOfBirth { get; set; }
+    public int Age { get; set; }
     public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
-public class ProductSummaryDto
+// Application/DTOs/CreateUserDto.cs
+public class CreateUserDto
 {
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public decimal Price { get; set; }
-    public bool IsActive { get; set; }
-}
-```
-
-#### 3. Commands (Write Operations)
-
-```csharp
-// Create Product Command
-public class CreateProductCommand : IRequest<int>
-{
-    public string Name { get; set; }
-    public string Description { get; set; }
-    public decimal Price { get; set; }
-    public int InitialStock { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public DateTime DateOfBirth { get; set; }
 }
 
-public class CreateProductCommandValidator : AbstractValidator<CreateProductCommand>
-{
-    public CreateProductCommandValidator()
-    {
-        RuleFor(x => x.Name)
-            .NotEmpty().WithMessage("Product name is required")
-            .MaximumLength(100).WithMessage("Product name cannot exceed 100 characters");
-
-        RuleFor(x => x.Price)
-            .GreaterThan(0).WithMessage("Price must be greater than 0");
-
-        RuleFor(x => x.InitialStock)
-            .GreaterThanOrEqualTo(0).WithMessage("Stock cannot be negative");
-    }
-}
-
-public class CreateProductHandler : IRequestHandler<CreateProductCommand, int>
-{
-    private readonly IProductRepository _productRepository;
-    private readonly IValidator<CreateProductCommand> _validator;
-
-    public CreateProductHandler(IProductRepository productRepository, IValidator<CreateProductCommand> validator)
-    {
-        _productRepository = productRepository;
-        _validator = validator;
-    }
-
-    public async Task<int> Handle(CreateProductCommand request, CancellationToken cancellationToken)
-    {
-        // Validate
-        await _validator.ValidateAndThrowAsync(request, cancellationToken);
-
-        // Create entity
-        var product = new Product
-        {
-            Name = request.Name,
-            Description = request.Description,
-            Price = request.Price,
-            StockQuantity = request.InitialStock,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        // Persist
-        await _productRepository.AddAsync(product);
-        await _productRepository.SaveChangesAsync();
-
-        return product.Id;
-    }
-}
-
-// Update Product Command
-public class UpdateProductCommand : IRequest
-{
-    public int ProductId { get; set; }
-    public string Name { get; set; }
-    public string Description { get; set; }
-    public decimal Price { get; set; }
-}
-
-public class UpdateProductHandler : IRequestHandler<UpdateProductCommand>
-{
-    private readonly IProductRepository _productRepository;
-
-    public UpdateProductHandler(IProductRepository productRepository)
-    {
-        _productRepository = productRepository;
-    }
-
-    public async Task Handle(UpdateProductCommand request, CancellationToken cancellationToken)
-    {
-        var product = await _productRepository.GetByIdAsync(request.ProductId);
-
-        if (product == null)
-            throw new NotFoundException($"Product with ID {request.ProductId} not found");
-
-        product.Name = request.Name;
-        product.Description = request.Description;
-        product.Price = request.Price;
-        product.UpdatedAt = DateTime.UtcNow;
-
-        await _productRepository.UpdateAsync(product);
-        await _productRepository.SaveChangesAsync();
-    }
-}
-```
-
-#### 4. Queries (Read Operations)
-
-```csharp
-// Get Product by ID Query
-public class GetProductByIdQuery : IRequest<ProductDto>
-{
-    public int ProductId { get; set; }
-}
-
-public class GetProductByIdHandler : IRequestHandler<GetProductByIdQuery, ProductDto>
-{
-    private readonly IProductRepository _productRepository;
-
-    public GetProductByIdHandler(IProductRepository productRepository)
-    {
-        _productRepository = productRepository;
-    }
-
-    public async Task<ProductDto> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
-    {
-        var product = await _productRepository.GetByIdAsync(request.ProductId);
-
-        if (product == null)
-            throw new NotFoundException($"Product with ID {request.ProductId} not found");
-
-        return new ProductDto
-        {
-            Id = product.Id,
-            Name = product.Name,
-            Description = product.Description,
-            Price = product.Price,
-            StockQuantity = product.StockQuantity,
-            IsActive = product.IsActive
-        };
-    }
-}
-
-// Get Products with Pagination Query
-public class GetProductsQuery : IRequest<PagedResult<ProductSummaryDto>>
-{
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
-    public string SearchTerm { get; set; } = "";
-    public bool? IsActive { get; set; }
-}
-
-public class GetProductsHandler : IRequestHandler<GetProductsQuery, PagedResult<ProductSummaryDto>>
-{
-    private readonly IProductRepository _productRepository;
-
-    public GetProductsHandler(IProductRepository productRepository)
-    {
-        _productRepository = productRepository;
-    }
-
-    public async Task<PagedResult<ProductSummaryDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
-    {
-        var (products, totalCount) = await _productRepository.GetPagedAsync(
-            request.Page,
-            request.PageSize,
-            request.SearchTerm,
-            request.IsActive);
-
-        var productDtos = products.Select(p => new ProductSummaryDto
-        {
-            Id = p.Id,
-            Name = p.Name,
-            Price = p.Price,
-            IsActive = p.IsActive
-        }).ToList();
-
-        return new PagedResult<ProductSummaryDto>
-        {
-            Items = productDtos,
-            TotalCount = totalCount,
-            Page = request.Page,
-            PageSize = request.PageSize
-        };
-    }
-}
-```
-
-#### 5. Controller Implementation
-
-```csharp
-[ApiController]
-[Route("api/[controller]")]
-public class ProductsController : ControllerBase
-{
-    private readonly IMediator _mediator;
-
-    public ProductsController(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
-
-    [HttpGet("{id}")]
-    public async Task<ActionResult<ProductDto>> GetProduct(int id)
-    {
-        try
-        {
-            var product = await _mediator.Send(new GetProductByIdQuery { ProductId = id });
-            return Ok(product);
-        }
-        catch (NotFoundException)
-        {
-            return NotFound();
-        }
-    }
-
-    [HttpGet]
-    public async Task<ActionResult<PagedResult<ProductSummaryDto>>> GetProducts(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string searchTerm = "",
-        [FromQuery] bool? isActive = null)
-    {
-        var query = new GetProductsQuery
-        {
-            Page = page,
-            PageSize = pageSize,
-            SearchTerm = searchTerm,
-            IsActive = isActive
-        };
-
-        var result = await _mediator.Send(query);
-        return Ok(result);
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<int>> CreateProduct(CreateProductCommand command)
-    {
-        try
-        {
-            var productId = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetProduct), new { id = productId }, productId);
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(ex.Errors);
-        }
-    }
-
-    [HttpPut("{id}")]
-    public async Task<ActionResult> UpdateProduct(int id, UpdateProductCommand command)
-    {
-        try
-        {
-            command.ProductId = id;
-            await _mediator.Send(command);
-            return NoContent();
-        }
-        catch (NotFoundException)
-        {
-            return NotFound();
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(ex.Errors);
-        }
-    }
-}
-```
-
-#### 6. Supporting Infrastructure
-
-```csharp
-// Paged Result DTO
+// Application/DTOs/PagedResult.cs
 public class PagedResult<T>
 {
-    public List<T> Items { get; set; } = new();
+    public List<T> Items { get; set; } = [];
     public int TotalCount { get; set; }
     public int Page { get; set; }
     public int PageSize { get; set; }
@@ -2274,44 +2176,617 @@ public class PagedResult<T>
     public bool HasNextPage => Page < TotalPages;
     public bool HasPreviousPage => Page > 1;
 }
+```
 
-// Repository Interface
-public interface IProductRepository
+#### 3. Repository Interface
+
+```csharp
+// Application/Interfaces/IUserRepository.cs
+public interface IUserRepository
 {
-    Task<Product> GetByIdAsync(int id);
-    Task<(List<Product> products, int totalCount)> GetPagedAsync(int page, int pageSize, string searchTerm, bool? isActive);
-    Task AddAsync(Product product);
-    Task UpdateAsync(Product product);
-    Task SaveChangesAsync();
+    Task<User?> GetByIdAsync(int id);
+    Task<User?> GetByEmailAsync(string email);
+    Task<PagedResult<User>> GetPagedAsync(int page, int pageSize, string? searchTerm = null);
+    Task<List<User>> GetAllActiveAsync();
+    Task<int> AddAsync(User user);
+    Task UpdateAsync(User user);
+    Task DeleteAsync(int id);
+    Task<bool> EmailExistsAsync(string email, int? excludeUserId = null);
+    Task<int> GetTotalCountAsync();
 }
+```
+
+#### 4. Queries (CQRS Read Side)
+
+```csharp
+// Application/Queries/GetUserByIdQuery.cs
+public class GetUserByIdQuery : IRequest<UserDto>
+{
+    public int UserId { get; set; }
+}
+
+public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UserDto>
+{
+    private readonly IUserRepository _repository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<GetUserByIdHandler> _logger;
+
+    public GetUserByIdHandler(IUserRepository repository, IMapper mapper, ILogger<GetUserByIdHandler> logger)
+    {
+        _repository = repository;
+        _mapper = mapper;
+        _logger = logger;
+    }
+
+    public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Getting user with ID {UserId}", request.UserId);
+
+        var user = await _repository.GetByIdAsync(request.UserId);
+
+        if (user == null)
+        {
+            _logger.LogWarning("User with ID {UserId} not found", request.UserId);
+            throw new NotFoundException($"User with ID {request.UserId} not found");
+        }
+
+        var userDto = _mapper.Map<UserDto>(user);
+
+        _logger.LogDebug("Successfully retrieved user {UserId}", request.UserId);
+        return userDto;
+    }
+}
+
+// Application/Queries/GetUsersQuery.cs
+public class GetUsersQuery : IRequest<PagedResult<UserDto>>
+{
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+    public string? SearchTerm { get; set; }
+    public bool IncludeInactive { get; set; } = false;
+}
+
+public class GetUsersHandler : IRequestHandler<GetUsersQuery, PagedResult<UserDto>>
+{
+    private readonly IUserRepository _repository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<GetUsersHandler> _logger;
+
+    public GetUsersHandler(IUserRepository repository, IMapper mapper, ILogger<GetUsersHandler> logger)
+    {
+        _repository = repository;
+        _mapper = mapper;
+        _logger = logger;
+    }
+
+    public async Task<PagedResult<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Getting users: Page {Page}, PageSize {PageSize}, SearchTerm: {SearchTerm}",
+            request.Page, request.PageSize, request.SearchTerm);
+
+        var users = await _repository.GetPagedAsync(request.Page, request.PageSize, request.SearchTerm);
+        var userDtos = _mapper.Map<List<UserDto>>(users.Items);
+
+        var result = new PagedResult<UserDto>
+        {
+            Items = userDtos,
+            TotalCount = users.TotalCount,
+            Page = request.Page,
+            PageSize = request.PageSize
+        };
+
+        _logger.LogDebug("Retrieved {Count} users out of {Total}", result.Items.Count, result.TotalCount);
+        return result;
+    }
+}
+```
+
+#### 5. Commands (CQRS Write Side)
+
+```csharp
+// Application/Commands/CreateUserCommand.cs
+public class CreateUserCommand : IRequest<int>
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public DateTime DateOfBirth { get; set; }
+}
+
+public class CreateUserHandler : IRequestHandler<CreateUserCommand, int>
+{
+    private readonly IUserRepository _repository;
+    private readonly IValidator<CreateUserCommand> _validator;
+    private readonly ILogger<CreateUserHandler> _logger;
+
+    public CreateUserHandler(IUserRepository repository, IValidator<CreateUserCommand> validator, ILogger<CreateUserHandler> logger)
+    {
+        _repository = repository;
+        _validator = validator;
+        _logger = logger;
+    }
+
+    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Creating user with email {Email}", request.Email);
+
+        // Validate the command
+        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            var errors = string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage));
+            _logger.LogWarning("Validation failed for CreateUserCommand: {Errors}", errors);
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        // Check if email already exists
+        if (await _repository.EmailExistsAsync(request.Email))
+        {
+            _logger.LogWarning("Attempted to create user with existing email {Email}", request.Email);
+            throw new ConflictException($"User with email {request.Email} already exists");
+        }
+
+        // Create domain entity with business logic
+        var user = new User
+        {
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            DateOfBirth = request.DateOfBirth,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Save using write-optimized repository
+        var userId = await _repository.AddAsync(user);
+
+        _logger.LogInformation("User created successfully with ID {UserId}", userId);
+        return userId;
+    }
+}
+
+// Application/Commands/UpdateUserCommand.cs
+public class UpdateUserCommand : IRequest
+{
+    public int UserId { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public DateTime DateOfBirth { get; set; }
+}
+
+public class UpdateUserHandler : IRequestHandler<UpdateUserCommand>
+{
+    private readonly IUserRepository _repository;
+    private readonly IValidator<UpdateUserCommand> _validator;
+    private readonly ILogger<UpdateUserHandler> _logger;
+
+    public UpdateUserHandler(IUserRepository repository, IValidator<UpdateUserCommand> validator, ILogger<UpdateUserHandler> logger)
+    {
+        _repository = repository;
+        _validator = validator;
+        _logger = logger;
+    }
+
+    public async Task Handle(UpdateUserCommand request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Updating user {UserId}", request.UserId);
+
+        // Validate the command
+        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            var errors = string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage));
+            _logger.LogWarning("Validation failed for UpdateUserCommand: {Errors}", errors);
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        // Get existing user
+        var user = await _repository.GetByIdAsync(request.UserId);
+        if (user == null)
+        {
+            _logger.LogWarning("Attempted to update non-existent user {UserId}", request.UserId);
+            throw new NotFoundException($"User with ID {request.UserId} not found");
+        }
+
+        // Check if email is being changed and if it already exists
+        if (user.Email != request.Email && await _repository.EmailExistsAsync(request.Email, request.UserId))
+        {
+            _logger.LogWarning("Attempted to update user {UserId} with existing email {Email}", request.UserId, request.Email);
+            throw new ConflictException($"User with email {request.Email} already exists");
+        }
+
+        // Update the user
+        user.FirstName = request.FirstName;
+        user.LastName = request.LastName;
+        user.Email = request.Email;
+        user.DateOfBirth = request.DateOfBirth;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _repository.UpdateAsync(user);
+
+        _logger.LogInformation("User {UserId} updated successfully", request.UserId);
+    }
+}
+
+// Application/Commands/DeleteUserCommand.cs
+public class DeleteUserCommand : IRequest
+{
+    public int UserId { get; set; }
+}
+
+public class DeleteUserHandler : IRequestHandler<DeleteUserCommand>
+{
+    private readonly IUserRepository _repository;
+    private readonly ILogger<DeleteUserHandler> _logger;
+
+    public DeleteUserHandler(IUserRepository repository, ILogger<DeleteUserHandler> logger)
+    {
+        _repository = repository;
+        _logger = logger;
+    }
+
+    public async Task Handle(DeleteUserCommand request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Deleting user {UserId}", request.UserId);
+
+        // Check if user exists
+        var user = await _repository.GetByIdAsync(request.UserId);
+        if (user == null)
+        {
+            _logger.LogWarning("Attempted to delete non-existent user {UserId}", request.UserId);
+            throw new NotFoundException($"User with ID {request.UserId} not found");
+        }
+
+        await _repository.DeleteAsync(request.UserId);
+
+        _logger.LogInformation("User {UserId} deleted successfully", request.UserId);
+    }
+}
+```
+
+#### 6. Validation
+
+```csharp
+// Application/Validators/CreateUserCommandValidator.cs
+public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
+{
+    public CreateUserCommandValidator()
+    {
+        RuleFor(x => x.FirstName)
+            .NotEmpty().WithMessage("First name is required")
+            .MaximumLength(50).WithMessage("First name cannot exceed 50 characters")
+            .Matches(@"^[a-zA-Z\s'-]+$").WithMessage("First name contains invalid characters");
+
+        RuleFor(x => x.LastName)
+            .NotEmpty().WithMessage("Last name is required")
+            .MaximumLength(50).WithMessage("Last name cannot exceed 50 characters")
+            .Matches(@"^[a-zA-Z\s'-]+$").WithMessage("Last name contains invalid characters");
+
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Email is required")
+            .EmailAddress().WithMessage("Email must be a valid email address")
+            .MaximumLength(255).WithMessage("Email cannot exceed 255 characters");
+
+        RuleFor(x => x.DateOfBirth)
+            .NotEmpty().WithMessage("Date of birth is required")
+            .LessThan(DateTime.Today).WithMessage("Date of birth must be in the past")
+            .GreaterThan(DateTime.Today.AddYears(-120)).WithMessage("Date of birth cannot be more than 120 years ago");
+    }
+}
+
+// Application/Validators/UpdateUserCommandValidator.cs
+public class UpdateUserCommandValidator : AbstractValidator<UpdateUserCommand>
+{
+    public UpdateUserCommandValidator()
+    {
+        RuleFor(x => x.UserId)
+            .GreaterThan(0).WithMessage("User ID must be greater than 0");
+
+
+
+        RuleFor(x => x.FirstName)
+            .NotEmpty().WithMessage("First name is required")
+            .MaximumLength(50).WithMessage("First name cannot exceed 50 characters")
+            .Matches(@"^[a-zA-Z\s'-]+$").WithMessage("First name contains invalid characters");
+
+        RuleFor(x => x.LastName)
+            .NotEmpty().WithMessage("Last name is required")
+            .MaximumLength(50).WithMessage("Last name cannot exceed 50 characters")
+            .Matches(@"^[a-zA-Z\s'-]+$").WithMessage("Last name contains invalid characters");
+
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Email is required")
+            .EmailAddress().WithMessage("Email must be a valid email address")
+            .MaximumLength(255).WithMessage("Email cannot exceed 255 characters");
+
+        RuleFor(x => x.DateOfBirth)
+            .NotEmpty().WithMessage("Date of birth is required")
+            .LessThan(DateTime.Today).WithMessage("Date of birth must be in the past")
+            .GreaterThan(DateTime.Today.AddYears(-120)).WithMessage("Date of birth cannot be more than 120 years ago");
+    }
+}
+```
+
+#### 7. Exception Classes
+
+```csharp
+// Application/Exceptions/NotFoundException.cs
+public class NotFoundException : Exception
+{
+    public NotFoundException(string message) : base(message) { }
+
+    public NotFoundException(string message, Exception innerException) : base(message, innerException) { }
+}
+
+// Application/Exceptions/ConflictException.cs
+public class ConflictException : Exception
+{
+    public ConflictException(string message) : base(message) { }
+
+    public ConflictException(string message, Exception innerException) : base(message, innerException) { }
+}
+
+// Application/Exceptions/ValidationException.cs
+public class ValidationException : Exception
+{
+    public IEnumerable<ValidationFailure> Errors { get; }
+
+    public ValidationException(IEnumerable<ValidationFailure> failures)
+        : base("One or more validation failures have occurred.")
+    {
+        Errors = failures;
+    }
+}
+```
+
+#### 8. AutoMapper Configuration
+
+```csharp
+// Application/Mappings/UserProfile.cs
+public class UserProfile : Profile
+{
+    public UserProfile()
+    {
+        CreateMap<User, UserDto>()
+            .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FullName))
+            .ForMember(dest => dest.Age, opt => opt.MapFrom(src => src.Age));
+
+        CreateMap<CreateUserCommand, User>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true));
+
+        CreateMap<CreateUserDto, CreateUserCommand>();
+    }
+}
+```
+
+#### 9. API Controller
+
+```csharp
+// Controllers/UsersController.cs
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
+{
+    private readonly IMediator _mediator;
+    private readonly ILogger<UsersController> _logger;
+
+    public UsersController(IMediator mediator, ILogger<UsersController> logger)
+    {
+        _mediator = mediator;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Get user by ID
+    /// </summary>
+    /// <param name="id">The user ID</param>
+    /// <returns>User details</returns>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UserDto>> GetUser(int id)
+    {
+        try
+        {
+            var query = new GetUserByIdQuery { UserId = id };
+            var user = await _mediator.Send(query);
+            return Ok(user);
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    /// <summary>
+    /// Get users with pagination
+    /// </summary>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 10)</param>
+    /// <param name="searchTerm">Search term for filtering</param>
+    /// <param name="includeInactive">Include inactive users</param>
+    /// <returns>Paginated list of users</returns>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<UserDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<UserDto>>> GetUsers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string searchTerm = null,
+        [FromQuery] bool includeInactive = false)
+    {
+        var query = new GetUsersQuery
+        {
+            Page = page,
+            PageSize = pageSize,
+            SearchTerm = searchTerm,
+            IncludeInactive = includeInactive
+        };
+
+        var result = await _mediator.Send(query);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Create a new user
+    /// </summary>
+    /// <param name="dto">User creation data</param>
+    /// <returns>Created user ID</returns>
+    [HttpPost]
+    [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<int>> CreateUser([FromBody] CreateUserDto dto)
+    {
+        try
+        {
+            var command = new CreateUserCommand
+            {
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                Email = dto.Email,
+                DateOfBirth = dto.DateOfBirth
+            };
+
+            var userId = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetUser), new { id = userId }, userId);
+        }
+        catch (ValidationException ex)
+        {
+            var errors = ex.Errors.Select(e => new { e.PropertyName, e.ErrorMessage });
+            return BadRequest(new { message = "Validation failed", errors });
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Update an existing user
+    /// </summary>
+    /// <param name="id">User ID</param>
+    /// <param name="command">User update data</param>
+    /// <returns>No content on success</returns>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult> UpdateUser(int id, [FromBody] UpdateUserCommand command)
+    {
+        if (id != command.UserId)
+        {
+            return BadRequest("ID mismatch");
+        }
+
+        try
+        {
+            await _mediator.Send(command);
+            return NoContent();
+        }
+        catch (ValidationException ex)
+        {
+            var errors = ex.Errors.Select(e => new { e.PropertyName, e.ErrorMessage });
+            return BadRequest(new { message = "Validation failed", errors });
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Delete a user
+    /// </summary>
+    /// <param name="id">User ID</param>
+    /// <returns>No content on success</returns>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> DeleteUser(int id)
+    {
+        try
+        {
+            var command = new DeleteUserCommand { UserId = id };
+            await _mediator.Send(command);
+            return NoContent();
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+    }
+}
+```
+
+#### 10. Program Configuration
+
+```csharp
+// Program.cs
+using Blazing.Mediator;
+using FluentValidation;
+using AutoMapper;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Add AutoMapper
+builder.Services.AddAutoMapper(typeof(UserProfile));
+
+// Add FluentValidation
+builder.Services.AddValidatorsFromAssembly(typeof(CreateUserCommandValidator).Assembly);
+
+// Register Mediator with middleware
+builder.Services.AddMediator(config =>
+{
+    // Add logging middleware for all requests
+    config.AddMiddleware<GeneralLoggingMiddleware<,>>();
+    config.AddMiddleware<GeneralCommandLoggingMiddleware<>>();
+}, typeof(Program).Assembly);
+
+// Register application services
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+
+// Global exception handling middleware
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.MapControllers();
+
+app.Run();
 ```
 
 This complete example demonstrates:
 
--   ✅ Proper CQRS separation (Commands vs Queries)
--   ✅ Input validation with FluentValidation
--   ✅ Error handling with custom exceptions
--   ✅ Pagination for large datasets
--   ✅ Thin controllers that delegate to mediator
--   ✅ Clean separation of concerns
--   ✅ Consistent naming conventions
--   ✅ Proper use of DTOs
+-   **CQRS Implementation**: Clear separation between commands and queries
+-   **Validation**: Comprehensive input validation using FluentValidation
+-   **Error Handling**: Proper exception handling with custom exceptions
+-   **Logging**: Structured logging throughout the application
+-   **Mapping**: Clean object mapping using AutoMapper
+-   **API Design**: RESTful API design with proper HTTP status codes
+-   **Middleware**: Custom middleware for cross-cutting concerns
+-   **Testing Ready**: Easy to test with dependency injection
 
----
-
-## Summary
-
-Blazing.Mediator provides a clean, lightweight implementation of the Mediator pattern with built-in CQRS support. By following the patterns and practices outlined in this guide, you can build maintainable, testable, and scalable applications.
-
-### Key Takeaways
-
-1. **Start simple** with the Quick Start guide
-2. **Use CQRS** to separate read and write operations
-3. **Keep handlers focused** on single responsibilities
-4. **Implement proper validation** and error handling
-5. **Test handlers in isolation** for better unit tests
-6. **Follow naming conventions** for consistency
-7. **Avoid common mistakes** like circular dependencies
-8. **Use the troubleshooting guide** when issues arise
-
-For more examples and advanced scenarios, check out the sample projects in the repository.
+The example shows how all the concepts come together in a real-world application using Blazing.Mediator with CQRS patterns.

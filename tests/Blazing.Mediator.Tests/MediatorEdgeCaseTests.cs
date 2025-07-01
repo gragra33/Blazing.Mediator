@@ -126,7 +126,7 @@ public class MediatorEdgeCaseTests
         RequestHandlerDelegate<string> finalHandler = () => Task.FromResult("Handler: test");
 
         // Act & Assert
-        await Assert.ThrowsAsync<MissingMethodException>(() =>
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None));
     }
 
@@ -151,7 +151,7 @@ public class MediatorEdgeCaseTests
         RequestHandlerDelegate finalHandler = () => Task.CompletedTask;
 
         // Act & Assert
-        await Assert.ThrowsAsync<MissingMethodException>(() =>
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None));
     }
 
@@ -195,13 +195,14 @@ public class MediatorEdgeCaseTests
         // Arrange
         ServiceCollection services = new ServiceCollection();
         
-        var config = new MediatorConfiguration();
+        var config = new MediatorConfiguration(services);
         config.PipelineBuilder.AddMiddleware(typeof(GenericMiddleware<,>));
         
         services.AddSingleton(config);
         services.AddScoped<IMiddlewarePipelineBuilder>(provider => 
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
         services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
+        services.AddScoped(typeof(GenericMiddleware<,>));
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         var pipelineBuilder = serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>();
@@ -222,13 +223,14 @@ public class MediatorEdgeCaseTests
         // Arrange
         ServiceCollection services = new ServiceCollection();
         
-        var config = new MediatorConfiguration();
+        var config = new MediatorConfiguration(services);
         config.PipelineBuilder.AddMiddleware<MiddlewareWithExceptionInOrder>();
         
         services.AddSingleton(config);
         services.AddScoped<IMiddlewarePipelineBuilder>(provider => 
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
         services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
+        services.AddScoped<MiddlewareWithExceptionInOrder>();
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         var pipelineBuilder = serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>();

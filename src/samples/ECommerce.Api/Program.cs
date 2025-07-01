@@ -1,4 +1,5 @@
 using Blazing.Mediator;
+using ECommerce.Api.Application.Middleware;
 using ECommerce.Api.Infrastructure.Data;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -27,8 +28,15 @@ else
 // Add FluentValidation
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
-// Register Mediator with CQRS handlers
-builder.Services.AddMediator(typeof(Program).Assembly);
+// Register Mediator with CQRS handlers and conditional middleware
+builder.Services.AddMediator(config =>
+{
+    // Add conditional middleware for order operations
+    config.AddMiddleware(typeof(OrderLoggingMiddleware<,>));
+    
+    // Add conditional middleware for product operations  
+    config.AddMiddleware(typeof(ProductLoggingMiddleware<,>));
+}, typeof(Program).Assembly);
 
 WebApplication? app = builder.Build();
 

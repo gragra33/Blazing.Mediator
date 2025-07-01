@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace Blazing.Mediator.Pipeline;
 
 /// <summary>
@@ -7,20 +9,103 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
 {
     private readonly List<MiddlewareInfo> _middlewareInfos = new();
 
-    private record MiddlewareInfo(Type Type, object? Configuration = null);
+    private record MiddlewareInfo(Type Type, int Order, object? Configuration = null);
+
+    /// <summary>
+    /// Determines the order for a middleware type, using next available order after highest explicit order as fallback.
+    /// Orders range from -999 to 999. Middleware without explicit order are assigned incrementally after the highest explicit order.
+    /// </summary>
+    private int GetMiddlewareOrder(Type middlewareType)
+    {
+        // Try to get order from a static Order property or field first
+        var orderProperty = middlewareType.GetProperty("Order", BindingFlags.Public | BindingFlags.Static);
+        if (orderProperty != null && orderProperty.PropertyType == typeof(int))
+        {
+            int staticOrder = (int)orderProperty.GetValue(null)!;
+            return Math.Clamp(staticOrder, -999, 999);
+        }
+
+        var orderField = middlewareType.GetField("Order", BindingFlags.Public | BindingFlags.Static);
+        if (orderField != null && orderField.FieldType == typeof(int))
+        {
+            int staticOrder = (int)orderField.GetValue(null)!;
+            return Math.Clamp(staticOrder, -999, 999);
+        }
+
+        // Check for OrderAttribute if it exists (common pattern)
+        var orderAttribute = middlewareType.GetCustomAttributes(false)
+            .FirstOrDefault(attr => attr.GetType().Name == "OrderAttribute");
+        if (orderAttribute != null)
+        {
+            var orderProp = orderAttribute.GetType().GetProperty("Order");
+            if (orderProp != null && orderProp.PropertyType == typeof(int))
+            {
+                int attrOrder = (int)orderProp.GetValue(orderAttribute)!;
+                return Math.Clamp(attrOrder, -999, 999);
+            }
+        }
+
+        // Try to get order from instance Order property (for IRequestMiddleware implementations)
+        var instanceOrderProperty = middlewareType.GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
+        if (instanceOrderProperty != null && instanceOrderProperty.PropertyType == typeof(int))
+        {
+            // Check if the property has a custom implementation (not the default interface implementation)
+            // We can do this by checking if it's not virtual or if it's overridden
+            if (!instanceOrderProperty.GetGetMethod()!.IsVirtual || 
+                instanceOrderProperty.DeclaringType != typeof(IRequestMiddleware<,>) && 
+                instanceOrderProperty.DeclaringType != typeof(IRequestMiddleware<>))
+            {
+                try
+                {
+                    // Create a temporary instance to get the Order value
+                    object? instance = Activator.CreateInstance(middlewareType);
+                    if (instance != null)
+                    {
+                        int orderValue = (int)instanceOrderProperty.GetValue(instance)!;
+                        // Only use non-default values as explicit orders
+                        if (orderValue != 0) 
+                        {
+                            return Math.Clamp(orderValue, -999, 999);
+                        }
+                    }
+                }
+                catch
+                {
+                    // If we can't create an instance, fall through to fallback logic
+                }
+            }
+        }
+
+        // Fallback: assign order after the highest explicitly set order
+        // If no middleware registered yet, start from 1
+        if (_middlewareInfos.Count == 0)
+        {
+            return 1;
+        }
+
+        // Find the highest explicit order and add 1
+        var highestExplicitOrder = _middlewareInfos.Max(m => m.Order);
+        
+        // Ensure we don't exceed the maximum allowed order
+        var nextOrder = highestExplicitOrder + 1;
+        return Math.Min(nextOrder, 999);
+    }
 
     /// <inheritdoc />
     public IMiddlewarePipelineBuilder AddMiddleware<TMiddleware>()
         where TMiddleware : class
     {
-        _middlewareInfos.Add(new MiddlewareInfo(typeof(TMiddleware)));
+        var middlewareType = typeof(TMiddleware);
+        var order = GetMiddlewareOrder(middlewareType);
+        _middlewareInfos.Add(new MiddlewareInfo(middlewareType, order));
         return this;
     }
 
     /// <inheritdoc />
     public IMiddlewarePipelineBuilder AddMiddleware(Type middlewareType)
     {
-        _middlewareInfos.Add(new MiddlewareInfo(middlewareType));
+        var order = GetMiddlewareOrder(middlewareType);
+        _middlewareInfos.Add(new MiddlewareInfo(middlewareType, order));
         return this;
     }
 
@@ -30,7 +115,9 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
     public IMiddlewarePipelineBuilder AddMiddleware<TMiddleware>(object? configuration)
         where TMiddleware : class
     {
-        _middlewareInfos.Add(new MiddlewareInfo(typeof(TMiddleware), configuration));
+        var middlewareType = typeof(TMiddleware);
+        var order = GetMiddlewareOrder(middlewareType);
+        _middlewareInfos.Add(new MiddlewareInfo(middlewareType, order, configuration));
         return this;
     }
 
@@ -82,8 +169,23 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
             Type actualMiddlewareType;
             if (middlewareType.IsGenericTypeDefinition)
             {
-                // Create the specific generic type for this request/response pair
-                actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest), typeof(TResponse));
+                // Check if this middleware supports the 2-parameter IRequestMiddleware<TRequest, TResponse>
+                var genericParams = middlewareType.GetGenericArguments();
+                if (genericParams.Length == 2)
+                {
+                    // Create the specific generic type for this request/response pair
+                    actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest), typeof(TResponse));
+                }
+                else if (genericParams.Length == 1)
+                {
+                    // This is a 1-parameter middleware, skip it in this pipeline (it's for commands without response)
+                    continue;
+                }
+                else
+                {
+                    // Unsupported number of generic parameters
+                    continue;
+                }
             }
             else
             {
@@ -100,22 +202,8 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
                 continue;
             }
 
-            // Get the order from the middleware if it has one
-            int order = 0;
-            try
-            {
-                // Create instance to get the order (middleware should have parameterless constructor)
-                if (Activator.CreateInstance(actualMiddlewareType) is IRequestMiddleware<TRequest, TResponse> tempMiddleware)
-                {
-                    order = tempMiddleware.Order;
-                }
-            }
-            catch
-            {
-                // If we can't create the middleware to get the order, use default order 0
-            }
-
-            applicableMiddleware.Add((actualMiddlewareType, order));
+            // Use the cached order from registration
+            applicableMiddleware.Add((actualMiddlewareType, middlewareInfo.Order));
         }
 
         // Sort middleware by order (lower numbers execute first), then by registration order
@@ -143,12 +231,12 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
 
             pipeline = async () =>
             {
-                // Create middleware instance directly (middleware should have parameterless constructor)
-                IRequestMiddleware<TRequest, TResponse>? middleware = Activator.CreateInstance(middlewareType) as IRequestMiddleware<TRequest, TResponse>;
+                // Create middleware instance using DI container
+                IRequestMiddleware<TRequest, TResponse>? middleware = serviceProvider.GetService(middlewareType) as IRequestMiddleware<TRequest, TResponse>;
                 
                 if (middleware == null)
                 {
-                    throw new InvalidOperationException($"Could not create instance of middleware {middlewareName}");
+                    throw new InvalidOperationException($"Could not create instance of middleware {middlewareName}. Make sure the middleware is registered in the DI container.");
                 }
 
                 // Check if this is conditional middleware and should execute
@@ -191,8 +279,23 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
             Type actualMiddlewareType;
             if (middlewareType.IsGenericTypeDefinition)
             {
-                // Create the specific generic type for this command
-                actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest));
+                // Check if this middleware supports the 1-parameter IRequestMiddleware<TRequest>
+                var genericParams = middlewareType.GetGenericArguments();
+                if (genericParams.Length == 1)
+                {
+                    // Create the specific generic type for this command
+                    actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest));
+                }
+                else if (genericParams.Length == 2)
+                {
+                    // This is a 2-parameter middleware, skip it in this pipeline (it's for queries/commands with response)
+                    continue;
+                }
+                else
+                {
+                    // Unsupported number of generic parameters
+                    continue;
+                }
             }
             else
             {
@@ -208,22 +311,8 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
                 continue;
             }
 
-            // Get the order from the middleware if it has one
-            int order = 0;
-            try
-            {
-                // Create instance to get the order (middleware should have parameterless constructor)
-                if (Activator.CreateInstance(actualMiddlewareType) is IRequestMiddleware<TRequest> tempMiddleware)
-                {
-                    order = tempMiddleware.Order;
-                }
-            }
-            catch
-            {
-                // If we can't create the middleware to get the order, use default order 0
-            }
-
-            applicableMiddleware.Add((actualMiddlewareType, order));
+            // Use the cached order from registration
+            applicableMiddleware.Add((actualMiddlewareType, middlewareInfo.Order));
         }
 
 
@@ -253,12 +342,12 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
 
             pipeline = async () =>
             {
-                // Create middleware instance directly (middleware should have parameterless constructor)
-                IRequestMiddleware<TRequest>? middleware = Activator.CreateInstance(middlewareType) as IRequestMiddleware<TRequest>;
+                // Create middleware instance using DI container
+                IRequestMiddleware<TRequest>? middleware = serviceProvider.GetService(middlewareType) as IRequestMiddleware<TRequest>;
                 
                 if (middleware == null)
                 {
-                    throw new InvalidOperationException($"Could not create instance of middleware {middlewareName}");
+                    throw new InvalidOperationException($"Could not create instance of middleware {middlewareName}. Make sure the middleware is registered in the DI container.");
                 }
 
                 // Check if this is conditional middleware and should execute

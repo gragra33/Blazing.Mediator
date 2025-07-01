@@ -7,21 +7,38 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Blazing.Mediator</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Authors>Graeme Grant</Authors>
     <Product>Blazing.Mediator</Product>
-    <Description>A lightweight implementation of the Mediator pattern with built-in CQRS support for .NET applications. Provides a simple, clean API for implementing Command Query Responsibility Segregation patterns in your applications.</Description>
-    <PackageTags>mediator;cqrs;command;query;pattern;architecture;clean-code;dependency-injection</PackageTags>
+    <Description>A lightweight implementation of the Mediator pattern with built-in CQRS support and advanced middleware pipeline for .NET applications. Features ordered middleware execution, conditional middleware, automatic DI registration, and pipeline inspection. Includes comprehensive sample projects demonstrating modern API architectures with controllers and minimal APIs.</Description>
+    <PackageTags>mediator;cqrs;command;query;pattern;architecture;clean-code;dependency-injection;middleware;pipeline;conditional;samples;minimal-api;controllers</PackageTags>
     <RepositoryUrl>https://github.com/gragra33/blazing.mediator</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
     <Copyright>Copyright (c) 2022-25 Graeme Grant</Copyright>
-    <PackageReleaseNotes>Initial release of Blazing.Mediator with full CQRS support, dependency injection integration, and comprehensive documentation.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.1.0: Enhanced middleware pipeline with ordered execution, conditional middleware support, automatic DI registration, and pipeline inspection capabilities. Includes refactored sample projects demonstrating modern coding practices and architectural patterns.</PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Include main README in the package -->
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    
+    <!-- Include LICENSE file -->
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    
+    <!-- Include all documentation files -->
+    <None Include="..\..\docs\MEDIATOR_PATTERN_GUIDE.md" Pack="true" PackagePath="docs\" />
+    
+    <!-- Include contributing and other important files -->
+    <None Include="..\..\CONTRIBUTING.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\CODE_OF_CONDUCT.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\HISTORY.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

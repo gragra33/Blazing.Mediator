@@ -1,0 +1,6 @@
+{
+    "name": "Test Product",
+    "description": "A test product created during endpoint testing",
+    "price": 99.99,
+    "stockQuantity": 10
+}

@@ -3,12 +3,31 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Api.Infrastructure.Data;
 
+/// <summary>
+/// Database context for the e-commerce application.
+/// </summary>
+/// <param name="options">The database context options.</param>
 public class ECommerceDbContext(DbContextOptions<ECommerceDbContext> options) : DbContext(options)
 {
+    /// <summary>
+    /// Gets or sets the products table.
+    /// </summary>
     public DbSet<Product> Products { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the orders table.
+    /// </summary>
     public DbSet<Order> Orders { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the order items table.
+    /// </summary>
     public DbSet<OrderItem> OrderItems { get; set; }
 
+    /// <summary>
+    /// Configures the model relationships and constraints.
+    /// </summary>
+    /// <param name="modelBuilder">The model builder.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

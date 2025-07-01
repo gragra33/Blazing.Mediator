@@ -1,62 +1,16 @@
-using Blazing.Mediator;
-using ECommerce.Api.Application.Middleware;
-using ECommerce.Api.Infrastructure.Data;
-using FluentValidation;
-using Microsoft.EntityFrameworkCore;
+using ECommerce.Api.Extensions;
 
-WebApplicationBuilder? builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Add services to the container following dependency inversion principle
+builder.Services.AddApplicationServices(builder.Configuration, builder.Environment);
 
-// Add Entity Framework
-if (builder.Environment.IsDevelopment())
-{
-    // Use In-Memory database for development/demo
-    builder.Services.AddDbContext<ECommerceDbContext>(options =>
-        options.UseInMemoryDatabase("ECommerceDb"));
-}
-else
-{
-    // Use SQL Server for production
-    builder.Services.AddDbContext<ECommerceDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-}
+var app = builder.Build();
 
-// Add FluentValidation
-builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+// Configure the HTTP request pipeline following single responsibility principle
+app.ConfigurePipeline();
 
-// Register Mediator with CQRS handlers and conditional middleware
-builder.Services.AddMediator(config =>
-{
-    // Add conditional middleware for order operations
-    config.AddMiddleware(typeof(OrderLoggingMiddleware<,>));
-    
-    // Add conditional middleware for product operations  
-    config.AddMiddleware(typeof(ProductLoggingMiddleware<,>));
-}, typeof(Program).Assembly);
-
-WebApplication? app = builder.Build();
-
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-
-    // Ensure database is created and seeded in development
-    using IServiceScope? scope = app.Services.CreateScope();
-    ECommerceDbContext? context = scope.ServiceProvider.GetRequiredService<ECommerceDbContext>();
-    context.Database.EnsureCreated();
-}
-
-app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
-
-app.Run();
+await app.RunAsync();
 
 /// <summary>
 /// Represents the entry point for the E-Commerce API application.

@@ -8,6 +8,8 @@ The Blazing.Mediator library provides:
 
 -   **🎯 Pure CQRS Implementation**: Built-in Command Query Responsibility Segregation with separate interfaces for commands (`IRequest`) and queries (`IRequest<TResponse>`)
 -   **🚀 Lightweight & Fast**: Minimal overhead with efficient request dispatching
+-   **🤖 Auto-Discovery**: Automatic middleware and handler discovery with intelligent ordering
+-   **⚙️ Zero Configuration**: Works out of the box with minimal setup and automatic handler discovery
 -   **⚙️ Dependency Injection**: Full integration with .NET's built-in DI container
 -   **🔒 Type Safety**: Compile-time type checking for requests and handlers
 -   **🔧 Advanced Middleware Pipeline**: Optional middleware support with both standard and conditional middleware execution
@@ -41,7 +43,9 @@ The Blazing.Mediator library provides:
 -   [Middleware Pipeline](#middleware-pipeline)
 -   [Sample Projects](#sample-projects)
 -   [History](#history)
+-   [V1.2.0](#v120)
 -   [V1.1.0](#v110)
+-   [V1.0.0](#v100)
 <!-- TOC -->
 
 ## Quick Start
@@ -67,7 +71,7 @@ Install-Package Blazing.Mediator
 #### Manually adding to your project
 
 ```xml
-<PackageReference Include="Blazing.Mediator" Version="1.1.0" />
+<PackageReference Include="Blazing.Mediator" Version="1.2.0" />
 ```
 
 ### Configuration
@@ -292,6 +296,15 @@ The library includes two comprehensive sample projects demonstrating different a
     - Error handling examples
 
 ## History
+
+### V1.2.0
+
+-   Added automatic middleware discovery functionality for simplified configuration
+-   Enhanced `AddMediator` method with `discoverMiddleware` parameter using method overloads
+-   Automatic registration of all middleware implementations from specified assemblies
+-   Support for middleware ordering through static/instance Order properties
+-   Backward compatibility maintained with existing registration methods
+-   Comprehensive documentation updates with auto-discovery examples
 
 ### V1.1.0
 

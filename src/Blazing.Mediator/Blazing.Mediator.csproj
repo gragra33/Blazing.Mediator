@@ -7,7 +7,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Blazing.Mediator</PackageId>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Authors>Graeme Grant</Authors>
     <Product>Blazing.Mediator</Product>
     <Description>A lightweight implementation of the Mediator pattern with built-in CQRS support and advanced middleware pipeline for .NET applications. Features ordered middleware execution, conditional middleware, automatic DI registration, and pipeline inspection. Includes comprehensive sample projects demonstrating modern API architectures with controllers and minimal APIs.</Description>
@@ -17,7 +17,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
     <Copyright>Copyright (c) 2022-25 Graeme Grant</Copyright>
-    <PackageReleaseNotes>Version 1.1.0: Enhanced middleware pipeline with ordered execution, conditional middleware support, automatic DI registration, and pipeline inspection capabilities. Includes refactored sample projects demonstrating modern coding practices and architectural patterns.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.2.0: Added automatic middleware discovery functionality with method overloads for simplified configuration. Enhanced ServiceCollectionExtensions with discoverMiddleware parameter to automatically register all middleware implementations from specified assemblies while maintaining backward compatibility.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

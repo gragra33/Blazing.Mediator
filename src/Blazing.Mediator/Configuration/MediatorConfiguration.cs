@@ -59,6 +59,21 @@ public class MediatorConfiguration
     }
 
     /// <summary>
+    /// Adds multiple middleware types to the pipeline, maintaining their relative order.
+    /// </summary>
+    /// <param name="middlewareTypes">The middleware types to add in order</param>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration AddMiddleware(params Type[] middlewareTypes)
+    {
+        foreach (Type middlewareType in middlewareTypes)
+        {
+            AddMiddleware(middlewareType);
+        }
+        
+        return this;
+    }
+
+    /// <summary>
     /// Registers middleware in the dependency injection container.
     /// </summary>
     /// <param name="middlewareType">The middleware type to register</param>

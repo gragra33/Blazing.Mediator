@@ -3,8 +3,14 @@ using FluentValidation;
 
 namespace ECommerce.Api.Application.Validators;
 
+/// <summary>
+/// Validator for the ProcessOrderCommand.
+/// </summary>
 public class ProcessOrderCommandValidator : AbstractValidator<ProcessOrderCommand>
 {
+    /// <summary>
+    /// Initializes a new instance of the ProcessOrderCommandValidator class.
+    /// </summary>
     public ProcessOrderCommandValidator()
     {
         RuleFor(x => x.CustomerId)

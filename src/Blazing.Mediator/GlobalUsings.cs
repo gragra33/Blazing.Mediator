@@ -1,9 +1,5 @@
-/// <summary>
-/// Global using directives for the Blazing.Mediator library.
-/// Provides commonly used namespaces across all source files.
-/// </summary>
-
-// Global using directives
+// Global using directives for the Blazing.Mediator library.
+// Provides commonly used namespaces across all source files.
 
 global using Microsoft.Extensions.DependencyInjection;
 global using System.Reflection;

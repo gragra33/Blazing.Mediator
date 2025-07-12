@@ -11,6 +11,7 @@ The Mediator pattern decouples components by having them communicate through a c
 -   **🎯 Pure CQRS Implementation**: Clean separation of Commands and Queries with distinct interfaces
 -   **🔧 Optional Middleware Pipeline**: Add cross-cutting concerns like logging, validation, and caching
 -   **⚡ Conditional Middleware**: Execute middleware only for specific request types for optimal performance
+-   **🤖 Auto-Discovery**: Automatic middleware and handler discovery with intelligent ordering
 -   **⚙️ Zero Configuration**: Works out of the box with minimal setup and automatic handler discovery
 -   **🚀 High Performance**: Lightweight implementation optimized for speed with minimal overhead
 -   **🧪 Fully Testable**: Built with testing in mind - easy to mock and unit test handlers
@@ -61,7 +62,7 @@ Install-Package Blazing.Mediator
 #### Manually adding to your project
 
 ```xml
-<PackageReference Include="Blazing.Mediator" Version="1.1.0" />
+<PackageReference Include="Blazing.Mediator" Version="1.2.0" />
 ```
 
 ### 2. Create Your First Query
@@ -87,8 +88,11 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
 ### 3. Register Services
 
 ```csharp
-// Program.cs
+// Program.cs - Basic registration
 builder.Services.AddMediator(typeof(Program).Assembly);
+
+// With auto-discovery for middleware
+builder.Services.AddMediator(typeof(Program).Assembly, discoverMiddleware: true);
 ```
 
 ### 4. Use in Controller
@@ -279,6 +283,14 @@ builder.Services.AddMediator(
     typeof(GetUserHandler).Assembly,             // Application layer
     typeof(User).Assembly                        // Domain layer (if needed)
 );
+
+// With auto-discovery for middleware
+builder.Services.AddMediator(
+    discoverMiddleware: true,
+    typeof(Program).Assembly,                    // Current assembly (API)
+    typeof(GetUserHandler).Assembly,             // Application layer
+    typeof(LoggingMiddleware<,>).Assembly        // Infrastructure layer
+);
 ```
 
 ### Alternative Registration Methods
@@ -291,8 +303,23 @@ services.AddMediator(
     typeof(UpdateProductHandler)
 );
 
+// Method 1a: With auto-discovery
+services.AddMediator(
+    discoverMiddleware: true,
+    typeof(GetUserHandler),
+    typeof(CreateOrderHandler),
+    typeof(UpdateProductHandler)
+);
+
 // Method 2: Using assembly references
 services.AddMediator(
+    Assembly.GetExecutingAssembly(),
+    typeof(ExternalHandler).Assembly
+);
+
+// Method 2a: With auto-discovery
+services.AddMediator(
+    discoverMiddleware: true,
     Assembly.GetExecutingAssembly(),
     typeof(ExternalHandler).Assembly
 );
@@ -300,10 +327,23 @@ services.AddMediator(
 // Method 3: Scan calling assembly automatically
 services.AddMediatorFromCallingAssembly();
 
+// Method 3a: Scan calling assembly with auto-discovery
+services.AddMediatorFromCallingAssembly(discoverMiddleware: true);
+
 // Method 4: Scan with filter
 services.AddMediatorFromLoadedAssemblies(assembly =>
     assembly.FullName.StartsWith("MyCompany.") &&
     assembly.FullName.Contains(".Application"));
+
+// Method 4a: Scan with filter and auto-discovery
+services.AddMediatorFromLoadedAssemblies(
+    discoverMiddleware: true,
+    assembly => assembly.FullName.StartsWith("MyCompany.") &&
+               assembly.FullName.Contains(".Application"));
+
+// Simple overload methods for convenience - add auto-discovery to existing methods
+services.AddMediatorFromCallingAssembly(discoverMiddleware: true);
+services.AddMediatorFromLoadedAssemblies(discoverMiddleware: true);
 ```
 
 ### Complete Application Setup
@@ -506,13 +546,11 @@ public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UserDto>
 {
     private readonly IUserReadRepository _userRepository; // Read-optimized repository
     private readonly IMemoryCache _cache; // Caching for performance
-    private readonly IMapper _mapper;
 
-    public GetUserByIdHandler(IUserReadRepository userRepository, IMemoryCache cache, IMapper mapper)
+    public GetUserByIdHandler(IUserReadRepository userRepository, IMemoryCache cache)
     {
         _userRepository = userRepository;
         _cache = cache;
-        _mapper = mapper;
     }
 
     public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
@@ -529,7 +567,7 @@ public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UserDto>
         if (user == null)
             throw new NotFoundException($"User with ID {request.UserId} not found");
 
-        var userDto = _mapper.Map<UserDto>(user);
+        var userDto = user.ToDto(); // Use extension method for mapping
 
         // Cache the result
         _cache.Set(cacheKey, userDto, TimeSpan.FromMinutes(5));
@@ -541,12 +579,10 @@ public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UserDto>
 public class GetUsersHandler : IRequestHandler<GetUsersQuery, PagedResult<UserDto>>
 {
     private readonly IUserReadRepository _userRepository;
-    private readonly IMapper _mapper;
 
-    public GetUsersHandler(IUserReadRepository userRepository, IMapper mapper)
+    public GetUsersHandler(IUserReadRepository userRepository)
     {
         _userRepository = userRepository;
-        _mapper = mapper;
     }
 
     public async Task<PagedResult<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
@@ -558,15 +594,8 @@ public class GetUsersHandler : IRequestHandler<GetUsersQuery, PagedResult<UserDt
             request.SearchTerm,
             request.IncludeInactive);
 
-        var userDtos = _mapper.Map<List<UserDto>>(users.Items);
-
-        return new PagedResult<UserDto>
-        {
-            Items = userDtos,
-            TotalCount = users.TotalCount,
-            Page = request.Page,
-            PageSize = request.PageSize
-        };
+        // Use extension method for mapping to paginated DTO
+        return users.Items.ToPagedDto(users.TotalCount, request.Page, request.PageSize);
     }
 }
 
@@ -1664,6 +1693,173 @@ builder.Services.AddMediator(config =>
 }, typeof(Program).Assembly);
 ```
 
+#### Auto-Discovery Middleware Configuration
+
+Blazing.Mediator supports automatic middleware discovery to simplify configuration and reduce boilerplate code. Instead of manually registering each middleware type, you can enable auto-discovery to automatically find and register all middleware implementations in the specified assemblies.
+
+##### Basic Auto-Discovery
+
+```csharp
+// Program.cs - Auto-discover all middleware in the current assembly
+builder.Services.AddMediator(typeof(Program).Assembly, discoverMiddleware: true);
+
+// Even simpler - auto-discover from calling assembly
+builder.Services.AddMediatorFromCallingAssembly(discoverMiddleware: true);
+```
+
+##### Auto-Discovery with Multiple Assemblies
+
+```csharp
+// Program.cs - Auto-discover middleware from multiple assemblies
+builder.Services.AddMediator(
+    discoverMiddleware: true,
+    typeof(Program).Assembly,                    // Current assembly (API)
+    typeof(OrderLoggingMiddleware<,>).Assembly,  // Application layer
+    typeof(ValidationMiddleware<,>).Assembly     // Infrastructure layer
+);
+```
+
+##### Auto-Discovery with Manual Configuration
+
+```csharp
+// Program.cs - Mix auto-discovery with manual configuration
+builder.Services.AddMediator(config =>
+{
+    // Manually add specific middleware with custom configuration
+    config.AddMiddleware<CustomAuthorizationMiddleware<,>>();
+
+    // Or add middleware that requires special setup
+    config.AddMiddleware<DatabaseTransactionMiddleware<,>>();
+},
+discoverMiddleware: true, // Auto-discover other middleware
+typeof(Program).Assembly);
+```
+
+##### Auto-Discovery Best Practices
+
+**✅ Automatic Order Detection**: Auto-discovery respects middleware ordering through multiple mechanisms:
+
+```csharp
+// Method 1: Static Order property (recommended)
+public class LoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public static int Order => 1; // Static property for compile-time order
+
+    // Implementation...
+}
+
+// Method 2: Instance Order property (fallback)
+public class ValidationMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public int Order => 5; // Instance property for runtime order
+
+    // Implementation...
+}
+
+// Method 3: No Order property (uses sequential discovery order)
+public class CachingMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    // No Order property - will be assigned sequential order during discovery
+
+    // Implementation...
+}
+```
+
+**✅ Discovery Behavior**: Auto-discovery finds all classes implementing:
+
+-   `IRequestMiddleware<TRequest, TResponse>` (for queries with responses)
+-   `IRequestMiddleware<TRequest>` (for commands without responses)
+-   `IConditionalMiddleware<TRequest, TResponse>` (conditional middleware for queries)
+-   `IConditionalMiddleware<TRequest>` (conditional middleware for commands)
+
+**✅ Assembly Scanning**: Only scans the assemblies you specify - no performance impact from scanning all loaded assemblies.
+
+##### Complete Auto-Discovery Example
+
+Here's a complete example showing auto-discovery in action:
+
+```csharp
+// Program.cs
+using Blazing.Mediator;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Auto-discover handlers and middleware from multiple assemblies
+builder.Services.AddMediator(
+    discoverMiddleware: true, // Enable auto-discovery
+    typeof(Program).Assembly,                    // API layer
+    typeof(GetUserHandler).Assembly,             // Application layer
+    typeof(LoggingMiddleware<,>).Assembly        // Infrastructure layer
+);
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();
+```
+
+**Example Middleware Auto-Discovered**:
+
+```csharp
+// Infrastructure/Middleware/LoggingMiddleware.cs
+public class LoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public static int Order => 1; // Auto-discovered with order 1
+
+    // Implementation...
+}
+
+// Infrastructure/Middleware/ValidationMiddleware.cs
+public class ValidationMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public int Order => 2; // Auto-discovered with order 2
+
+    // Implementation...
+}
+
+// Application/Middleware/CachingMiddleware.cs
+public class CachingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public int Order => 10; // Auto-discovered with order 10
+
+    public bool ShouldExecute(TRequest request)
+    {
+        return request.GetType().Name.EndsWith("Query");
+    }
+
+    // Implementation...
+}
+```
+
+**Middleware Execution Order** (auto-discovered):
+
+1. `LoggingMiddleware` (Order: 1)
+2. `ValidationMiddleware` (Order: 2)
+3. `CachingMiddleware` (Order: 10, conditional)
+
+This auto-discovery approach significantly reduces configuration boilerplate while maintaining full control over middleware ordering and behavior.
+
 ### Advanced Middleware Examples
 
 #### Validation Middleware
@@ -2310,14 +2506,11 @@ public class GetUserByIdQuery : IRequest<UserDto>
 
 public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UserDto>
 {
-    private readonly IUserRepository _repository;
-    private readonly IMapper _mapper;
-    private readonly ILogger<GetUserByIdHandler> _logger;
+    private readonly IUserRepository _repository;    private readonly ILogger<GetUserByIdHandler> _logger;
 
-    public GetUserByIdHandler(IUserRepository repository, IMapper mapper, ILogger<GetUserByIdHandler> logger)
+    public GetUserByIdHandler(IUserRepository repository, ILogger<GetUserByIdHandler> logger)
     {
         _repository = repository;
-        _mapper = mapper;
         _logger = logger;
     }
 
@@ -2333,7 +2526,7 @@ public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UserDto>
             throw new NotFoundException($"User with ID {request.UserId} not found");
         }
 
-        var userDto = _mapper.Map<UserDto>(user);
+        var userDto = user.ToDto(); // Use extension method for mapping
 
         _logger.LogDebug("Successfully retrieved user {UserId}", request.UserId);
         return userDto;
@@ -2352,13 +2545,11 @@ public class GetUsersQuery : IRequest<PagedResult<UserDto>>
 public class GetUsersHandler : IRequestHandler<GetUsersQuery, PagedResult<UserDto>>
 {
     private readonly IUserRepository _repository;
-    private readonly IMapper _mapper;
     private readonly ILogger<GetUsersHandler> _logger;
 
-    public GetUsersHandler(IUserRepository repository, IMapper mapper, ILogger<GetUsersHandler> logger)
+    public GetUsersHandler(IUserRepository repository, ILogger<GetUsersHandler> logger)
     {
         _repository = repository;
-        _mapper = mapper;
         _logger = logger;
     }
 
@@ -2368,15 +2559,9 @@ public class GetUsersHandler : IRequestHandler<GetUsersQuery, PagedResult<UserDt
             request.Page, request.PageSize, request.SearchTerm);
 
         var users = await _repository.GetPagedAsync(request.Page, request.PageSize, request.SearchTerm);
-        var userDtos = _mapper.Map<List<UserDto>>(users.Items);
 
-        var result = new PagedResult<UserDto>
-        {
-            Items = userDtos,
-            TotalCount = users.TotalCount,
-            Page = request.Page,
-            PageSize = request.PageSize
-        };
+        // Use extension method for mapping to paginated DTO
+        var result = users.Items.ToPagedDto(users.TotalCount, request.Page, request.PageSize);
 
         _logger.LogDebug("Retrieved {Count} users out of {Total}", result.Items.Count, result.TotalCount);
         return result;
@@ -2642,28 +2827,101 @@ public class ValidationException : Exception
 }
 ```
 
-#### 8. AutoMapper Configuration
+#### 8. Mapping Extensions
+
+Instead of AutoMapper, we use manual extension methods for mapping between domain entities and DTOs. This provides better performance, compile-time safety, and explicit control over the mapping logic.
 
 ```csharp
-// Application/Mappings/UserProfile.cs
-public class UserProfile : Profile
+// Application/Mappings/UserMappingExtensions.cs
+using Application.DTOs;
+using Domain.Entities;
+
+namespace Application.Mappings;
+
+/// <summary>
+/// Extension methods for mapping between User domain entities and DTOs.
+/// Provides explicit, performant mapping without external dependencies.
+/// </summary>
+public static class UserMappingExtensions
 {
-    public UserProfile()
+    /// <summary>
+    /// Converts a User domain entity to a UserDto.
+    /// </summary>
+    /// <param name="user">The user entity to convert.</param>
+    /// <returns>A UserDto representation of the user.</returns>
+    public static UserDto ToDto(this User user)
     {
-        CreateMap<User, UserDto>()
-            .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FullName))
-            .ForMember(dest => dest.Age, opt => opt.MapFrom(src => src.Age));
+        return new UserDto
+        {
+            Id = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            FullName = user.GetFullName(), // Use domain logic
+            Email = user.Email,
+            DateOfBirth = user.DateOfBirth,
+            Age = user.GetAge(), // Calculated property
+            IsActive = user.IsActive,
+            CreatedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt
+        };
+    }
 
-        CreateMap<CreateUserCommand, User>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
-            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true));
+    /// <summary>
+    /// Converts a collection of User domain entities to a list of UserDtos.
+    /// </summary>
+    /// <param name="users">The collection of user entities to convert.</param>
+    /// <returns>A list of UserDto representations.</returns>
+    public static List<UserDto> ToDto(this IEnumerable<User> users)
+    {
+        return users.Select(u => u.ToDto()).ToList();
+    }
 
-        CreateMap<CreateUserDto, CreateUserCommand>();
+    /// <summary>
+    /// Converts a collection of User domain entities to a paginated result with UserDtos.
+    /// </summary>
+    /// <param name="users">The collection of user entities to convert.</param>
+    /// <param name="totalCount">The total number of users available.</param>
+    /// <param name="page">The current page number.</param>
+    /// <param name="pageSize">The number of items per page.</param>
+    /// <returns>A paginated result containing UserDtos.</returns>
+    public static PagedResult<UserDto> ToPagedDto(this IEnumerable<User> users, int totalCount, int page, int pageSize)
+    {
+        return new PagedResult<UserDto>
+        {
+            Items = users.ToDto(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    /// <summary>
+    /// Converts a CreateUserCommand to a User domain entity.
+    /// </summary>
+    /// <param name="command">The command containing user creation data.</param>
+    /// <returns>A new User entity ready for persistence.</returns>
+    public static User ToEntity(this CreateUserCommand command)
+    {
+        return User.Create(
+            command.FirstName,
+            command.LastName,
+            command.Email,
+            command.DateOfBirth);
     }
 }
 ```
+
+#### Benefits of Manual Mapping Extensions
+
+✅ **Performance**: No reflection overhead - direct property assignment  
+✅ **Compile-time Safety**: Compilation errors if properties don't match  
+✅ **Explicit Control**: Clear, readable mapping logic with custom transformations  
+✅ **No Dependencies**: Reduces external package dependencies  
+✅ **IntelliSense Support**: Full IDE support with auto-completion  
+✅ **Easy Testing**: Simple to test and mock mapping behavior  
+✅ **Domain Logic Integration**: Can call domain methods for calculated properties
+
+````
 
 #### 9. API Controller
 
@@ -2827,7 +3085,7 @@ public class UsersController : ControllerBase
         }
     }
 }
-```
+````
 
 #### 10. Program Configuration
 
@@ -2835,7 +3093,6 @@ public class UsersController : ControllerBase
 // Program.cs
 using Blazing.Mediator;
 using FluentValidation;
-using AutoMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -2843,9 +3100,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-// Add AutoMapper
-builder.Services.AddAutoMapper(typeof(UserProfile));
 
 // Add FluentValidation
 builder.Services.AddValidatorsFromAssembly(typeof(CreateUserCommandValidator).Assembly);

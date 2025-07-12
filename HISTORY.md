@@ -1,5 +1,14 @@
 ﻿# Version History
 
+### V1.2.0 - 12 July, 2025
+
+-   Added automatic middleware discovery functionality for simplified configuration
+-   Enhanced `AddMediator` method with `discoverMiddleware` parameter using method overloads
+-   Automatic registration of all middleware implementations from specified assemblies
+-   Support for middleware ordering through static/instance Order properties
+-   Backward compatibility maintained with existing registration methods
+-   Comprehensive documentation updates with auto-discovery examples
+
 ### V1.1.0 - 1 July, 2025
 
 -   Enhanced middleware pipeline with conditional middleware support

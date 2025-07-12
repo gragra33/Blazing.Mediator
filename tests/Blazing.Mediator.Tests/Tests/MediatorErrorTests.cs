@@ -31,7 +31,7 @@ public class MediatorErrorTests
 
         // Assert
         TestCommandHandler.LastExecutedCommand.ShouldBe(command);
-        TestCommandHandler.LastExecutedCommand.Value.ShouldBe("direct");
+        TestCommandHandler.LastExecutedCommand!.Value.ShouldBe("direct");
     }
 
     /// <summary>
@@ -318,7 +318,7 @@ public class MediatorErrorTests
 
         // Assert
         ComplexCommandHandler.LastExecutedCommand.ShouldBe(command);
-        ComplexCommandHandler.LastExecutedCommand.Data.Name.ShouldBe("NoMiddleware");
+        ComplexCommandHandler.LastExecutedCommand!.Data.Name.ShouldBe("NoMiddleware");
     }
 
     /// <summary>

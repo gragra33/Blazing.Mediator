@@ -7,22 +7,22 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Blazing.Mediator</PackageId>
-    <Version>1.2.0</Version>
+    <Version>1.3.0</Version>
     <Authors>Graeme Grant</Authors>
     <Product>Blazing.Mediator</Product>
-    <Description>A lightweight implementation of the Mediator pattern with built-in CQRS support and advanced middleware pipeline for .NET applications. Features ordered middleware execution, conditional middleware, automatic DI registration, and pipeline inspection. Includes comprehensive sample projects demonstrating modern API architectures with controllers and minimal APIs.</Description>
-    <PackageTags>mediator;cqrs;command;query;pattern;architecture;clean-code;dependency-injection;middleware;pipeline;conditional;samples;minimal-api;controllers</PackageTags>
+    <Description>A lightweight implementation of the Mediator pattern with built-in CQRS support, native streaming capabilities, and advanced middleware pipeline for .NET applications. Features ordered middleware execution, conditional middleware, automatic DI registration, pipeline inspection, and memory-efficient data streaming with IAsyncEnumerable. Supports real-time data processing, JSON streaming, Server-Sent Events (SSE), and AI response streaming. Includes comprehensive sample projects demonstrating modern API architectures with controllers, minimal APIs, and streaming patterns.</Description>
+    <PackageTags>mediator;cqrs;command;query;streaming;async-enumerable;real-time;json-streaming;sse;server-sent-events;pattern;architecture;clean-code;dependency-injection;middleware;pipeline;conditional;samples;minimal-api;controllers;ai-streaming</PackageTags>
     <RepositoryUrl>https://github.com/gragra33/blazing.mediator</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
     <Copyright>Copyright (c) 2022-25 Graeme Grant</Copyright>
-    <PackageReleaseNotes>Version 1.2.0: Added automatic middleware discovery functionality with method overloads for simplified configuration. Enhanced ServiceCollectionExtensions with discoverMiddleware parameter to automatically register all middleware implementations from specified assemblies while maintaining backward compatibility.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.3.0: Added automatic middleware discovery functionality with method overloads for simplified configuration. Enhanced ServiceCollectionExtensions with discoverMiddleware parameter to automatically register all middleware implementations from specified assemblies while maintaining backward compatibility.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.6" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,6 +34,7 @@
     
     <!-- Include all documentation files -->
     <None Include="..\..\docs\MEDIATOR_PATTERN_GUIDE.md" Pack="true" PackagePath="docs\" />
+    <None Include="..\..\docs\MEDIATOR_STREAMING_GUIDE.md" Pack="true" PackagePath="docs\" />
     
     <!-- Include contributing and other important files -->
     <None Include="..\..\CONTRIBUTING.md" Pack="true" PackagePath="\" />

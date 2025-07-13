@@ -4,7 +4,7 @@
 
 The Mediator pattern decouples components by having them communicate through a central mediator rather than directly with each other. This promotes loose coupling, better testability, and cleaner architecture.
 
-`Blazing.Mediator` provides a lightweight implementation of the Mediator pattern for .NET applications that naturally implements **Command Query Responsibility Segregation (CQRS)** by separating read operations (queries) from write operations (commands). This separation allows for optimized data models, improved performance, and better scalability.
+`Blazing.Mediator` provides a lightweight implementation of the Mediator pattern for .NET applications that naturally implements **Command Query Responsibility Segregation (CQRS)** by separating read operations (queries) from write operations (commands). This separation allows for optimised data models, improved performance, and better scalability.
 
 ### Key Features
 
@@ -13,7 +13,7 @@ The Mediator pattern decouples components by having them communicate through a c
 -   **⚡ Conditional Middleware**: Execute middleware only for specific request types for optimal performance
 -   **🤖 Auto-Discovery**: Automatic middleware and handler discovery with intelligent ordering
 -   **⚙️ Zero Configuration**: Works out of the box with minimal setup and automatic handler discovery
--   **🚀 High Performance**: Lightweight implementation optimized for speed with minimal overhead
+-   **🚀 High Performance**: Lightweight implementation optimised for speed with minimal overhead
 -   **🧪 Fully Testable**: Built with testing in mind - easy to mock and unit test handlers
 -   **📦 Multiple Assembly Support**: Automatically scan and register handlers from multiple assemblies
 -   **🔒 Type Safety**: Compile-time type checking for requests, handlers, and responses
@@ -126,9 +126,9 @@ That's it! You now have a working Mediator implementation. Continue reading for 
 
 This separation enables:
 
--   **Performance Optimization**: Queries can use optimized read models and caching
+-   **Performance Optimisation**: Queries can use optimised read models and caching
 -   **Scalability**: Read and write operations can be scaled independently
--   **Security**: Different validation and authorization rules for commands vs queries
+-   **Security**: Different validation and authorisation rules for commands vs queries
 -   **Maintainability**: Clear separation of concerns between data modification and retrieval
 
 ### Requests
@@ -236,14 +236,14 @@ The Mediator pattern provides several key architectural benefits:
 #### Single Responsibility Principle
 
 -   Each handler has one clear responsibility
--   Business logic is organized into discrete, focused units
+-   Business logic is organised into discrete, focused units
 -   Easier to understand and maintain individual components
 -   Reduces complexity by avoiding monolithic service classes
 
 #### CQRS Implementation
 
 -   Clear separation between Commands (write operations) and Queries (read operations)
--   Optimized data models for different use cases
+-   Optimised data models for different use cases
 -   Different validation and security rules for reads vs writes
 -   Enables different scaling strategies for read and write operations
 
@@ -257,7 +257,7 @@ The Mediator pattern provides several key architectural benefits:
 #### Better Maintainability
 
 -   Clear request/response flow through the system
--   Centralized request routing and handling
+-   Centralised request routing and handling
 -   Consistent error handling and validation patterns
 -   Easier to add new features without modifying existing code
 
@@ -587,7 +587,7 @@ public class GetUsersHandler : IRequestHandler<GetUsersQuery, PagedResult<UserDt
 
     public async Task<PagedResult<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
     {
-        // Use read-optimized repository with specialized query methods
+        // Use read-optimised repository with specialised query methods
         var users = await _userRepository.GetPagedAsync(
             request.Page,
             request.PageSize,
@@ -602,7 +602,7 @@ public class GetUsersHandler : IRequestHandler<GetUsersQuery, PagedResult<UserDt
 // Analytical query handler - can use different data source
 public class GetUserStatisticsHandler : IRequestHandler<GetUserStatisticsQuery, UserStatisticsDto>
 {
-    private readonly IAnalyticsRepository _analyticsRepository; // Specialized analytics data source
+    private readonly IAnalyticsRepository _analyticsRepository; // Specialised analytics data source
     private readonly ILogger<GetUserStatisticsHandler> _logger;
 
     public GetUserStatisticsHandler(IAnalyticsRepository analyticsRepository, ILogger<GetUserStatisticsHandler> logger)
@@ -2196,7 +2196,7 @@ This sample demonstrates a modern user management API using Minimal APIs with co
 -   **Minimal APIs**: Modern .NET approach with functional endpoints
 -   **Standard Middleware**: Comprehensive logging for all operations
 -   **Clean Architecture**: Separation of concerns with clear layer boundaries
--   **Error Handling**: Centralized error handling with proper responses
+-   **Error Handling**: Centralised error handling with proper responses
 -   **Swagger Integration**: Complete API documentation
 
 #### Architecture Overview

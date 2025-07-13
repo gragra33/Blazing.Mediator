@@ -1,0 +1,446 @@
+@page "/streaming-ssr"
+@rendermode InteractiveServer
+@using Blazing.Mediator
+@using Streaming.Api.Shared.DTOs
+@using Streaming.Api.Requests
+@inject IMediator Mediator
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-server me-2"></i>
+                Contact Streaming (Server-Side Rendering)
+            </h1>
+            <p class="lead">
+                This page demonstrates real-time streaming using Blazing.Mediator with Server-Side Rendering.
+                Data is streamed directly from the server using the mediator pattern.
+            </p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-broadcast me-2"></i>
+                        Real-time Streaming Controls
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="searchInput" class="form-label">Search Filter</label>
+                            <div class="input-group">
+                                <input value="@searchTerm" @onkeypress="HandleKeyPress" @oninput="OnSearchChanged"
+                                       class="form-control" id="searchInput" 
+                                       placeholder="Search contacts..." />
+                                <button class="btn btn-outline-secondary" type="button" @onclick="OnSearchButtonClick" title="Search">
+                                    🔍
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="streamType" class="form-label">Stream Type</label>
+                            <select @bind="streamType" class="form-select" id="streamType">
+                                <option value="mediator">Blazing.Mediator Stream</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button @onclick="StartStreaming" class="btn btn-success" disabled="@isStreaming">
+                            <i class="bi bi-play-fill me-1"></i>
+                            @(isStreaming ? "Streaming..." : "Start Stream")
+                        </button>
+                        <button @onclick="StopStreaming" class="btn btn-danger" disabled="@(!isStreaming)">
+                            <i class="bi bi-stop-fill me-1"></i>
+                            Stop Stream
+                        </button>
+                        <button @onclick="ClearResults" class="btn btn-outline-secondary">
+                            <i class="bi bi-trash me-1"></i>
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-speedometer2 me-2"></i>
+                        Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="h5 text-primary">@contactCount.ToString("#,##0")</div>
+                            <small class="text-muted">Contacts</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h5 text-success">@(itemsPerSecond.ToString("#,##0.##"))</div>
+                            <small class="text-muted">items/sec</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h5 text-info">@GetStreamDuration()</div>
+                            <small class="text-muted">Duration</small>
+                        </div>
+                    </div>
+                    @if (lastEventTime.HasValue)
+                    {
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                Last event: @lastEventTime.Value.ToString("HH:mm:ss.fff")
+                            </small>
+                        </div>
+                    }
+                    <div class="mt-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" @bind="autoScroll" id="autoScrollCheck">
+                            <label class="form-check-label" for="autoScrollCheck">
+                                Auto Scroll
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-table me-2"></i>
+                        Live Stream Results
+                    </h5>
+                    <div class="d-flex align-items-center gap-3">
+                        @if (connectionStatus != "disconnected")
+                        {
+                            <span class="badge bg-@(connectionStatus == "connected" ? "success" : "warning")">
+                                <i class="bi bi-@(connectionStatus == "connected" ? "wifi" : "wifi-off") me-1"></i>
+                                @connectionStatus.ToUpper()
+                            </span>
+                        }
+                        @if (isStreaming)
+                        {
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Streaming...</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;" data-scroll-container @ref="resultsContainer">
+                    @if (contactCount > 0 && contacts.Any())
+                    {
+                        <div class="row g-3">
+                            @foreach (var contact in contacts.TakeLast(displayLimit))
+                            {
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card h-100 contact-card">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <img src="@contact.Avatar" alt="Avatar" 
+                                                     class="rounded-circle me-3" style="width: 50px; height: 50px;" />
+                                                <div class="flex-grow-1">
+                                                    <h6 class="card-title mb-1">@contact.FullName</h6>
+                                                    <small class="text-muted">ID: @contact.Id</small>
+                                                </div>
+                                            </div>
+                                            <div class="contact-details">
+                                                <div class="mb-1">
+                                                    <i class="bi bi-envelope me-1 text-primary"></i>
+                                                    <small>@contact.Email</small>
+                                                </div>
+                                                <div class="mb-1">
+                                                    <i class="bi bi-building me-1 text-success"></i>
+                                                    <small>@contact.Company</small>
+                                                </div>
+                                                <div class="mb-1">
+                                                    <i class="bi bi-geo-alt me-1 text-warning"></i>
+                                                    <small>@contact.City, @contact.Country</small>
+                                                </div>
+                                                <div>
+                                                    <i class="bi bi-telephone me-1 text-info"></i>
+                                                    <small>@contact.Phone</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        
+                        @if (contacts.Count > displayLimit)
+                        {
+                            <div class="alert alert-info mt-3">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Showing last @displayLimit of @contacts.Count contacts. 
+                                <button @onclick="IncreaseDisplayLimit" class="btn btn-sm btn-outline-primary ms-2">
+                                    Show More
+                                </button>
+                            </div>
+                        }
+                    }
+                    else if (!isStreaming && contactCount == 0)
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-server display-1"></i>
+                            <p class="mt-3">No contacts loaded. Start streaming to see live data.</p>
+                        </div>
+                    }
+                    else if (isStreaming && contactCount == 0)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Connecting...</span>
+                            </div>
+                            <p class="mt-3 text-muted">Establishing connection...</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.contact-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: slideIn 0.3s ease-out;
+}
+
+.contact-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+@@keyframes slideIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(20px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.contact-details {
+    font-size: 0.85rem;
+}
+</style>
+
+@code {
+    private readonly List<ContactDto> contacts = new();
+    private string searchTerm = string.Empty;
+    private string streamType = "mediator";
+    private bool isStreaming = false;
+    private string connectionStatus = "disconnected";
+    private int contactCount = 0;
+    private DateTime streamStartTime;
+    private DateTime streamEndTime;
+    private DateTime? lastEventTime;
+    private double itemsPerSecond = 0;
+    private bool autoScroll = true;
+    private int displayLimit = 12;
+    private ElementReference resultsContainer;
+    private CancellationTokenSource? cancellationTokenSource;
+
+    private async Task StartStreaming()
+    {
+        if (isStreaming) return;
+
+        // Cancel any existing streaming operation
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
+        cancellationTokenSource = new CancellationTokenSource();
+
+        // Reset state for new streaming session
+        isStreaming = true;
+        contactCount = 0;
+        contacts.Clear();
+        streamStartTime = DateTime.Now;
+        connectionStatus = "connecting";
+        StateHasChanged();
+
+        try
+        {
+            connectionStatus = "connected";
+            StateHasChanged();
+
+            var request = new StreamContactsRequest { SearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm };
+            
+            await foreach (var contact in Mediator.SendStream(request, cancellationTokenSource.Token))
+            {
+                cancellationTokenSource.Token.ThrowIfCancellationRequested();
+
+                if (contact != null)
+                {
+                    await AddContact(contact);
+                    
+                    // Reduced delay for better performance - only add delay every 10 items
+                    if (contactCount % 10 == 0)
+                    {
+                        await Task.Delay(20, cancellationTokenSource.Token);
+                    }
+                }
+            }
+
+            // Final UI update to ensure all contacts are displayed
+            streamEndTime = DateTime.Now;
+            await InvokeAsync(StateHasChanged);
+            connectionStatus = "disconnected";
+        }
+        catch (OperationCanceledException)
+        {
+            // Streaming was cancelled - this is expected behavior
+            streamEndTime = DateTime.Now;
+            connectionStatus = "disconnected";
+        }
+        catch (Exception ex)
+        {
+            streamEndTime = DateTime.Now;
+            await JSRuntime.InvokeVoidAsync("console.error", $"Streaming error: {ex.Message}");
+            connectionStatus = "error";
+        }
+        finally
+        {
+            isStreaming = false;
+            if (connectionStatus != "error" && connectionStatus != "disconnected")
+                connectionStatus = "disconnected";
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddContact(ContactDto contact)
+    {
+        contacts.Add(contact);
+        contactCount++;
+        lastEventTime = DateTime.Now;
+
+        var elapsed = DateTime.Now - streamStartTime;
+        itemsPerSecond = contactCount / Math.Max(elapsed.TotalSeconds, 0.001);
+
+        // Update UI less frequently for better performance
+        // Update every 10 items, or for the first 5 items, or every 2 seconds
+        var shouldUpdate = contactCount % 10 == 0 || 
+                          contactCount <= 5 || 
+                          (elapsed.TotalSeconds % 2 < 0.1 && contactCount % 5 == 0);
+
+        if (shouldUpdate)
+        {
+            await InvokeAsync(StateHasChanged);
+            
+            if (autoScroll)
+            {
+                await ScrollToBottom();
+            }
+        }
+    }
+
+    private void StopStreaming()
+    {
+        try
+        {
+            cancellationTokenSource?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore if already disposed
+        }
+        
+        streamEndTime = DateTime.Now;
+        cancellationTokenSource?.Dispose();
+        cancellationTokenSource = null;
+        isStreaming = false;
+        connectionStatus = "disconnected";
+        StateHasChanged();
+    }
+
+    private void ClearResults()
+    {
+        StopStreaming();
+        contacts.Clear();
+        contactCount = 0;
+        itemsPerSecond = 0;
+        lastEventTime = null;
+        displayLimit = 12;
+        StateHasChanged();
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            if (isStreaming)
+            {
+                StopStreaming();
+                await Task.Delay(100);
+            }
+            await StartStreaming();
+        }
+    }
+
+    private void IncreaseDisplayLimit()
+    {
+        displayLimit += 12;
+        StateHasChanged();
+    }
+
+    private async Task ScrollToBottom()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", $"document.querySelector('[data-scroll-container]').scrollTop = document.querySelector('[data-scroll-container]').scrollHeight");
+        }
+        catch
+        {
+            // Ignore scroll errors
+        }
+    }
+
+    private async Task OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? string.Empty;
+        
+        // Restart streaming automatically if currently streaming
+        if (isStreaming)
+        {
+            StopStreaming();
+            await Task.Yield();
+            await StartStreaming();
+        }
+    }
+
+    private async Task OnSearchButtonClick()
+    {
+        if (isStreaming)
+        {
+            StopStreaming();
+            await Task.Yield();
+        }
+        await StartStreaming();
+    }
+
+    private string GetStreamDuration()
+    {
+        if (!isStreaming && contactCount == 0)
+            return "0.0s";
+            
+        var endTime = isStreaming ? DateTime.Now : streamEndTime;
+        var duration = endTime - streamStartTime;
+        return $"{duration.TotalSeconds:F1}s";
+    }
+
+    public void Dispose()
+    {
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
+    }
+}

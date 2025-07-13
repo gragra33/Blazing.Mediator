@@ -174,6 +174,24 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
                 switch (genericParams)
                 {
                     case { Length: 2 }:
+                        // Check if this is a stream middleware - if so, skip it for regular requests
+                        var baseTypes = middlewareType.GetInterfaces();
+                        bool isStreamMiddleware = false;
+                        foreach (var baseType in baseTypes)
+                        {
+                            if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == typeof(IStreamRequestMiddleware<,>))
+                            {
+                                isStreamMiddleware = true;
+                                break;
+                            }
+                        }
+                        
+                        if (isStreamMiddleware)
+                        {
+                            // This is a stream middleware, skip it for regular requests
+                            continue;
+                        }
+                        
                         // Create the specific generic type for this request/response pair
                         actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest), typeof(TResponse));
                         break;
@@ -360,5 +378,131 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
         where TRequest : IRequest
     {
         return () => throw new InvalidOperationException("Use ExecutePipeline method instead for commands");
+    }
+
+    /// <summary>
+    /// Executes the middleware pipeline for a stream request with support for ordering and conditional execution.
+    /// </summary>
+    public IAsyncEnumerable<TResponse> ExecuteStreamPipeline<TRequest, TResponse>(
+        TRequest request,
+        IServiceProvider serviceProvider,
+        StreamRequestHandlerDelegate<TResponse> finalHandler,
+        CancellationToken cancellationToken)
+        where TRequest : IStreamRequest<TResponse>
+    {
+        return ExecuteStreamPipelineInternal(request, serviceProvider, finalHandler, cancellationToken);
+    }
+
+    /// <summary>
+    /// Internal implementation of stream pipeline execution
+    /// </summary>
+    private async IAsyncEnumerable<TResponse> ExecuteStreamPipelineInternal<TRequest, TResponse>(
+        TRequest request,
+        IServiceProvider serviceProvider,
+        StreamRequestHandlerDelegate<TResponse> finalHandler,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        where TRequest : IStreamRequest<TResponse>
+    {
+        StreamRequestHandlerDelegate<TResponse> pipeline = finalHandler;
+
+        // Get middleware types that can handle this stream request type, sorted by order
+        List<(Type Type, int Order)> applicableMiddleware = [];
+
+        foreach (MiddlewareInfo middlewareInfo in _middlewareInfos)
+        {
+            Type middlewareType = middlewareInfo.Type;
+            
+            // Handle open generic types by making them closed generic types
+            Type actualMiddlewareType;
+            if (middlewareType.IsGenericTypeDefinition)
+            {
+                // Check if this middleware supports the IStreamRequestMiddleware<TRequest, TResponse>
+                var genericParams = middlewareType.GetGenericArguments();
+                switch (genericParams)
+                {
+                    case { Length: 2 }:
+                        // Create the specific generic type for this request/response pair
+                        actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest), typeof(TResponse));
+                        break;
+                    default:
+                        // Unsupported number of generic parameters for stream middleware
+                        continue;
+                }
+            }
+            else
+            {
+                actualMiddlewareType = middlewareType;
+            }
+            
+            // Check if this middleware type implements IStreamRequestMiddleware<TRequest, TResponse>
+            if (!actualMiddlewareType.GetInterfaces().Any(i => i.IsGenericType && 
+                i.GetGenericTypeDefinition() == typeof(IStreamRequestMiddleware<,>) &&
+                i.GetGenericArguments()[0] == typeof(TRequest) &&
+                i.GetGenericArguments()[1] == typeof(TResponse)))
+            {
+                // This middleware doesn't handle this stream request type, skip it
+                continue;
+            }
+
+            // Use the cached order from registration
+            applicableMiddleware.Add((actualMiddlewareType, middlewareInfo.Order));
+        }
+
+        // Sort middleware by order (lower numbers execute first), then by registration order
+        applicableMiddleware.Sort((a, b) => 
+        {
+            int orderComparison = a.Order.CompareTo(b.Order);
+            if (orderComparison != 0) return orderComparison;
+            
+            // If orders are equal, maintain registration order
+            return _middlewareInfos.FindIndex(info => 
+                info.Type == a.Type || 
+                (info.Type.IsGenericTypeDefinition && a.Type.IsGenericType && info.Type == a.Type.GetGenericTypeDefinition())
+            ).CompareTo(_middlewareInfos.FindIndex(info => 
+                info.Type == b.Type || 
+                (info.Type.IsGenericTypeDefinition && b.Type.IsGenericType && info.Type == b.Type.GetGenericTypeDefinition())
+            ));
+        });
+
+        // Build pipeline in reverse order so the first middleware in the sorted list runs first
+        for (int i = applicableMiddleware.Count - 1; i >= 0; i--)
+        {
+            (Type middlewareType, int _) = applicableMiddleware[i];
+            StreamRequestHandlerDelegate<TResponse> currentPipeline = pipeline;
+            string middlewareName = middlewareType.Name;
+
+            pipeline = () =>
+            {
+                // Create middleware instance using DI container
+                IStreamRequestMiddleware<TRequest, TResponse>? middleware = serviceProvider.GetService(middlewareType) as IStreamRequestMiddleware<TRequest, TResponse>;
+
+                return middleware switch
+                {
+                    null => throw new InvalidOperationException(
+                        $"Could not create instance of stream middleware {middlewareName}. Make sure the middleware is registered in the DI container."),
+                    // Check if this is conditional middleware and should execute
+                    IConditionalMiddleware<TRequest, TResponse> conditionalMiddleware when !conditionalMiddleware
+                        .ShouldExecute(request) => currentPipeline(),
+                    _ => middleware.HandleAsync(request, currentPipeline, cancellationToken)
+                };
+            };
+        }
+
+        // Execute the pipeline and yield results
+        await foreach (TResponse item in pipeline().WithCancellation(cancellationToken))
+        {
+            yield return item;
+        }
+    }
+
+    /// <summary>
+    /// Builds the middleware pipeline for the specified stream request type.
+    /// </summary>
+    public StreamRequestHandlerDelegate<TResponse> BuildStreamPipeline<TRequest, TResponse>(
+        IServiceProvider serviceProvider, 
+        StreamRequestHandlerDelegate<TResponse> finalHandler)
+        where TRequest : IStreamRequest<TResponse>
+    {
+        return () => throw new InvalidOperationException("Use ExecuteStreamPipeline method instead for stream requests");
     }
 }

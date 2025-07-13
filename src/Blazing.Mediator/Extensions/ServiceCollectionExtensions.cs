@@ -68,14 +68,14 @@ public static class ServiceCollectionExtensions
         MediatorConfiguration configuration = new(services);
         configureMiddleware?.Invoke(configuration);
         services.AddSingleton(configuration);
-        
+
         // Register the configured pipeline builder as the scoped pipeline builder
-        services.AddScoped(provider => 
+        services.AddScoped(provider =>
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
 
         // Register pipeline inspector for debugging (same instance as pipeline builder)
-        services.AddScoped(provider => 
-            provider.GetRequiredService<IMiddlewarePipelineBuilder>() as IMiddlewarePipelineInspector 
+        services.AddScoped(provider =>
+            provider.GetRequiredService<IMiddlewarePipelineBuilder>() as IMiddlewarePipelineInspector
             ?? throw new InvalidOperationException("Pipeline builder must implement IMiddlewarePipelineInspector"));
 
         if (assemblies is not { Length: > 0 })
@@ -107,7 +107,7 @@ public static class ServiceCollectionExtensions
         {
             return services.AddMediator(configureMiddleware, (Assembly[])null!);
         }
-        
+
         Assembly[] assemblies = assemblyMarkerTypes.Select(t => t.Assembly).Distinct().ToArray();
         return services.AddMediator(configureMiddleware, assemblies);
     }
@@ -126,36 +126,38 @@ public static class ServiceCollectionExtensions
 
         // Configure middleware
         MediatorConfiguration configuration = new(services);
-        
+
         // Auto-discover middleware from assemblies if requested
         if (discoverMiddleware && assemblies is { Length: > 0 })
         {
             RegisterMiddleware(configuration, assemblies);
         }
-        
+
         // Apply user configuration after auto-discovery to allow overrides
         configureMiddleware?.Invoke(configuration);
-        
+
         services.AddSingleton(configuration);
-        
+
         // Register the configured pipeline builder as the scoped pipeline builder
-        services.AddScoped(provider => 
+        services.AddScoped(provider =>
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
 
         // Register pipeline inspector for debugging (same instance as pipeline builder)
-        services.AddScoped(provider => 
-            provider.GetRequiredService<IMiddlewarePipelineBuilder>() as IMiddlewarePipelineInspector 
+        services.AddScoped(provider =>
+            provider.GetRequiredService<IMiddlewarePipelineBuilder>() as IMiddlewarePipelineInspector
             ?? throw new InvalidOperationException("Pipeline builder must implement IMiddlewarePipelineInspector"));
 
-        if (assemblies is { Length: > 0 })
+        if (assemblies is not { Length: > 0 })
         {
-            // Deduplicate assemblies to prevent duplicate registrations  
-            Assembly[] uniqueAssemblies = assemblies.Distinct().ToArray();
+            return services;
+        }
 
-            foreach (Assembly assembly in uniqueAssemblies)
-            {
-                RegisterHandlers(services, assembly);
-            }
+        // Deduplicate assemblies to prevent duplicate registrations  
+        Assembly[] uniqueAssemblies = assemblies.Distinct().ToArray();
+
+        foreach (Assembly assembly in uniqueAssemblies)
+        {
+            RegisterHandlers(services, assembly);
         }
 
         return services;
@@ -175,7 +177,7 @@ public static class ServiceCollectionExtensions
         {
             return services.AddMediator(configureMiddleware, discoverMiddleware, (Assembly[])null!);
         }
-        
+
         Assembly[] assemblies = assemblyMarkerTypes.Select(t => t.Assembly).Distinct().ToArray();
         return services.AddMediator(configureMiddleware, discoverMiddleware, assemblies);
     }
@@ -342,12 +344,15 @@ public static class ServiceCollectionExtensions
             configuration.AddMiddleware(middlewareType);
         }
 
+        return;
+
         static bool IsMiddlewareType(Type i) =>
             i.IsGenericType &&
             (i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<>) ||
              i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>) ||
              i.GetGenericTypeDefinition() == typeof(IConditionalMiddleware<>) ||
-             i.GetGenericTypeDefinition() == typeof(IConditionalMiddleware<,>));
+             i.GetGenericTypeDefinition() == typeof(IConditionalMiddleware<,>) ||
+             i.GetGenericTypeDefinition() == typeof(IStreamRequestMiddleware<,>));
     }
 
     /// <summary>  
@@ -379,10 +384,14 @@ public static class ServiceCollectionExtensions
                 .ForEach(@interface => services.AddScoped(@interface, serviceProvider => serviceProvider.GetRequiredService(handlerType)));
         }
 
+        return;
+
         static bool IsHandlerType(Type i) =>
-            i.IsGenericType &&
-            (i.GetGenericTypeDefinition() == typeof(IRequestHandler<>) ||
-             i.GetGenericTypeDefinition() == typeof(IRequestHandler<,>));
+        i.IsGenericType &&
+        (i.GetGenericTypeDefinition() == typeof(IRequestHandler<>) ||
+         i.GetGenericTypeDefinition() == typeof(IRequestHandler<,>) ||
+         i.GetGenericTypeDefinition() == typeof(IStreamRequestHandler<,>));
+     
     }
 
     #endregion

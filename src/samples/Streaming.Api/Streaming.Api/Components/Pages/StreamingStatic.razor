@@ -1,0 +1,220 @@
+@page "/streaming-static"
+@* Hybrid approach: Static form with interactive streaming table *@
+@attribute [StreamRendering(true)]
+@using Blazing.Mediator
+@using Streaming.Api.Shared.DTOs
+@using Streaming.Api.Requests
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Antiforgery
+@inject IMediator Mediator
+@inject IAntiforgery Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-file-code me-2"></i>
+                Contact Streaming (Hybrid)
+            </h1>
+            <div class="alert alert-info">
+                <i class="bi bi-layers me-2"></i>
+                <strong>Hybrid Approach:</strong> This page combines a static form (no JavaScript) with an interactive streaming table. 
+                The form submission triggers real-time streaming updates in the table component.
+                <div class="mt-2">
+                    <small class="badge bg-secondary">
+                        <i class="bi bi-form-check me-1"></i>
+                        Static Form
+                    </small>
+                    <small class="badge bg-primary ms-2">
+                        <i class="bi bi-arrow-repeat me-1"></i>
+                        Interactive Streaming Table
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-search me-2"></i>
+                        Search and Load Contacts
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="/streaming-static" @formname="ContactSearchForm">
+                        @{
+                            var tokens = Antiforgery.GetAndStoreTokens(HttpContextAccessor.HttpContext!);
+                        }
+                        <input name="@tokens.FormFieldName" type="hidden" value="@tokens.RequestToken" />
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="searchInput" class="form-label">Search Filter</label>
+                                <input name="Model.SearchTerm" value="@Model.SearchTerm" 
+                                       class="form-control" id="searchInput" 
+                                       placeholder="Leave empty to show all contacts..." />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="batchSize" class="form-label">Batch Size</label>
+                                <select name="Model.BatchSize" class="form-select" id="batchSize">
+                                    <option value="10" selected="@(Model.BatchSize == 10)">10 items</option>
+                                    <option value="25" selected="@(Model.BatchSize == 25)">25 items</option>
+                                    <option value="50" selected="@(Model.BatchSize == 50)">50 items</option>
+                                    <option value="100" selected="@(Model.BatchSize == 100)">100 items</option>
+                                    <option value="200" selected="@(Model.BatchSize == 200)">200 items</option>
+                                    <option value="500" selected="@(Model.BatchSize == 500)">500 items</option>
+                                    <option value="1000" selected="@(Model.BatchSize == 1000)">1000 items</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-play-fill me-1"></i>
+                                Start Streaming
+                            </button>
+                            <a href="/streaming-static" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise me-1"></i>
+                                Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Search Parameters
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (hasSearchParameters)
+                    {
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="h5 text-primary">@(string.IsNullOrEmpty(Model.SearchTerm) ? "All" : Model.SearchTerm)</div>
+                                <small class="text-muted">Search Term</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="h5 text-success">@Model.BatchSize</div>
+                                <small class="text-muted">Batch Size</small>
+                            </div>
+                        </div>
+                        <div class="alert alert-success mt-3 mb-0">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Ready to stream contacts!
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center">
+                            <i class="bi bi-inbox display-4 text-muted"></i>
+                            <div class="mt-2">
+                                <small class="text-muted">Use the form to start streaming</small>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Interactive streaming table component *@
+    @if (hasSearchParameters)
+    {
+        <div class="row">
+            <div class="col-12">
+                <StreamingContactTable SearchTerm="@Model.SearchTerm" 
+                                     BatchSize="@Model.BatchSize"
+                                     StartStreaming="@hasSearchParameters" />
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-file-code display-1 text-muted"></i>
+                        <h4 class="mt-3 text-muted">Ready for Hybrid Streaming</h4>
+                        <p class="text-muted">
+                            Use the static form above to configure your search, then watch as the interactive 
+                            table streams results in real-time below.
+                        </p>
+                        <div class="mt-4">
+                            <div class="row justify-content-center">
+                                <div class="col-md-6">
+                                    <div class="alert alert-info">
+                                        <h6><i class="bi bi-lightbulb me-2"></i>Try these searches:</h6>
+                                        <ul class="list-unstyled mb-0">
+                                            <li>• <strong>Leave empty</strong> - Stream all contacts (up to batch size limit)</li>
+                                            <li>• <strong>"john"</strong> - Stream contacts named John</li>
+                                            <li>• <strong>"engineer"</strong> - Stream engineers</li>
+                                            <li>• <strong>"china"</strong> - Stream contacts from China</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(45deg, #6c757d, #495057);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    .table-responsive {
+        border-radius: 0.375rem;
+    }
+
+    /* Static page styling - no animations */
+    .card {
+        transition: none;
+    }
+
+    .btn {
+        transition: none;
+    }
+</style>
+
+@code {
+    [SupplyParameterFromForm(FormName = "ContactSearchForm")]
+    public SearchModel? Model { get; set; }
+
+    public class SearchModel
+    {
+        public string SearchTerm { get; set; } = "";
+        public int BatchSize { get; set; } = 50;
+    }
+
+    private bool hasSearchParameters => Model != null && 
+        (HttpContextAccessor.HttpContext?.Request.Method == "POST");
+
+    protected override void OnInitialized()
+    {
+        // Use the exact Microsoft docs pattern with null-coalescing assignment
+        Model ??= new SearchModel();
+    }
+}

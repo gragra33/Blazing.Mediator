@@ -78,4 +78,34 @@ public interface IMiddlewarePipelineBuilder
         IServiceProvider serviceProvider, 
         RequestHandlerDelegate finalHandler)
         where TRequest : IRequest;
+
+    /// <summary>
+    /// Executes the middleware pipeline for a stream request.
+    /// </summary>
+    /// <typeparam name="TRequest">The stream request type</typeparam>
+    /// <typeparam name="TResponse">The response type</typeparam>
+    /// <param name="request">The stream request to process</param>
+    /// <param name="serviceProvider">The service provider for dependency resolution</param>
+    /// <param name="finalHandler">The final handler to execute after all middleware</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>An async enumerable of response items from the pipeline</returns>
+    IAsyncEnumerable<TResponse> ExecuteStreamPipeline<TRequest, TResponse>(
+        TRequest request,
+        IServiceProvider serviceProvider,
+        StreamRequestHandlerDelegate<TResponse> finalHandler,
+        CancellationToken cancellationToken)
+        where TRequest : IStreamRequest<TResponse>;
+
+    /// <summary>
+    /// Builds the middleware pipeline for the specified stream request type.
+    /// </summary>
+    /// <typeparam name="TRequest">The stream request type</typeparam>
+    /// <typeparam name="TResponse">The response type</typeparam>
+    /// <param name="serviceProvider">Service provider for resolving middleware instances</param>
+    /// <param name="finalHandler">The final handler to execute after all middleware</param>
+    /// <returns>A delegate that executes the complete stream pipeline</returns>
+    StreamRequestHandlerDelegate<TResponse> BuildStreamPipeline<TRequest, TResponse>(
+        IServiceProvider serviceProvider, 
+        StreamRequestHandlerDelegate<TResponse> finalHandler)
+        where TRequest : IStreamRequest<TResponse>;
 }

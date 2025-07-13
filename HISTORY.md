@@ -1,5 +1,15 @@
 ﻿# Version History
 
+### V1.3.0 - 13 July, 2025
+
+-   **🌊 Native Streaming Support**: Added comprehensive streaming capabilities with `IStreamRequest<T>` and `IStreamRequestHandler<T,TResponse>`
+-   **📡 Stream Middleware Pipeline**: Full middleware support for streaming requests with `IStreamRequestMiddleware<TRequest,TResponse>`
+-   **⚡ Memory-Efficient Processing**: Stream large datasets with `IAsyncEnumerable<T>` without loading entire datasets into memory
+-   **📊 Multiple Streaming Patterns**: Support for JSON streaming, Server-Sent Events (SSE), and real-time data feeds
+-   **🎮 Comprehensive Streaming Sample**: New Streaming.Api sample with 6 different streaming implementations across multiple Blazor render modes, APIs (Swagger)
+-   **🧪 Complete Test Coverage**: 100% test coverage for streaming middleware infrastructure with comprehensive test suite
+-   **📖 Streaming Documentation**: New [Mediator Streaming Guide](docs/MEDIATOR_STREAMING_GUIDE.md) with advanced streaming patterns and examples
+
 ### V1.2.0 - 12 July, 2025
 
 -   Added automatic middleware discovery functionality for simplified configuration

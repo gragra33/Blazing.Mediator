@@ -22,6 +22,16 @@ The Blazing.Mediator library provides:
 -   **🔄 Async/Await Support**: Full asynchronous programming support throughout
 -   **🧪 Testing Friendly**: Easy to mock and test individual handlers with full test coverage using Shouldly
 
+### Key Streaming Features
+
+-   **🌊 Native Streaming Support**: Built-in `IStreamRequest<T>` and `IStreamRequestHandler<T,TResponse>` for memory-efficient data streaming
+-   **📡 Real-time Data Processing**: Stream large datasets with `IAsyncEnumerable<T>` for optimal memory usage
+-   **🚀 Stream Middleware Pipeline**: `IStreamRequestMiddleware<TRequest,TResponse>` for processing streaming requests with full pipeline support
+-   **⚡ Performance Optimised**: Memory-efficient streaming without loading entire datasets into memory
+-   **🔄 Backpressure Handling**: Natural flow control with async enumerable patterns
+-   **📊 Multiple Streaming Patterns**: Support for JSON streaming, Server-Sent Events (SSE), and real-time data feeds
+-   **🎮 Interactive Streaming**: Perfect for real-time dashboards, live data feeds, progressive loading scenarios, and AI response streaming
+
 ## Table of Contents
 
 <!-- TOC -->
@@ -214,6 +224,8 @@ Also, if you find this library useful, and you're feeling really generous, then 
 
 For comprehensive documentation, examples, and advanced scenarios, see the [Mediator Pattern Implementation Guide](docs/MEDIATOR_PATTERN_GUIDE.md).
 
+For streaming capabilities, real-time data processing, and advanced streaming patterns, see the [Mediator Streaming Guide](docs/MEDIATOR_STREAMING_GUIDE.md).
+
 ### CQRS Implementation
 
 Blazing.Mediator naturally implements the **Command Query Responsibility Segregation (CQRS)** pattern:
@@ -229,14 +241,14 @@ Blazing.Mediator naturally implements the **Command Query Responsibility Segrega
 
 -   Use `IRequest<TResponse>` for operations that retrieve data
 -   Return data without changing state
--   Can be optimized with caching and read models
+-   Can be optimised with caching and read models
 -   Examples: `GetUserByIdQuery`, `GetProductsQuery`, `GetOrderHistoryQuery`
 
 This separation enables:
 
--   **Performance Optimization**: Different strategies for reads vs writes
+-   **Performance Optimisation**: Different strategies for reads vs writes
 -   **Scalability**: Independent scaling of read and write operations
--   **Security**: Different validation and authorization rules
+-   **Security**: Different validation and authorisation rules
 -   **Maintainability**: Clear separation of concerns
 
 ### Middleware Pipeline
@@ -280,7 +292,7 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
 
 ### Sample Projects
 
-The library includes two comprehensive sample projects demonstrating different approaches:
+The library includes three comprehensive sample projects demonstrating different approaches:
 
 1. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware
 
@@ -290,12 +302,31 @@ The library includes two comprehensive sample projects demonstrating different a
     - FluentValidation integration
 
 2. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
+
     - User management operations
     - Comprehensive logging middleware
     - Clean architecture patterns
     - Error handling examples
 
+3. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
+    - Memory-efficient `IAsyncEnumerable<T>` streaming with large datasets
+    - JSON streaming and Server-Sent Events (SSE) endpoints
+    - Multiple Blazor render modes (SSR, Auto, Static, WebAssembly)
+    - Stream middleware pipeline with logging and performance monitoring
+    - Interactive streaming controls and real-time data visualization
+    - 6 different streaming examples from minimal APIs to interactive WebAssembly clients
+
 ## History
+
+### V1.3.0
+
+-   **🌊 Native Streaming Support**: Added comprehensive streaming capabilities with `IStreamRequest<T>` and `IStreamRequestHandler<T,TResponse>`
+-   **📡 Stream Middleware Pipeline**: Full middleware support for streaming requests with `IStreamRequestMiddleware<TRequest,TResponse>`
+-   **⚡ Memory-Efficient Processing**: Stream large datasets with `IAsyncEnumerable<T>` without loading entire datasets into memory
+-   **📊 Multiple Streaming Patterns**: Support for JSON streaming, Server-Sent Events (SSE), and real-time data feeds
+-   **🎮 Comprehensive Streaming Sample**: New Streaming.Api sample with 6 different streaming implementations across multiple Blazor render modes
+-   **🧪 Complete Test Coverage**: 100% test coverage for streaming middleware infrastructure with comprehensive test suite
+-   **📖 Streaming Documentation**: New [Mediator Streaming Guide](docs/MEDIATOR_STREAMING_GUIDE.md) with advanced streaming patterns and examples
 
 ### V1.2.0
 

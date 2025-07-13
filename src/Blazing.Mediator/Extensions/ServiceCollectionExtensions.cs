@@ -147,15 +147,17 @@ public static class ServiceCollectionExtensions
             provider.GetRequiredService<IMiddlewarePipelineBuilder>() as IMiddlewarePipelineInspector
             ?? throw new InvalidOperationException("Pipeline builder must implement IMiddlewarePipelineInspector"));
 
-        if (assemblies is { Length: > 0 })
+        if (assemblies is not { Length: > 0 })
         {
-            // Deduplicate assemblies to prevent duplicate registrations  
-            Assembly[] uniqueAssemblies = assemblies.Distinct().ToArray();
+            return services;
+        }
 
-            foreach (Assembly assembly in uniqueAssemblies)
-            {
-                RegisterHandlers(services, assembly);
-            }
+        // Deduplicate assemblies to prevent duplicate registrations  
+        Assembly[] uniqueAssemblies = assemblies.Distinct().ToArray();
+
+        foreach (Assembly assembly in uniqueAssemblies)
+        {
+            RegisterHandlers(services, assembly);
         }
 
         return services;
@@ -342,6 +344,8 @@ public static class ServiceCollectionExtensions
             configuration.AddMiddleware(middlewareType);
         }
 
+        return;
+
         static bool IsMiddlewareType(Type i) =>
             i.IsGenericType &&
             (i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<>) ||
@@ -380,7 +384,9 @@ public static class ServiceCollectionExtensions
                 .ForEach(@interface => services.AddScoped(@interface, serviceProvider => serviceProvider.GetRequiredService(handlerType)));
         }
 
-    static bool IsHandlerType(Type i) =>
+        return;
+
+        static bool IsHandlerType(Type i) =>
         i.IsGenericType &&
         (i.GetGenericTypeDefinition() == typeof(IRequestHandler<>) ||
          i.GetGenericTypeDefinition() == typeof(IRequestHandler<,>) ||

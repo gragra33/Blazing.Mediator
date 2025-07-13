@@ -1,0 +1,158 @@
+@page "/"
+
+<!-- Hero Section -->
+<section class="hero-section text-white py-5 mb-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-3">
+                    <i class="bi bi-house-door-fill me-3"></i>
+                    Blazing.Mediator WebAssembly Demo
+                </h1>
+                <p class="lead mb-4">
+                    Experience real-time streaming with pure WebAssembly technology. 
+                    This standalone application demonstrates advanced Server-Sent Events 
+                    and streaming capabilities directly in your browser.
+                </p>
+                <div class="d-flex gap-3">
+                    <a href="https://localhost:7021/streaming-ssr" class="btn btn-outline-light btn-lg" target="_blank">
+                        <i class="bi bi-server me-2"></i>
+                        Server-Side Streaming
+                    </a>
+                    <a href="/streaming-interactive" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-broadcast me-2"></i>
+                        Interactive Streaming
+                    </a>
+                    <a href="/non-streaming" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-filetype-json me-2"></i>
+                        Non-Streaming
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <i class="bi bi-graph-up display-1"></i>
+            </div>
+        </div>
+    </div>
+</section>    <!-- Demo Section -->
+<div class="container">
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-4">
+                <i class="bi bi-rocket-takeoff me-2"></i>
+                WebAssembly Streaming Examples
+            </h2>
+            <p class="text-center text-muted mb-5">
+                Experience different streaming approaches with pure WebAssembly technology
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card h-100 border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-broadcast me-2"></i>
+                        5. Blazor Interactive Streaming
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        WebAssembly-powered interactive page using EventSource for real-time streaming. 
+                        Shows how to build rich client-side experiences.
+                    </p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>WebAssembly Performance</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>EventSource Integration</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Multiple Stream Types</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Advanced UI Features</li>
+                    </ul>
+                    <div class="mt-3">
+                        <a href="/streaming-interactive" class="btn btn-info">
+                            <i class="bi bi-lightning-fill me-1"></i>
+                            Try Interactive Streaming (WebAssembly)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-download me-2"></i>
+                        6. Blazor Non-Streaming (WebAssembly)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Traditional bulk data loading for comparison with streaming approaches. 
+                        Demonstrates classic REST API patterns and performance differences.
+                    </p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Bulk JSON Loading</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Client-side Filtering</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Performance Comparison</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Load Time Metrics</li>
+                    </ul>
+                    <div class="mt-3">
+                        <a href="/non-streaming" class="btn btn-warning">
+                            <i class="bi bi-download me-1"></i>
+                            Try Non-Streaming (WebAssembly)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="bi bi-arrow-left-circle me-2"></i>
+                        Switch Between Applications
+                    </h5>
+                    <p class="card-text text-muted">
+                        Compare different streaming implementations and technologies
+                    </p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="https://localhost:7021" class="btn btn-primary" target="_blank">
+                            <i class="bi bi-server me-1"></i>
+                            Main Streaming API
+                        </a>
+                        <a href="https://localhost:7021/streaming-ssr" class="btn btn-outline-primary" target="_blank">
+                            <i class="bi bi-server me-1"></i>
+                            Server-Side Rendering
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.feature-box {
+    text-align: center;
+    padding: 1rem;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.05);
+}
+
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.border-info { border-color: #0dcaf0 !important; }
+.border-warning { border-color: #ffc107 !important; }
+</style>

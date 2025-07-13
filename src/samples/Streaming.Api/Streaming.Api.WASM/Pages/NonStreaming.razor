@@ -1,0 +1,477 @@
+@page "/non-streaming"
+@using System.Net.Http
+@using System.Net.Http.Json
+@using System.Text
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.WebAssembly.Http
+@using Microsoft.AspNetCore.Components.Web
+@using Streaming.Api.Shared.DTOs
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-filetype-json me-2"></i>
+                Contact Non-Streaming (WebAssembly)
+            </h1>
+            <p class="lead">
+                This page demonstrates traditional bulk data loading using WebAssembly.
+                All data is loaded at once, then decoded and displayed - providing a comparison to streaming approaches.
+            </p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-cloud-download me-2"></i>
+                        Bulk Loading Controls
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="searchInput" class="form-label">Search Filter</label>
+                            <div class="input-group">
+                                <input value="@searchTerm" @onkeypress="HandleKeyPress" @oninput="OnSearchChanged"
+                                       class="form-control" id="searchInput" 
+                                       placeholder="Search contacts..." />
+                                <button class="btn btn-outline-secondary" type="button" @onclick="OnSearchButtonClick" title="Search">
+                                    🔍
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="loadType" class="form-label">Load Type</label>
+                            <select @bind="loadType" class="form-select" id="loadType">
+                                <option value="bulk">Bulk JSON Load</option>
+                                <option value="raw">Raw JSON + Parse</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button @onclick="LoadAllContacts" class="btn btn-primary" disabled="@isLoading">
+                            <i class="bi bi-download me-1"></i>
+                            @(isLoading ? "Loading..." : "Load All Data")
+                        </button>
+                        <button @onclick="StopLoading" class="btn btn-danger" disabled="@(!isLoading)">
+                            <i class="bi bi-stop-fill me-1"></i>
+                            Cancel
+                        </button>
+                        <button @onclick="ClearResults" class="btn btn-outline-secondary">
+                            <i class="bi bi-trash me-1"></i>
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-speedometer2 me-2"></i>
+                        Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <div class="h5 text-primary">@contactCount.ToString("#,##0")</div>
+                        <small class="text-muted">Contacts Loaded</small>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <div class="h5 text-success">@(loadTimeMs.ToString("#,##0")) ms</div>
+                        <small class="text-muted">Load Time</small>
+                    </div>
+                    @if (jsonSizeKb > 0)
+                    {
+                        <div class="mt-3 text-center">
+                            <div class="h5 text-info">@(jsonSizeKb.ToString("#,##0.##")) KB</div>
+                            <small class="text-muted">JSON Size</small>
+                        </div>
+                    }
+                    @if (lastLoadTime.HasValue)
+                    {
+                        <div class="mt-3 text-center">
+                            <small class="text-muted">
+                                Loaded: @lastLoadTime.Value.ToString("HH:mm:ss.fff")
+                            </small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-table me-2"></i>
+                        Loaded Results
+                    </h5>
+                    <div class="d-flex align-items-center gap-3">
+                        @if (loadStatus != "idle")
+                        {
+                            <span class="badge bg-@(loadStatus == "loaded" ? "success" : loadStatus == "loading" ? "primary" : "warning")">
+                                <i class="bi bi-@(loadStatus == "loaded" ? "check-circle" : loadStatus == "loading" ? "arrow-clockwise" : "exclamation-triangle") me-1"></i>
+                                @loadStatus.ToUpper()
+                            </span>
+                        }
+                        @if (isLoading)
+                        {
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;" data-scroll-container @ref="resultsContainer">
+                    @if (contactCount > 0 && filteredContacts.Any())
+                    {
+                        <div class="row g-3">
+                            @foreach (var contact in filteredContacts.Skip(Math.Max(0, filteredContacts.Count - displayLimit)))
+                            {
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card h-100 contact-card">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <img src="@contact.Avatar" alt="Avatar" 
+                                                     class="rounded-circle me-3" style="width: 50px; height: 50px;" />
+                                                <div class="flex-grow-1">
+                                                    <h6 class="card-title mb-1">@contact.FullName</h6>
+                                                    <small class="text-muted">ID: @contact.Id</small>
+                                                </div>
+                                            </div>
+                                            <div class="contact-details">
+                                                <div class="mb-1">
+                                                    <i class="bi bi-envelope me-1 text-primary"></i>
+                                                    <small>@contact.Email</small>
+                                                </div>
+                                                <div class="mb-1">
+                                                    <i class="bi bi-building me-1 text-success"></i>
+                                                    <small>@contact.Company</small>
+                                                </div>
+                                                <div class="mb-1">
+                                                    <i class="bi bi-geo-alt me-1 text-warning"></i>
+                                                    <small>@contact.City, @contact.Country</small>
+                                                </div>
+                                                <div>
+                                                    <i class="bi bi-telephone me-1 text-info"></i>
+                                                    <small>@contact.Phone</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        
+                        @if (filteredContacts.Count > displayLimit)
+                        {
+                            <div class="alert alert-info mt-3">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Showing last @displayLimit of @filteredContacts.Count filtered contacts 
+                                (Total: @contactCount contacts loaded). 
+                                <button @onclick="IncreaseDisplayLimit" class="btn btn-sm btn-outline-primary ms-2">
+                                    Show More
+                                </button>
+                            </div>
+                        }
+                        else if (filteredContacts.Count < contactCount)
+                        {
+                            <div class="alert alert-warning mt-3">
+                                <i class="bi bi-funnel me-2"></i>
+                                Showing @filteredContacts.Count contacts matching "@searchTerm" 
+                                (Total: @contactCount contacts loaded).
+                            </div>
+                        }
+                    }
+                    else if (!isLoading && contactCount == 0)
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-filetype-json display-1"></i>
+                            <p class="mt-3">No contacts loaded. Click "Load All Data" to fetch and display all contacts at once.</p>
+                        </div>
+                    }
+                    else if (isLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3 text-muted">Loading all contact data...</p>
+                            @if (loadTimeMs > 0)
+                            {
+                                <small class="text-muted">Elapsed: @(loadTimeMs.ToString("#,##0")) ms</small>
+                            }
+                        </div>
+                    }
+                    else if (contactCount > 0 && !filteredContacts.Any())
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-search display-1"></i>
+                            <p class="mt-3">No contacts match the search term "@searchTerm".</p>
+                            <p>Try a different search or clear the filter.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.contact-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: slideIn 0.3s ease-out;
+}
+
+.contact-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+@@keyframes slideIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(20px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.contact-details {
+    font-size: 0.85rem;
+}
+</style>
+
+@code {
+    private readonly List<ContactDto> allContacts = new();
+    private List<ContactDto> filteredContacts = new();
+    private string searchTerm = string.Empty;
+    private string loadType = "bulk";
+    private bool isLoading = false;
+    private string loadStatus = "idle";
+    private int contactCount = 0;
+    private DateTime loadStartTime;
+    private DateTime? lastLoadTime;
+    private double loadTimeMs = 0;
+    private double jsonSizeKb = 0;
+    private int displayLimit = 12;
+    private ElementReference resultsContainer;
+    private CancellationTokenSource? cancellationTokenSource;
+
+    private async Task LoadAllContacts()
+    {
+        if (isLoading) return;
+
+        // Cancel any existing operation
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
+        cancellationTokenSource = new CancellationTokenSource();
+
+        // Reset state for new load session
+        isLoading = true;
+        contactCount = 0;
+        allContacts.Clear();
+        filteredContacts.Clear();
+        loadStartTime = DateTime.Now;
+        loadStatus = "loading";
+        jsonSizeKb = 0;
+        StateHasChanged();
+
+        try
+        {
+            var searchParam = string.IsNullOrWhiteSpace(searchTerm) ? "" : $"?search={Uri.EscapeDataString(searchTerm)}";
+            var url = $"/api/contacts/all{searchParam}"; // Use the new bulk endpoint
+
+            if (loadType == "raw")
+            {
+                await LoadRawJsonAndParse(url, cancellationTokenSource.Token);
+            }
+            else
+            {
+                await LoadBulkJson(url, cancellationTokenSource.Token);
+            }
+
+            loadTimeMs = (DateTime.Now - loadStartTime).TotalMilliseconds;
+            lastLoadTime = DateTime.Now;
+            loadStatus = "loaded";
+            
+            // Apply current search filter
+            ApplySearchFilter();
+            
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // Loading was cancelled - this is expected behavior
+            loadStatus = "cancelled";
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"Loading error: {ex.Message}");
+            loadStatus = "error";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadBulkJson(string url, CancellationToken cancellationToken)
+    {
+        // Traditional approach - load all data at once using GetFromJsonAsync
+        var contacts = await Http.GetFromJsonAsync<ContactDto[]>(url, cancellationToken);
+        
+        if (contacts != null)
+        {
+            allContacts.AddRange(contacts);
+            contactCount = allContacts.Count;
+            
+            // Simulate JSON size calculation (approximate)
+            var json = JsonSerializer.Serialize(contacts);
+            jsonSizeKb = Encoding.UTF8.GetByteCount(json) / 1024.0;
+        }
+    }
+
+    private async Task LoadRawJsonAndParse(string url, CancellationToken cancellationToken)
+    {
+        // Alternative approach - get raw JSON string then parse
+        using var response = await Http.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        
+        var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
+        jsonSizeKb = Encoding.UTF8.GetByteCount(jsonString) / 1024.0;
+        
+        // Parse the JSON manually
+        var contacts = JsonSerializer.Deserialize<ContactDto[]>(jsonString, 
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        
+        if (contacts != null)
+        {
+            allContacts.AddRange(contacts);
+            contactCount = allContacts.Count;
+        }
+    }
+
+    private void ApplySearchFilter()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredContacts = allContacts.ToList();
+        }
+        else
+        {
+            var search = searchTerm.ToLowerInvariant();
+            filteredContacts = allContacts.Where(c =>
+                c.FullName.ToLowerInvariant().Contains(search) ||
+                c.Email.ToLowerInvariant().Contains(search) ||
+                c.Company.ToLowerInvariant().Contains(search) ||
+                c.City.ToLowerInvariant().Contains(search) ||
+                c.Country.ToLowerInvariant().Contains(search)
+            ).ToList();
+        }
+    }
+
+    private void StopLoading()
+    {
+        try
+        {
+            cancellationTokenSource?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore if already disposed
+        }
+        
+        cancellationTokenSource?.Dispose();
+        cancellationTokenSource = null;
+        isLoading = false;
+        loadStatus = "cancelled";
+        StateHasChanged();
+    }
+
+    private void ClearResults()
+    {
+        StopLoading();
+        allContacts.Clear();
+        filteredContacts.Clear();
+        contactCount = 0;
+        loadTimeMs = 0;
+        jsonSizeKb = 0;
+        lastLoadTime = null;
+        displayLimit = 12;
+        loadStatus = "idle";
+        StateHasChanged();
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            if (isLoading)
+            {
+                StopLoading();
+                await Task.Delay(100);
+            }
+            await LoadAllContacts();
+        }
+    }
+
+    private void IncreaseDisplayLimit()
+    {
+        displayLimit += 12;
+        StateHasChanged();
+    }
+
+    private async Task ScrollToBottom()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", $"document.querySelector('[data-scroll-container]').scrollTop = document.querySelector('[data-scroll-container]').scrollHeight");
+        }
+        catch
+        {
+            // Ignore scroll errors
+        }
+    }
+
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? string.Empty;
+        
+        // If data is already loaded, just filter it
+        if (contactCount > 0)
+        {
+            ApplySearchFilter();
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnSearchButtonClick()
+    {
+        if (isLoading)
+        {
+            StopLoading();
+            await Task.Yield();
+        }
+        await LoadAllContacts();
+    }
+
+    public void Dispose()
+    {
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
+    }
+}

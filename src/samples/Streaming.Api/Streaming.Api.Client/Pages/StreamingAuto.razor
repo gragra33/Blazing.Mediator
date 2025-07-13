@@ -1,0 +1,542 @@
+@page "/streaming/auto"
+@rendermode @(new InteractiveAutoRenderMode(prerender: false))
+@using System.Net.Http
+@using System.Net.Http.Json
+@using System.Text
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.WebAssembly.Http
+@using Streaming.Api.Shared.DTOs
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-cpu me-2"></i>
+                Auto Mode Streaming
+            </h1>
+            <p class="lead">
+                Basic streaming example using Auto render mode with Server-Sent Events (SSE).
+            </p>
+            
+            <!-- Runtime Detection Info -->
+            <div class="alert alert-info mb-4">
+                <h6 class="alert-heading mb-2">
+                    <i class="bi bi-info-circle me-2"></i>Runtime Information
+                </h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Render Mode:</strong><br>
+                        <span class="badge bg-primary">@CurrentRenderMode</span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Interactive:</strong><br>
+                        <span class="badge bg-@(IsInteractive ? "success" : "secondary")">@IsInteractive</span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Environment:</strong><br>
+                        <span class="badge bg-@(IsBrowser ? "warning" : "info")">@(IsBrowser ? "Browser" : "Server")</span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Assigned Mode:</strong><br>
+                        <span class="badge bg-secondary">@(AssignedRenderModeText ?? "None")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-broadcast me-2"></i>
+                        Streaming Controls
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="searchInput" class="form-label">Search Filter</label>
+                            <input @bind="searchTerm" @onkeypress="HandleKeyPress"
+                                   class="form-control" id="searchInput" 
+                                   placeholder="Search contacts..." />
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button @onclick="StartStreaming" class="btn btn-success" disabled="@isStreaming">
+                            <i class="bi bi-play-fill me-1"></i>
+                            @(isStreaming ? "Streaming..." : "Start Stream")
+                        </button>
+                        <button @onclick="StopStreaming" class="btn btn-danger" disabled="@(!isStreaming)">
+                            <i class="bi bi-stop-fill me-1"></i>
+                            Stop Stream
+                        </button>
+                        <button @onclick="ClearResults" class="btn btn-outline-secondary">
+                            <i class="bi bi-trash me-1"></i>
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-speedometer2 me-2"></i>
+                        Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <div class="h5 text-primary">@contactCount.ToString("#,##0")</div>
+                        <small class="text-muted">Contacts Received</small>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <div class="h5 text-success">@(itemsPerSecond.ToString("#,##0.##")) items/sec</div>
+                        <small class="text-muted">Streaming Rate</small>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <div class="h5 text-info">@(streamDurationMs.ToString("#,##0")) ms</div>
+                        <small class="text-muted">Stream Duration</small>
+                    </div>
+                    @if (lastEventTime.HasValue)
+                    {
+                        <div class="mt-3 text-center">
+                            <small class="text-muted">
+                                Last event: @lastEventTime.Value.ToString("HH:mm:ss.fff")
+                            </small>
+                        </div>
+                    }
+                    @if (connectionStatus != "disconnected")
+                    {
+                        <div class="mt-3 text-center">
+                            <span class="badge bg-@(connectionStatus == "connected" ? "success" : "warning")">
+                                <i class="bi bi-@(connectionStatus == "connected" ? "wifi" : "wifi-off") me-1"></i>
+                                @connectionStatus.ToUpper()
+                            </span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-table me-2"></i>
+                        Live Stream Results
+                    </h5>
+                    @if (isStreaming)
+                    {
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Streaming...</span>
+                        </div>
+                    }
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;" data-scroll-container @ref="resultsContainer">
+                    @if (contactCount > 0 && contacts.Any())
+                    {
+                        <div class="row g-3">
+                            @foreach (var contact in contacts.TakeLast(displayLimit))
+                            {
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card h-100 contact-card">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <img src="@contact.Avatar" alt="Avatar" 
+                                                     class="rounded-circle me-3" style="width: 50px; height: 50px;" />
+                                                <div class="flex-grow-1">
+                                                    <h6 class="card-title mb-1">@contact.FullName</h6>
+                                                    <small class="text-muted">ID: @contact.Id</small>
+                                                </div>
+                                            </div>
+                                            <div class="contact-details">
+                                                <div class="mb-1">
+                                                    <i class="bi bi-envelope me-1 text-primary"></i>
+                                                    <small>@contact.Email</small>
+                                                </div>
+                                                <div class="mb-1">
+                                                    <i class="bi bi-building me-1 text-success"></i>
+                                                    <small>@contact.Company</small>
+                                                </div>
+                                                <div class="mb-1">
+                                                    <i class="bi bi-geo-alt me-1 text-warning"></i>
+                                                    <small>@contact.City, @contact.Country</small>
+                                                </div>
+                                                <div>
+                                                    <i class="bi bi-telephone me-1 text-info"></i>
+                                                    <small>@contact.Phone</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        
+                        @if (contacts.Count > displayLimit)
+                        {
+                            <div class="alert alert-info mt-3">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Showing last @displayLimit of @contacts.Count contacts. 
+                                <button @onclick="IncreaseDisplayLimit" class="btn btn-sm btn-outline-primary ms-2">
+                                    Show More
+                                </button>
+                            </div>
+                        }
+                    }
+                    else if (!isStreaming && contactCount == 0)
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-cpu display-1"></i>
+                            <p class="mt-3">No contacts loaded. Start streaming to see live data.</p>
+                        </div>
+                    }
+                    else if (isStreaming && contactCount == 0)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Connecting...</span>
+                            </div>
+                            <p class="mt-3 text-muted">Establishing connection...</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.contact-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: slideIn 0.3s ease-out;
+}
+
+.contact-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+@@keyframes slideIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(20px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.contact-details {
+    font-size: 0.85rem;
+}
+</style>
+
+@code {
+    private readonly List<ContactDto> contacts = new();
+    private string searchTerm = string.Empty;
+    private bool isStreaming = false;
+    private string connectionStatus = "disconnected";
+    private int contactCount = 0;
+    private DateTime streamStartTime;
+    private DateTime? lastEventTime;
+    private double itemsPerSecond = 0;
+    private double streamDurationMs = 0;
+    private bool autoScroll = true;
+    private int displayLimit = 12;
+    private ElementReference resultsContainer;
+    private CancellationTokenSource? cancellationTokenSource;
+
+    // Runtime detection properties
+    private string CurrentRenderMode => RendererInfo.Name;
+    private bool IsInteractive => RendererInfo.IsInteractive;
+    private bool IsWebAssembly => RendererInfo.Name == "WebAssembly";
+    private bool IsServer => RendererInfo.Name == "Server";
+    private bool IsStatic => RendererInfo.Name == "Static";
+    private bool IsBrowser => OperatingSystem.IsBrowser();
+    private string? AssignedRenderModeText => AssignedRenderMode?.GetType().Name?.Replace("RenderMode", "");
+
+    private async Task StartStreaming()
+    {
+        if (isStreaming) return;
+
+        // Cancel any existing streaming operation
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
+        cancellationTokenSource = new CancellationTokenSource();
+
+        // Reset state for new streaming session
+        isStreaming = true;
+        contactCount = 0;
+        contacts.Clear();
+        streamStartTime = DateTime.Now;
+        connectionStatus = "connecting";
+        StateHasChanged();
+
+        try
+        {
+            var searchParam = string.IsNullOrWhiteSpace(searchTerm) ? "" : $"?search={Uri.EscapeDataString(searchTerm)}";
+            
+            // Try Server-Sent Events first, fall back to JSON streaming if it fails
+            try
+            {
+                var sseUrl = $"/api/contacts/stream/sse{searchParam}";
+                await StartServerSentEvents(sseUrl, cancellationTokenSource.Token);
+            }
+            catch (Exception)
+            {
+                // If SSE fails, try JSON streaming as fallback
+                if (!cancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    await LoadJsonStream(cancellationTokenSource.Token);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when cancellation is requested
+            connectionStatus = "disconnected";
+        }
+        catch (Exception)
+        {
+            connectionStatus = "error";
+        }
+        finally
+        {
+            isStreaming = false;
+            if (connectionStatus != "error" && connectionStatus != "disconnected")
+                connectionStatus = "disconnected";
+            StateHasChanged();
+        }
+    }
+
+    private async Task StartServerSentEvents(string url, CancellationToken cancellationToken)
+    {
+        try
+        {
+            connectionStatus = "connected";
+            StateHasChanged();
+
+            // Enable browser response streaming for WebAssembly compatibility
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            
+            // Only set streaming if we're in WebAssembly mode
+            try
+            {
+                request.SetBrowserResponseStreamingEnabled(true);
+            }
+            catch
+            {
+                // Ignore if not available (server-side scenario)
+            }
+            
+            using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var reader = new StreamReader(stream);
+
+            string? line;
+            var eventData = new StringBuilder();
+            string? eventType = null;
+
+            while ((line = await reader.ReadLineAsync(cancellationToken)) != null)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (line.StartsWith("event: "))
+                {
+                    eventType = line.Substring(7).Trim();
+                }
+                else if (line.StartsWith("data: "))
+                {
+                    if (eventData.Length > 0)
+                        eventData.AppendLine();
+                    eventData.Append(line.Substring(6));
+                }
+                else if (string.IsNullOrEmpty(line) && eventData.Length > 0)
+                {
+                    // Process complete event
+                    var dataString = eventData.ToString();
+                    
+                    if (eventType == "data" || eventType == null)
+                    {
+                        try
+                        {
+                            var contact = JsonSerializer.Deserialize<ContactDto>(dataString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            if (contact != null)
+                            {
+                                await AddContact(contact);
+                            }
+                        }
+                        catch (JsonException)
+                        {
+                            // Skip invalid JSON
+                        }
+                    }
+                    else if (eventType == "complete")
+                    {
+                        break;
+                    }
+                    
+                    // Reset for next event
+                    eventType = null;
+                    eventData.Clear();
+                }
+            }
+
+            // Final UI update
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            connectionStatus = "error";
+            throw;
+        }
+    }
+
+    private async Task LoadJsonStream(CancellationToken cancellationToken)
+    {
+        try
+        {
+            connectionStatus = "connected";
+            StateHasChanged();
+
+            var searchParam = string.IsNullOrWhiteSpace(searchTerm) ? "" : $"?search={Uri.EscapeDataString(searchTerm)}";
+            var url = $"/api/contacts/stream{searchParam}";
+            
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            
+            // Enable streaming if in WebAssembly
+            try
+            {
+                request.SetBrowserResponseStreamingEnabled(true);
+            }
+            catch
+            {
+                // Ignore if not available
+            }
+            
+            using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            
+            // Try true streaming first
+            try
+            {
+                var asyncEnumerable = JsonSerializer.DeserializeAsyncEnumerable<ContactDto>(stream, 
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, 
+                    cancellationToken);
+
+                await foreach (var contact in asyncEnumerable.WithCancellation(cancellationToken))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    
+                    if (contact != null)
+                    {
+                        await AddContact(contact);
+                        
+                        // Add small delay for visual streaming effect
+                        if (contactCount % 5 == 0)
+                        {
+                            await Task.Delay(50, cancellationToken);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Fallback to bulk loading if streaming fails
+                stream.Position = 0;
+                var streamedContacts = await JsonSerializer.DeserializeAsync<ContactDto[]>(stream, 
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, 
+                    cancellationToken);
+                
+                if (streamedContacts != null)
+                {
+                    foreach (var contact in streamedContacts)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        await AddContact(contact);
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            connectionStatus = "error";
+            throw;
+        }
+    }
+
+    private async Task AddContact(ContactDto contact)
+    {
+        contacts.Add(contact);
+        contactCount++;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ClearContacts()
+    {
+        // Cancel any existing streaming operation
+        cancellationTokenSource?.Cancel();
+        
+        contacts.Clear();
+        contactCount = 0;
+        connectionStatus = "disconnected";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await StartStreaming();
+        }
+    }
+
+    private async Task StopStreaming()
+    {
+        cancellationTokenSource?.Cancel();
+        isStreaming = false;
+        connectionStatus = "disconnected";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ClearResults()
+    {
+        await ClearContacts();
+    }
+
+    private void IncreaseDisplayLimit()
+    {
+        displayLimit += 50;
+        StateHasChanged();
+    }
+
+    // IDisposable implementation
+    public void Dispose()
+    {
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
+    }
+}

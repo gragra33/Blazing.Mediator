@@ -1,0 +1,53 @@
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Streaming.Api.WASM</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <a class="nav-link" href="https://localhost:7021/swagger" target="_blank">
+                <span class="bi bi-book-nav-menu" aria-hidden="true"></span> API Docs
+            </a>
+        </div>
+
+        <div class="nav-item px-3">
+            <a class="nav-link" href="https://localhost:7021/streaming-ssr" target="_blank">
+                <span class="bi bi-server-nav-menu" aria-hidden="true"></span> Blazor SSR
+            </a>
+        </div>
+
+        <div class="nav-item px-3">
+            <a class="nav-link" href="https://localhost:7021/streaming-static" target="_blank">
+                <span class="bi bi-file-code-nav-menu" aria-hidden="true"></span> Static SSR
+            </a>
+        </div>
+
+        <div class="nav-item px-3">
+            <a class="nav-link" href="https://localhost:7021/streaming/auto" target="_blank">
+                <span class="bi bi-cpu-nav-menu" aria-hidden="true"></span> Auto Mode
+            </a>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="streaming-interactive">
+                <span class="bi bi-broadcast-nav-menu" aria-hidden="true"></span> WebAssembly
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="non-streaming">
+                <span class="bi bi-filetype-json-nav-menu" aria-hidden="true"></span> Non-Streaming
+            </NavLink>
+        </div>
+    </nav>
+</div>

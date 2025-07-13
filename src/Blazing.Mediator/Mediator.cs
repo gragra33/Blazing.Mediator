@@ -43,7 +43,7 @@ public class Mediator : IMediator
             // Check for multiple handler registrations
             IEnumerable<object?> handlers = _serviceProvider.GetServices(handlerType);
             object[] handlerArray = handlers.Where(h => h != null).ToArray()!;
-            
+
             switch (handlerArray)
             {
                 case { Length: 0 }:
@@ -90,7 +90,7 @@ public class Mediator : IMediator
 
         MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(requestType);
         Task? pipelineTask = (Task?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, finalHandler, cancellationToken]);
-        
+
         if (pipelineTask != null)
         {
             await pipelineTask;
@@ -116,7 +116,7 @@ public class Mediator : IMediator
             // Check for multiple handler registrations
             IEnumerable<object?> handlers = _serviceProvider.GetServices(handlerType);
             object[] handlerArray = handlers.Where(h => h != null).ToArray()!;
-            
+
             switch (handlerArray)
             {
                 case { Length: 0 }:
@@ -164,12 +164,77 @@ public class Mediator : IMediator
 
         MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(requestType, typeof(TResponse));
         Task<TResponse>? pipelineTask = (Task<TResponse>?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, finalHandler, cancellationToken]);
-        
+
         if (pipelineTask != null)
         {
             return await pipelineTask;
         }
-        
+
         return await finalHandler();
+    }
+    
+    /// <summary>
+    /// Sends a stream request through the middleware pipeline to its corresponding handler and returns an async enumerable.
+    /// </summary>
+    /// <typeparam name="TResponse">The type of response items in the stream</typeparam>
+    /// <param name="request">The stream request to send</param>
+    /// <param name="cancellationToken">Token to cancel the operation</param>
+    /// <returns>An async enumerable of response items</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no handler is found for the request type</exception>
+    public IAsyncEnumerable<TResponse> SendStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default)
+    {
+        Type requestType = request.GetType();
+        Type handlerType = typeof(IStreamRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
+
+        // Create final handler delegate that executes the actual stream handler
+        StreamRequestHandlerDelegate<TResponse> finalHandler = () =>
+        {
+            // Check for multiple handler registrations
+            IEnumerable<object?> handlers = _serviceProvider.GetServices(handlerType);
+            object[] handlerArray = handlers.Where(h => h != null).ToArray()!;
+            
+            switch (handlerArray)
+            {
+                case { Length: 0 }:
+                    throw new InvalidOperationException($"No handler found for stream request type {requestType.Name}");
+                case { Length: > 1 }:
+                    throw new InvalidOperationException($"Multiple handlers found for stream request type {requestType.Name}. Only one handler per request type is allowed.");
+            }
+
+            object handler = handlerArray[0];
+            MethodInfo method = handlerType.GetMethod("Handle")
+                                ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
+
+            try
+            {
+                IAsyncEnumerable<TResponse>? result = (IAsyncEnumerable<TResponse>?)method.Invoke(handler, [request, cancellationToken]);
+                return result ?? throw new InvalidOperationException($"Handler for {requestType.Name} returned null");
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException != null)
+            {
+                throw ex.InnerException;
+            }
+        };
+
+        // Execute through middleware pipeline using reflection to call the generic method
+        MethodInfo? executeMethod = _pipelineBuilder
+            .GetType()
+            .GetMethods()
+            .FirstOrDefault(m =>
+                m.Name == "ExecuteStreamPipeline" &&
+                m.GetParameters().Length == 4 &&
+                m.GetParameters()[2].ParameterType.IsGenericType &&
+                m.IsGenericMethodDefinition);
+
+        if (executeMethod == null)
+        {
+            // Fallback to direct execution if pipeline method not found
+            return finalHandler();
+        }
+
+        MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(requestType, typeof(TResponse));
+        IAsyncEnumerable<TResponse>? pipelineResult = (IAsyncEnumerable<TResponse>?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, finalHandler, cancellationToken]);
+
+        return pipelineResult ?? finalHandler();
     }
 }

@@ -25,4 +25,15 @@ public class MockPipelineBuilderReturningNull : IMiddlewarePipelineBuilder, IMid
     {
         return finalHandler();
     }
+
+    // Stream pipeline methods for IStreamRequest support
+    public IAsyncEnumerable<TResponse> ExecuteStreamPipeline<TRequest, TResponse>(TRequest request, IServiceProvider serviceProvider, StreamRequestHandlerDelegate<TResponse> finalHandler, CancellationToken cancellationToken) where TRequest : IStreamRequest<TResponse>
+    {
+        return finalHandler();
+    }
+
+    public StreamRequestHandlerDelegate<TResponse> BuildStreamPipeline<TRequest, TResponse>(IServiceProvider serviceProvider, StreamRequestHandlerDelegate<TResponse> finalHandler) where TRequest : IStreamRequest<TResponse>
+    {
+        return finalHandler;
+    }
 }

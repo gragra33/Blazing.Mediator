@@ -21,4 +21,13 @@ public interface IMediator
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Task containing the response</returns>
     Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Send a stream request that returns an async enumerable
+    /// </summary>
+    /// <typeparam name="TResponse">The type of response items in the stream</typeparam>
+    /// <param name="request">The stream request to send</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Async enumerable of response items</returns>
+    IAsyncEnumerable<TResponse> SendStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default);
 }

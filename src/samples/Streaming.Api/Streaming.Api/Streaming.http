@@ -1,0 +1,121 @@
+###
+# Streaming API - Sample HTTP Requests
+# This file demonstrates all streaming endpoints available in the Streaming.Api sample project
+# which showcases the Blazing.Mediator library with streaming support for JSON data.
+#
+# To use these requests:
+# 1. Start the Streaming.Api project
+# 2. Execute requests individually using your HTTP client
+#
+###
+
+###
+# Health Check - Swagger UI
+GET {{$projectUrl}}/swagger/index.html
+
+###
+# STREAMING ENDPOINTS - Real-time data streaming using various methods
+
+###
+# Get total contact count (regular endpoint)
+GET {{$projectUrl}}/api/contacts/count
+
+###
+# Stream all contacts as JSON array
+GET {{$projectUrl}}/api/contacts/stream
+
+###
+# Stream contacts with search filter as JSON array
+GET {{$projectUrl}}/api/contacts/stream?search=john
+
+###
+# Stream contacts with search filter (multiple terms)
+GET {{$projectUrl}}/api/contacts/stream?search=engineer
+
+###
+# Stream contacts by country
+GET {{$projectUrl}}/api/contacts/stream?search=china
+
+###
+# Stream contacts by company
+GET {{$projectUrl}}/api/contacts/stream?search=buzzshare
+
+###
+# SERVER-SENT EVENTS (SSE) STREAMING
+
+###
+# Stream all contacts using Server-Sent Events
+GET {{$projectUrl}}/api/contacts/stream/sse
+Accept: text/event-stream
+
+###
+# Stream contacts with search using SSE
+GET {{$projectUrl}}/api/contacts/stream/sse?search=smith
+Accept: text/event-stream
+
+###
+# Stream contacts by location using SSE  
+GET {{$projectUrl}}/api/contacts/stream/sse?search=brazil
+Accept: text/event-stream
+
+###
+# METADATA STREAMING - Includes statistics and progress
+
+###
+# Stream contacts with metadata and statistics
+GET {{$projectUrl}}/api/contacts/stream/metadata
+
+###
+# Stream contacts with metadata and search filter
+GET {{$projectUrl}}/api/contacts/stream/metadata?search=developer
+
+###
+# Stream contacts with metadata using SSE
+GET {{$projectUrl}}/api/contacts/stream/metadata/sse
+Accept: text/event-stream
+
+###
+# Stream contacts with metadata and search using SSE
+GET {{$projectUrl}}/api/contacts/stream/metadata/sse?search=female
+Accept: text/event-stream
+
+###
+# CURL EXAMPLES - For testing from command line
+
+###
+# Example: Streaming with curl
+# curl -N -H "Accept: text/event-stream" "{{$projectUrl}}/api/contacts/stream/sse"
+
+###
+# Example: Streaming with search
+# curl -N -H "Accept: text/event-stream" "{{$projectUrl}}/api/contacts/stream/sse?search=engineer"
+
+###
+# Example: JSON streaming with curl
+# curl -H "Accept: application/json" "{{$projectUrl}}/api/contacts/stream?search=brazil"
+
+###
+# JAVASCRIPT EXAMPLES - For use in browser or Node.js
+
+###
+# Example: Using EventSource for SSE
+# const eventSource = new EventSource('{{$projectUrl}}/api/contacts/stream/sse');
+# eventSource.onmessage = (event) => console.log(JSON.parse(event.data));
+
+###
+# Example: Using Fetch API for JSON streaming
+# fetch('{{$projectUrl}}/api/contacts/stream')
+#   .then(response => response.json())
+#   .then(data => console.log(data));
+
+###
+# PERFORMANCE TESTING
+
+###
+# Stream large dataset for performance testing
+GET {{$projectUrl}}/api/contacts/stream
+
+###
+# Stream with metadata for performance monitoring
+GET {{$projectUrl}}/api/contacts/stream/metadata/sse
+Accept: text/event-stream

@@ -8,6 +8,16 @@ public static class ServiceCollectionExtensions
     #region AddMediator Methods
 
     /// <summary>  
+    /// Adds mediator services with default configuration.  
+    /// </summary>  
+    /// <param name="services">The service collection.</param>  
+    /// <returns>The service collection for chaining.</returns>  
+    public static IServiceCollection AddMediator(this IServiceCollection services)
+    {
+        return services.AddMediator(null, (Assembly[])null!);
+    }
+
+    /// <summary>  
     /// Adds mediator services and registers handlers from multiple assemblies.  
     /// </summary>  
     /// <param name="services">The service collection.</param>  
@@ -72,6 +82,10 @@ public static class ServiceCollectionExtensions
         // Register the configured pipeline builder as the scoped pipeline builder
         services.AddScoped(provider =>
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
+
+        // Register the configured notification pipeline builder as the scoped notification pipeline builder
+        services.AddScoped(provider =>
+            provider.GetRequiredService<MediatorConfiguration>().NotificationPipelineBuilder);
 
         // Register pipeline inspector for debugging (same instance as pipeline builder)
         services.AddScoped(provider =>
@@ -141,6 +155,10 @@ public static class ServiceCollectionExtensions
         // Register the configured pipeline builder as the scoped pipeline builder
         services.AddScoped(provider =>
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
+
+        // Register the configured notification pipeline builder as the scoped notification pipeline builder
+        services.AddScoped(provider =>
+            provider.GetRequiredService<MediatorConfiguration>().NotificationPipelineBuilder);
 
         // Register pipeline inspector for debugging (same instance as pipeline builder)
         services.AddScoped(provider =>
@@ -347,12 +365,14 @@ public static class ServiceCollectionExtensions
         return;
 
         static bool IsMiddlewareType(Type i) =>
-            i.IsGenericType &&
+            (i.IsGenericType &&
             (i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<>) ||
              i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>) ||
              i.GetGenericTypeDefinition() == typeof(IConditionalMiddleware<>) ||
              i.GetGenericTypeDefinition() == typeof(IConditionalMiddleware<,>) ||
-             i.GetGenericTypeDefinition() == typeof(IStreamRequestMiddleware<,>));
+             i.GetGenericTypeDefinition() == typeof(IStreamRequestMiddleware<,>))) ||
+             typeof(INotificationMiddleware).IsAssignableFrom(i) ||
+             typeof(IConditionalNotificationMiddleware).IsAssignableFrom(i);
     }
 
     /// <summary>  

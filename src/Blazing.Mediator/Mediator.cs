@@ -12,17 +12,24 @@ public class Mediator : IMediator
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IMiddlewarePipelineBuilder _pipelineBuilder;
+    private readonly INotificationPipelineBuilder _notificationPipelineBuilder;
+    
+    // Thread-safe collections for notification subscribers
+    private readonly ConcurrentDictionary<Type, ConcurrentBag<object>> _specificSubscribers = new();
+    private readonly ConcurrentBag<INotificationSubscriber> _genericSubscribers = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Mediator"/> class.
     /// </summary>
     /// <param name="serviceProvider">The service provider to resolve handlers.</param>
     /// <param name="pipelineBuilder">The middleware pipeline builder.</param>
-    /// <exception cref="ArgumentNullException">Thrown when serviceProvider or pipelineBuilder is null.</exception>
-    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder)
+    /// <param name="notificationPipelineBuilder">The notification middleware pipeline builder.</param>
+    /// <exception cref="ArgumentNullException">Thrown when serviceProvider, pipelineBuilder, or notificationPipelineBuilder is null.</exception>
+    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, INotificationPipelineBuilder notificationPipelineBuilder)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _pipelineBuilder = pipelineBuilder ?? throw new ArgumentNullException(nameof(pipelineBuilder));
+        _notificationPipelineBuilder = notificationPipelineBuilder ?? throw new ArgumentNullException(nameof(notificationPipelineBuilder));
     }
 
     /// <summary>
@@ -237,4 +244,163 @@ public class Mediator : IMediator
 
         return pipelineResult ?? finalHandler();
     }
+
+    #region Notification Methods
+
+    /// <summary>
+    /// Publishes a notification to all subscribers following the observer pattern.
+    /// Publishers blindly send notifications without caring about recipients.
+    /// </summary>
+    /// <typeparam name="TNotification">The type of notification to publish</typeparam>
+    /// <param name="notification">The notification to publish</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Task representing the operation</returns>
+    public async Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification
+    {
+        ArgumentNullException.ThrowIfNull(notification);
+
+        // Create final handler delegate that notifies all subscribers
+        NotificationDelegate<TNotification> finalHandler = async (notif, token) =>
+        {
+            var tasks = new List<Task>();
+
+            // Notify specific subscribers
+            if (_specificSubscribers.TryGetValue(typeof(TNotification), out var subscribers))
+            {
+                foreach (var subscriber in subscribers)
+                {
+                    if (subscriber is INotificationSubscriber<TNotification> typedSubscriber)
+                    {
+                        tasks.Add(SafeInvokeSubscriber(async () => await typedSubscriber.OnNotification(notif, token)));
+                    }
+                }
+            }
+
+            // Notify generic subscribers
+            foreach (var genericSubscriber in _genericSubscribers)
+            {
+                tasks.Add(SafeInvokeSubscriber(async () => await genericSubscriber.OnNotification(notif, token)));
+            }
+
+            // Wait for all subscribers to complete
+            if (tasks.Count > 0)
+            {
+                await Task.WhenAll(tasks);
+            }
+        };
+
+        // Execute through notification middleware pipeline
+        await _notificationPipelineBuilder.ExecutePipeline(notification, _serviceProvider, finalHandler, cancellationToken);
+    }
+
+    /// <summary>
+    /// Subscribe to notifications of a specific type.
+    /// Subscribers actively choose to listen to notifications they're interested in.
+    /// </summary>
+    /// <typeparam name="TNotification">The type of notification to subscribe to</typeparam>
+    /// <param name="subscriber">The subscriber that will receive notifications</param>
+    public void Subscribe<TNotification>(INotificationSubscriber<TNotification> subscriber) where TNotification : INotification
+    {
+        ArgumentNullException.ThrowIfNull(subscriber);
+
+        _specificSubscribers.AddOrUpdate(
+            typeof(TNotification),
+            new ConcurrentBag<object> { subscriber },
+            (key, existing) =>
+            {
+                existing.Add(subscriber);
+                return existing;
+            });
+    }
+
+    /// <summary>
+    /// Subscribe to all notifications (generic/broadcast).
+    /// Subscribers actively choose to listen to all notifications.
+    /// </summary>
+    /// <param name="subscriber">The subscriber that will receive all notifications</param>
+    public void Subscribe(INotificationSubscriber subscriber)
+    {
+        ArgumentNullException.ThrowIfNull(subscriber);
+        _genericSubscribers.Add(subscriber);
+    }
+
+    /// <summary>
+    /// Unsubscribe from notifications of a specific type.
+    /// </summary>
+    /// <typeparam name="TNotification">The type of notification to unsubscribe from</typeparam>
+    /// <param name="subscriber">The subscriber to remove</param>
+    public void Unsubscribe<TNotification>(INotificationSubscriber<TNotification> subscriber) where TNotification : INotification
+    {
+        ArgumentNullException.ThrowIfNull(subscriber);
+
+        if (_specificSubscribers.TryGetValue(typeof(TNotification), out var subscribers))
+        {
+            // Create new bag without the subscriber
+            var newSubscribers = new ConcurrentBag<object>();
+            foreach (var existing in subscribers)
+            {
+                if (!ReferenceEquals(existing, subscriber))
+                {
+                    newSubscribers.Add(existing);
+                }
+            }
+
+            if (newSubscribers.IsEmpty)
+            {
+                _specificSubscribers.TryRemove(typeof(TNotification), out _);
+            }
+            else
+            {
+                _specificSubscribers.TryUpdate(typeof(TNotification), newSubscribers, subscribers);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Unsubscribe from all notifications.
+    /// </summary>
+    /// <param name="subscriber">The subscriber to remove from all notifications</param>
+    public void Unsubscribe(INotificationSubscriber subscriber)
+    {
+        ArgumentNullException.ThrowIfNull(subscriber);
+
+        // Remove from generic subscribers
+        var newGenericSubscribers = new ConcurrentBag<INotificationSubscriber>();
+        foreach (var existing in _genericSubscribers)
+        {
+            if (!ReferenceEquals(existing, subscriber))
+            {
+                newGenericSubscribers.Add(existing);
+            }
+        }
+
+        // Replace the entire bag
+        _genericSubscribers.Clear();
+        foreach (var sub in newGenericSubscribers)
+        {
+            _genericSubscribers.Add(sub);
+        }
+    }
+
+    /// <summary>
+    /// Safely invokes a subscriber method, catching and logging any exceptions.
+    /// Ensures that exceptions in one subscriber don't affect other subscribers.
+    /// </summary>
+    /// <param name="subscriberAction">The subscriber action to invoke</param>
+    /// <returns>A task representing the operation</returns>
+    private static async Task SafeInvokeSubscriber(Func<Task> subscriberAction)
+    {
+        try
+        {
+            await subscriberAction();
+        }
+        catch (Exception ex)
+        {
+            // Log the exception but don't let it propagate to other subscribers
+            // In a real implementation, you might want to use a logger here
+            Console.WriteLine($"Exception in notification subscriber: {ex.Message}");
+        }
+    }
+
+    #endregion
 }

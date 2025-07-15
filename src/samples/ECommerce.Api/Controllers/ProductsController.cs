@@ -167,4 +167,107 @@ public class ProductsController(IMediator mediator) : ControllerBase
         await mediator.Send(command);
         return NoContent();
     }
+
+    /// <summary>
+    /// Reduces product stock to simulate low stock scenarios and trigger notifications.
+    /// This demonstrates the inventory management notification system.
+    /// </summary>
+    /// <param name="id">The unique identifier of the product.</param>
+    /// <param name="quantity">The amount to reduce stock by (default: 5).</param>
+    /// <returns>ActionResult indicating the operation result.</returns>
+    /// <response code="200">If the stock was reduced successfully.</response>
+    /// <response code="404">If the product is not found.</response>
+    [HttpPost("{id}/reduce-stock")]
+    public async Task<ActionResult> ReduceStock(int id, [FromQuery] int quantity = 5)
+    {
+        try
+        {
+            // Get current stock
+            var product = await mediator.Send(new GetProductByIdQuery { ProductId = id });
+            if (product == null)
+                return NotFound($"Product with ID {id} not found");
+
+            // Calculate new stock (ensure it doesn't go negative)
+            var newStock = Math.Max(0, product.StockQuantity - quantity);
+            
+            // Update stock
+            await mediator.Send(new UpdateProductStockCommand 
+            { 
+                ProductId = id, 
+                StockQuantity = newStock 
+            });
+
+            return Ok(new { 
+                message = $"Stock reduced by {quantity} units", 
+                productId = id,
+                productName = product.Name,
+                previousStock = product.StockQuantity,
+                newStock = newStock,
+                notificationTrigger = newStock <= 10 ? "Low Stock Notification Sent" : 
+                                     newStock == 0 ? "Out of Stock Notification Sent" : "No Notification"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Simulates a bulk order that will trigger multiple stock notifications.
+    /// This demonstrates the notification system for inventory management.
+    /// </summary>
+    /// <param name="id">The unique identifier of the product.</param>
+    /// <param name="orderQuantity">The quantity to simulate ordering (default: 15).</param>
+    /// <returns>ActionResult indicating the operation result.</returns>
+    /// <response code="200">If the bulk order simulation was successful.</response>
+    /// <response code="404">If the product is not found.</response>
+    [HttpPost("{id}/simulate-bulk-order")]
+    public async Task<ActionResult> SimulateBulkOrder(int id, [FromQuery] int orderQuantity = 15)
+    {
+        try
+        {
+            // Get current product
+            var product = await mediator.Send(new GetProductByIdQuery { ProductId = id });
+            if (product == null)
+                return NotFound($"Product with ID {id} not found");
+
+            // Create a mock order to trigger stock notifications
+            var mockOrder = new CreateOrderCommand
+            {
+                CustomerId = 999,
+                CustomerEmail = "demo@notifications.com",
+                Items = new List<OrderItemRequest>
+                {
+                    new OrderItemRequest
+                    {
+                        ProductId = id,
+                        Quantity = orderQuantity
+                    }
+                }
+            };
+
+            var result = await mediator.Send(mockOrder);
+            
+            if (result.Success)
+            {
+                return Ok(new { 
+                    message = $"Bulk order simulation completed",
+                    orderId = result.Data,
+                    productId = id,
+                    productName = product.Name,
+                    orderQuantity = orderQuantity,
+                    notificationsSent = new[] { "Order Created", "Email Confirmation", "Inventory Tracking", "Low Stock Alert (if triggered)" }
+                });
+            }
+            else
+            {
+                return BadRequest(new { error = "Order simulation failed", message = result.Message });
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
 }

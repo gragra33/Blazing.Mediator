@@ -1,5 +1,6 @@
 using Blazing.Mediator;
 using ECommerce.Api.Application.Commands;
+using ECommerce.Api.Application.Notifications;
 using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
 
@@ -9,7 +10,8 @@ namespace ECommerce.Api.Application.Handlers.Commands;
 /// Handler for updating the status of an existing order.
 /// </summary>
 /// <param name="context">The database context for accessing order data.</param>
-public class UpdateOrderStatusHandler(ECommerceDbContext context) : IRequestHandler<UpdateOrderStatusCommand>
+/// <param name="mediator">The mediator for publishing notifications.</param>
+public class UpdateOrderStatusHandler(ECommerceDbContext context, IMediator mediator) : IRequestHandler<UpdateOrderStatusCommand>
 {
     /// <summary>
     /// Handles the update order status command by finding the order and updating its status.
@@ -23,7 +25,20 @@ public class UpdateOrderStatusHandler(ECommerceDbContext context) : IRequestHand
         if (order == null)
             throw new InvalidOperationException($"Order with ID {request.OrderId} not found");
 
+        var previousStatus = order.Status;
         order.UpdateStatus(request.Status);
         await context.SaveChangesAsync(cancellationToken);
+
+        // Publish order status changed notification
+        var orderStatusChangedNotification = new OrderStatusChangedNotification(
+            order.Id,
+            order.CustomerId,
+            order.CustomerEmail,
+            previousStatus,
+            request.Status,
+            order.TotalAmount
+        );
+
+        await mediator.Publish(orderStatusChangedNotification, cancellationToken);
     }
 }

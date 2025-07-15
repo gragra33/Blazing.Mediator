@@ -200,4 +200,86 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
         else
             return BadRequest(result);
     }
+
+    /// <summary>
+    /// Completes an order by progressing through Processing -> Shipped -> Delivered status.
+    /// This demonstrates the notification system with multiple status changes.
+    /// </summary>
+    /// <param name="id">The order ID to complete.</param>
+    /// <returns>ActionResult indicating the completion status.</returns>
+    [HttpPost("{id}/complete")]
+    public async Task<ActionResult> CompleteOrder(int id)
+    {
+        try
+        {
+            logger.LogInformation("Starting order completion process for order {OrderId}", id);
+
+            // Step 1: Set to Processing
+            await mediator.Send(new UpdateOrderStatusCommand { OrderId = id, Status = OrderStatus.Processing });
+            logger.LogInformation("Order {OrderId} set to Processing", id);
+
+            // Step 2: Set to Shipped (simulate processing delay)
+            await Task.Delay(1000);
+            await mediator.Send(new UpdateOrderStatusCommand { OrderId = id, Status = OrderStatus.Shipped });
+            logger.LogInformation("Order {OrderId} set to Shipped", id);
+
+            // Step 3: Set to Delivered (simulate shipping delay)
+            await Task.Delay(1000);
+            await mediator.Send(new UpdateOrderStatusCommand { OrderId = id, Status = OrderStatus.Delivered });
+            logger.LogInformation("Order {OrderId} set to Delivered", id);
+
+            return Ok(new { message = "Order completed successfully", orderId = id });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error completing order {OrderId}", id);
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Processes an order through the complete workflow: Confirmed -> Processing -> Shipped -> Delivered.
+    /// This demonstrates the full notification system workflow.
+    /// </summary>
+    /// <param name="id">The order ID to process.</param>
+    /// <returns>ActionResult indicating the processing status.</returns>
+    [HttpPost("{id}/process-workflow")]
+    public async Task<ActionResult> ProcessOrderWorkflow(int id)
+    {
+        try
+        {
+            logger.LogInformation("Starting full order workflow for order {OrderId}", id);
+
+            // Step 1: Confirm the order
+            await mediator.Send(new UpdateOrderStatusCommand { OrderId = id, Status = OrderStatus.Confirmed });
+            logger.LogInformation("Order {OrderId} confirmed", id);
+            await Task.Delay(500);
+
+            // Step 2: Start processing
+            await mediator.Send(new UpdateOrderStatusCommand { OrderId = id, Status = OrderStatus.Processing });
+            logger.LogInformation("Order {OrderId} processing started", id);
+            await Task.Delay(1000);
+
+            // Step 3: Ship the order
+            await mediator.Send(new UpdateOrderStatusCommand { OrderId = id, Status = OrderStatus.Shipped });
+            logger.LogInformation("Order {OrderId} shipped", id);
+            await Task.Delay(1500);
+
+            // Step 4: Deliver the order
+            await mediator.Send(new UpdateOrderStatusCommand { OrderId = id, Status = OrderStatus.Delivered });
+            logger.LogInformation("Order {OrderId} delivered", id);
+
+            return Ok(new { 
+                message = "Order workflow completed successfully", 
+                orderId = id,
+                finalStatus = "Delivered",
+                notificationsSent = new[] { "Order Confirmed", "Processing Started", "Order Shipped", "Order Delivered" }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing order workflow for {OrderId}", id);
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
 }

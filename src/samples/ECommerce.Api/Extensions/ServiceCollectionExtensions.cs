@@ -1,5 +1,6 @@
 using Blazing.Mediator;
 using ECommerce.Api.Application.Middleware;
+using ECommerce.Api.Application.Services;
 using ECommerce.Api.Infrastructure.Data;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,7 @@ public static class ServiceCollectionExtensions
         services.AddDatabaseServices(configuration, environment);
         services.AddValidationServices();
         services.AddMediatorServices();
+        services.AddNotificationServices();
 
         return services;
     }
@@ -89,7 +91,23 @@ public static class ServiceCollectionExtensions
             
             // Add conditional middleware for product operations  
             config.AddMiddleware(typeof(ProductLoggingMiddleware<,>));
+
+            // Add notification middleware for logging and metrics
+            config.AddNotificationMiddleware<NotificationLoggingMiddleware>();
+            config.AddNotificationMiddleware<NotificationMetricsMiddleware>();
         }, typeof(ServiceCollectionExtensions).Assembly);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers notification-related background services.
+    /// </summary>
+    private static IServiceCollection AddNotificationServices(this IServiceCollection services)
+    {
+        // Register background services for handling notifications
+        services.AddHostedService<EmailNotificationService>();
+        services.AddHostedService<InventoryManagementService>();
 
         return services;
     }

@@ -143,7 +143,8 @@ public class MediatorErrorTests
     {
         // Act & Assert - Test constructor with null service provider
         MiddlewarePipelineBuilder pipelineBuilder = new();
-        Assert.Throws<ArgumentNullException>(() => new Mediator(null!, pipelineBuilder));
+        NotificationPipelineBuilder notificationPipelineBuilder = new();
+        Assert.Throws<ArgumentNullException>(() => new Mediator(null!, pipelineBuilder, notificationPipelineBuilder));
     }
 
     /// <summary>
@@ -157,7 +158,23 @@ public class MediatorErrorTests
         ServiceProvider serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert - Test constructor with null pipeline builder
-        Assert.Throws<ArgumentNullException>(() => new Mediator(serviceProvider, null!));
+        NotificationPipelineBuilder notificationPipelineBuilder = new();
+        Assert.Throws<ArgumentNullException>(() => new Mediator(serviceProvider, null!, notificationPipelineBuilder));
+    }
+
+    /// <summary>
+    /// Tests that the Mediator constructor throws ArgumentNullException when notification pipeline builder is null.
+    /// </summary>
+    [Fact]
+    public void Mediator_Constructor_WithNullNotificationPipelineBuilder_ThrowsArgumentException()
+    {
+        // Arrange
+        ServiceCollection services = new();
+        ServiceProvider serviceProvider = services.BuildServiceProvider();
+
+        // Act & Assert - Test constructor with null notification pipeline builder
+        MiddlewarePipelineBuilder pipelineBuilder = new();
+        Assert.Throws<ArgumentNullException>(() => new Mediator(serviceProvider, pipelineBuilder, null!));
     }
 
     /// <summary>

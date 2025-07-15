@@ -1,5 +1,6 @@
 using Blazing.Mediator;
 using ECommerce.Api.Application.Commands;
+using ECommerce.Api.Application.Notifications;
 using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
 using FluentValidation;
@@ -13,8 +14,9 @@ namespace ECommerce.Api.Application.Handlers.Commands;
 /// </summary>
 /// <param name="context">The database context for persisting the product.</param>
 /// <param name="validator">The validator for product creation commands.</param>
+/// <param name="mediator">The mediator for publishing notifications.</param>
 // Product Command Handlers
-public class CreateProductHandler(ECommerceDbContext context, IValidator<CreateProductCommand> validator)
+public class CreateProductHandler(ECommerceDbContext context, IValidator<CreateProductCommand> validator, IMediator mediator)
     : IRequestHandler<CreateProductCommand, int>
 {
     /// <summary>
@@ -34,6 +36,16 @@ public class CreateProductHandler(ECommerceDbContext context, IValidator<CreateP
 
         context.Products.Add(product);
         await context.SaveChangesAsync(cancellationToken);
+
+        // Publish product created notification
+        var productCreatedNotification = new ProductCreatedNotification(
+            product.Id,
+            product.Name,
+            product.Price,
+            product.StockQuantity
+        );
+
+        await mediator.Publish(productCreatedNotification, cancellationToken);
 
         return product.Id;
     }

@@ -1,7 +1,24 @@
+# Set the project URL for the running API
+@projectUrl = https://localhost:54336
+
 ###
-# E-Commerce API - Sample HTTP Requests
+# E-Commerce API - Sample HTTP Requests with Notification System Demo
 # This file demonstrates all endpoints available in the ECommerce.Api sample project
-# which showcases the Blazing.Mediator library with CQRS pattern implementation.
+# which showcases the Blazing.Mediator library with CQRS pattern implementation and notification system.
+#
+# 🔔 NOTIFICATION SYSTEM DEMONSTRATION:
+# The application includes a comprehensive notification system that demonstrates:
+# - Email notifications (OrderCreatedNotification, OrderStatusChangedNotification)
+# - Inventory management (ProductStockLowNotification, ProductOutOfStockNotification)
+# - Product lifecycle (ProductCreatedNotification, ProductUpdatedNotification)
+# - Background services that process notifications
+# - Real-time logging of notification events
+#
+# To observe notifications in action:
+# 1. Start the ECommerce.Api project
+# 2. Watch the console output for notification logs
+# 3. Execute the requests below, especially the "NOTIFICATION SYSTEM DEMONSTRATIONS" section
+# 4. Look for console messages starting with 📧 (email notifications) and 📦 (inventory notifications)
 #
 # To use these requests:
 # 1. Start the ECommerce.Api project
@@ -340,3 +357,278 @@ Content-Type: application/json
   "orderId": 9999,
   "reason": "Test cancellation"
 }
+
+###
+# NOTIFICATION SYSTEM DEMONSTRATIONS
+# These endpoints demonstrate the notification system with real-time logging
+
+###
+# Complete order workflow (Confirmed -> Processing -> Shipped -> Delivered)
+# This will trigger multiple OrderStatusChangedNotifications
+POST {{$projectUrl}}/api/orders/1/process-workflow
+
+###
+# Complete order quickly (Processing -> Shipped -> Delivered)
+# This will trigger multiple email notifications
+POST {{$projectUrl}}/api/orders/1/complete
+
+###
+# Reduce product stock to trigger low stock notifications
+# This will demonstrate ProductStockLowNotification
+POST {{$projectUrl}}/api/products/1/reduce-stock?quantity=5
+
+###
+# Reduce product stock to zero to trigger out-of-stock notifications
+# This will demonstrate ProductOutOfStockNotification
+POST {{$projectUrl}}/api/products/1/reduce-stock?quantity=50
+
+###
+# Simulate bulk order to trigger inventory notifications
+# This will demonstrate OrderCreatedNotification and inventory management
+POST {{$projectUrl}}/api/products/1/simulate-bulk-order?orderQuantity=15
+
+###
+# Simulate bulk order that exceeds stock (will trigger low stock)
+# This will demonstrate multiple notifications
+POST {{$projectUrl}}/api/products/2/simulate-bulk-order?orderQuantity=25
+
+###
+# Create product and then simulate order to see full notification flow
+POST {{$projectUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Test Product for Notifications",
+  "description": "This product is created to demonstrate notification system",
+  "price": 99.99,
+  "stockQuantity": 12
+}
+
+###
+# Now order the product we just created (use the returned ID)
+POST {{$projectUrl}}/api/products/3/simulate-bulk-order?orderQuantity=8
+
+###
+# NOTIFICATION WORKFLOW DEMONSTRATION
+# Follow this sequence to see the complete notification system in action
+
+###
+# Step 1: Create a product (triggers ProductCreatedNotification)
+POST {{$projectUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Notification Demo Product",
+  "description": "Product created to demonstrate notification workflow",
+  "price": 149.99,
+  "stockQuantity": 20
+}
+
+###
+# Step 2: Create an order (triggers OrderCreatedNotification + inventory notifications)
+POST {{$projectUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1001,
+  "customerEmail": "demo@notifications.com",
+  "orderItems": [
+    {
+      "productId": 4,
+      "quantity": 15,
+      "unitPrice": 149.99
+    }
+  ]
+}
+
+###
+# Step 3: Process the order through complete workflow (triggers multiple OrderStatusChangedNotifications)
+POST {{$projectUrl}}/api/orders/2/process-workflow
+
+###
+# Step 4: Create another order to push stock to low levels (triggers ProductStockLowNotification)
+POST {{$projectUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1002,
+  "customerEmail": "demo2@notifications.com",
+  "orderItems": [
+    {
+      "productId": 4,
+      "quantity": 3,
+      "unitPrice": 149.99
+    }
+  ]
+}
+
+###
+# Step 5: Create final order to deplete stock (triggers ProductOutOfStockNotification)
+POST {{$projectUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1003,
+  "customerEmail": "demo3@notifications.com",
+  "orderItems": [
+    {
+      "productId": 4,
+      "quantity": 5,
+      "unitPrice": 149.99
+    }
+  ]
+}
+
+###
+# SWAGGER ENDPOINTS FOR NOTIFICATION SYSTEM DEMONSTRATION
+# Access Swagger UI at: https://localhost:54336/swagger/index.html
+# The following endpoints are available and demonstrate different notification scenarios:
+
+###
+# 🔔 NOTIFICATION-TRIGGERING ENDPOINTS IN SWAGGER UI
+# These endpoints can be tested directly in Swagger and will trigger notifications visible in the console
+
+###
+# 📧 EMAIL NOTIFICATION ENDPOINTS (OrderCreatedNotification, OrderStatusChangedNotification)
+
+# POST /api/orders - Create Order (triggers OrderCreatedNotification)
+# - Creates order and sends email confirmation
+# - Triggers inventory tracking notifications
+# - May trigger low stock/out of stock notifications
+
+# POST /api/orders/process - Process Order (triggers OrderCreatedNotification + status changes)
+# - Complete order processing workflow
+# - Triggers multiple notifications
+
+# PUT /api/orders/{id}/status - Update Order Status (triggers OrderStatusChangedNotification)
+# - Updates order status (Processing, Shipped, Delivered, Cancelled)
+# - Sends email status updates for specific statuses
+
+# POST /api/orders/{id}/cancel - Cancel Order (triggers OrderStatusChangedNotification)
+# - Cancels order and sends cancellation email
+
+# 🆕 POST /api/orders/{id}/complete - Complete Order Workflow (triggers multiple OrderStatusChangedNotifications)
+# - Processes order through: Processing → Shipped → Delivered
+# - Triggers multiple email notifications with delays
+
+# 🆕 POST /api/orders/{id}/process-workflow - Full Order Workflow (triggers multiple OrderStatusChangedNotifications)
+# - Complete workflow: Confirmed → Processing → Shipped → Delivered
+# - Demonstrates full notification lifecycle
+
+###
+# 📦 INVENTORY MANAGEMENT ENDPOINTS (ProductStockLowNotification, ProductOutOfStockNotification)
+
+# POST /api/products - Create Product (triggers ProductCreatedNotification)
+# - Creates new product
+# - Logs product creation to inventory system
+
+# PUT /api/products/{id}/stock - Update Stock (may trigger stock notifications)
+# - Updates product stock levels
+# - Triggers low stock alerts if below threshold (10)
+# - Triggers out of stock alerts if stock reaches 0
+
+# 🆕 POST /api/products/{id}/reduce-stock?quantity={amount} - Reduce Stock (triggers stock notifications)
+# - Reduces product stock by specified amount
+# - Demonstrates low stock and out of stock notifications
+# - Example: /api/products/1/reduce-stock?quantity=5
+
+# 🆕 POST /api/products/{id}/simulate-bulk-order?orderQuantity={amount} - Simulate Bulk Order (triggers multiple notifications)
+# - Creates mock order to demonstrate inventory impact
+# - Triggers OrderCreatedNotification, inventory tracking, and stock alerts
+# - Example: /api/products/1/simulate-bulk-order?orderQuantity=15
+
+###
+# 📊 MONITORING AND QUERY ENDPOINTS (for observing system state)
+
+# GET /api/products/low-stock?threshold={number} - Get Low Stock Products
+# - Lists products below stock threshold
+# - Useful for seeing which products triggered notifications
+
+# GET /api/orders - Get Orders (with status filtering)
+# - View orders by status to see notification triggers
+# - Filter by status: ?status=0 (Pending), ?status=1 (Confirmed), ?status=2 (Processing), ?status=3 (Shipped), ?status=4 (Delivered), ?status=5 (Cancelled)
+
+# GET /api/orders/statistics - Get Order Statistics
+# - View order statistics to understand notification volume
+
+###
+# 🎯 RECOMMENDED SWAGGER TESTING SEQUENCE FOR NOTIFICATIONS
+
+# 1. Open Swagger UI: https://localhost:54336/swagger/index.html
+# 2. Watch console output for notification logs (📧 and 📦 emojis)
+# 3. Execute endpoints in this order:
+
+# STEP 1: Create test product
+# POST /api/products
+# {
+#   "name": "Notification Test Product",
+#   "description": "Product for testing notifications",
+#   "price": 99.99,
+#   "stockQuantity": 20
+# }
+# → Watch for: ProductCreatedNotification
+
+# STEP 2: Create order to trigger notifications
+# POST /api/orders
+# {
+#   "customerId": 1,
+#   "customerEmail": "test@notifications.com",
+#   "orderItems": [
+#     {
+#       "productId": 1,
+#       "quantity": 15
+#     }
+#   ]
+# }
+# → Watch for: OrderCreatedNotification, inventory tracking
+
+# STEP 3: Process order through full workflow
+# POST /api/orders/1/process-workflow
+# → Watch for: Multiple OrderStatusChangedNotifications (Confirmed → Processing → Shipped → Delivered)
+
+# STEP 4: Reduce stock to trigger low stock alert
+# POST /api/products/1/reduce-stock?quantity=8
+# → Watch for: ProductStockLowNotification
+
+# STEP 5: Simulate bulk order to trigger out of stock
+# POST /api/products/1/simulate-bulk-order?orderQuantity=10
+# → Watch for: OrderCreatedNotification, ProductOutOfStockNotification
+
+###
+# 🔍 CONSOLE OUTPUT TO WATCH FOR
+
+# When testing in Swagger, watch the console for these notification patterns:
+
+# 📧 EMAIL NOTIFICATIONS:
+# - "📧 ORDER CONFIRMATION EMAIL SENT"
+# - "📧 ORDER STATUS UPDATE EMAIL SENT"
+# - Shows customer email, order details, and status changes
+
+# 📦 INVENTORY NOTIFICATIONS:
+# - "📦 INVENTORY TRACKING - Order #X"
+# - "⚠️ LOW STOCK ALERT"
+# - "🚨 OUT OF STOCK ALERT - URGENT"
+# - "📋 REORDER NOTIFICATION SENT TO PURCHASING"
+
+# 🔔 NOTIFICATION MIDDLEWARE:
+# - "🔔 NOTIFICATION PUBLISHING: [NotificationType]"
+# - "✅ NOTIFICATION COMPLETED: [NotificationType]"
+
+###
+# 🚀 ADVANCED NOTIFICATION TESTING SCENARIOS
+
+# Test concurrent notifications:
+# POST /api/products/1/simulate-bulk-order?orderQuantity=25
+# POST /api/products/2/simulate-bulk-order?orderQuantity=30
+# → Creates multiple orders simultaneously to test notification handling
+
+# Test notification workflow with multiple products:
+# POST /api/products (create product with stock 5)
+# POST /api/products/X/simulate-bulk-order?orderQuantity=3 (triggers low stock)
+# POST /api/products/X/simulate-bulk-order?orderQuantity=5 (triggers out of stock)
+
+# Test order status progression:
+# POST /api/orders (create order)
+# PUT /api/orders/X/status with status=2 (Processing)
+# PUT /api/orders/X/status with status=3 (Shipped)  
+# PUT /api/orders/X/status with status=4 (Delivered)

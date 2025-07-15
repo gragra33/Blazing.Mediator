@@ -237,6 +237,7 @@ public class ProductsController(IMediator mediator) : ControllerBase
             {
                 CustomerId = 999,
                 CustomerEmail = "demo@notifications.com",
+                ShippingAddress = "123 Mock St, Test City, TS 12345",
                 Items = new List<OrderItemRequest>
                 {
                     new OrderItemRequest

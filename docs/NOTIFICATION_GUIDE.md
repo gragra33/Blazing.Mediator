@@ -27,10 +27,11 @@ The notification system is built on top of the mediator pattern and provides a c
 6. [Notification Middleware](#notification-middleware)
 7. [Background Services](#background-services)
 8. [Testing Notifications](#testing-notifications)
-9. [ECommerce.Api Implementation](#ecommerce-api-implementation)
+9. [ECommerce.Api Implementation](#ecommerceapi-implementation)
 10. [Swagger Testing Guide](#swagger-testing-guide)
-11. [Best Practices](#best-practices)
-12. [Troubleshooting](#troubleshooting)
+11. [Automated Testing with PowerShell Script](#automated-testing-with-powershell-script)
+12. [Best Practices](#best-practices)
+13. [Troubleshooting](#troubleshooting)
 
 ## Quick Start
 
@@ -880,14 +881,20 @@ POST /api/products/1/simulate-bulk-order?orderQuantity=10
 #### Inventory Management Endpoints
 
 -   `POST /api/products` - Create Product (triggers ProductCreatedNotification)
+-   `PUT /api/products/{id}` - Update Product (triggers ProductUpdatedNotification)
 -   `PUT /api/products/{id}/stock` - Update Stock (may trigger stock notifications)
+-   `POST /api/products/{id}/deactivate` - Deactivate Product (triggers ProductUpdatedNotification)
 -   `POST /api/products/{id}/reduce-stock?quantity={amount}` - Reduce Stock (triggers stock notifications)
 -   `POST /api/products/{id}/simulate-bulk-order?orderQuantity={amount}` - Simulate Bulk Order (triggers multiple notifications)
 
 #### Monitoring Endpoints
 
+-   `GET /api/products/{id}` - Get Product by ID
+-   `GET /api/products` - Get Products (with filtering)
 -   `GET /api/products/low-stock?threshold={number}` - Get Low Stock Products
+-   `GET /api/orders/{id}` - Get Order by ID
 -   `GET /api/orders` - Get Orders (with status filtering)
+-   `GET /api/orders/customer/{customerId}` - Get Customer Orders
 -   `GET /api/orders/statistics` - Get Order Statistics
 
 ### 6. Console Output Examples
@@ -939,6 +946,284 @@ PUT /api/orders/9999/status
   "status": 2,
   "notes": "This should fail"
 }
+```
+
+## Automated Testing with PowerShell Script
+
+The `test-notifications-endpoints.ps1` script provides comprehensive automated testing of all notification endpoints and BackgroundService warnings in the ECommerce.Api.
+
+### What is test-notifications-endpoints.ps1?
+
+The `test-notifications-endpoints.ps1` script is a PowerShell automation tool that:
+
+-   Tests all notification endpoints in a systematic workflow
+-   Triggers every type of notification in the ECommerce.Api
+-   Generates comprehensive BackgroundService activity
+-   Provides detailed console output with emojis for easy monitoring
+-   Performs stress testing with concurrent operations
+-   Validates system state after each test phase
+
+### How to Use the Script
+
+#### Prerequisites:
+
+1. Start the ECommerce.Api project first:
+    ```bash
+    dotnet run --project src/samples/ECommerce.Api
+    ```
+2. Ensure the API is running on https://localhost:54336
+3. Open a PowerShell terminal in the Blazing.Mediator root directory
+
+#### Running the script:
+
+```powershell
+.\test-notifications-endpoints.ps1
+```
+
+The script will:
+
+-   ✅ Automatically check if the API is running
+-   ✅ Execute all test scenarios in sequence
+-   ✅ Display colored progress messages
+-   ✅ Show detailed results for each test
+-   ✅ Provide final system status summary
+
+### Comprehensive Test Scenarios Performed
+
+#### PHASE 1: NOTIFICATION WORKFLOW DEMONSTRATION
+
+**🆕 Step 1: Product Creation**
+
+-   Creates "Notification Demo Product" with 20 units stock
+-   Triggers: `ProductCreatedNotification`
+-   Expected: `🔔 NOTIFICATION PUBLISHING: ProductCreatedNotification`
+
+**📦 Step 2: Order Creation**
+
+-   Creates order for 15 units of the demo product
+-   Triggers: `OrderCreatedNotification` + `ProductStockLowNotification`
+-   Expected: `🔔 NOTIFICATION PUBLISHING: OrderCreatedNotification`
+-   Expected: `🔔 NOTIFICATION PUBLISHING: ProductStockLowNotification`
+
+**⚙️ Step 3: Complete Order Workflow**
+
+-   Processes order through: Confirmed → Processing → Shipped → Delivered
+-   Triggers: Multiple `OrderStatusChangedNotifications` (4 notifications)
+-   Expected: `🔔 NOTIFICATION PUBLISHING: OrderStatusChangedNotification` (x4)
+
+**⚠️ Step 4: Low Stock Alert**
+
+-   Creates additional order for 3 units
+-   Reduces stock to critical levels (2 units remaining)
+-   Triggers: `OrderCreatedNotification` + `ProductStockLowNotification`
+-   Expected: `⚠️ LOW STOCK ALERT` messages in console
+
+**🚨 Step 5: Out of Stock Alert**
+
+-   Reduces stock by 5 units using reduce-stock endpoint
+-   Triggers stock to reach 0 (out of stock)
+-   Triggers: `ProductOutOfStockNotification`
+-   Expected: `🚨 OUT OF STOCK ALERT - URGENT` messages
+
+#### PHASE 2: ADVANCED NOTIFICATION TESTING SCENARIOS
+
+**🎯 Test 1: Bulk Order Simulation**
+
+-   Creates dedicated product with 25 units stock
+-   Simulates bulk order for 10 units
+-   Triggers: `OrderCreatedNotification` + inventory tracking
+-   Expected: Bulk order processing notifications
+
+**🆕 Test 2: Multiple Product Management**
+
+-   Creates "Test Product 2" with 8 units stock
+-   Sets up for additional testing scenarios
+-   Triggers: `ProductCreatedNotification`
+
+**📈 Test 3: Manual Order Status Progression**
+
+-   Creates order and manually progresses through each status
+-   Tests: Processing → Shipped → Delivered transitions
+-   Triggers: `OrderStatusChangedNotification` for each transition
+-   Expected: Status-specific email notifications
+
+**🏁 Test 4: Quick Order Completion**
+
+-   Uses the `/complete` endpoint for rapid status changes
+-   Triggers: Multiple quick `OrderStatusChangedNotifications`
+-   Expected: Rapid-fire notification processing
+
+**❌ Test 5: Order Cancellation**
+
+-   Creates order and immediately cancels it
+-   Tests cancellation notification workflow
+-   Triggers: `OrderStatusChangedNotification` for cancellation
+-   Expected: `📧 ORDER CANCELLATION EMAIL SENT`
+
+**🚀 Test 6: Concurrent Operations (Stress Test)**
+
+-   Runs multiple bulk orders simultaneously
+-   Tests notification system under concurrent load
+-   Triggers: Multiple simultaneous notifications
+-   Expected: Proper handling of concurrent notification processing
+
+#### PHASE 3: FINAL SYSTEM STATUS CHECK
+
+**📦 Low Stock Products Query**
+
+-   Retrieves all products with stock below threshold (10 units)
+-   Validates that previous tests properly affected inventory
+-   Expected: List of products with low stock warnings
+
+**📈 Order Statistics Summary**
+
+-   Retrieves comprehensive order statistics
+-   Shows total orders, delivered orders, cancelled orders
+-   Validates that all test orders were processed correctly
+
+### Expected Console Output Patterns
+
+When running the script, watch for these notification patterns in the ECommerce.Api console:
+
+#### 🔔 NOTIFICATION MIDDLEWARE LOGS:
+
+```
+info: ECommerce.Api.Application.Middleware.NotificationLoggingMiddleware[0]
+      🔔 NOTIFICATION PUBLISHING: ProductCreatedNotification
+info: ECommerce.Api.Application.Middleware.NotificationLoggingMiddleware[0]
+      ✅ NOTIFICATION COMPLETED: ProductCreatedNotification
+```
+
+#### 📧 EMAIL NOTIFICATION SERVICE LOGS:
+
+```
+info: ECommerce.Api.Application.Services.EmailNotificationService[0]
+      📧 ORDER CONFIRMATION EMAIL SENT - Customer: demo@notifications.com
+info: ECommerce.Api.Application.Services.EmailNotificationService[0]
+      📧 ORDER STATUS UPDATE EMAIL SENT - Order #X changed to Processing
+```
+
+#### 📦 INVENTORY MANAGEMENT SERVICE LOGS:
+
+```
+info: ECommerce.Api.Application.Services.InventoryManagementService[0]
+      📦 INVENTORY TRACKING - Order #X processed, stock updated
+info: ECommerce.Api.Application.Services.InventoryManagementService[0]
+      ⚠️ LOW STOCK ALERT - Product: Notification Demo Product (Stock: 2)
+info: ECommerce.Api.Application.Services.InventoryManagementService[0]
+      🚨 OUT OF STOCK ALERT - URGENT - Product: Notification Demo Product
+```
+
+#### 📊 NOTIFICATION METRICS (every 10th notification):
+
+```
+info: ECommerce.Api.Application.Middleware.NotificationMetricsMiddleware[0]
+      📊 NOTIFICATION METRICS: OrderCreatedNotification
+info: ECommerce.Api.Application.Middleware.NotificationMetricsMiddleware[0]
+         Total Count: 10
+info: ECommerce.Api.Application.Middleware.NotificationMetricsMiddleware[0]
+         Success Count: 10
+info: ECommerce.Api.Application.Middleware.NotificationMetricsMiddleware[0]
+         Success Rate: 100.0%
+```
+
+### Script Success Indicators
+
+The script will display these success messages:
+
+-   ✅ ECommerce.Api is running
+-   ✅ Created product with ID: X
+-   ✅ Created order with ID: X
+-   ✅ Order workflow completed: Order workflow completed successfully
+-   ✅ Stock reduced: Stock reduced by 5 units
+-   ✅ Bulk order simulated: Bulk order simulation completed
+-   ✅ Order status updated to Processing/Shipped/Delivered
+-   ✅ Order completed: Order completed successfully
+-   ✅ Order cancelled: Order cancelled successfully
+-   ✅ Concurrent bulk orders completed
+-   ✅ Found X low stock products
+-   ✅ Total orders: X
+
+#### Final success message:
+
+```
+🎉 NOTIFICATION TESTING COMPLETED SUCCESSFULLY!
+All notification endpoints have been tested and should have triggered:
+📧 Email notifications (OrderCreatedNotification, OrderStatusChangedNotification)
+📦 Inventory notifications (ProductStockLowNotification, ProductOutOfStockNotification)
+🆕 Product notifications (ProductCreatedNotification)
+```
+
+### Troubleshooting
+
+#### Common issues and solutions:
+
+**Issue: "ECommerce.Api is not running"**
+
+-   Solution: Start the API first with: `dotnet run --project src/samples/ECommerce.Api`
+
+**Issue: "Insufficient stock" errors**
+
+-   Solution: This is expected behavior - the script tests stock depletion scenarios
+
+**Issue: PowerShell execution policy errors**
+
+-   Solution: Run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
+**Issue: SSL certificate errors**
+
+-   Solution: The script uses `-SkipCertificateCheck`, but ensure HTTPS is working
+
+**Issue: Script stops with validation errors**
+
+-   Solution: Check that all required fields are properly formatted in the script
+
+### Customization Options
+
+You can modify the script for different testing scenarios:
+
+#### Change base URL:
+
+```powershell
+$baseUrl = "https://localhost:YOUR_PORT"
+```
+
+#### Modify stock quantities:
+
+```powershell
+stockQuantity = 50  # Increase for more extensive testing
+```
+
+#### Adjust order quantities:
+
+```powershell
+quantity = 20  # Test with larger orders
+```
+
+#### Add more concurrent tests:
+
+Increase the number of `Start-Job` blocks in Test 6
+
+#### Change notification thresholds:
+
+```powershell
+/api/products/low-stock?threshold=5  # Lower threshold for testing
+```
+
+### Continuous Testing
+
+For continuous testing during development:
+
+1. Keep the ECommerce.Api running
+2. Run the script multiple times to generate ongoing notification activity
+3. Each run creates new products/orders, so data accumulates
+4. Monitor console output for notification patterns
+5. Use the script to validate notification system changes
+
+The script is designed to be run repeatedly without conflicts, making it perfect for ongoing development and testing workflows.
+
+```
+
 ```
 
 ## Best Practices

@@ -370,7 +370,8 @@ public static class ServiceCollectionExtensions
              i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>) ||
              i.GetGenericTypeDefinition() == typeof(IConditionalMiddleware<>) ||
              i.GetGenericTypeDefinition() == typeof(IConditionalMiddleware<,>) ||
-             i.GetGenericTypeDefinition() == typeof(IStreamRequestMiddleware<,>))) ||
+             i.GetGenericTypeDefinition() == typeof(IStreamRequestMiddleware<,>) ||
+             i.GetGenericTypeDefinition() == typeof(IConditionalStreamRequestMiddleware<,>))) ||
              typeof(INotificationMiddleware).IsAssignableFrom(i) ||
              typeof(IConditionalNotificationMiddleware).IsAssignableFrom(i);
     }

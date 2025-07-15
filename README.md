@@ -63,6 +63,9 @@ The Blazing.Mediator library provides:
 -   [Middleware Pipeline](#middleware-pipeline)
 -   [Sample Projects](#sample-projects)
 -   [History](#history)
+-   [V1.4.1](#v141)
+-   [V1.4.0](#v140)
+-   [V1.3.0](#v130)
 -   [V1.2.0](#v120)
 -   [V1.1.0](#v110)
 -   [V1.0.0](#v100)
@@ -332,6 +335,13 @@ The library includes three comprehensive sample projects demonstrating different
     - 6 different streaming examples from minimal APIs to interactive WebAssembly clients
 
 ## History
+
+### V1.4.1
+
+-   **Missing Interface Fix**: Added missing `IConditionalStreamRequestMiddleware` interface for conditional stream middleware support
+-   **ECommerce.Api Enhancement**: Minor fix to `ECommerce.Api.Controllers.SimulateBulkOrder` method for improved bulk order simulation
+-   **PowerShell Testing Script**: Added new `test-notifications-endpoints.ps1` script for comprehensive notification system testing and demonstration
+-   **Documentation Updates**: Updated `NOTIFICATION_GUIDE.md` with detailed PowerShell script usage instructions and automated testing workflows
 
 ### V1.4.0
 

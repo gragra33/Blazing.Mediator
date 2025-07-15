@@ -7,17 +7,17 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Blazing.Mediator</PackageId>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
     <Authors>Graeme Grant</Authors>
     <Product>Blazing.Mediator</Product>
-    <Description>A lightweight implementation of the Mediator pattern with built-in CQRS support, native streaming capabilities, and advanced middleware pipeline for .NET applications. Features ordered middleware execution, conditional middleware, automatic DI registration, pipeline inspection, and memory-efficient data streaming with IAsyncEnumerable. Supports real-time data processing, JSON streaming, Server-Sent Events (SSE), and AI response streaming. Includes comprehensive sample projects demonstrating modern API architectures with controllers, minimal APIs, and streaming patterns.</Description>
-    <PackageTags>mediator;cqrs;command;query;streaming;async-enumerable;real-time;json-streaming;sse;server-sent-events;pattern;architecture;clean-code;dependency-injection;middleware;pipeline;conditional;samples;minimal-api;controllers;ai-streaming</PackageTags>
+    <Description>A high-performance, lightweight implementation of the Mediator pattern with built-in CQRS support for .NET applications. Features advanced middleware pipeline with ordered execution, conditional middleware, automatic DI registration, and pipeline inspection. Supports native streaming capabilities with middleware support for IAsyncEnumerable data processing, JSON streaming, Server-Sent Events (SSE), and AI response streaming. Includes notification system with middleware pipeline support and real-time event processing.</Description>
+    <PackageTags>mediator;cqrs;command;query;middleware;pipeline;dependency-injection;streaming;async-enumerable;real-time;json-streaming;sse;server-sent-events;notifications;observer-pattern;event-driven;publish-subscribe;pattern;architecture;clean-code;conditional;samples;minimal-api;controllers;ai-streaming;high-performance;subscription-management</PackageTags>
     <RepositoryUrl>https://github.com/gragra33/blazing.mediator</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
-    <Copyright>Copyright (c) 2022-25 Graeme Grant</Copyright>
-    <PackageReleaseNotes>Version 1.3.0: Added automatic middleware discovery functionality with method overloads for simplified configuration. Enhanced ServiceCollectionExtensions with discoverMiddleware parameter to automatically register all middleware implementations from specified assemblies while maintaining backward compatibility.</PackageReleaseNotes>
+    <Copyright>Copyright (c) 2025 Graeme Grant</Copyright>
+    <PackageReleaseNotes>Version 1.4.0: Enhanced middleware pipeline with automatic discovery functionality and method overloads for simplified configuration. Added notification system with observer pattern and subscription management. Improved streaming capabilities with middleware support. Added extensive sample projects demonstrating modern API architectures and real-time event processing.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

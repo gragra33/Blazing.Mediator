@@ -8,14 +8,14 @@ The notification system is built on top of the mediator pattern and provides a c
 
 ### Key Features
 
--   **🔔 Event-Driven Architecture**: Publish domain events and have multiple subscribers react to them
--   **📧 Observer Pattern**: Multiple services can subscribe to the same notification without coupling
--   **⚡ Asynchronous Processing**: All notifications are processed asynchronously for better performance
--   **🛡️ Middleware Support**: Add cross-cutting concerns like logging and metrics to notification processing
--   **🔄 Background Services**: Integrate with hosted services for long-running notification processing
--   **📊 Built-in Metrics**: Track notification performance and success rates
--   **🎯 Type Safety**: Strongly typed notifications with compile-time checking
--   **🧪 Testable Design**: Easy to test notification publishers and subscribers
+-   **Event-Driven Architecture**: Publish domain events and have multiple subscribers react to them
+-   **Observer Pattern**: Multiple services can subscribe to the same notification without coupling
+-   **Asynchronous Processing**: All notifications are processed asynchronously for better performance
+-   **Middleware Support**: Add cross-cutting concerns like logging and metrics to notification processing
+-   **Background Services**: Integrate with hosted services for long-running notification processing
+-   **Built-in Metrics**: Track notification performance and success rates
+-   **Type Safety**: Strongly typed notifications with compile-time checking
+-   **Testable Design**: Easy to test notification publishers and subscribers
 
 ## Table of Contents
 

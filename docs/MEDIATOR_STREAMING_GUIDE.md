@@ -8,14 +8,14 @@ Streaming in **Blazing.Mediator** is built on top of the standard CQRS pattern w
 
 ### Key Streaming Features
 
--   **🌊 Memory-Efficient Streaming**: Process large datasets without loading everything into memory using `IAsyncEnumerable<T>`
--   **⚡ Real-Time Data Flow**: Send data to clients as soon as it's available, reducing perceived latency
--   **🔧 Middleware Pipeline Support**: Apply cross-cutting concerns like logging, monitoring, and filtering to streaming requests
--   **🤖 Auto-Discovery**: Optional automatic streaming middleware discovery and registration from assemblies
--   **🎯 Multiple Streaming Patterns**: Support for asynchronous send/receive
--   **🚀 High Performance**: Optimised for throughput with minimal overhead and efficient resource utilisation
--   **🧪 Fully Testable**: Easy to unit test streaming handlers and middleware
--   **🔒 Type Safety**: Compile-time type checking for stream requests, handlers, and responses
+-   **Memory-Efficient Streaming**: Process large datasets without loading everything into memory using `IAsyncEnumerable<T>`
+-   **Real-Time Data Flow**: Send data to clients as soon as it's available, reducing perceived latency
+-   **Middleware Pipeline Support**: Apply cross-cutting concerns like logging, monitoring, and filtering to streaming requests
+-   **Auto-Discovery**: Optional automatic streaming middleware discovery and registration from assemblies
+-   **Multiple Streaming Patterns**: Support for asynchronous send/receive
+-   **High Performance**: Optimised for throughput with minimal overhead and efficient resource utilisation
+-   **Fully Testable**: Easy to unit test streaming handlers and middleware
+-   **Type Safety**: Compile-time type checking for stream requests, handlers, and responses
 
 ## Table of Contents
 

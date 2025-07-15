@@ -13,6 +13,11 @@ public class MediatorConfiguration
     public IMiddlewarePipelineBuilder PipelineBuilder { get; } = new MiddlewarePipelineBuilder();
 
     /// <summary>
+    /// Gets the notification middleware pipeline builder.
+    /// </summary>
+    public INotificationPipelineBuilder NotificationPipelineBuilder { get; } = new NotificationPipelineBuilder();
+
+    /// <summary>
     /// Initializes a new instance of the MediatorConfiguration class.
     /// </summary>
     /// <param name="services">The service collection for automatic DI registration of middleware</param>
@@ -68,6 +73,58 @@ public class MediatorConfiguration
         foreach (Type middlewareType in middlewareTypes)
         {
             AddMiddleware(middlewareType);
+        }
+        
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a notification middleware to the pipeline.
+    /// </summary>
+    /// <typeparam name="TMiddleware">The notification middleware type</typeparam>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration AddNotificationMiddleware<TMiddleware>()
+        where TMiddleware : class, INotificationMiddleware
+    {
+        NotificationPipelineBuilder.AddMiddleware<TMiddleware>();
+        
+        // Automatically register the middleware in DI if services collection is available
+        if (_services != null)
+        {
+            RegisterMiddlewareInDI(typeof(TMiddleware));
+        }
+        
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a notification middleware type to the pipeline.
+    /// </summary>
+    /// <param name="middlewareType">The notification middleware type</param>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration AddNotificationMiddleware(Type middlewareType)
+    {
+        NotificationPipelineBuilder.AddMiddleware(middlewareType);
+        
+        // Automatically register the middleware in DI if services collection is available
+        if (_services != null)
+        {
+            RegisterMiddlewareInDI(middlewareType);
+        }
+        
+        return this;
+    }
+
+    /// <summary>
+    /// Adds multiple notification middleware types to the pipeline, maintaining their relative order.
+    /// </summary>
+    /// <param name="middlewareTypes">The notification middleware types to add in order</param>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration AddNotificationMiddleware(params Type[] middlewareTypes)
+    {
+        foreach (Type middlewareType in middlewareTypes)
+        {
+            AddNotificationMiddleware(middlewareType);
         }
         
         return this;

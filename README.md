@@ -6,31 +6,41 @@ A lightweight implementation of the Mediator pattern with built-in **Command Que
 
 The Blazing.Mediator library provides:
 
--   **🎯 Pure CQRS Implementation**: Built-in Command Query Responsibility Segregation with separate interfaces for commands (`IRequest`) and queries (`IRequest<TResponse>`)
--   **🚀 Lightweight & Fast**: Minimal overhead with efficient request dispatching
--   **🤖 Auto-Discovery**: Automatic middleware and handler discovery with intelligent ordering
--   **⚙️ Zero Configuration**: Works out of the box with minimal setup and automatic handler discovery
--   **⚙️ Dependency Injection**: Full integration with .NET's built-in DI container
--   **🔒 Type Safety**: Compile-time type checking for requests and handlers
--   **🔧 Advanced Middleware Pipeline**: Optional middleware support with both standard and conditional middleware execution
+-   **Pure CQRS Implementation**: Built-in Command Query Responsibility Segregation with separate interfaces for commands (`IRequest`) and queries (`IRequest<TResponse>`)
+-   **Lightweight & Fast**: Minimal overhead with efficient request dispatching
+-   **Auto-Discovery**: Automatic middleware and handler discovery with intelligent ordering
+-   **Zero Configuration**: Works out of the box with minimal setup and automatic handler discovery
+-   **Dependency Injection**: Full integration with .NET's built-in DI container
+-   **Type Safety**: Compile-time type checking for requests and handlers
+-   **Advanced Middleware Pipeline**: Optional middleware support with both standard and conditional middleware execution
     -   **Pipeline Inspection**: `IMiddlewarePipelineInspector` for debugging and monitoring
     -   **Conditional Execution**: Execute middleware only for specific request types for optimal performance
     -   **Ordered Execution**: Control middleware execution order with priority-based sequencing
     -   **Full DI Support**: Complete dependency injection support for middleware components
--   **📦 Multiple Assembly Support**: Automatically scan and register handlers from multiple assemblies
--   **⚡ Error Handling**: Comprehensive error handling with detailed exception messages
--   **🔄 Async/Await Support**: Full asynchronous programming support throughout
--   **🧪 Testing Friendly**: Easy to mock and test individual handlers with full test coverage using Shouldly
+-   **Multiple Assembly Support**: Automatically scan and register handlers from multiple assemblies
+-   **Error Handling**: Comprehensive error handling with detailed exception messages
+-   **Async/Await Support**: Full asynchronous programming support throughout
+-   **Testing Friendly**: Easy to mock and test individual handlers with full test coverage using Shouldly
 
 ### Key Streaming Features
 
--   **🌊 Native Streaming Support**: Built-in `IStreamRequest<T>` and `IStreamRequestHandler<T,TResponse>` for memory-efficient data streaming
--   **📡 Real-time Data Processing**: Stream large datasets with `IAsyncEnumerable<T>` for optimal memory usage
--   **🚀 Stream Middleware Pipeline**: `IStreamRequestMiddleware<TRequest,TResponse>` for processing streaming requests with full pipeline support
--   **⚡ Performance Optimised**: Memory-efficient streaming without loading entire datasets into memory
--   **🔄 Backpressure Handling**: Natural flow control with async enumerable patterns
--   **📊 Multiple Streaming Patterns**: Support for JSON streaming, Server-Sent Events (SSE), and real-time data feeds
--   **🎮 Interactive Streaming**: Perfect for real-time dashboards, live data feeds, progressive loading scenarios, and AI response streaming
+-   **Native Streaming Support**: Built-in `IStreamRequest<T>` and `IStreamRequestHandler<T,TResponse>` for memory-efficient data streaming
+-   **Real-time Data Processing**: Stream large datasets with `IAsyncEnumerable<T>` for optimal memory usage
+-   **Stream Middleware Pipeline**: `IStreamRequestMiddleware<TRequest,TResponse>` for processing streaming requests with full pipeline support
+-   **Performance Optimised**: Memory-efficient streaming without loading entire datasets into memory
+-   **Backpressure Handling**: Natural flow control with async enumerable patterns
+-   **Multiple Streaming Patterns**: Support for JSON streaming, Server-Sent Events (SSE), and real-time data feeds
+-   **Interactive Streaming**: Perfect for real-time dashboards, live data feeds, progressive loading scenarios, and AI response streaming
+
+### Key Notification Features
+
+-   **Event-Driven Architecture**: Publish domain events with `INotification` and have multiple subscribers react to them
+-   **Observer Pattern**: Multiple services can subscribe to the same notification without coupling using `INotificationHandler<T>`
+-   **Subscription Management**: `INotificationSubscriber` interface for managing notification subscription lifecycle
+-   **Asynchronous Processing**: All notifications are processed asynchronously for better performance
+-   **Middleware Support**: Add cross-cutting concerns like logging and metrics to notification processing
+-   **Type Safety**: Strongly typed notifications with compile-time checking
+-   **Testable Design**: Easy to test notification publishers and subscribers
 
 ## Table of Contents
 
@@ -226,6 +236,8 @@ For comprehensive documentation, examples, and advanced scenarios, see the [Medi
 
 For streaming capabilities, real-time data processing, and advanced streaming patterns, see the [Mediator Streaming Guide](docs/MEDIATOR_STREAMING_GUIDE.md).
 
+For event-driven architecture, domain events, and notification patterns, see the [Notification System Guide](docs/NOTIFICATION_GUIDE.md).
+
 ### CQRS Implementation
 
 Blazing.Mediator naturally implements the **Command Query Responsibility Segregation (CQRS)** pattern:
@@ -294,12 +306,15 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
 
 The library includes three comprehensive sample projects demonstrating different approaches:
 
-1. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware
+1. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware and notification system
 
-    - Product and Order management
-    - Conditional logging middleware for performance
-    - Entity Framework integration
-    - FluentValidation integration
+    - Product and Order management with CQRS patterns
+    - Comprehensive notification system with domain events
+    - Real-time order status notifications and subscription management
+    - Conditional logging middleware for performance optimization
+    - Entity Framework integration with domain event publishing
+    - FluentValidation integration with validation middleware
+    - Background services for notification processing
 
 2. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
 
@@ -318,15 +333,25 @@ The library includes three comprehensive sample projects demonstrating different
 
 ## History
 
+### V1.4.0
+
+-   **Notification System**: Added comprehensive notification system with observer pattern implementation
+-   **Event-Driven Architecture**: Introduced `INotification` and `INotificationHandler<T>` for domain event publishing and handling
+-   **Subscription Management**: Added `INotificationSubscriber` interface for managing notification subscription lifecycle
+-   **Notification Middleware**: Full middleware pipeline support for notification processing with cross-cutting concerns
+-   **Complete Test Coverage**: Comprehensive test coverage for notification infrastructure with extensive test suite
+-   **Notification Documentation**: New [Notification System Guide](docs/NOTIFICATION_GUIDE.md) with comprehensive examples and patterns
+-   **Enhanced Samples**: Updated ECommerce.Api sample with notification system, domain events, and background services
+
 ### V1.3.0
 
--   **🌊 Native Streaming Support**: Added comprehensive streaming capabilities with `IStreamRequest<T>` and `IStreamRequestHandler<T,TResponse>`
--   **📡 Stream Middleware Pipeline**: Full middleware support for streaming requests with `IStreamRequestMiddleware<TRequest,TResponse>`
--   **⚡ Memory-Efficient Processing**: Stream large datasets with `IAsyncEnumerable<T>` without loading entire datasets into memory
--   **📊 Multiple Streaming Patterns**: Support for JSON streaming, Server-Sent Events (SSE), and real-time data feeds
--   **🎮 Comprehensive Streaming Sample**: New Streaming.Api sample with 6 different streaming implementations across multiple Blazor render modes
--   **🧪 Complete Test Coverage**: 100% test coverage for streaming middleware infrastructure with comprehensive test suite
--   **📖 Streaming Documentation**: New [Mediator Streaming Guide](docs/MEDIATOR_STREAMING_GUIDE.md) with advanced streaming patterns and examples
+-   **Native Streaming Support**: Added comprehensive streaming capabilities with `IStreamRequest<T>` and `IStreamRequestHandler<T,TResponse>`
+-   **Stream Middleware Pipeline**: Full middleware support for streaming requests with `IStreamRequestMiddleware<TRequest,TResponse>`
+-   **Memory-Efficient Processing**: Stream large datasets with `IAsyncEnumerable<T>` without loading entire datasets into memory
+-   **Multiple Streaming Patterns**: Support for JSON streaming, Server-Sent Events (SSE), and real-time data feeds
+-   **Comprehensive Streaming Sample**: New Streaming.Api sample with 6 different streaming implementations across multiple Blazor render modes
+-   **Complete Test Coverage**: 100% test coverage for streaming middleware infrastructure with comprehensive test suite
+-   **Streaming Documentation**: New [Mediator Streaming Guide](docs/MEDIATOR_STREAMING_GUIDE.md) with advanced streaming patterns and examples
 
 ### V1.2.0
 

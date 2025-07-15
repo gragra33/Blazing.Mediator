@@ -8,16 +8,16 @@ The Mediator pattern decouples components by having them communicate through a c
 
 ### Key Features
 
--   **🎯 Pure CQRS Implementation**: Clean separation of Commands and Queries with distinct interfaces
--   **🔧 Optional Middleware Pipeline**: Add cross-cutting concerns like logging, validation, and caching
--   **⚡ Conditional Middleware**: Execute middleware only for specific request types for optimal performance
--   **🤖 Auto-Discovery**: Automatic middleware and handler discovery with intelligent ordering
--   **⚙️ Zero Configuration**: Works out of the box with minimal setup and automatic handler discovery
--   **🚀 High Performance**: Lightweight implementation optimised for speed with minimal overhead
--   **🧪 Fully Testable**: Built with testing in mind - easy to mock and unit test handlers
--   **📦 Multiple Assembly Support**: Automatically scan and register handlers from multiple assemblies
--   **🔒 Type Safety**: Compile-time type checking for requests, handlers, and responses
--   **📖 Comprehensive Documentation**: Complete guides, examples, and sample projects
+-   **Pure CQRS Implementation**: Clean separation of Commands and Queries with distinct interfaces
+-   **Optional Middleware Pipeline**: Add cross-cutting concerns like logging, validation, and caching
+-   **Conditional Middleware**: Execute middleware only for specific request types for optimal performance
+-   **Auto-Discovery**: Automatic middleware and handler discovery with intelligent ordering
+-   **Zero Configuration**: Works out of the box with minimal setup and automatic handler discovery
+-   **High Performance**: Lightweight implementation optimised for speed with minimal overhead
+-   **Fully Testable**: Built with testing in mind - easy to mock and unit test handlers
+-   **Multiple Assembly Support**: Automatically scan and register handlers from multiple assemblies
+-   **Type Safety**: Compile-time type checking for requests, handlers, and responses
+-   **Comprehensive Documentation**: Complete guides, examples, and sample projects
 
 ## Table of Contents
 

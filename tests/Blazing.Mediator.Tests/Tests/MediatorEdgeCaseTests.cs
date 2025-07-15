@@ -21,6 +21,7 @@ public class MediatorEdgeCaseTests
         ServiceCollection services = new();
         services.AddScoped<IMediator, Mediator>();
         services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderWithoutExecuteMethod>();
+        services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
         
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -42,6 +43,7 @@ public class MediatorEdgeCaseTests
         ServiceCollection services = new();
         services.AddScoped<IMediator, Mediator>();
         services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderWithoutExecuteMethod>();
+        services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
         
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -66,6 +68,7 @@ public class MediatorEdgeCaseTests
         ServiceCollection services = new();
         services.AddScoped<IMediator, Mediator>();
         services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderReturningNull>();
+        services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
         
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -87,6 +90,7 @@ public class MediatorEdgeCaseTests
         ServiceCollection services = new();
         services.AddScoped<IMediator, Mediator>();
         services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderReturningNull>();
+        services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
         
         ServiceProvider serviceProvider = services.BuildServiceProvider();

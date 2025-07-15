@@ -2,6 +2,7 @@
 // Provides commonly used namespaces across all source files.
 
 global using Microsoft.Extensions.DependencyInjection;
+global using System.Collections.Concurrent;
 global using System.Reflection;
 
 global using Blazing.Mediator.Abstractions;

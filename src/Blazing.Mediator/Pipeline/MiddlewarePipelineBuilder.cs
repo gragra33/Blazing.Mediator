@@ -481,7 +481,7 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
                     null => throw new InvalidOperationException(
                         $"Could not create instance of stream middleware {middlewareName}. Make sure the middleware is registered in the DI container."),
                     // Check if this is conditional middleware and should execute
-                    IConditionalMiddleware<TRequest, TResponse> conditionalMiddleware when !conditionalMiddleware
+                    IConditionalStreamRequestMiddleware<TRequest, TResponse> conditionalMiddleware when !conditionalMiddleware
                         .ShouldExecute(request) => currentPipeline(),
                     _ => middleware.HandleAsync(request, currentPipeline, cancellationToken)
                 };

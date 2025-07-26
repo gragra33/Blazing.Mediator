@@ -47,30 +47,34 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
         var instanceOrderProperty = middlewareType.GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
         if (instanceOrderProperty != null && instanceOrderProperty.PropertyType == typeof(int))
         {
-            // Check if the property has a custom implementation (not the default interface implementation)
-            // We can do this by checking if it's not virtual or if it's overridden
-            if (!instanceOrderProperty.GetGetMethod()!.IsVirtual || 
-                instanceOrderProperty.DeclaringType != typeof(IRequestMiddleware<,>) && 
-                instanceOrderProperty.DeclaringType != typeof(IRequestMiddleware<>))
+            try
             {
-                try
+                // Handle generic type definitions by making them concrete first
+                Type typeToInstantiate = middlewareType;
+                if (middlewareType.IsGenericTypeDefinition)
                 {
-                    // Create a temporary instance to get the Order value
-                    object? instance = Activator.CreateInstance(middlewareType);
-                    if (instance != null)
+                    // For generic types, try to make a concrete type to get the Order value
+                    var genericArgs = middlewareType.GetGenericArguments();
+                    Type[] concreteArgs = new Type[genericArgs.Length];
+                    for (int i = 0; i < genericArgs.Length; i++)
                     {
-                        int orderValue = (int)instanceOrderProperty.GetValue(instance)!;
-                        // Only use non-default values as explicit orders
-                        if (orderValue != 0) 
-                        {
-                            return Math.Clamp(orderValue, -999, 999);
-                        }
+                        concreteArgs[i] = typeof(object); // Use object as placeholder
                     }
+                    typeToInstantiate = middlewareType.MakeGenericType(concreteArgs);
                 }
-                catch
+                
+                // Create a temporary instance to get the Order value
+                object? instance = Activator.CreateInstance(typeToInstantiate);
+                if (instance != null)
                 {
-                    // If we can't create an instance, fall through to fallback logic
+                    int orderValue = (int)instanceOrderProperty.GetValue(instance)!;
+                    // Use the actual order value from the instance
+                    return Math.Clamp(orderValue, -999, 999);
                 }
+            }
+            catch
+            {
+                // If we can't create an instance, fall through to fallback logic
             }
         }
 
@@ -218,8 +222,28 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
                 continue;
             }
 
-            // Use the cached order from registration
-            applicableMiddleware.Add((actualMiddlewareType, middlewareInfo.Order));
+            // Use the cached order from registration, but try to get actual order from instance if available
+            int actualOrder = middlewareInfo.Order;
+            
+            // Try to get the actual Order from instance if we can create one from DI
+            try
+            {
+                var instance = serviceProvider.GetService(actualMiddlewareType);
+                if (instance != null)
+                {
+                    var orderProperty = instance.GetType().GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
+                    if (orderProperty != null && orderProperty.PropertyType == typeof(int))
+                    {
+                        actualOrder = (int)orderProperty.GetValue(instance)!;
+                    }
+                }
+            }
+            catch
+            {
+                // If we can't get instance, use cached order
+            }
+            
+            applicableMiddleware.Add((actualMiddlewareType, actualOrder));
         }
 
         // Sort middleware by order (lower numbers execute first), then by registration order

@@ -307,9 +307,18 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
 
 ### Sample Projects
 
-The library includes three comprehensive sample projects demonstrating different approaches:
+The library includes four comprehensive sample projects demonstrating different approaches:
 
-1. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware and notification system
+1. **Blazing.Mediator.Examples** - Complete feature showcase and migration guide from MediatR
+
+    - All core Blazing.Mediator features with side-by-side MediatR comparisons
+    - Request/Response patterns (Ping/Pong), void commands (Jing), and notifications (Pinged)
+    - Streaming examples with `IAsyncEnumerable<T>` for real-time data processing
+    - Middleware pipeline demonstrations replacing MediatR pipeline behaviors
+    - Performance optimizations and migration patterns
+    - Perfect starting point for new users and MediatR migration
+
+2. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware and notification system
 
     - Product and Order management with CQRS patterns
     - Comprehensive notification system with domain events
@@ -319,14 +328,14 @@ The library includes three comprehensive sample projects demonstrating different
     - FluentValidation integration with validation middleware
     - Background services for notification processing
 
-2. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
+3. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
 
     - User management operations
     - Comprehensive logging middleware
     - Clean architecture patterns
     - Error handling examples
 
-3. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
+4. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
     - Memory-efficient `IAsyncEnumerable<T>` streaming with large datasets
     - JSON streaming and Server-Sent Events (SSE) endpoints
     - Multiple Blazor render modes (SSR, Auto, Static, WebAssembly)
@@ -335,6 +344,13 @@ The library includes three comprehensive sample projects demonstrating different
     - 6 different streaming examples from minimal APIs to interactive WebAssembly clients
 
 ## History
+
+### V1.4.2
+
+-   **Middleware Order Fix**: Fixed middleware order to follow registration order rather than `Order` property for more predictable behavior
+-   **Enhanced Testing**: Updated tests with stricter middleware order validation checks
+-   **New Examples Project**: Added comprehensive `Blazing.Mediator.Examples` project with detailed README showcasing all features and MediatR migration patterns
+-   **Benchmarking**: New `Blazing.Mediator.Benchmarks` project for performance testing and optimisation
 
 ### V1.4.1
 

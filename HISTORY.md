@@ -1,5 +1,12 @@
 ﻿# Version History
 
+### V1.4.2 - 26 July, 2025
+
+-   **Middleware Order Fix**: Fixed middleware order to follow registration order rather than `Order` property for more predictable behavior
+-   **Enhanced Testing**: Updated tests with stricter middleware order validation checks
+-   **New Examples Project**: Added comprehensive `Blazing.Mediator.Examples` project with detailed README showcasing all features and MediatR migration patterns
+-   **Benchmarking**: New `Blazing.Mediator.Benchmarks` project for performance testing and optimization
+
 ### V1.4.1 - 16 July, 2025
 
 -   **Missing Interface Fix**: Added missing `IConditionalStreamRequestMiddleware` interface for conditional stream middleware support

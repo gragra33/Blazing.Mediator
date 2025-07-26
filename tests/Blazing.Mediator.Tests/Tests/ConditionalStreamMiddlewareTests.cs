@@ -447,10 +447,10 @@ public class ConditionalStreamMiddlewareTests
 
         // Assert
         results.Count.ShouldBe(5);
-        // Order should be: CountBased (2) -> ValueBased (1) -> Simple (0) -> Handler
-        // So result wrapping is: ValueBased(CountBased(Conditional(Handler-special-test-X)))
-        results[0].ShouldBe("ValueBased(CountBased(Conditional(Handler-special-test-1)))");
-        results[4].ShouldBe("ValueBased(CountBased(Conditional(Handler-special-test-5)))");
+        // Order should be: Simple (0) -> ValueBased (1) -> CountBased (2) -> Handler
+        // So result wrapping is: Conditional(ValueBased(CountBased(Handler-special-test-X)))
+        results[0].ShouldBe("Conditional(ValueBased(CountBased(Handler-special-test-1)))");
+        results[4].ShouldBe("Conditional(ValueBased(CountBased(Handler-special-test-5)))");
     }
 
     /// <summary>
@@ -482,10 +482,10 @@ public class ConditionalStreamMiddlewareTests
 
         // Assert
         results.Count.ShouldBe(5);
-        // Only CountBased and Simple should execute
-        // So result wrapping is: CountBased(Conditional(Handler-regular-test-X))
-        results[0].ShouldBe("CountBased(Conditional(Handler-regular-test-1))");
-        results[4].ShouldBe("CountBased(Conditional(Handler-regular-test-5))");
+        // Only CountBased and Simple should execute in order: Simple (0) -> CountBased (2) 
+        // So result wrapping is: Conditional(CountBased(Handler-regular-test-X))
+        results[0].ShouldBe("Conditional(CountBased(Handler-regular-test-1))");
+        results[4].ShouldBe("Conditional(CountBased(Handler-regular-test-5))");
     }
 
     #endregion

@@ -1,3 +1,7 @@
+using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
+using Blazing.Mediator.Abstractions;
+
 namespace Blazing.Mediator.Pipeline;
 
 /// <summary>
@@ -10,8 +14,9 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
     private record MiddlewareInfo(Type Type, int Order, object? Configuration = null);
 
     /// <summary>
-    /// Determines the order for a middleware type, using next available order after highest explicit order as fallback.
-    /// Orders range from -999 to 999. Middleware without explicit order are assigned incrementally after the highest explicit order.
+    /// Determines the order for a middleware type. Middleware with explicit Order property use that value.
+    /// Middleware without explicit order are assigned incrementally starting from int.MaxValue - 1000000 
+    /// to ensure they execute after all explicitly ordered middleware.
     /// </summary>
     private int GetMiddlewareOrder(Type middlewareType)
     {
@@ -20,14 +25,14 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
         if (orderProperty != null && orderProperty.PropertyType == typeof(int))
         {
             int staticOrder = (int)orderProperty.GetValue(null)!;
-            return Math.Clamp(staticOrder, -999, 999);
+            return staticOrder; // No clamping - use full int range
         }
 
         var orderField = middlewareType.GetField("Order", BindingFlags.Public | BindingFlags.Static);
         if (orderField != null && orderField.FieldType == typeof(int))
         {
             int staticOrder = (int)orderField.GetValue(null)!;
-            return Math.Clamp(staticOrder, -999, 999);
+            return staticOrder; // No clamping - use full int range
         }
 
         // Check for OrderAttribute if it exists (common pattern)
@@ -39,7 +44,7 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
             if (orderProp != null && orderProp.PropertyType == typeof(int))
             {
                 int attrOrder = (int)orderProp.GetValue(orderAttribute)!;
-                return Math.Clamp(attrOrder, -999, 999);
+                return attrOrder; // No clamping - use full int range
             }
         }
 
@@ -68,8 +73,7 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
                 if (instance != null)
                 {
                     int orderValue = (int)instanceOrderProperty.GetValue(instance)!;
-                    // Use the actual order value from the instance
-                    return Math.Clamp(orderValue, -999, 999);
+                    return orderValue; // No clamping - use full int range
                 }
             }
             catch
@@ -78,19 +82,14 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
             }
         }
 
-        // Fallback: assign order after the highest explicitly set order
-        // If no middleware registered yet, start from 1
-        if (_middlewareInfos.Count == 0)
-        {
-            return 1;
-        }
-
-        // Find the highest explicit order and add 1
-        var highestExplicitOrder = _middlewareInfos.Max(m => m.Order);
+        // Fallback: middleware has no explicit order, assign it after all explicitly ordered middleware
+        // Use a high base value (int.MaxValue - 1000000) and increment from there to maintain discovery order
+        const int unorderedMiddlewareBaseOrder = int.MaxValue - 1000000;
         
-        // Ensure we don't exceed the maximum allowed order
-        var nextOrder = highestExplicitOrder + 1;
-        return Math.Min(nextOrder, 999);
+        // Count how many unordered middleware we already have to maintain discovery order
+        int unorderedCount = _middlewareInfos.Count(m => m.Order >= unorderedMiddlewareBaseOrder);
+        
+        return unorderedMiddlewareBaseOrder + unorderedCount;
     }
 
     /// <inheritdoc />
@@ -137,6 +136,88 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
     {
         return _middlewareInfos.ToDictionary(info => info.Type, info => info.Configuration);
     }
+
+    /// <inheritdoc />
+    public IReadOnlyList<(Type Type, int Order, object? Configuration)> GetDetailedMiddlewareInfo(IServiceProvider? serviceProvider = null)
+    {
+        if (serviceProvider == null)
+        {
+            // Return cached registration-time order values
+            return _middlewareInfos.Select(info => (info.Type, info.Order, info.Configuration)).ToList();
+        }
+
+        // Use service provider to get actual runtime order values using the same logic as ExecutePipeline
+        var result = new List<(Type Type, int Order, object? Configuration)>();
+        
+        foreach (var middlewareInfo in _middlewareInfos)
+        {
+            int actualOrder = middlewareInfo.Order; // Start with cached order
+            
+            try
+            {
+                if (middlewareInfo.Type.IsGenericTypeDefinition)
+                {
+                    // Use the same logic as ExecutePipeline to make concrete types
+                    var genericParams = middlewareInfo.Type.GetGenericArguments();
+                    Type? actualMiddlewareType = null;
+                    
+                    switch (genericParams)
+                    {
+                        case { Length: 2 }:
+                            // Check if this is meant for IRequestMiddleware<TRequest, TResponse>
+                            // Create concrete type with minimal types that satisfy IRequest constraints
+                            actualMiddlewareType = middlewareInfo.Type.MakeGenericType(typeof(MinimalRequest), typeof(object));
+                            break;
+                        case { Length: 1 }:
+                            // Check if this is meant for IRequestMiddleware<TRequest> 
+                            // Create concrete type for single parameter middleware
+                            actualMiddlewareType = middlewareInfo.Type.MakeGenericType(typeof(MinimalRequest));
+                            break;
+                    }
+                    
+                    if (actualMiddlewareType != null)
+                    {
+                        // Try to get the actual Order from instance - same as ExecutePipeline
+                        var instance = serviceProvider.GetService(actualMiddlewareType);
+                        if (instance != null)
+                        {
+                            var orderProperty = instance.GetType().GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
+                            if (orderProperty != null && orderProperty.PropertyType == typeof(int))
+                            {
+                                actualOrder = (int)orderProperty.GetValue(instance)!;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // For non-generic types, resolve directly from DI - same as ExecutePipeline
+                    var instance = serviceProvider.GetService(middlewareInfo.Type);
+                    if (instance != null)
+                    {
+                        var orderProperty = instance.GetType().GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
+                        if (orderProperty != null && orderProperty.PropertyType == typeof(int))
+                        {
+                            actualOrder = (int)orderProperty.GetValue(instance)!;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // If we can't get instance, use cached order - same as ExecutePipeline
+            }
+            
+            result.Add((middlewareInfo.Type, actualOrder, middlewareInfo.Configuration));
+        }
+        
+        return result;
+    }
+
+    /// <summary>
+    /// Minimal request implementation that satisfies both IRequest and IRequest{T} constraints for middleware inspection.
+    /// </summary>
+    private class MinimalRequest : IRequest, IRequest<object> { /* skipped */ }
 
     /// <inheritdoc />
     public RequestHandlerDelegate<TResponse> Build<TRequest, TResponse>(

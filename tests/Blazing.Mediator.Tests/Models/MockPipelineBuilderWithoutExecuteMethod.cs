@@ -40,4 +40,9 @@ public class MockPipelineBuilderWithoutExecuteMethod : IMiddlewarePipelineBuilde
     {
         return finalHandler;
     }
+    public IReadOnlyList<(Type Type, int Order, object? Configuration)> GetDetailedMiddlewareInfo(IServiceProvider? serviceProvider = null)
+    {
+        // Return an empty list for testing purposes
+        return new List<(Type, int, object?)>();
+    }
 }

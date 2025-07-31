@@ -13,7 +13,7 @@ The Blazing.Mediator library provides:
 -   **Dependency Injection**: Full integration with .NET's built-in DI container
 -   **Type Safety**: Compile-time type checking for requests and handlers
 -   **Advanced Middleware Pipeline**: Optional middleware support with both standard and conditional middleware execution
-    -   **Pipeline Inspection**: `IMiddlewarePipelineInspector` for debugging and monitoring
+    -   **Pipeline Inspection**: `IMiddlewarePipelineInspector` for advanced debugging and monitoring
     -   **Conditional Execution**: Execute middleware only for specific request types for optimal performance
     -   **Ordered Execution**: Control middleware execution order with priority-based sequencing
     -   **Full DI Support**: Complete dependency injection support for middleware components
@@ -63,13 +63,7 @@ The Blazing.Mediator library provides:
 -   [Middleware Pipeline](#middleware-pipeline)
 -   [Sample Projects](#sample-projects)
 -   [History](#history)
--   [V1.4.1](#v141)
--   [V1.4.0](#v140)
--   [V1.3.0](#v130)
--   [V1.2.0](#v120)
--   [V1.1.0](#v110)
--   [V1.0.0](#v100)
-<!-- TOC -->
+    -   [V1.5.0](#v150)
 
 ## Quick Start
 
@@ -307,7 +301,7 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
 
 ### Sample Projects
 
-The library includes four comprehensive sample projects demonstrating different approaches:
+The library includes five comprehensive sample projects demonstrating different approaches:
 
 1. **Blazing.Mediator.Examples** - Complete feature showcase and migration guide from MediatR
 
@@ -318,7 +312,17 @@ The library includes four comprehensive sample projects demonstrating different 
     - Performance optimizations and migration patterns
     - Perfect starting point for new users and MediatR migration
 
-2. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware and notification system
+2. **MiddlewareExample** _**(NEW!)**_ - Console application demonstrating comprehensive middleware pipeline and inspection capabilities
+
+    - E-commerce scenario with CQRS patterns and auto-registration functionality
+    - Advanced middleware pipeline with ordered execution and concrete/generic middleware with conditional operation
+    - Simple error handling and multi-validation middleware examples
+    - FluentValidation integration with error handling and retry patterns
+    - Enhanced `IMiddlewarePipelineInspector` for debugging and monitoring middleware execution
+    - `MiddlewarePipelineAnalyzer` helper class for runtime pipeline analysis and introspection
+    - detailed readme documentation included
+
+3. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware and notification system
 
     - Product and Order management with CQRS patterns
     - Comprehensive notification system with domain events
@@ -328,14 +332,14 @@ The library includes four comprehensive sample projects demonstrating different 
     - FluentValidation integration with validation middleware
     - Background services for notification processing
 
-3. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
+4. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
 
     - User management operations
     - Comprehensive logging middleware
     - Clean architecture patterns
     - Error handling examples
 
-4. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
+5. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
     - Memory-efficient `IAsyncEnumerable<T>` streaming with large datasets
     - JSON streaming and Server-Sent Events (SSE) endpoints
     - Multiple Blazor render modes (SSR, Auto, Static, WebAssembly)
@@ -344,6 +348,12 @@ The library includes four comprehensive sample projects demonstrating different 
     - 6 different streaming examples from minimal APIs to interactive WebAssembly clients
 
 ## History
+
+### V1.5.0
+
+-   **Expanded Middleware Order Range**: Expanded ordered middleware range from -999/999 to int.MinValue/int.MaxValue for greater flexibility
+-   **Enhanced Pipeline Inspection**: Enhanced `IMiddlewarePipelineInspector` with sample usage in `MiddlewareExample` sample project
+-   **New MiddlewareExample Project**: New `MiddlewareExample` project to demonstrate the simple yet powerful pipeline capabilities - includes `ErrorHandlingMiddleware` & `ValidationMiddleware` implementations. Documentation included.
 
 ### V1.4.2
 

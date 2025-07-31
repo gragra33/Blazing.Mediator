@@ -1,5 +1,11 @@
 ﻿# Version History
 
+### V1.5.0 - 31 July, 2025
+
+-   **Expanded Middleware Order Range**: Expanded ordered middleware range from -999/999 to int.MinValue/int.MaxValue for greater flexibility
+-   **Enhanced Pipeline Inspection**: Enhanced `IMiddlewarePipelineInspector` with sample usage in `MiddlewareExample` sample project
+-   **New MiddlewareExample Project**: New `MiddlewareExample` project to demonstrate the simple yet powerful pipeline capabilities - includes `ErrorHandlingMiddleware` & `ValidationMiddleware` implementations. Documentation included.
+
 ### V1.4.2 - 26 July, 2025
 
 -   **Middleware Order Fix**: Fixed middleware order to follow registration order rather than `Order` property for more predictable behavior

@@ -36,4 +36,8 @@ public class MockPipelineBuilderReturningNull : IMiddlewarePipelineBuilder, IMid
     {
         return finalHandler;
     }
+    public IReadOnlyList<(Type Type, int Order, object? Configuration)> GetDetailedMiddlewareInfo(IServiceProvider? serviceProvider = null)
+    {
+        return new List<(Type, int, object?)>();
+    }
 }

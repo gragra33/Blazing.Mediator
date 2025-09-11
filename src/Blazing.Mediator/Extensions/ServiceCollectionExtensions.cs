@@ -48,7 +48,7 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediator(this IServiceCollection services, bool discoverMiddleware, params Assembly[]? assemblies)
     {
-        return services.AddMediator(null, discoverMiddleware, assemblies);
+        return services.AddMediator(null, discoverMiddleware, discoverMiddleware, assemblies ?? Array.Empty<Assembly>());
     }
 
     /// <summary>  
@@ -60,7 +60,31 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediator(this IServiceCollection services, bool discoverMiddleware, params Type[]? assemblyMarkerTypes)
     {
-        return services.AddMediator(null, discoverMiddleware, assemblyMarkerTypes);
+        return services.AddMediator(null, discoverMiddleware, discoverMiddleware, assemblyMarkerTypes);
+    }
+
+    /// <summary>  
+    /// Adds mediator services with automatic notification middleware discovery from multiple assemblies.  
+    /// </summary>  
+    /// <param name="services">The service collection.</param>  
+    /// <param name="discoverNotificationMiddleware">Whether to automatically discover and register notification middleware from assemblies.</param>  
+    /// <param name="assemblies">Assemblies to scan for handlers and middleware.</param>  
+    /// <returns>The service collection for chaining.</returns>  
+    public static IServiceCollection AddMediatorWithNotificationMiddleware(this IServiceCollection services, bool discoverNotificationMiddleware, params Assembly[]? assemblies)
+    {
+        return services.AddMediator(null, discoverMiddleware: false, discoverNotificationMiddleware, assemblies ?? Array.Empty<Assembly>());
+    }
+
+    /// <summary>  
+    /// Adds mediator services with automatic notification middleware discovery from assemblies containing the specified types.  
+    /// </summary>  
+    /// <param name="services">The service collection.</param>  
+    /// <param name="discoverNotificationMiddleware">Whether to automatically discover and register notification middleware from assemblies.</param>  
+    /// <param name="assemblyMarkerTypes">Types used to identify assemblies to scan.</param>  
+    /// <returns>The service collection for chaining.</returns>  
+    public static IServiceCollection AddMediatorWithNotificationMiddleware(this IServiceCollection services, bool discoverNotificationMiddleware, params Type[]? assemblyMarkerTypes)
+    {
+        return services.AddMediator(null, discoverMiddleware: false, discoverNotificationMiddleware, assemblyMarkerTypes);
     }
 
     /// <summary>  
@@ -131,24 +155,29 @@ public static class ServiceCollectionExtensions
     /// </summary>  
     /// <param name="services">The service collection.</param>  
     /// <param name="configureMiddleware">Optional action to configure middleware pipeline.</param>  
-    /// <param name="discoverMiddleware">Whether to automatically discover and register middleware from assemblies.</param>  
+    /// <param name="discoverMiddleware">Whether to automatically discover and register request middleware from assemblies. Defaults to false if null.</param>  
+    /// <param name="discoverNotificationMiddleware">Whether to automatically discover and register notification middleware from assemblies. Defaults to false if null.</param>  
     /// <param name="assemblies">Assemblies to scan for handlers and optionally middleware.</param>  
     /// <returns>The service collection for chaining.</returns>  
-    public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? configureMiddleware, bool discoverMiddleware, params Assembly[]? assemblies)
+    public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? configureMiddleware, bool? discoverMiddleware = null, bool? discoverNotificationMiddleware = null, params Assembly[]? assemblies)
     {
+        // Convert null values to false for backward compatibility
+        bool actualDiscoverMiddleware = discoverMiddleware ?? false;
+        bool actualDiscoverNotificationMiddleware = discoverNotificationMiddleware ?? false;
+
+        // If no assemblies provided, default to calling assembly
+        assemblies ??= new[] { Assembly.GetCallingAssembly() };
+
         services.AddScoped<IMediator, Mediator>();
 
-        // Configure middleware
-        MediatorConfiguration configuration = new(services);
-
-        // Auto-discover middleware from assemblies if requested
-        if (discoverMiddleware && assemblies is { Length: > 0 })
-        {
-            RegisterMiddleware(configuration, assemblies);
-        }
-
-        // Apply user configuration after auto-discovery to allow overrides
+        // Configure middleware if provided
+        var configuration = new MediatorConfiguration(services);
         configureMiddleware?.Invoke(configuration);
+
+        if (actualDiscoverMiddleware || actualDiscoverNotificationMiddleware)
+        {
+            RegisterMiddleware(configuration, assemblies, actualDiscoverMiddleware, actualDiscoverNotificationMiddleware);
+        }
 
         services.AddSingleton(configuration);
 
@@ -165,17 +194,20 @@ public static class ServiceCollectionExtensions
             provider.GetRequiredService<IMiddlewarePipelineBuilder>() as IMiddlewarePipelineInspector
             ?? throw new InvalidOperationException("Pipeline builder must implement IMiddlewarePipelineInspector"));
 
-        if (assemblies is not { Length: > 0 })
-        {
-            return services;
-        }
+        // Register notification pipeline inspector for debugging (same instance as notification pipeline builder)
+        services.AddScoped(provider =>
+            provider.GetRequiredService<INotificationPipelineBuilder>() as INotificationMiddlewarePipelineInspector
+            ?? throw new InvalidOperationException("Notification pipeline builder must implement INotificationMiddlewarePipelineInspector"));
 
-        // Deduplicate assemblies to prevent duplicate registrations  
-        Assembly[] uniqueAssemblies = assemblies.Distinct().ToArray();
-
-        foreach (Assembly assembly in uniqueAssemblies)
+        if (assemblies is { Length: > 0 })
         {
-            RegisterHandlers(services, assembly);
+            // Deduplicate assemblies to prevent duplicate registrations  
+            Assembly[] uniqueAssemblies = assemblies.Distinct().ToArray();
+
+            foreach (Assembly assembly in uniqueAssemblies)
+            {
+                RegisterHandlers(services, assembly);
+            }
         }
 
         return services;
@@ -191,13 +223,27 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? configureMiddleware, bool discoverMiddleware, params Type[]? assemblyMarkerTypes)
     {
+        return services.AddMediator(configureMiddleware, discoverMiddleware, discoverMiddleware, assemblyMarkerTypes);
+    }
+
+    /// <summary>  
+    /// Adds mediator services with optional middleware auto-discovery from assemblies containing the specified types.  
+    /// </summary>  
+    /// <param name="services">The service collection.</param>  
+    /// <param name="configureMiddleware">Optional action to configure middleware pipeline.</param>  
+    /// <param name="discoverMiddleware">Whether to automatically discover and register request middleware from assemblies.</param>  
+    /// <param name="discoverNotificationMiddleware">Whether to automatically discover and register notification middleware from assemblies.</param>  
+    /// <param name="assemblyMarkerTypes">Types used to identify assemblies to scan.</param>  
+    /// <returns>The service collection for chaining.</returns>  
+    public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? configureMiddleware, bool discoverMiddleware, bool discoverNotificationMiddleware, params Type[]? assemblyMarkerTypes)
+    {
         if (assemblyMarkerTypes == null || assemblyMarkerTypes.Length == 0)
         {
-            return services.AddMediator(configureMiddleware, discoverMiddleware, (Assembly[])null!);
+            return services.AddMediator(configureMiddleware, discoverMiddleware, discoverNotificationMiddleware, (Assembly[])null!);
         }
 
         Assembly[] assemblies = assemblyMarkerTypes.Select(t => t.Assembly).Distinct().ToArray();
-        return services.AddMediator(configureMiddleware, discoverMiddleware, assemblies);
+        return services.AddMediator(configureMiddleware, discoverMiddleware, discoverNotificationMiddleware, assemblies);
     }
 
     #endregion
@@ -223,7 +269,7 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediatorFromCallingAssembly(this IServiceCollection services, bool discoverMiddleware)
     {
-        return services.AddMediatorFromCallingAssembly(null, discoverMiddleware);
+        return services.AddMediatorFromCallingAssembly(null, discoverMiddleware, discoverMiddleware);
     }
 
     /// <summary>  
@@ -247,8 +293,21 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediatorFromCallingAssembly(this IServiceCollection services, Action<MediatorConfiguration>? configureMiddleware, bool discoverMiddleware)
     {
+        return services.AddMediatorFromCallingAssembly(configureMiddleware, discoverMiddleware, discoverMiddleware);
+    }
+
+    /// <summary>  
+    /// Adds mediator services with optional middleware auto-discovery and automatically scans the calling assembly.  
+    /// </summary>  
+    /// <param name="services">The service collection.</param>  
+    /// <param name="configureMiddleware">Optional action to configure middleware pipeline.</param>  
+    /// <param name="discoverMiddleware">Whether to automatically discover and register request middleware from the assembly.</param>  
+    /// <param name="discoverNotificationMiddleware">Whether to automatically discover and register notification middleware from the assembly.</param>  
+    /// <returns>The service collection for chaining.</returns>  
+    public static IServiceCollection AddMediatorFromCallingAssembly(this IServiceCollection services, Action<MediatorConfiguration>? configureMiddleware, bool discoverMiddleware, bool discoverNotificationMiddleware)
+    {
         Assembly callingAssembly = Assembly.GetCallingAssembly();
-        return services.AddMediator(configureMiddleware, discoverMiddleware, callingAssembly);
+        return services.AddMediator(configureMiddleware, discoverMiddleware, discoverNotificationMiddleware, callingAssembly);
     }
 
     #endregion
@@ -314,6 +373,20 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediatorFromLoadedAssemblies(this IServiceCollection services, Action<MediatorConfiguration>? configureMiddleware, bool discoverMiddleware, Func<Assembly, bool>? assemblyFilter = null)
     {
+        return services.AddMediatorFromLoadedAssemblies(configureMiddleware, discoverMiddleware, discoverMiddleware, assemblyFilter);
+    }
+
+    /// <summary>  
+    /// Adds mediator services with optional middleware auto-discovery and scans all loaded assemblies for handlers.  
+    /// </summary>  
+    /// <param name="services">The service collection.</param>  
+    /// <param name="configureMiddleware">Optional action to configure middleware pipeline.</param>  
+    /// <param name="discoverMiddleware">Whether to automatically discover and register request middleware from assemblies.</param>  
+    /// <param name="discoverNotificationMiddleware">Whether to automatically discover and register notification middleware from assemblies.</param>  
+    /// <param name="assemblyFilter">Optional filter to include specific assemblies.</param>  
+    /// <returns>The service collection for chaining.</returns>  
+    public static IServiceCollection AddMediatorFromLoadedAssemblies(this IServiceCollection services, Action<MediatorConfiguration>? configureMiddleware, bool discoverMiddleware, bool discoverNotificationMiddleware, Func<Assembly, bool>? assemblyFilter = null)
+    {
         Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
         if (assemblyFilter != null)
@@ -321,7 +394,7 @@ public static class ServiceCollectionExtensions
             assemblies = assemblies.Where(assemblyFilter).ToArray();
         }
 
-        return services.AddMediator(configureMiddleware, discoverMiddleware, assemblies);
+        return services.AddMediator(configureMiddleware, discoverMiddleware, discoverNotificationMiddleware, assemblies);
     }
 
     #endregion
@@ -335,12 +408,24 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblies">Assemblies to scan for middleware.</param>  
     private static void RegisterMiddleware(MediatorConfiguration configuration, Assembly[] assemblies)
     {
+        RegisterMiddleware(configuration, assemblies, discoverMiddleware: true, discoverNotificationMiddleware: true);
+    }
+
+    /// <summary>  
+    /// Registers middleware from the specified assemblies.  
+    /// </summary>  
+    /// <param name="configuration">The mediator configuration.</param>  
+    /// <param name="assemblies">Assemblies to scan for middleware.</param>  
+    /// <param name="discoverMiddleware">Whether to discover request middleware.</param>  
+    /// <param name="discoverNotificationMiddleware">Whether to discover notification middleware.</param>  
+    private static void RegisterMiddleware(MediatorConfiguration configuration, Assembly[] assemblies, bool discoverMiddleware, bool discoverNotificationMiddleware)
+    {
         // Deduplicate assemblies
         Assembly[] uniqueAssemblies = assemblies.Distinct().ToArray();
 
         foreach (Assembly assembly in uniqueAssemblies)
         {
-            RegisterMiddlewareFromAssembly(configuration, assembly);
+            RegisterMiddlewareFromAssembly(configuration, assembly, discoverMiddleware, discoverNotificationMiddleware);
         }
     }
 
@@ -351,29 +436,54 @@ public static class ServiceCollectionExtensions
     /// <param name="assembly">Assembly to scan for middleware.</param>  
     private static void RegisterMiddlewareFromAssembly(MediatorConfiguration configuration, Assembly assembly)
     {
+        RegisterMiddlewareFromAssembly(configuration, assembly, discoverMiddleware: true, discoverNotificationMiddleware: true);
+    }
+
+    /// <summary>  
+    /// Registers middleware from a single assembly.  
+    /// </summary>  
+    /// <param name="configuration">The mediator configuration.</param>  
+    /// <param name="assembly">Assembly to scan for middleware.</param>  
+    /// <param name="discoverMiddleware">Whether to discover request middleware.</param>  
+    /// <param name="discoverNotificationMiddleware">Whether to discover notification middleware.</param>  
+    private static void RegisterMiddlewareFromAssembly(MediatorConfiguration configuration, Assembly assembly, bool discoverMiddleware, bool discoverNotificationMiddleware)
+    {
         List<Type> middlewareTypes = assembly.GetTypes()
             .Where(t =>
                 t is { IsAbstract: false, IsInterface: false } &&
-                t.GetInterfaces().Any(IsMiddlewareType))
+                t.GetInterfaces().Any(i => IsMiddlewareType(i, discoverMiddleware, discoverNotificationMiddleware)))
             .ToList();
 
         foreach (Type middlewareType in middlewareTypes)
         {
-            configuration.AddMiddleware(middlewareType);
+            // Check if it's a notification middleware type
+            bool isNotificationMiddleware = middlewareType.GetInterfaces().Any(i => 
+                i == typeof(INotificationMiddleware) || 
+                i == typeof(IConditionalNotificationMiddleware));
+                
+            if (isNotificationMiddleware)
+            {
+                configuration.AddNotificationMiddleware(middlewareType);
+            }
+            else
+            {
+                configuration.AddMiddleware(middlewareType);
+            }
         }
 
         return;
 
-        static bool IsMiddlewareType(Type i) =>
-            (i.IsGenericType &&
+        static bool IsMiddlewareType(Type i, bool includeRequestMiddleware, bool includeNotificationMiddleware) =>
+            (includeRequestMiddleware && i.IsGenericType &&
             (i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<>) ||
              i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>) ||
              i.GetGenericTypeDefinition() == typeof(IConditionalMiddleware<>) ||
              i.GetGenericTypeDefinition() == typeof(IConditionalMiddleware<,>) ||
              i.GetGenericTypeDefinition() == typeof(IStreamRequestMiddleware<,>) ||
              i.GetGenericTypeDefinition() == typeof(IConditionalStreamRequestMiddleware<,>))) ||
-             typeof(INotificationMiddleware).IsAssignableFrom(i) ||
-             typeof(IConditionalNotificationMiddleware).IsAssignableFrom(i);
+             (includeNotificationMiddleware && 
+             (i == typeof(INotificationMiddleware) ||
+             i == typeof(IConditionalNotificationMiddleware)));
     }
 
     /// <summary>  

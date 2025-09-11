@@ -350,6 +350,26 @@ builder.Services.AddMediator(config =>
 }, typeof(Program).Assembly);
 ```
 
+### Auto-Discovery for Notification Middleware (v1.6.0+)
+
+Originally, `AddMediator` supported automatic discovery of both request and notification middleware only. Starting with v1.6.0, to give greater flexibility, you can enable now seperate the two middlewares and use automatic discovery of notification middleware via a new paramater setting:
+
+```csharp
+// Program.cs - Auto-discover notification middleware only
+builder.Services.AddMediatorWithNotificationMiddleware(
+    discoverNotificationMiddleware: true,
+    typeof(Program).Assembly
+);
+
+// Or use the main method with granular control
+builder.Services.AddMediator(
+    configureMiddleware: null,
+    discoverMiddleware: false,                    // Don't auto-discover request middleware
+    discoverNotificationMiddleware: true,         // Auto-discover notification middleware
+    typeof(Program).Assembly
+);
+```
+
 ### Manual Subscriber Registration
 
 ```csharp
@@ -477,6 +497,116 @@ public class NotificationMetrics
     public TimeSpan AverageDuration => TotalCount > 0 ? TimeSpan.FromTicks(TotalDuration.Ticks / TotalCount) : TimeSpan.Zero;
 }
 ```
+
+### Notification Pipeline Debugging and Monitoring
+
+Blazing.Mediator provides comprehensive debugging and monitoring capabilities for notification middleware through the `INotificationMiddlewarePipelineInspector` interface. This is essential for understanding notification middleware execution order, troubleshooting pipeline issues, and monitoring performance.
+
+#### Notification Pipeline Inspector Interface
+
+The `INotificationMiddlewarePipelineInspector` interface provides several methods for inspecting the notification middleware pipeline:
+
+```csharp
+public interface INotificationMiddlewarePipelineInspector
+{
+    // Get basic notification middleware types
+    IReadOnlyList<Type> GetRegisteredMiddleware();
+
+    // Get notification middleware with configuration
+    IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration();
+
+    // Get detailed notification middleware info with order values
+    IReadOnlyList<(Type Type, int Order, object? Configuration)> GetDetailedMiddlewareInfo(IServiceProvider? serviceProvider = null);
+
+    // NEW: Advanced notification middleware analysis
+    IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider);
+}
+```
+
+#### Using AnalyzeMiddleware for Notification Pipeline Debugging
+
+The new `AnalyzeMiddleware` method provides comprehensive notification pipeline analysis, returning detailed information about each notification middleware component:
+
+```csharp
+public class NotificationDebugService
+{
+    private readonly INotificationMiddlewarePipelineInspector _pipelineInspector;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<NotificationDebugService> _logger;
+
+    public NotificationDebugService(
+        INotificationMiddlewarePipelineInspector pipelineInspector,
+        IServiceProvider serviceProvider,
+        ILogger<NotificationDebugService> logger)
+    {
+        _pipelineInspector = pipelineInspector;
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+
+    public void AnalyzeNotificationPipeline()
+    {
+        // Get detailed notification middleware analysis
+        var middlewareAnalysis = _pipelineInspector.AnalyzeMiddleware(_serviceProvider);
+
+        _logger.LogInformation("🔔 Notification Middleware Pipeline Analysis");
+        _logger.LogInformation("═══════════════════════════════════════════════");
+
+        foreach (var middleware in middlewareAnalysis)
+        {
+            _logger.LogInformation(
+                "🔧 {Order,5} | {ClassName}{TypeParameters}",
+                middleware.OrderDisplay,
+                middleware.ClassName,
+                middleware.TypeParameters);
+        }
+
+        _logger.LogInformation("═══════════════════════════════════════════════");
+        _logger.LogInformation("📈 Total notification middleware components: {Count}", middlewareAnalysis.Count);
+    }
+}
+```
+
+#### Example Notification Pipeline Analysis Output
+
+```
+🔔 Notification Middleware Pipeline Analysis
+═══════════════════════════════════════════════
+🔧 int.MinValue | NotificationErrorHandlingMiddleware
+🔧    -1 | NotificationValidationMiddleware
+🔧     0 | NotificationLoggingMiddleware
+🔧     1 | NotificationMetricsMiddleware
+🔧    10 | NotificationCachingMiddleware
+🔧 int.MaxValue | NotificationFinalProcessingMiddleware
+═══════════════════════════════════════════════
+📈 Total notification middleware components: 6
+```
+
+#### Accessing the Notification Pipeline Inspector
+
+The notification pipeline inspector is automatically registered when you add Blazing.Mediator to your services:
+
+```csharp
+// In your service constructor
+public class MyNotificationService
+{
+    public MyNotificationService(INotificationMiddlewarePipelineInspector pipelineInspector)
+    {
+        // Inspector is automatically available
+    }
+}
+
+// Or resolve it directly from the service provider
+var inspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
+```
+
+#### Best Practices for Notification Pipeline Debugging
+
+1. **Development Monitoring**: Use pipeline analysis during development to understand notification middleware execution
+2. **Performance Tracking**: Monitor notification middleware order and execution for performance optimization
+3. **Troubleshooting**: Use when debugging unexpected notification middleware behavior or execution order
+4. **Health Checks**: Include notification pipeline analysis in health checks and monitoring dashboards
+5. **Documentation**: Generate notification pipeline documentation automatically using the analysis output
 
 ## Background Services
 

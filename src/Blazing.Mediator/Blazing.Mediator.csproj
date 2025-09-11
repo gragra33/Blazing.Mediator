@@ -7,7 +7,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Blazing.Mediator</PackageId>
-    <Version>1.5.0</Version>
+    <Version>1.6.0</Version>
     <Authors>Graeme Grant</Authors>
     <Product>Blazing.Mediator</Product>
     <Description>A high-performance, lightweight implementation of the Mediator pattern with built-in CQRS support for .NET applications. Features advanced middleware pipeline with ordered execution, conditional middleware, automatic DI registration, and pipeline inspection. Supports native streaming capabilities with middleware support for IAsyncEnumerable data processing, JSON streaming, Server-Sent Events (SSE), and AI response streaming. Includes notification system with middleware pipeline support and real-time event processing.</Description>

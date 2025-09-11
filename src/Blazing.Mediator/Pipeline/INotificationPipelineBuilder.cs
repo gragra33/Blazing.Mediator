@@ -15,6 +15,15 @@ public interface INotificationPipelineBuilder
         where TMiddleware : class, INotificationMiddleware;
 
     /// <summary>
+    /// Adds a notification middleware type to the pipeline with configuration.
+    /// </summary>
+    /// <typeparam name="TMiddleware">The middleware type that implements INotificationMiddleware</typeparam>
+    /// <param name="configuration">Optional configuration object for the middleware</param>
+    /// <returns>The pipeline builder for chaining</returns>
+    INotificationPipelineBuilder AddMiddleware<TMiddleware>(object? configuration)
+        where TMiddleware : class, INotificationMiddleware;
+
+    /// <summary>
     /// Adds a notification middleware type to the pipeline using a Type parameter.
     /// </summary>
     /// <param name="middlewareType">The notification middleware type</param>

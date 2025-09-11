@@ -1697,7 +1697,7 @@ builder.Services.AddMediator(config =>
 
 Blazing.Mediator supports automatic middleware discovery to simplify configuration and reduce boilerplate code. Instead of manually registering each middleware type, you can enable auto-discovery to automatically find and register all middleware implementations in the specified assemblies.
 
-##### Basic Auto-Discovery
+##### Basic Auto-Discovery (All Middleware)
 
 ```csharp
 // Program.cs - Auto-discover all middleware in the current assembly
@@ -1705,6 +1705,26 @@ builder.Services.AddMediator(typeof(Program).Assembly, discoverMiddleware: true)
 
 // Even simpler - auto-discover from calling assembly
 builder.Services.AddMediatorFromCallingAssembly(discoverMiddleware: true);
+```
+
+##### Granular Auto-Discovery (New in v1.6.0)
+
+Starting with v1.6.0, you can separately control auto-discovery for request middleware and notification middleware:
+
+```csharp
+// Program.cs - Separate control over middleware auto-discovery
+builder.Services.AddMediator(
+    configureMiddleware: null,
+    discoverMiddleware: true,             // Auto-discover request middleware
+    discoverNotificationMiddleware: false, // Manual registration for notification middleware
+    typeof(Program).Assembly
+);
+
+// Or use the dedicated notification middleware method
+builder.Services.AddMediatorWithNotificationMiddleware(
+    discoverNotificationMiddleware: true,
+    typeof(Program).Assembly
+);
 ```
 
 ##### Auto-Discovery with Multiple Assemblies
@@ -1716,6 +1736,15 @@ builder.Services.AddMediator(
     typeof(Program).Assembly,                    // Current assembly (API)
     typeof(OrderLoggingMiddleware<,>).Assembly,  // Application layer
     typeof(ValidationMiddleware<,>).Assembly     // Infrastructure layer
+);
+
+// With granular control (v1.6.0+)
+builder.Services.AddMediator(
+    discoverMiddleware: true,                     // Auto-discover request middleware
+    discoverNotificationMiddleware: true,         // Auto-discover notification middleware
+    typeof(Program).Assembly,
+    typeof(OrderLoggingMiddleware<,>).Assembly,
+    typeof(ValidationMiddleware<,>).Assembly
 );
 ```
 
@@ -1987,6 +2016,131 @@ public class CachingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRe
 -   **Use Structured Logging**: Include relevant properties in log messages
 -   **Be Mindful of Sensitive Data**: Don't log passwords, tokens, or personal information
 -   **Use Log Levels Appropriately**: Information for normal flow, Warning for business issues, Error for exceptions
+
+### Pipeline Debugging and Monitoring
+
+Blazing.Mediator provides comprehensive debugging and monitoring capabilities through the `IMiddlewarePipelineInspector` interface. This is essential for understanding middleware execution order, troubleshooting pipeline issues, and monitoring performance.
+
+#### Pipeline Inspector Interface
+
+The `IMiddlewarePipelineInspector` interface provides several methods for inspecting the middleware pipeline:
+
+```csharp
+public interface IMiddlewarePipelineInspector
+{
+    // Get basic middleware types
+    IReadOnlyList<Type> GetRegisteredMiddleware();
+
+    // Get middleware with configuration
+    IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration();
+
+    // Get detailed middleware info with order values
+    IReadOnlyList<(Type Type, int Order, object? Configuration)> GetDetailedMiddlewareInfo(IServiceProvider? serviceProvider = null);
+
+    // NEW: Advanced middleware analysis
+    IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider);
+}
+```
+
+#### Using AnalyzeMiddleware for Advanced Debugging
+
+The new `AnalyzeMiddleware` method provides the most comprehensive pipeline analysis, returning detailed information about each middleware component:
+
+```csharp
+public class DebugService
+{
+    private readonly IMiddlewarePipelineInspector _pipelineInspector;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<DebugService> _logger;
+
+    public DebugService(
+        IMiddlewarePipelineInspector pipelineInspector,
+        IServiceProvider serviceProvider,
+        ILogger<DebugService> logger)
+    {
+        _pipelineInspector = pipelineInspector;
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+
+    public void AnalyzePipeline()
+    {
+        // Get detailed middleware analysis
+        var middlewareAnalysis = _pipelineInspector.AnalyzeMiddleware(_serviceProvider);
+
+        _logger.LogInformation("📊 Middleware Pipeline Analysis");
+        _logger.LogInformation("═══════════════════════════════════════");
+
+        foreach (var middleware in middlewareAnalysis)
+        {
+            _logger.LogInformation(
+                "🔧 {Order,5} | {ClassName}{TypeParameters}",
+                middleware.OrderDisplay,
+                middleware.ClassName,
+                middleware.TypeParameters);
+        }
+
+        _logger.LogInformation("═══════════════════════════════════════");
+        _logger.LogInformation("📈 Total middleware components: {Count}", middlewareAnalysis.Count);
+    }
+}
+```
+
+#### MiddlewareAnalysis Properties
+
+The `MiddlewareAnalysis` record provides detailed information about each middleware component:
+
+```csharp
+public record MiddlewareAnalysis(
+    Type Type,                  // The full middleware type
+    int Order,                  // Numeric execution order
+    string OrderDisplay,        // Formatted order string (e.g., "int.MinValue", "100")
+    string ClassName,           // Clean class name without generic suffixes
+    string TypeParameters,      // Generic type parameters (e.g., "<TRequest, TResponse>")
+    object? Configuration       // Optional configuration object
+);
+```
+
+#### Example Output
+
+```
+📊 Middleware Pipeline Analysis
+═══════════════════════════════════════
+🔧 int.MinValue | ErrorHandlingMiddleware<TRequest, TResponse>
+🔧    -1 | ValidationMiddleware<TRequest, TResponse>
+🔧     0 | LoggingMiddleware<TRequest, TResponse>
+🔧     1 | MetricsMiddleware<TRequest, TResponse>
+🔧    10 | CachingMiddleware<TRequest, TResponse>
+🔧 int.MaxValue | FinalProcessingMiddleware<TRequest, TResponse>
+═══════════════════════════════════════
+📈 Total middleware components: 6
+```
+
+#### Accessing the Pipeline Inspector
+
+The pipeline inspector is automatically registered when you add Blazing.Mediator to your services:
+
+```csharp
+// In your service constructor
+public class MyService
+{
+    public MyService(IMiddlewarePipelineInspector pipelineInspector)
+    {
+        // Inspector is automatically available
+    }
+}
+
+// Or resolve it directly from the service provider
+var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
+```
+
+#### Best Practices for Pipeline Debugging
+
+1. **Use in Development**: Leverage pipeline analysis during development to understand middleware execution
+2. **Monitoring Integration**: Include pipeline analysis in health checks and monitoring dashboards
+3. **Performance Tracking**: Monitor middleware order and execution for performance optimization
+4. **Troubleshooting**: Use when debugging unexpected middleware behavior or execution order
+5. **Documentation**: Generate pipeline documentation automatically using the analysis output
 
 ## Sample Projects
 

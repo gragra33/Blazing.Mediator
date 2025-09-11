@@ -635,10 +635,10 @@ public class MediatorErrorTests
         IMiddlewarePipelineInspector inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
 
         // Act
-        IReadOnlyDictionary<Type, object?> configuration = inspector.GetMiddlewareConfiguration();
+        IReadOnlyList<(Type Type, object? Configuration)> configuration = inspector.GetMiddlewareConfiguration();
 
         // Assert
-        configuration.ShouldContainKey(typeof(FirstQueryMiddleware));
+        configuration.ShouldContain(config => config.Type == typeof(FirstQueryMiddleware));
     }
 
     /// <summary>

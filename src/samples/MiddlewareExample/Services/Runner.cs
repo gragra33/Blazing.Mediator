@@ -14,7 +14,8 @@ public class Runner(
     /// </summary>
     public void InspectMiddlewarePipeline()
     {
-        var middlewareAnalysis = MiddlewarePipelineAnalyzer.AnalyzeMiddleware(pipelineInspector, serviceProvider);
+        // Use the built-in analysis method from the core library
+        var middlewareAnalysis = pipelineInspector.AnalyzeMiddleware(serviceProvider);
 
         Console.WriteLine("Registered middleware:");
         foreach (var middleware in middlewareAnalysis)

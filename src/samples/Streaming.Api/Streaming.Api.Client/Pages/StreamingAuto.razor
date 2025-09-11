@@ -252,7 +252,6 @@
     private DateTime? lastEventTime;
     private double itemsPerSecond = 0;
     private double streamDurationMs = 0;
-    private bool autoScroll = true;
     private int displayLimit = 12;
     private ElementReference resultsContainer;
     private CancellationTokenSource? cancellationTokenSource;
@@ -491,6 +490,7 @@
     private async Task AddContact(ContactDto contact)
     {
         contacts.Add(contact);
+        lastEventTime = DateTime.Now;
         contactCount++;
         await InvokeAsync(StateHasChanged);
     }

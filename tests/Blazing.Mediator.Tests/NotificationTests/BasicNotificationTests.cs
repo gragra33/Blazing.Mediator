@@ -49,7 +49,7 @@ public class BasicNotificationTests
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var subscriber = new TestSubscriber();
-        mediator.Subscribe<TestNotification>(subscriber);
+        mediator.Subscribe(subscriber);
 
         var notification = new TestNotification { Message = "Hello", Value = 42 };
 
@@ -99,7 +99,7 @@ public class BasicNotificationTests
         var specificSubscriber = new TestSubscriber();
         var genericSubscriber = new GenericSubscriber();
 
-        mediator.Subscribe<TestNotification>(specificSubscriber);
+        mediator.Subscribe(specificSubscriber);
         mediator.Subscribe(genericSubscriber);
 
         var notification = new TestNotification { Message = "Hello", Value = 42 };
@@ -122,10 +122,10 @@ public class BasicNotificationTests
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var subscriber = new TestSubscriber();
-        mediator.Subscribe<TestNotification>(subscriber);
+        mediator.Subscribe(subscriber);
 
         // Act
-        mediator.Unsubscribe<TestNotification>(subscriber);
+        mediator.Unsubscribe(subscriber);
 
         // Assert - publish notification and verify subscriber doesn't receive it
         var notification = new TestNotification { Message = "Test", Value = 123 };

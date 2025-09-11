@@ -120,8 +120,9 @@ public class MediatorEdgeCaseTests
 
         // Assert
         var configurations = builder.GetMiddlewareConfiguration();
-        configurations.ShouldContainKey(typeof(FirstQueryMiddleware));
-        configurations[typeof(FirstQueryMiddleware)].ShouldBe(config);
+        configurations.ShouldContain(config => config.Type == typeof(FirstQueryMiddleware));
+        var middlewareConfig = configurations.First(config => config.Type == typeof(FirstQueryMiddleware));
+        middlewareConfig.Configuration.ShouldBe(config);
     }
 
     /// <summary>

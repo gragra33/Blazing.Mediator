@@ -1,5 +1,4 @@
 global using System;
-global using System.ComponentModel.DataAnnotations;
 global using System.Diagnostics;
 global using System.Reflection;
 global using Blazing.Mediator;

@@ -14,9 +14,10 @@ public interface IMiddlewarePipelineInspector
 
     /// <summary>
     /// Gets configuration information for registered middleware.
+    /// Each tuple contains the middleware type and its associated configuration object (if any).
     /// </summary>
-    /// <returns>Dictionary of middleware type to configuration object</returns>
-    IReadOnlyDictionary<Type, object?> GetMiddlewareConfiguration();
+    /// <returns>Read-only list of middleware configuration information</returns>
+    IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration();
 
     /// <summary>
     /// Gets detailed information about registered middleware including types, order values, and configuration.
@@ -25,4 +26,12 @@ public interface IMiddlewarePipelineInspector
     /// <param name="serviceProvider">Optional service provider to resolve middleware instances for actual order values.</param>
     /// <returns>Read-only list of middleware information with type, order, and configuration</returns>
     IReadOnlyList<(Type Type, int Order, object? Configuration)> GetDetailedMiddlewareInfo(IServiceProvider? serviceProvider = null);
+
+    /// <summary>
+    /// Analyzes the middleware pipeline and returns structured information about each middleware component.
+    /// Provides detailed analysis including order display formatting, class names, and type parameters.
+    /// </summary>
+    /// <param name="serviceProvider">Service provider to resolve middleware instances for actual order values.</param>
+    /// <returns>Read-only list of middleware analysis information sorted by execution order</returns>
+    IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider);
 }

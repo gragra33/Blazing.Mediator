@@ -1,5 +1,6 @@
 using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
+using Blazing.Mediator.Configuration;
 using Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
@@ -77,7 +78,7 @@ public class NotificationMiddlewareTests
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var subscriber = new TestSubscriber();
-        mediator.Subscribe<TestNotification>(subscriber);
+        mediator.Subscribe(subscriber);
 
         var notification = new TestNotification { Message = "Hello" };
 
@@ -109,7 +110,7 @@ public class NotificationMiddlewareTests
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var subscriber = new TestSubscriber();
-        mediator.Subscribe<TestNotification>(subscriber);
+        mediator.Subscribe(subscriber);
 
         // Act & Assert - should NOT execute for regular message
         var normalNotification = new TestNotification { Message = "Hello" };
@@ -148,7 +149,7 @@ public class NotificationMiddlewareTests
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var subscriber = new TestSubscriber();
-        mediator.Subscribe<TestNotification>(subscriber);
+        mediator.Subscribe(subscriber);
 
         // Act
         var notification = new TestNotification { Message = "IMPORTANT: Test" };
@@ -162,5 +163,244 @@ public class NotificationMiddlewareTests
         // The logging middleware should log around the conditional middleware
         loggingMiddleware.LoggedMessages[0].ShouldBe("Before: TestNotification");
         loggingMiddleware.LoggedMessages[1].ShouldBe("After: TestNotification");
+    }
+
+    [Fact]
+    public void NotificationPipelineInspector_ShouldProvideMiddlewareInformation()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var loggingMiddleware = new LoggingNotificationMiddleware();
+        var conditionalMiddleware = new ConditionalNotificationMiddleware();
+        
+        services.AddMediator(config =>
+        {
+            config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
+            config.AddNotificationMiddleware<ConditionalNotificationMiddleware>();
+        }, Array.Empty<Assembly>());
+        
+        services.AddSingleton(loggingMiddleware);
+        services.AddSingleton(conditionalMiddleware);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+        // Get the inspector from the mediator using reflection
+        var mediatorType = mediator.GetType();
+        var notificationPipelineBuilderField = mediatorType.GetField("_notificationPipelineBuilder", BindingFlags.NonPublic | BindingFlags.Instance);
+        notificationPipelineBuilderField.ShouldNotBeNull();
+        
+        var pipelineBuilder = notificationPipelineBuilderField.GetValue(mediator);
+        pipelineBuilder.ShouldNotBeNull();
+        pipelineBuilder.ShouldBeAssignableTo<INotificationMiddlewarePipelineInspector>();
+        
+        var inspector = (INotificationMiddlewarePipelineInspector)pipelineBuilder;
+
+        // Act & Assert - GetRegisteredMiddleware
+        var registeredMiddleware = inspector.GetRegisteredMiddleware();
+        registeredMiddleware.Count.ShouldBe(2);
+        registeredMiddleware.ShouldContain(typeof(LoggingNotificationMiddleware));
+        registeredMiddleware.ShouldContain(typeof(ConditionalNotificationMiddleware));
+
+        // Act & Assert - GetMiddlewareConfiguration
+        var configurations = inspector.GetMiddlewareConfiguration();
+        configurations.Count.ShouldBe(2);
+        configurations.First(config => config.Type == typeof(LoggingNotificationMiddleware)).Configuration.ShouldBeNull(); // No configuration provided
+        configurations.First(config => config.Type == typeof(ConditionalNotificationMiddleware)).Configuration.ShouldBeNull(); // No configuration provided
+
+        // Act & Assert - GetDetailedMiddlewareInfo without service provider
+        var detailedInfo = inspector.GetDetailedMiddlewareInfo();
+        detailedInfo.Count.ShouldBe(2);
+        
+        var loggingInfo = detailedInfo.First(info => info.Type == typeof(LoggingNotificationMiddleware));
+        loggingInfo.Order.ShouldBe(10); // From the LoggingNotificationMiddleware.Order property
+        loggingInfo.Configuration.ShouldBeNull();
+
+        var conditionalInfo = detailedInfo.First(info => info.Type == typeof(ConditionalNotificationMiddleware));
+        conditionalInfo.Order.ShouldBe(5); // From the ConditionalNotificationMiddleware.Order property
+        conditionalInfo.Configuration.ShouldBeNull();
+
+        // Act & Assert - GetDetailedMiddlewareInfo with service provider
+        var detailedInfoWithProvider = inspector.GetDetailedMiddlewareInfo(serviceProvider);
+        detailedInfoWithProvider.Count.ShouldBe(2);
+        
+        // Should get runtime order values from DI-registered instances
+        var runtimeLoggingInfo = detailedInfoWithProvider.First(info => info.Type == typeof(LoggingNotificationMiddleware));
+        runtimeLoggingInfo.Order.ShouldBe(10); // Runtime value from the actual instance
+        runtimeLoggingInfo.Configuration.ShouldBeNull();
+
+        var runtimeConditionalInfo = detailedInfoWithProvider.First(info => info.Type == typeof(ConditionalNotificationMiddleware));
+        runtimeConditionalInfo.Order.ShouldBe(5); // Runtime value from the actual instance  
+        runtimeConditionalInfo.Configuration.ShouldBeNull();
+    }
+
+    [Fact]
+    public void NotificationPipelineInspector_ShouldSupportConfiguration()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var loggingMiddleware = new LoggingNotificationMiddleware();
+        var conditionalMiddleware = new ConditionalNotificationMiddleware();
+        
+        var config = "test-configuration";
+        
+        services.AddMediator(mediatorConfig =>
+        {
+            mediatorConfig.AddNotificationMiddleware<LoggingNotificationMiddleware>(config);
+            mediatorConfig.AddNotificationMiddleware<ConditionalNotificationMiddleware>();
+        }, Array.Empty<Assembly>());
+        
+        services.AddSingleton(loggingMiddleware);
+        services.AddSingleton(conditionalMiddleware);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+        // Get the inspector from the mediator using reflection
+        var mediatorType = mediator.GetType();
+        var notificationPipelineBuilderField = mediatorType.GetField("_notificationPipelineBuilder", BindingFlags.NonPublic | BindingFlags.Instance);
+        notificationPipelineBuilderField.ShouldNotBeNull();
+        
+        var pipelineBuilder = notificationPipelineBuilderField.GetValue(mediator);
+        pipelineBuilder.ShouldNotBeNull();
+        pipelineBuilder.ShouldBeAssignableTo<INotificationMiddlewarePipelineInspector>();
+        
+        var inspector = (INotificationMiddlewarePipelineInspector)pipelineBuilder;
+
+        // Act & Assert - GetMiddlewareConfiguration should include the configuration
+        var configurations = inspector.GetMiddlewareConfiguration();
+        configurations.Count.ShouldBe(2);
+        configurations.First(config => config.Type == typeof(LoggingNotificationMiddleware)).Configuration.ShouldBe(config);
+        configurations.First(config => config.Type == typeof(ConditionalNotificationMiddleware)).Configuration.ShouldBeNull();
+
+        // Act & Assert - GetDetailedMiddlewareInfo should also include the configuration
+        var detailedInfo = inspector.GetDetailedMiddlewareInfo();
+        var loggingInfo = detailedInfo.First(info => info.Type == typeof(LoggingNotificationMiddleware));
+        loggingInfo.Configuration.ShouldBe(config);
+
+        var conditionalInfo = detailedInfo.First(info => info.Type == typeof(ConditionalNotificationMiddleware));
+        conditionalInfo.Configuration.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// Tests for AnalyzeMiddleware functionality with discoverNotificationMiddleware: true
+    /// </summary>
+    [Fact]
+    public void NotificationMiddleware_DiscoverNotificationMiddleware_True_WorksCorrectly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddMediator((Action<MediatorConfiguration>?)null, Assembly.GetExecutingAssembly());
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+        // Get the inspector
+        var mediatorType = mediator.GetType();
+        var notificationPipelineBuilderField = mediatorType.GetField("_notificationPipelineBuilder", BindingFlags.NonPublic | BindingFlags.Instance);
+        var pipelineBuilder = notificationPipelineBuilderField?.GetValue(mediator);
+        var inspector = (INotificationMiddlewarePipelineInspector)pipelineBuilder!;
+
+        // Act
+        var analysis = inspector.AnalyzeMiddleware(serviceProvider);
+
+        // Assert - AnalyzeMiddleware should return meaningful data
+        analysis.ShouldNotBeNull();
+        
+        // Each analysis should have valid data
+        foreach (var middlewareAnalysis in analysis)
+        {
+            middlewareAnalysis.ClassName.ShouldNotBeNullOrWhiteSpace();
+            middlewareAnalysis.Type.ShouldNotBeNull();
+            middlewareAnalysis.OrderDisplay.ShouldNotBeNullOrWhiteSpace();
+        }
+    }
+
+    /// <summary>
+    /// Tests for AnalyzeMiddleware functionality with discoverNotificationMiddleware: false  
+    /// </summary>
+    [Fact]
+    public void NotificationMiddleware_DiscoverNotificationMiddleware_False_WorksCorrectly()
+    {
+        // Arrange
+        var loggingMiddleware = new LoggingNotificationMiddleware();
+        var services = new ServiceCollection();
+        services.AddMediator(config =>
+        {
+            config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
+        }, Array.Empty<Assembly>());
+        services.AddSingleton(loggingMiddleware);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+        // Get the inspector
+        var mediatorType = mediator.GetType();
+        var notificationPipelineBuilderField = mediatorType.GetField("_notificationPipelineBuilder", BindingFlags.NonPublic | BindingFlags.Instance);
+        var pipelineBuilder = notificationPipelineBuilderField?.GetValue(mediator);
+        var inspector = (INotificationMiddlewarePipelineInspector)pipelineBuilder!;
+
+        // Act
+        var registeredMiddleware = inspector.GetRegisteredMiddleware();
+        var analysis = inspector.AnalyzeMiddleware(serviceProvider);
+
+        // Assert - Should only have manually registered middleware
+        registeredMiddleware.Count.ShouldBe(1);
+        registeredMiddleware.ShouldContain(typeof(LoggingNotificationMiddleware));
+
+        // AnalyzeMiddleware should return the registered middleware data
+        analysis.ShouldNotBeNull();
+        analysis.Count.ShouldBe(1);
+        
+        var middlewareAnalysis = analysis[0];
+        middlewareAnalysis.ClassName.ShouldBe("LoggingNotificationMiddleware");
+        middlewareAnalysis.Type.ShouldBe(typeof(LoggingNotificationMiddleware));
+        middlewareAnalysis.Order.ShouldBe(10);
+        middlewareAnalysis.OrderDisplay.ShouldBe("10");
+        middlewareAnalysis.TypeParameters.ShouldBe("");
+    }
+
+    /// <summary>
+    /// Tests that AnalyzeMiddleware returns ordered results
+    /// </summary>
+    [Fact]  
+    public void NotificationMiddleware_AnalyzeMiddleware_ReturnsOrderedResults()
+    {
+        // Arrange
+        var loggingMiddleware = new LoggingNotificationMiddleware(); // Order 10
+        var conditionalMiddleware = new ConditionalNotificationMiddleware(); // Order 5
+        
+        var services = new ServiceCollection();
+        services.AddMediator(config =>
+        {
+            // Add in reverse order to test sorting
+            config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
+            config.AddNotificationMiddleware<ConditionalNotificationMiddleware>();
+        }, Array.Empty<Assembly>());
+        services.AddSingleton(loggingMiddleware);
+        services.AddSingleton(conditionalMiddleware);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+        // Get the inspector  
+        var mediatorType = mediator.GetType();
+        var notificationPipelineBuilderField = mediatorType.GetField("_notificationPipelineBuilder", BindingFlags.NonPublic | BindingFlags.Instance);
+        var pipelineBuilder = notificationPipelineBuilderField?.GetValue(mediator);
+        var inspector = (INotificationMiddlewarePipelineInspector)pipelineBuilder!;
+
+        // Act
+        var analysis = inspector.AnalyzeMiddleware(serviceProvider).ToList();
+
+        // Assert - Should be sorted by order (ascending)
+        analysis.Count.ShouldBe(2);
+        
+        // ConditionalNotificationMiddleware should be first (Order = 5)
+        analysis[0].ClassName.ShouldBe("ConditionalNotificationMiddleware");
+        analysis[0].Order.ShouldBe(5);
+        
+        // LoggingNotificationMiddleware should be second (Order = 10)  
+        analysis[1].ClassName.ShouldBe("LoggingNotificationMiddleware");
+        analysis[1].Order.ShouldBe(10);
     }
 }

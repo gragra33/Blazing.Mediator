@@ -306,7 +306,7 @@ public class Mediator : IMediator
         _specificSubscribers.AddOrUpdate(
             typeof(TNotification),
             new ConcurrentBag<object> { subscriber },
-            (key, existing) =>
+            (_, existing) =>
             {
                 existing.Add(subscriber);
                 return existing;

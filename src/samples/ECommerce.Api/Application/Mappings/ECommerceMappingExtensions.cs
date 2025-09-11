@@ -79,7 +79,7 @@ public static class ECommerceMappingExtensions
         {
             Id = orderItem.Id,
             ProductId = orderItem.ProductId,
-            ProductName = orderItem.Product?.Name ?? string.Empty,
+            ProductName = orderItem.Product.Name,
             Quantity = orderItem.Quantity,
             UnitPrice = orderItem.UnitPrice,
             TotalPrice = orderItem.TotalPrice

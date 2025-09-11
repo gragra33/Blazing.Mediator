@@ -711,6 +711,7 @@ public class ConditionalStreamMiddlewareTests
         services.AddMediator(
             configureMiddleware: null,
             discoverMiddleware: true,
+            discoverNotificationMiddleware: false,
             typeof(ConditionalTestStreamRequestHandler).Assembly);
 
         var serviceProvider = services.BuildServiceProvider();

@@ -98,6 +98,26 @@ public class MediatorConfiguration
     }
 
     /// <summary>
+    /// Adds a notification middleware to the pipeline with configuration.
+    /// </summary>
+    /// <typeparam name="TMiddleware">The notification middleware type</typeparam>
+    /// <param name="configuration">Optional configuration object for the middleware</param>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration AddNotificationMiddleware<TMiddleware>(object? configuration)
+        where TMiddleware : class, INotificationMiddleware
+    {
+        NotificationPipelineBuilder.AddMiddleware<TMiddleware>(configuration);
+        
+        // Automatically register the middleware in DI if services collection is available
+        if (_services != null)
+        {
+            RegisterMiddlewareInDI(typeof(TMiddleware));
+        }
+        
+        return this;
+    }
+
+    /// <summary>
     /// Adds a notification middleware type to the pipeline.
     /// </summary>
     /// <param name="middlewareType">The notification middleware type</param>

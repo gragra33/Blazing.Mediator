@@ -8,7 +8,7 @@ The Blazing.Mediator library provides:
 
 -   **Pure CQRS Implementation**: Built-in Command Query Responsibility Segregation with separate interfaces for commands (`IRequest`) and queries (`IRequest<TResponse>`)
 -   **Lightweight & Fast**: Minimal overhead with efficient request dispatching
--   **Auto-Discovery**: Automatic middleware and handler discovery with intelligent ordering
+-   **Auto-Discovery**: Automatic request & notification middlewares and handler discovery with intelligent ordering
 -   **Zero Configuration**: Works out of the box with minimal setup and automatic handler discovery
 -   **Dependency Injection**: Full integration with .NET's built-in DI container
 -   **Type Safety**: Compile-time type checking for requests and handlers
@@ -39,6 +39,7 @@ The Blazing.Mediator library provides:
 -   **Subscription Management**: `INotificationSubscriber` interface for managing notification subscription lifecycle
 -   **Asynchronous Processing**: All notifications are processed asynchronously for better performance
 -   **Middleware Support**: Add cross-cutting concerns like logging and metrics to notification processing
+-   **New Middleware Analysis**: `INotificationMiddlewarePipelineInspector` for advanced debugging and monitoring
 -   **Type Safety**: Strongly typed notifications with compile-time checking
 -   **Testable Design**: Easy to test notification publishers and subscribers
 
@@ -63,6 +64,7 @@ The Blazing.Mediator library provides:
 -   [Middleware Pipeline](#middleware-pipeline)
 -   [Sample Projects](#sample-projects)
 -   [History](#history)
+    -   [V1.6.0](#v160)
     -   [V1.5.0](#v150)
 
 ## Quick Start
@@ -88,7 +90,7 @@ Install-Package Blazing.Mediator
 #### Manually adding to your project
 
 ```xml
-<PackageReference Include="Blazing.Mediator" Version="1.2.0" />
+<PackageReference Include="Blazing.Mediator" Version="1.6.0" />
 ```
 
 ### Configuration
@@ -348,6 +350,15 @@ The library includes five comprehensive sample projects demonstrating different 
     - 6 different streaming examples from minimal APIs to interactive WebAssembly clients
 
 ## History
+
+### V1.6.0
+
+-   **Enhanced Auto-Discovery**: `AddMediator` now separates request and notification middleware auto-discovery with new `discoverMiddleware` and `discoverNotificationMiddleware` parameters for granular control
+-   **New Middleware Analysis**: Added `AnalyzeMiddleware` method to both `IMiddlewarePipelineInspector` and `INotificationMiddlewarePipelineInspector` for advanced pipeline debugging and monitoring
+-   **Pipeline Enhancement**: Updated `NotificationPipelineBuilder` with improved middleware management and analysis capabilities
+-   **Enhanced Testing**: Comprehensive new test coverage for `AnalyzeMiddleware` functionality and middleware discovery patterns
+-   **Simple Notification Example**: New `SimpleNotificationExample` sample project demonstrating recommended scoped notification patterns with clear documentation and best practices
+-   **CQRS Naming Support**: Added `IQuery`, `IQueryHandler`, `ICommand`, and `ICommandHandler` interfaces as semantic wrappers around `IRequest` and `IRequestHandler` for clearer CQRS pattern implementation
 
 ### V1.5.0
 

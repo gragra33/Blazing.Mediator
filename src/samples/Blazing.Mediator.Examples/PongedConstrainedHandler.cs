@@ -1,5 +1,3 @@
-using Blazing.Mediator;
-
 namespace Blazing.Mediator.Examples;
 
 /// <summary>

@@ -1,0 +1,8 @@
+global using System.Reflection;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Hosting;
+global using Microsoft.Extensions.Logging;
+global using Blazing.Mediator;
+global using SimpleNotificationExample.Notifications;
+global using SimpleNotificationExample.Services;
+global using SimpleNotificationExample.Subscribers;

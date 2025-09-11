@@ -3,16 +3,16 @@ namespace Blazing.Mediator.Pipeline;
 /// <summary>
 /// This is part of the core Blazing.Mediator infrastructure and contains no business logic.
 /// </summary>
-public class NotificationPipelineBuilder : INotificationPipelineBuilder
+public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotificationMiddlewarePipelineInspector
 {
     private const string OrderPropertyName = "Order";
     private readonly List<NotificationMiddlewareInfo> _middlewareInfos = [];
 
-    private sealed record NotificationMiddlewareInfo(Type Type, int Order);
+    private sealed record NotificationMiddlewareInfo(Type Type, int Order, object? Configuration = null);
 
     /// <summary>
     /// Determines the order for a notification middleware type, using next available order after highest explicit order as fallback.
-    /// Orders range from -999 to 999. Middleware without explicit order are assigned incrementally after the highest explicit order.
+    /// Orders range from int.MinValue to int.MaxValue. Middleware without explicit order are assigned incrementally after the highest explicit order.
     /// </summary>
     private int GetMiddlewareOrder(Type middlewareType)
     {
@@ -20,21 +20,21 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder
         var staticOrder = GetStaticOrder(middlewareType);
         if (staticOrder.HasValue)
         {
-            return Math.Clamp(staticOrder.Value, -999, 999);
+            return staticOrder.Value;
         }
 
         // Check for OrderAttribute if it exists (common pattern)
         var attributeOrder = GetOrderFromAttribute(middlewareType);
         if (attributeOrder.HasValue)
         {
-            return Math.Clamp(attributeOrder.Value, -999, 999);
+            return attributeOrder.Value;
         }
 
         // Try to get order from instance Order property
         var instanceOrder = GetInstanceOrder(middlewareType);
         if (instanceOrder.HasValue)
         {
-            return Math.Clamp(instanceOrder.Value, -999, 999);
+            return instanceOrder.Value;
         }
 
         // Fallback: assign order after the highest explicitly set order
@@ -117,7 +117,7 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder
         
         // Ensure we don't exceed the maximum allowed order
         var nextOrder = highestExplicitOrder + 1;
-        return Math.Min(nextOrder, 999);
+        return Math.Min(nextOrder, int.MaxValue);
     }
 
     /// <inheritdoc />
@@ -127,6 +127,21 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder
         var middlewareType = typeof(TMiddleware);
         var order = GetMiddlewareOrder(middlewareType);
         _middlewareInfos.Add(new NotificationMiddlewareInfo(middlewareType, order));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds notification middleware with configuration to the pipeline.
+    /// </summary>
+    /// <typeparam name="TMiddleware">The middleware type that implements INotificationMiddleware.</typeparam>
+    /// <param name="configuration">Optional configuration object for the middleware.</param>
+    /// <returns>The pipeline builder for chaining.</returns>
+    public INotificationPipelineBuilder AddMiddleware<TMiddleware>(object? configuration)
+        where TMiddleware : class, INotificationMiddleware
+    {
+        var middlewareType = typeof(TMiddleware);
+        var order = GetMiddlewareOrder(middlewareType);
+        _middlewareInfos.Add(new NotificationMiddlewareInfo(middlewareType, order, configuration));
         return this;
     }
 
@@ -141,6 +156,58 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder
         var order = GetMiddlewareOrder(middlewareType);
         _middlewareInfos.Add(new NotificationMiddlewareInfo(middlewareType, order));
         return this;
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<Type> GetRegisteredMiddleware()
+    {
+        return _middlewareInfos.Select(info => info.Type).ToList();
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration()
+    {
+        return _middlewareInfos.Select(info => (info.Type, info.Configuration)).ToList();
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<(Type Type, int Order, object? Configuration)> GetDetailedMiddlewareInfo(IServiceProvider? serviceProvider = null)
+    {
+        if (serviceProvider == null)
+        {
+            // Return cached registration-time order values
+            return _middlewareInfos.Select(info => (info.Type, info.Order, info.Configuration)).ToList();
+        }
+
+        // Use service provider to get actual runtime order values using the same logic as ExecutePipeline
+        var result = new List<(Type Type, int Order, object? Configuration)>();
+        
+        foreach (var middlewareInfo in _middlewareInfos)
+        {
+            int actualOrder = middlewareInfo.Order; // Start with cached order
+            
+            try
+            {
+                // For notification middleware, directly resolve from DI to get actual runtime order
+                var instance = serviceProvider.GetService(middlewareInfo.Type);
+                if (instance != null)
+                {
+                    var orderProperty = instance.GetType().GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
+                    if (orderProperty != null && orderProperty.PropertyType == typeof(int))
+                    {
+                        actualOrder = (int)orderProperty.GetValue(instance)!;
+                    }
+                }
+            }
+            catch
+            {
+                // If we can't get instance, use cached order - same as ExecutePipeline
+            }
+            
+            result.Add((middlewareInfo.Type, actualOrder, middlewareInfo.Configuration));
+        }
+        
+        return result;
     }
 
     /// <inheritdoc />
@@ -191,5 +258,33 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder
     {
         var pipeline = Build(serviceProvider, finalHandler);
         await pipeline(notification, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider)
+    {
+        var middlewareInfos = GetDetailedMiddlewareInfo(serviceProvider);
+        
+        var analysisResults = new List<MiddlewareAnalysis>();
+        
+        foreach (var (type, order, configuration) in middlewareInfos.OrderBy(m => m.Order))
+        {
+            var orderDisplay = order == int.MaxValue ? "Default" : order.ToString();
+            var className = type.Name;
+            var typeParameters = type.IsGenericType ? 
+                $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>" : 
+                string.Empty;
+            
+            analysisResults.Add(new MiddlewareAnalysis(
+                Type: type,
+                Order: order,
+                OrderDisplay: orderDisplay,
+                ClassName: className,
+                TypeParameters: typeParameters,
+                Configuration: configuration
+            ));
+        }
+        
+        return analysisResults;
     }
 }

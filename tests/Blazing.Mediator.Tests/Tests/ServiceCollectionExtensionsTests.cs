@@ -281,7 +281,7 @@ public class ServiceCollectionExtensionsTests
         Assembly assembly = typeof(AutoDiscoveryStaticOrderMiddleware).Assembly;
 
         // Act
-        services.AddMediator(null, discoverMiddleware: true, assembly);
+        services.AddMediator(null, discoverMiddleware: true, discoverNotificationMiddleware: false, assembly);
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -309,7 +309,7 @@ public class ServiceCollectionExtensionsTests
         {
             // Clear any auto-discovered middleware and add only our test middleware
             config.AddMiddleware<AutoDiscoveryStaticOrderMiddleware>();
-        }, discoverMiddleware: false, assembly);
+        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
 
         // Act
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -336,7 +336,7 @@ public class ServiceCollectionExtensionsTests
         services.AddMediator(config =>
         {
             config.AddMiddleware<AutoDiscoveryInstanceOrderMiddleware>();
-        }, discoverMiddleware: false, assembly);
+        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
 
         // Act
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -362,7 +362,7 @@ public class ServiceCollectionExtensionsTests
         services.AddMediator(config =>
         {
             config.AddMiddleware<AutoDiscoveryNoOrderMiddleware>();
-        }, discoverMiddleware: false, assembly);
+        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
 
         // Act
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -388,7 +388,7 @@ public class ServiceCollectionExtensionsTests
         services.AddMediator(config =>
         {
             config.AddMiddleware<AutoDiscoveryConditionalMiddleware>();
-        }, discoverMiddleware: false, assembly);
+        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
 
         // Act
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -423,7 +423,7 @@ public class ServiceCollectionExtensionsTests
             config.AddMiddleware<AutoDiscoveryStaticOrderMiddleware>();
             config.AddMiddleware<AutoDiscoveryInstanceOrderMiddleware>();
             config.AddMiddleware<AutoDiscoveryConditionalMiddleware>();
-        }, discoverMiddleware: false, assembly);
+        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
 
         // Act
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -462,7 +462,7 @@ public class ServiceCollectionExtensionsTests
             // Manually add specific middleware without auto-discovery to avoid ThrowingQueryMiddleware
             config.AddMiddleware<AutoDiscoveryStaticOrderMiddleware>();
             config.AddMiddleware<FirstQueryMiddleware>();
-        }, discoverMiddleware: false, assembly);
+        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
 
         // Act
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -487,7 +487,7 @@ public class ServiceCollectionExtensionsTests
         ServiceCollection services = new();
         Assembly assembly = typeof(AutoDiscoveryStaticOrderMiddleware).Assembly;
 
-        services.AddMediator(null, discoverMiddleware: false, assembly);
+        services.AddMediator(null, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
 
         // Act
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -524,7 +524,7 @@ public class ServiceCollectionExtensionsTests
         {
             // We can still manually add middleware after auto-discovery
             config.AddMiddleware<FirstQueryMiddleware>();
-        }, discoverMiddleware: true, typeof(ServiceCollectionExtensionsTests).Assembly);
+        }, discoverMiddleware: true, discoverNotificationMiddleware: false, typeof(ServiceCollectionExtensionsTests).Assembly);
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -552,7 +552,7 @@ public class ServiceCollectionExtensionsTests
         {
             config.AddMiddleware<AutoDiscoveryStaticOrderMiddleware>();
             config.AddMiddleware<FirstQueryMiddleware>();
-        }, discoverMiddleware: false, assembly1, assembly2);
+        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly1, assembly2);
 
         // Act
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -600,7 +600,7 @@ public class ServiceCollectionExtensionsTests
         Assembly assembly = typeof(AutoDiscoveryStaticOrderMiddleware).Assembly;
 
         // Act - Use the simple overload
-        services.AddMediator(discoverMiddleware: false, assembly);
+        services.AddMediator(configureMiddleware: null, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();

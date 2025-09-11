@@ -1,7 +1,3 @@
-using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator.Abstractions;
-
 namespace Blazing.Mediator.Pipeline;
 
 /// <summary>
@@ -132,9 +128,9 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
     }
 
     /// <inheritdoc />
-    public IReadOnlyDictionary<Type, object?> GetMiddlewareConfiguration()
+    public IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration()
     {
-        return _middlewareInfos.ToDictionary(info => info.Type, info => info.Configuration);
+        return _middlewareInfos.Select(info => (info.Type, info.Configuration)).ToList();
     }
 
     /// <inheritdoc />
@@ -385,7 +381,7 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
         // Get middleware types that can handle this request type, sorted by order
         List<(Type Type, int Order)> applicableMiddleware = [];
 
-        foreach ((Type? middlewareType, int order, var _) in _middlewareInfos)
+        foreach ((Type middlewareType, int order, var _) in _middlewareInfos)
         {
             // Handle open generic types by making them closed generic types
             Type actualMiddlewareType;
@@ -609,5 +605,33 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
         where TRequest : IStreamRequest<TResponse>
     {
         return () => throw new InvalidOperationException("Use ExecuteStreamPipeline method instead for stream requests");
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider)
+    {
+        var middlewareInfos = GetDetailedMiddlewareInfo(serviceProvider);
+        
+        var analysisResults = new List<MiddlewareAnalysis>();
+        
+        foreach (var (type, order, configuration) in middlewareInfos.OrderBy(m => m.Order))
+        {
+            var orderDisplay = order == int.MaxValue ? "Default" : order.ToString();
+            var className = type.Name;
+            var typeParameters = type.IsGenericType ? 
+                $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>" : 
+                string.Empty;
+            
+            analysisResults.Add(new MiddlewareAnalysis(
+                Type: type,
+                Order: order,
+                OrderDisplay: orderDisplay,
+                ClassName: className,
+                TypeParameters: typeParameters,
+                Configuration: configuration
+            ));
+        }
+        
+        return analysisResults;
     }
 }

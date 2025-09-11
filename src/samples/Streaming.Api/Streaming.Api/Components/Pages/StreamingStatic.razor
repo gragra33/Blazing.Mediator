@@ -47,42 +47,49 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form method="post" action="/streaming-static" @formname="ContactSearchForm">
-                        @{
-                            var tokens = Antiforgery.GetAndStoreTokens(HttpContextAccessor.HttpContext!);
-                        }
-                        <input name="@tokens.FormFieldName" type="hidden" value="@tokens.RequestToken" />
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="searchInput" class="form-label">Search Filter</label>
-                                <input name="Model.SearchTerm" value="@Model.SearchTerm" 
-                                       class="form-control" id="searchInput" 
-                                       placeholder="Leave empty to show all contacts..." />
+                    @if (HttpContextAccessor.HttpContext is null)
+                    {
+                        <p>Error: HttpContext is not available.</p>
+                    }
+                    else
+                    {
+                        <form method="post" action="/streaming-static" @formname="ContactSearchForm">
+                            @{
+                                var tokens = Antiforgery.GetAndStoreTokens(HttpContextAccessor.HttpContext);
+                            }
+                            <input name="@tokens.FormFieldName" type="hidden" value="@tokens.RequestToken" />
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="searchInput" class="form-label">Search Filter</label>
+                                    <input name="Model.SearchTerm" value="@(Model?.SearchTerm ?? "")" 
+                                           class="form-control" id="searchInput" 
+                                           placeholder="Leave empty to show all contacts..." />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="batchSize" class="form-label">Batch Size</label>
+                                    <select name="Model.BatchSize" class="form-select" id="batchSize">
+                                        <option value="10" selected="@((Model?.BatchSize ?? 50) == 10)">10 items</option>
+                                        <option value="25" selected="@((Model?.BatchSize ?? 50) == 25)">25 items</option>
+                                        <option value="50" selected="@((Model?.BatchSize ?? 50) == 50)">50 items</option>
+                                        <option value="100" selected="@((Model?.BatchSize ?? 50) == 100)">100 items</option>
+                                        <option value="200" selected="@((Model?.BatchSize ?? 50) == 200)">200 items</option>
+                                        <option value="500" selected="@((Model?.BatchSize ?? 50) == 500)">500 items</option>
+                                        <option value="1000" selected="@((Model?.BatchSize ?? 50) == 1000)">1000 items</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="batchSize" class="form-label">Batch Size</label>
-                                <select name="Model.BatchSize" class="form-select" id="batchSize">
-                                    <option value="10" selected="@(Model.BatchSize == 10)">10 items</option>
-                                    <option value="25" selected="@(Model.BatchSize == 25)">25 items</option>
-                                    <option value="50" selected="@(Model.BatchSize == 50)">50 items</option>
-                                    <option value="100" selected="@(Model.BatchSize == 100)">100 items</option>
-                                    <option value="200" selected="@(Model.BatchSize == 200)">200 items</option>
-                                    <option value="500" selected="@(Model.BatchSize == 500)">500 items</option>
-                                    <option value="1000" selected="@(Model.BatchSize == 1000)">1000 items</option>
-                                </select>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-play-fill me-1"></i>
+                                    Start Streaming
+                                </button>
+                                <a href="/streaming-static" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>
+                                    Reset
+                                </a>
                             </div>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-play-fill me-1"></i>
-                                Start Streaming
-                            </button>
-                            <a href="/streaming-static" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-clockwise me-1"></i>
-                                Reset
-                            </a>
-                        </div>
-                    </form>
+                        </form>
+                    }
                 </div>
             </div>
         </div>
@@ -99,11 +106,11 @@
                     {
                         <div class="row text-center">
                             <div class="col-6">
-                                <div class="h5 text-primary">@(string.IsNullOrEmpty(Model.SearchTerm) ? "All" : Model.SearchTerm)</div>
+                                <div class="h5 text-primary">@(string.IsNullOrEmpty(Model?.SearchTerm) ? "All" : Model?.SearchTerm ?? "")</div>
                                 <small class="text-muted">Search Term</small>
                             </div>
                             <div class="col-6">
-                                <div class="h5 text-success">@Model.BatchSize</div>
+                                <div class="h5 text-success">@(Model?.BatchSize ?? 50)</div>
                                 <small class="text-muted">Batch Size</small>
                             </div>
                         </div>
@@ -131,8 +138,8 @@
     {
         <div class="row">
             <div class="col-12">
-                <StreamingContactTable SearchTerm="@Model.SearchTerm" 
-                                     BatchSize="@Model.BatchSize"
+                <StreamingContactTable SearchTerm="@(Model?.SearchTerm ?? "")" 
+                                     BatchSize="@(Model?.BatchSize ?? 50)"
                                      StartStreaming="@hasSearchParameters" />
             </div>
         </div>

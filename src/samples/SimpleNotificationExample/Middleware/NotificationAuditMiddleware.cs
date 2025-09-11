@@ -18,11 +18,14 @@ public class NotificationAuditMiddleware(ILogger<NotificationAuditMiddleware> lo
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {
+        if (notification is null)
+            throw new ArgumentNullException(nameof(notification));
+
         var auditEntry = new AuditEntry
         {
             NotificationType = typeof(TNotification).Name,
             Timestamp = DateTime.UtcNow,
-            NotificationData = notification?.ToString() ?? "null",
+            NotificationData = notification.ToString() ?? "null",
             Status = "Processing"
         };
 

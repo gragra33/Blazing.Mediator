@@ -1,6 +1,5 @@
 using Blazing.Mediator;
 using ECommerce.Api.Application.Notifications;
-using ECommerce.Api.Domain.Entities;
 
 namespace ECommerce.Api.Application.Services;
 

@@ -406,19 +406,9 @@ public static class ServiceCollectionExtensions
     /// </summary>  
     /// <param name="configuration">The mediator configuration.</param>  
     /// <param name="assemblies">Assemblies to scan for middleware.</param>  
-    private static void RegisterMiddleware(MediatorConfiguration configuration, Assembly[] assemblies)
-    {
-        RegisterMiddleware(configuration, assemblies, discoverMiddleware: true, discoverNotificationMiddleware: true);
-    }
-
-    /// <summary>  
-    /// Registers middleware from the specified assemblies.  
-    /// </summary>  
-    /// <param name="configuration">The mediator configuration.</param>  
-    /// <param name="assemblies">Assemblies to scan for middleware.</param>  
     /// <param name="discoverMiddleware">Whether to discover request middleware.</param>  
     /// <param name="discoverNotificationMiddleware">Whether to discover notification middleware.</param>  
-    private static void RegisterMiddleware(MediatorConfiguration configuration, Assembly[] assemblies, bool discoverMiddleware, bool discoverNotificationMiddleware)
+    private static void RegisterMiddleware(MediatorConfiguration configuration, Assembly[] assemblies, bool discoverMiddleware = true, bool discoverNotificationMiddleware = true)
     {
         // Deduplicate assemblies
         Assembly[] uniqueAssemblies = assemblies.Distinct().ToArray();
@@ -434,19 +424,9 @@ public static class ServiceCollectionExtensions
     /// </summary>  
     /// <param name="configuration">The mediator configuration.</param>  
     /// <param name="assembly">Assembly to scan for middleware.</param>  
-    private static void RegisterMiddlewareFromAssembly(MediatorConfiguration configuration, Assembly assembly)
-    {
-        RegisterMiddlewareFromAssembly(configuration, assembly, discoverMiddleware: true, discoverNotificationMiddleware: true);
-    }
-
-    /// <summary>  
-    /// Registers middleware from a single assembly.  
-    /// </summary>  
-    /// <param name="configuration">The mediator configuration.</param>  
-    /// <param name="assembly">Assembly to scan for middleware.</param>  
     /// <param name="discoverMiddleware">Whether to discover request middleware.</param>  
     /// <param name="discoverNotificationMiddleware">Whether to discover notification middleware.</param>  
-    private static void RegisterMiddlewareFromAssembly(MediatorConfiguration configuration, Assembly assembly, bool discoverMiddleware, bool discoverNotificationMiddleware)
+    private static void RegisterMiddlewareFromAssembly(MediatorConfiguration configuration, Assembly assembly, bool discoverMiddleware = true, bool discoverNotificationMiddleware = true)
     {
         List<Type> middlewareTypes = assembly.GetTypes()
             .Where(t =>

@@ -78,7 +78,7 @@ public class NotificationMiddlewareTests
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var subscriber = new TestSubscriber();
-        mediator.Subscribe<TestNotification>(subscriber);
+        mediator.Subscribe(subscriber);
 
         var notification = new TestNotification { Message = "Hello" };
 
@@ -110,7 +110,7 @@ public class NotificationMiddlewareTests
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var subscriber = new TestSubscriber();
-        mediator.Subscribe<TestNotification>(subscriber);
+        mediator.Subscribe(subscriber);
 
         // Act & Assert - should NOT execute for regular message
         var normalNotification = new TestNotification { Message = "Hello" };
@@ -149,7 +149,7 @@ public class NotificationMiddlewareTests
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var subscriber = new TestSubscriber();
-        mediator.Subscribe<TestNotification>(subscriber);
+        mediator.Subscribe(subscriber);
 
         // Act
         var notification = new TestNotification { Message = "IMPORTANT: Test" };

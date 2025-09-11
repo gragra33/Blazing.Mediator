@@ -1,7 +1,3 @@
-using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator.Abstractions;
-
 namespace Blazing.Mediator.Pipeline;
 
 /// <summary>
@@ -385,7 +381,7 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
         // Get middleware types that can handle this request type, sorted by order
         List<(Type Type, int Order)> applicableMiddleware = [];
 
-        foreach ((Type? middlewareType, int order, var _) in _middlewareInfos)
+        foreach ((Type middlewareType, int order, var _) in _middlewareInfos)
         {
             // Handle open generic types by making them closed generic types
             Type actualMiddlewareType;

@@ -1,5 +1,5 @@
 var host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((context, services) =>
+    .ConfigureServices((_, services) =>
     {
         // Register the request handlers and middleware
         services.AddMediator(discoverMiddleware: true, Assembly.GetExecutingAssembly());

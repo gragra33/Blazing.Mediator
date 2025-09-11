@@ -10,7 +10,7 @@ var writer = new WrappingWriter(Console.Out);
 
 // Build the host with dependency injection
 var host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((context, services) =>
+    .ConfigureServices((_, services) =>
     {
         // Register Blazing.Mediator with middleware
         services.AddMediator(config =>
@@ -48,9 +48,9 @@ var pingedAlsoHandler = new PingedAlsoHandler(writer);
 var pongedConstrainedHandler = new PongedConstrainedHandler(writer);
 var covariantHandler = new CovariantNotificationHandler(writer);
 
-mediator.Subscribe<Pinged>(pingedHandler);
-mediator.Subscribe<Pinged>(pingedAlsoHandler);
-mediator.Subscribe<Ponged>(pongedConstrainedHandler);
+mediator.Subscribe(pingedHandler);
+mediator.Subscribe(pingedAlsoHandler);
+mediator.Subscribe(pongedConstrainedHandler);
 mediator.Subscribe(covariantHandler); // Generic subscription for all notifications
 mediator.Subscribe<Pinged>(covariantHandler); // Also subscribe to specific notification for testing
 

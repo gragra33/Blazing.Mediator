@@ -1,5 +1,4 @@
 using Blazing.Mediator.Abstractions;
-using System.Reflection;
 
 namespace SimpleNotificationExample.Services;
 

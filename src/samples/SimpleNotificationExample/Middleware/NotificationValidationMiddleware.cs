@@ -11,7 +11,7 @@ public class NotificationValidationMiddleware(ILogger<NotificationValidationMidd
 {
     public int Order => 5; // Execute before logging
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async Task InvokeAsync<TNotification>(TNotification? notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {

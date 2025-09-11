@@ -1,8 +1,5 @@
-using SimpleNotificationExample.Services;
-using SimpleNotificationExample.Subscribers;
-
 var host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((context, services) =>
+    .ConfigureServices((_, services) =>
     {
         // Register Blazing.Mediator with automatic notification middleware discovery
         // This will automatically find and register:
@@ -73,8 +70,8 @@ var emailHandler = services.GetRequiredService<EmailNotificationHandler>();
 var inventoryHandler = services.GetRequiredService<InventoryNotificationHandler>();
 
 // Subscribe both handlers to OrderCreatedNotification
-mediator.Subscribe<OrderCreatedNotification>(emailHandler);
-mediator.Subscribe<OrderCreatedNotification>(inventoryHandler);
+mediator.Subscribe(emailHandler);
+mediator.Subscribe(inventoryHandler);
 
 Console.WriteLine("* Registered notification middleware automatically discovered");
 Console.WriteLine("* EmailNotificationHandler subscribed to OrderCreatedNotification");

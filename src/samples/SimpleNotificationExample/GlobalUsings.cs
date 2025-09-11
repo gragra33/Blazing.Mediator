@@ -6,4 +6,3 @@ global using Blazing.Mediator;
 global using SimpleNotificationExample.Notifications;
 global using SimpleNotificationExample.Services;
 global using SimpleNotificationExample.Subscribers;
-global using SimpleNotificationExample.Middleware;

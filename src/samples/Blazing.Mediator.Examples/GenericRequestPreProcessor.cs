@@ -1,4 +1,3 @@
-using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
 
 namespace Blazing.Mediator.Examples;

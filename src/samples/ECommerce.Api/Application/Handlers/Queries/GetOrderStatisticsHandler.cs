@@ -34,8 +34,8 @@ public class GetOrderStatisticsHandler(ECommerceDbContext context)
 
         int totalOrders = orders.Count;
         decimal totalRevenue = orders.Sum(o => o.TotalAmount);
-        int pendingOrders = orders.Count(o => o.Status == Domain.Entities.OrderStatus.Pending);
-        int completedOrders = orders.Count(o => o.Status == Domain.Entities.OrderStatus.Delivered);
+        int pendingOrders = orders.Count(o => o.Status == OrderStatus.Pending);
+        int completedOrders = orders.Count(o => o.Status == OrderStatus.Delivered);
         decimal averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
         // Get top products

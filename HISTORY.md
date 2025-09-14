@@ -1,5 +1,12 @@
 ﻿# Version History
 
+### V1.6.1 - 15 September, 2025
+
+-   **MediatorStatistics Analysis**: New `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` methods for comprehensive CQRS type discovery and analysis
+-   **Runtime Statistics**: Enhanced `ReportStatistics()` functionality with automatic execution tracking via `IncrementQuery`, `IncrementCommand`, and `IncrementNotification`
+-   **Statistics Monitoring**: Built-in performance monitoring and usage analytics with flexible `IStatisticsRenderer` system for custom output formats
+-   **Application Insights**: Complete application discovery capabilities perfect for health checks, monitoring dashboards, and development tooling
+
 ### V1.6.0 - 12 September, 2025
 
 -   **Enhanced Auto-Discovery**: `AddMediator` now separates request and notification middleware auto-discovery with new `discoverMiddleware` and `discoverNotificationMiddleware` parameters for granular control

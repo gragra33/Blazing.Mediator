@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <!-- Global warning suppressions -->
+    <NoWarn>$(NoWarn);NETSDK1057</NoWarn>
+    
+    <!-- Source control and package settings -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+</Project>

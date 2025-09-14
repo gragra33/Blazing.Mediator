@@ -28,14 +28,15 @@ The Mediator pattern decouples components by having them communicate through a c
 5. [Setup and Registration](#setup-and-registration)
 6. [Usage in APIs](#usage-in-apis)
 7. [Middleware Pipeline](#middleware-pipeline)
-8. [Validation and Error Handling](#validation-and-error-handling)
-9. [Testing Strategies](#testing-strategies)
-10. [Advanced Scenarios](#advanced-scenarios)
-11. [Best Practices](#best-practices)
-12. [Common Mistakes](#common-mistakes)
-13. [Troubleshooting](#troubleshooting)
-14. [Sample Projects](#sample-projects)
-15. [Complete Examples](#complete-examples)
+8. [MediatorStatistics](#mediatorstatistics)
+9. [Validation and Error Handling](#validation-and-error-handling)
+10. [Testing Strategies](#testing-strategies)
+11. [Advanced Scenarios](#advanced-scenarios)
+12. [Best Practices](#best-practices)
+13. [Common Mistakes](#common-mistakes)
+14. [Troubleshooting](#troubleshooting)
+15. [Sample Projects](#sample-projects)
+16. [Complete Examples](#complete-examples)
 
 ## Quick Start
 
@@ -62,7 +63,7 @@ Install-Package Blazing.Mediator
 #### Manually adding to your project
 
 ```xml
-<PackageReference Include="Blazing.Mediator" Version="1.2.0" />
+<PackageReference Include="Blazing.Mediator" Version="1.6.1" />
 ```
 
 ### 2. Create Your First Query
@@ -2141,6 +2142,316 @@ var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>
 3. **Performance Tracking**: Monitor middleware order and execution for performance optimization
 4. **Troubleshooting**: Use when debugging unexpected middleware behavior or execution order
 5. **Documentation**: Generate pipeline documentation automatically using the analysis output
+
+## MediatorStatistics
+
+The `MediatorStatistics` class provides comprehensive analysis and monitoring capabilities for your Blazing.Mediator implementation. This powerful feature allows you to discover all CQRS types in your application and track runtime execution statistics.
+
+### Overview
+
+MediatorStatistics offers three main capabilities:
+
+1. **Query Analysis** - Discover all `IQuery<TResponse>` implementations in your application
+2. **Command Analysis** - Discover all `ICommand` and `ICommand<TResponse>` implementations in your application
+3. **Runtime Statistics** - Track execution counts for queries, commands, and notifications
+
+### Setup and Registration
+
+The `MediatorStatistics` service is automatically registered when you call `AddMediator()`:
+
+```csharp
+services.AddMediator(typeof(MyQuery).Assembly);
+// MediatorStatistics is automatically registered with ConsoleStatisticsRenderer
+```
+
+You can provide a custom statistics renderer:
+
+```csharp
+services.AddSingleton<IStatisticsRenderer, MyCustomRenderer>();
+services.AddMediator(typeof(MyQuery).Assembly);
+```
+
+### Core Features
+
+#### AnalyzeQueries
+
+The `AnalyzeQueries` method scans your application to discover all query implementations:
+
+```csharp
+public class MediatorAnalysisService
+{
+    private readonly MediatorStatistics _stats;
+    private readonly IServiceProvider _serviceProvider;
+
+    public MediatorAnalysisService(MediatorStatistics stats, IServiceProvider serviceProvider)
+    {
+        _stats = stats;
+        _serviceProvider = serviceProvider;
+    }
+
+    public async Task AnalyzeApplicationQueries()
+    {
+        var queryAnalysis = _stats.AnalyzeQueries(_serviceProvider);
+
+        Console.WriteLine($"Total Queries Discovered: {queryAnalysis.TotalQueries}");
+
+        foreach (var assembly in queryAnalysis.QueriesByAssembly)
+        {
+            Console.WriteLine($"Assembly: {assembly.Assembly}");
+
+            foreach (var ns in assembly.Namespaces)
+            {
+                Console.WriteLine($"  Namespace: {ns.Namespace}");
+
+                foreach (var query in ns.Queries)
+                {
+                    Console.WriteLine($"    Query: {query.ClassName}");
+                    Console.WriteLine($"    Response Type: {query.ResponseType}");
+                    Console.WriteLine($"    Full Type: {query.FullTypeName}");
+                }
+            }
+        }
+    }
+}
+```
+
+#### AnalyzeCommands
+
+The `AnalyzeCommands` method discovers all command implementations:
+
+```csharp
+public async Task AnalyzeApplicationCommands()
+{
+    var commandAnalysis = _stats.AnalyzeCommands(_serviceProvider);
+
+    Console.WriteLine($"Total Commands Discovered: {commandAnalysis.TotalCommands}");
+
+    foreach (var assembly in commandAnalysis.CommandsByAssembly)
+    {
+        Console.WriteLine($"Assembly: {assembly.Assembly}");
+
+        foreach (var ns in assembly.Namespaces)
+        {
+            Console.WriteLine($"  Namespace: {ns.Namespace}");
+
+            foreach (var command in ns.Commands)
+            {
+                Console.WriteLine($"    Command: {command.ClassName}");
+                Console.WriteLine($"    Response Type: {command.ResponseType}");
+                Console.WriteLine($"    Full Type: {command.FullTypeName}");
+            }
+        }
+    }
+}
+```
+
+#### ReportStatistics
+
+The `ReportStatistics` method displays current runtime statistics:
+
+```csharp
+public void ShowCurrentStatistics()
+{
+    // Display current statistics
+    _stats.ReportStatistics();
+
+    // Output example:
+    // Mediator Statistics:
+    // Queries: 15
+    // Commands: 8
+    // Notifications: 3
+}
+```
+
+### Runtime Statistics Tracking
+
+The statistics automatically track execution counts through the following internal methods:
+
+-   **IncrementQuery** - Called automatically when a query is executed
+-   **IncrementCommand** - Called automatically when a command is executed
+-   **IncrementNotification** - Called automatically when a notification is published
+
+These methods are called internally by the mediator and provide real-time usage tracking.
+
+### Example Output
+
+#### Query Analysis Output
+
+```
+🔍 QUERIES DISCOVERED:
+  📦 Assembly: ECommerce.Api
+    📁 ECommerce.Api.Application.Queries
+      🔍 GetProductsQuery<TResponse> → PagedResult<ProductDto>
+      🔍 GetProductByIdQuery → ProductDto
+    📁 ECommerce.Api.Features.Orders
+      🔍 GetOrderHistoryQuery → List<OrderDto>
+```
+
+#### Command Analysis Output
+
+```
+⚡ COMMANDS DISCOVERED:
+  📦 Assembly: ECommerce.Api
+    📁 ECommerce.Api.Application.Commands
+      ⚡ CreateProductCommand → Guid
+      ⚡ UpdateProductCommand → void
+    📁 ECommerce.Api.Features.Orders
+      ⚡ ProcessOrderCommand → OrderResult
+```
+
+### Practical Usage Examples
+
+#### Health Check Integration
+
+```csharp
+public class MediatorHealthCheck : IHealthCheck
+{
+    private readonly MediatorStatistics _stats;
+    private readonly IServiceProvider _serviceProvider;
+
+    public MediatorHealthCheck(MediatorStatistics stats, IServiceProvider serviceProvider)
+    {
+        _stats = stats;
+        _serviceProvider = serviceProvider;
+    }
+
+    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var queries = _stats.AnalyzeQueries(_serviceProvider);
+            var commands = _stats.AnalyzeCommands(_serviceProvider);
+
+            var data = new Dictionary<string, object>
+            {
+                ["TotalQueries"] = queries.TotalQueries,
+                ["TotalCommands"] = commands.TotalCommands,
+                ["QueriesExecuted"] = _stats.QueryCount,
+                ["CommandsExecuted"] = _stats.CommandCount,
+                ["NotificationsPublished"] = _stats.NotificationCount
+            };
+
+            return Task.FromResult(HealthCheckResult.Healthy("Mediator is healthy", data));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(HealthCheckResult.Unhealthy("Mediator health check failed", ex));
+        }
+    }
+}
+```
+
+#### API Endpoints for Monitoring
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class MediatorAnalysisController : ControllerBase
+{
+    private readonly MediatorStatistics _stats;
+    private readonly IServiceProvider _serviceProvider;
+
+    public MediatorAnalysisController(MediatorStatistics stats, IServiceProvider serviceProvider)
+    {
+        _stats = stats;
+        _serviceProvider = serviceProvider;
+    }
+
+    [HttpGet("queries")]
+    public IActionResult GetQueries()
+    {
+        var analysis = _stats.AnalyzeQueries(_serviceProvider);
+        return Ok(analysis);
+    }
+
+    [HttpGet("commands")]
+    public IActionResult GetCommands()
+    {
+        var analysis = _stats.AnalyzeCommands(_serviceProvider);
+        return Ok(analysis);
+    }
+
+    [HttpGet("statistics")]
+    public IActionResult GetStatistics()
+    {
+        return Ok(new
+        {
+            Queries = _stats.QueryCount,
+            Commands = _stats.CommandCount,
+            Notifications = _stats.NotificationCount,
+            Timestamp = DateTime.UtcNow
+        });
+    }
+
+    [HttpGet("comprehensive-report")]
+    public IActionResult GetComprehensiveReport()
+    {
+        var queries = _stats.AnalyzeQueries(_serviceProvider);
+        var commands = _stats.AnalyzeCommands(_serviceProvider);
+
+        return Ok(new
+        {
+            Analysis = new
+            {
+                Queries = queries,
+                Commands = commands
+            },
+            Statistics = new
+            {
+                QueryCount = _stats.QueryCount,
+                CommandCount = _stats.CommandCount,
+                NotificationCount = _stats.NotificationCount
+            },
+            GeneratedAt = DateTime.UtcNow
+        });
+    }
+}
+```
+
+### Custom Statistics Renderer
+
+Create custom renderers for different output formats:
+
+```csharp
+public class JsonStatisticsRenderer : IStatisticsRenderer
+{
+    private readonly ILogger<JsonStatisticsRenderer> _logger;
+
+    public JsonStatisticsRenderer(ILogger<JsonStatisticsRenderer> logger)
+    {
+        _logger = logger;
+    }
+
+    public void RenderStatistics(int queryCount, int commandCount, int notificationCount)
+    {
+        var statistics = new
+        {
+            QueryCount = queryCount,
+            CommandCount = commandCount,
+            NotificationCount = notificationCount,
+            Timestamp = DateTime.UtcNow
+        };
+
+        var json = JsonSerializer.Serialize(statistics, new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
+        _logger.LogInformation("Mediator Statistics: {Statistics}", json);
+    }
+}
+
+// Register the custom renderer
+services.AddSingleton<IStatisticsRenderer, JsonStatisticsRenderer>();
+```
+
+### Best Practices
+
+1. **Development Analysis**: Use `AnalyzeQueries` and `AnalyzeCommands` during development to understand your CQRS structure
+2. **Monitoring Integration**: Include statistics in health checks and monitoring dashboards
+3. **Performance Tracking**: Monitor execution counts to identify heavily used patterns
+4. **Documentation**: Auto-generate documentation from discovered queries and commands
+5. **Custom Renderers**: Create specialized renderers for different environments (console, logging, APIs)
 
 ## Sample Projects
 

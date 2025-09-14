@@ -1,3 +1,5 @@
+using Blazing.Mediator.Statistics;
+
 namespace Blazing.Mediator;
 
 /// <summary>  
@@ -96,6 +98,17 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? configureMiddleware, params Assembly[]? assemblies)
     {
+        // Register MediatorStatistics with default console renderer if not already registered
+        if (!services.Any(s => s.ServiceType == typeof(IStatisticsRenderer)))
+        {
+            services.AddSingleton<IStatisticsRenderer, ConsoleStatisticsRenderer>();
+        }
+        
+        if (!services.Any(s => s.ServiceType == typeof(MediatorStatistics)))
+        {
+            services.AddSingleton<MediatorStatistics>();
+        }
+
         services.AddScoped<IMediator, Mediator>();
 
         // Configure middleware if provided
@@ -167,6 +180,17 @@ public static class ServiceCollectionExtensions
 
         // If no assemblies provided, default to calling assembly
         assemblies ??= new[] { Assembly.GetCallingAssembly() };
+
+        // Register MediatorStatistics with default console renderer if not already registered
+        if (!services.Any(s => s.ServiceType == typeof(IStatisticsRenderer)))
+        {
+            services.AddSingleton<IStatisticsRenderer, ConsoleStatisticsRenderer>();
+        }
+        
+        if (!services.Any(s => s.ServiceType == typeof(MediatorStatistics)))
+        {
+            services.AddSingleton<MediatorStatistics>();
+        }
 
         services.AddScoped<IMediator, Mediator>();
 

@@ -22,7 +22,7 @@ The Blazing.Mediator library provides:
 -   **Async/Await Support**: Full asynchronous programming support throughout
 -   **Testing Friendly**: Easy to mock and test individual handlers with full test coverage using Shouldly
 
-### Key Streaming Features
+### Streaming Features
 
 -   **Native Streaming Support**: Built-in `IStreamRequest<T>` and `IStreamRequestHandler<T,TResponse>` for memory-efficient data streaming
 -   **Real-time Data Processing**: Stream large datasets with `IAsyncEnumerable<T>` for optimal memory usage
@@ -32,7 +32,7 @@ The Blazing.Mediator library provides:
 -   **Multiple Streaming Patterns**: Support for JSON streaming, Server-Sent Events (SSE), and real-time data feeds
 -   **Interactive Streaming**: Perfect for real-time dashboards, live data feeds, progressive loading scenarios, and AI response streaming
 
-### Key Notification Features
+### Notification Features
 
 -   **Event-Driven Architecture**: Publish domain events with `INotification` and have multiple subscribers react to them
 -   **Observer Pattern**: Multiple services can subscribe to the same notification without coupling using `INotificationHandler<T>`
@@ -42,6 +42,15 @@ The Blazing.Mediator library provides:
 -   **New Middleware Analysis**: `INotificationMiddlewarePipelineInspector` for advanced debugging and monitoring
 -   **Type Safety**: Strongly typed notifications with compile-time checking
 -   **Testable Design**: Easy to test notification publishers and subscribers
+
+### Analysis & Statistics Features _**(NEW)**_
+
+-   **Application Discovery**: `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` to discover all CQRS types in your application
+-   **Runtime Statistics**: Built-in execution tracking with `ReportStatistics()` showing query, command, and notification counts
+-   **Performance Monitoring**: Real-time usage statistics with automatic `IncrementQuery`, `IncrementCommand`, and `IncrementNotification` tracking
+-   **Flexible Rendering**: Pluggable `IStatisticsRenderer` system for custom output (console, logging, APIs, monitoring dashboards)
+-   **Health Check Integration**: Built-in support for monitoring endpoints and health checks with comprehensive mediator analysis
+-   **Development Tooling**: Auto-discovery capabilities perfect for documentation generation and development-time analysis
 
 ## Table of Contents
 
@@ -64,6 +73,7 @@ The Blazing.Mediator library provides:
 -   [Middleware Pipeline](#middleware-pipeline)
 -   [Sample Projects](#sample-projects)
 -   [History](#history)
+    -   [V1.6.1](#v161)
     -   [V1.6.0](#v160)
     -   [V1.5.0](#v150)
 
@@ -90,7 +100,7 @@ Install-Package Blazing.Mediator
 #### Manually adding to your project
 
 ```xml
-<PackageReference Include="Blazing.Mediator" Version="1.6.0" />
+<PackageReference Include="Blazing.Mediator" Version="1.6.1" />
 ```
 
 ### Configuration
@@ -314,7 +324,7 @@ The library includes five comprehensive sample projects demonstrating different 
     - Performance optimizations and migration patterns
     - Perfect starting point for new users and MediatR migration
 
-2. **MiddlewareExample** _**(NEW!)**_ - Console application demonstrating comprehensive middleware pipeline and inspection capabilities
+2. **MiddlewareExample** - Console application demonstrating comprehensive middleware pipeline and inspection capabilities
 
     - E-commerce scenario with CQRS patterns and auto-registration functionality
     - Advanced middleware pipeline with ordered execution and concrete/generic middleware with conditional operation
@@ -324,7 +334,17 @@ The library includes five comprehensive sample projects demonstrating different 
     - `MiddlewarePipelineAnalyzer` helper class for runtime pipeline analysis and introspection
     - detailed readme documentation included
 
-3. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware and notification system
+3. **SimpleNotificationExample** _**(NEW!)**_ - Console application demonstrating recommended scoped notification patterns
+
+    - Recommended approach using default scoped `IMediator` registration (not singleton) for proper resource management
+    - Simple, straightforward notification subscribers
+    - Multiple subscribers reacting to the same notification (`OrderCreatedNotification`)
+    - Manual subscription management with runtime `IMediator.Subscribe()` control
+    - Enhanced with `MediatorStatistics` analysis and notification tracking demonstrations
+    - Clear documentation showing why this is the preferred pattern over complex background service approaches
+    - Perfect starting point for understanding notification patterns in Blazing.Mediator
+
+4. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware and notification system
 
     - Product and Order management with CQRS patterns
     - Comprehensive notification system with domain events
@@ -334,14 +354,14 @@ The library includes five comprehensive sample projects demonstrating different 
     - FluentValidation integration with validation middleware
     - Background services for notification processing
 
-4. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
+5. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
 
     - User management operations
     - Comprehensive logging middleware
     - Clean architecture patterns
     - Error handling examples
 
-5. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
+6. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
     - Memory-efficient `IAsyncEnumerable<T>` streaming with large datasets
     - JSON streaming and Server-Sent Events (SSE) endpoints
     - Multiple Blazor render modes (SSR, Auto, Static, WebAssembly)
@@ -350,6 +370,13 @@ The library includes five comprehensive sample projects demonstrating different 
     - 6 different streaming examples from minimal APIs to interactive WebAssembly clients
 
 ## History
+
+### V1.6.1
+
+-   **MediatorStatistics Analysis**: New `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` methods for comprehensive CQRS type discovery and analysis
+-   **Runtime Statistics**: Enhanced `ReportStatistics()` functionality with automatic execution tracking via `IncrementQuery`, `IncrementCommand`, and `IncrementNotification`
+-   **Statistics Monitoring**: Built-in performance monitoring and usage analytics with flexible `IStatisticsRenderer` system for custom output formats
+-   **Application Insights**: Complete application discovery capabilities perfect for health checks, monitoring dashboards, and development tooling
 
 ### V1.6.0
 

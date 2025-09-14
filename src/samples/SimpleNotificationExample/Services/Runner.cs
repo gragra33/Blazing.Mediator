@@ -1,4 +1,6 @@
 using Blazing.Mediator.Abstractions;
+using Blazing.Mediator.Statistics;
+using System.Reflection;
 
 namespace SimpleNotificationExample.Services;
 
@@ -6,7 +8,7 @@ namespace SimpleNotificationExample.Services;
 /// Runner service that demonstrates the notification system in action.
 /// This orchestrates the demo by creating sample orders and publishing notifications.
 /// </summary>
-public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider serviceProvider)
+public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider serviceProvider, MediatorStatistics mediatorStatistics)
 {
     /// <summary>
     /// Runs the notification demonstration by creating and publishing sample orders.
@@ -18,23 +20,115 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
         logger.LogInformation("  - Automatic discovery of INotificationMiddleware implementations");
         logger.LogInformation("  - Pipeline inspection using INotificationMiddlewarePipelineInspector");
         logger.LogInformation("  - Multiple notification handlers reacting to the same notification");
-        logger.LogInformation("");
+        logger.LogInformation("  - NEW: MediatorStatistics for analyzing queries, commands, and notifications");
+        logger.LogInformation ("");
 
-        // First, analyze the notification middleware pipeline
+        // First, analyze the mediator types
+        InspectMediatorTypes();
+        
+        // Then analyze the notification middleware pipeline
         InspectNotificationMiddlewarePipeline();
         
         logger.LogInformation("");
         logger.LogInformation("=== Starting Order Processing ===");
-        logger.LogInformation("");
+        logger.LogInformation ("");
 
         await CreateSampleOrders();
 
+        // Show final statistics
         logger.LogInformation("");
+        logger.LogInformation("=== FINAL STATISTICS ===");
+        mediatorStatistics.ReportStatistics();
+        logger.LogInformation("========================");
+
+        logger.LogInformation ("");
         logger.LogInformation("* Demo completed! Both subscribers processed all notifications.");
         logger.LogInformation("Check the logs above to see how each subscriber handled the OrderCreatedNotification.");
         logger.LogInformation("Notice how the middleware executed in order: Validation -> Logging -> Metrics -> Audit");
         logger.LogInformation("");
         logger.LogInformation("Press any key to exit the application.");
+    }
+
+    /// <summary>
+    /// Demonstrates the new mediator statistics functionality for analyzing queries, commands, and notifications.
+    /// </summary>
+    private void InspectMediatorTypes()
+    {
+        logger.LogInformation("=== MEDIATOR TYPE ANALYSIS ===");
+        logger.LogInformation ("");
+
+        // Analyze all queries in the application
+        var queries = mediatorStatistics.AnalyzeQueries(serviceProvider);
+        logger.LogInformation("* QUERIES DISCOVERED:");
+        if (queries.Any())
+        {
+            var queryGroups = queries.GroupBy(q => q.Assembly);
+            foreach (var assemblyGroup in queryGroups)
+            {
+                logger.LogInformation("  * Assembly: {Assembly}", assemblyGroup.Key);
+                var namespaceGroups = assemblyGroup.GroupBy(q => q.Namespace);
+                foreach (var namespaceGroup in namespaceGroups)
+                {
+                    logger.LogInformation("    * {Namespace}", namespaceGroup.Key);
+                    foreach (var query in namespaceGroup)
+                    {
+                        var statusIcon = query.HandlerStatus switch
+                        {
+                            HandlerStatus.Single => "+",
+                            HandlerStatus.Missing => "!",
+                            HandlerStatus.Multiple => "#",
+                            _ => "?"
+                        };
+                        var responseType = query.ResponseType?.Name ?? "void";
+                        logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} -> {ResponseType} ({HandlerDetails})", 
+                            statusIcon, query.ClassName, query.TypeParameters, responseType, query.HandlerDetails);
+                    }
+                }
+            }
+        }
+        else
+        {
+            logger.LogInformation("  (No queries discovered)");
+        }
+
+        // Analyze all commands in the application
+        var commands = mediatorStatistics.AnalyzeCommands(serviceProvider);
+        logger.LogInformation("");
+        logger.LogInformation("* COMMANDS DISCOVERED:");
+        if (commands.Any())
+        {
+            var commandGroups = commands.GroupBy(c => c.Assembly);
+            foreach (var assemblyGroup in commandGroups)
+            {
+                logger.LogInformation("  * Assembly: {Assembly}", assemblyGroup.Key);
+                var namespaceGroups = assemblyGroup.GroupBy(c => c.Namespace);
+                foreach (var namespaceGroup in namespaceGroups)
+                {
+                    logger.LogInformation("    * {Namespace}", namespaceGroup.Key);
+                    foreach (var command in namespaceGroup)
+                    {
+                        var statusIcon = command.HandlerStatus switch
+                        {
+                            HandlerStatus.Single => "+",
+                            HandlerStatus.Missing => "!",
+                            HandlerStatus.Multiple => "#",
+                            _ => "?"
+                        };
+                        var responseType = command.ResponseType?.Name ?? "void";
+                        logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} -> {ResponseType} ({HandlerDetails})", 
+                            statusIcon, command.ClassName, command.TypeParameters, responseType, command.HandlerDetails);
+                    }
+                }
+            }
+        }
+        else
+        {
+            logger.LogInformation("  (No commands discovered)");
+        }
+        
+        logger.LogInformation ("");
+        logger.LogInformation("Legend: + = Handler found, ! = No handler, # = Multiple handlers");
+        logger.LogInformation("=========================");
     }
 
     /// <summary>

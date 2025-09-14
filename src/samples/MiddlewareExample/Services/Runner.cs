@@ -1,3 +1,6 @@
+using Blazing.Mediator.Statistics;
+using Blazing.Mediator.Abstractions;
+
 namespace MiddlewareExample.Services;
 
 /// <summary>
@@ -7,7 +10,8 @@ public class Runner(
     IMediator mediator,
     ILogger<Runner> logger,
     IMiddlewarePipelineInspector pipelineInspector,
-    IServiceProvider serviceProvider)
+    IServiceProvider serviceProvider,
+    MediatorStatistics mediatorStatistics)
 {
     /// <summary>
     /// Inspects and displays the registered middleware pipeline.
@@ -26,17 +30,112 @@ public class Runner(
     }
 
     /// <summary>
+    /// Demonstrates the new mediator statistics functionality for analyzing queries and commands.
+    /// </summary>
+    public void InspectQueriesAndCommands()
+    {
+        // === MEDIATOR ANALYSIS ===
+        logger.LogInformation("=== MEDIATOR ANALYSIS ===");
+        
+        // Analyze all queries in the application
+        var queries = mediatorStatistics.AnalyzeQueries(serviceProvider);
+        logger.LogInformation("");
+        logger.LogInformation("* QUERIES DISCOVERED:");
+        
+        if (queries.Any())
+        {
+            var queryGroups = queries.GroupBy(q => q.Assembly);
+            foreach (var assemblyGroup in queryGroups)
+            {
+                logger.LogInformation("  * Assembly: {Assembly}", assemblyGroup.Key);
+                var namespaceGroups = assemblyGroup.GroupBy(q => q.Namespace);
+                foreach (var namespaceGroup in namespaceGroups)
+                {
+                    logger.LogInformation("    * {Namespace}", namespaceGroup.Key);
+                    foreach (var query in namespaceGroup)
+                    {
+                        var statusIcon = query.HandlerStatus switch
+                        {
+                            HandlerStatus.Single => "+",
+                            HandlerStatus.Missing => "!",
+                            HandlerStatus.Multiple => "#",
+                            _ => "?"
+                        };
+                        var responseType = query.ResponseType?.Name ?? "void";
+                        logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} -> {ResponseType} ({HandlerDetails})", 
+                            statusIcon, query.ClassName, query.TypeParameters, responseType, query.HandlerDetails);
+                    }
+                }
+            }
+        }
+        else
+        {
+            logger.LogInformation("  (No queries discovered)");
+        }
+
+        // Analyze all commands in the application
+        var commands = mediatorStatistics.AnalyzeCommands(serviceProvider);
+        logger.LogInformation("");
+        logger.LogInformation("* COMMANDS DISCOVERED:");
+        
+        if (commands.Any())
+        {
+            var commandGroups = commands.GroupBy(c => c.Assembly);
+            foreach (var assemblyGroup in commandGroups)
+            {
+                logger.LogInformation("  * Assembly: {Assembly}", assemblyGroup.Key);
+                var namespaceGroups = assemblyGroup.GroupBy(c => c.Namespace);
+                foreach (var namespaceGroup in namespaceGroups)
+                {
+                    logger.LogInformation("    * {Namespace}", namespaceGroup.Key);
+                    foreach (var command in namespaceGroup)
+                    {
+                        var statusIcon = command.HandlerStatus switch
+                        {
+                            HandlerStatus.Single => "+",
+                            HandlerStatus.Missing => "!",
+                            HandlerStatus.Multiple => "#",
+                            _ => "?"
+                        };
+                        var responseType = command.ResponseType?.Name ?? "void";
+                        logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} -> {ResponseType} ({HandlerDetails})", 
+                            statusIcon, command.ClassName, command.TypeParameters, responseType, command.HandlerDetails);
+                    }
+                }
+            }
+        }
+        else
+        {
+            logger.LogInformation("  (No commands discovered)");
+        }
+        
+        logger.LogInformation("");
+        logger.LogInformation("Legend: + = Handler found, ! = No handler, # = Multiple handlers");
+        logger.LogInformation("=========================");
+        logger.LogInformation("");
+    }
+
+    /// <summary>
     /// Orchestrates the complete e-commerce demo workflow.
     /// </summary>
     public async Task Run()
     {
         logger.LogInformation("Starting E-Commerce Demo with Blazing.Mediator...");
 
+        // First, analyze the application structure
+        InspectQueriesAndCommands();
+
         await DemonstrateProductLookup();
         await DemonstrateInventoryManagement();
         await DemonstrateOrderConfirmation();
         await DemonstrateCustomerRegistration();
         await DemonstrateCustomerDetailsUpdate();
+
+        // Show final statistics
+        Console.WriteLine("=== EXECUTION STATISTICS ===");
+        mediatorStatistics.ReportStatistics();
+        Console.WriteLine("=============================");
+        Console.WriteLine();
 
         logger.LogInformation("E-Commerce Demo completed!");
     }

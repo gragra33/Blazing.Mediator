@@ -6,7 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Suppress XML documentation warnings for handlers and validators - focus on public API surface -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Suppress package version constraint warnings -->
+    <NoWarn>$(NoWarn);CS1591;NU1608</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,3 +1,5 @@
+using Blazing.Mediator.Statistics;
+
 namespace Blazing.Mediator;
 
 /// <summary>
@@ -13,6 +15,7 @@ public class Mediator : IMediator
     private readonly IServiceProvider _serviceProvider;
     private readonly IMiddlewarePipelineBuilder _pipelineBuilder;
     private readonly INotificationPipelineBuilder _notificationPipelineBuilder;
+    private readonly MediatorStatistics _statistics;
     
     // Thread-safe collections for notification subscribers
     private readonly ConcurrentDictionary<Type, ConcurrentBag<object>> _specificSubscribers = new();
@@ -24,12 +27,14 @@ public class Mediator : IMediator
     /// <param name="serviceProvider">The service provider to resolve handlers.</param>
     /// <param name="pipelineBuilder">The middleware pipeline builder.</param>
     /// <param name="notificationPipelineBuilder">The notification middleware pipeline builder.</param>
-    /// <exception cref="ArgumentNullException">Thrown when serviceProvider, pipelineBuilder, or notificationPipelineBuilder is null.</exception>
-    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, INotificationPipelineBuilder notificationPipelineBuilder)
+    /// <param name="statistics">The statistics service for tracking mediator usage.</param>
+    /// <exception cref="ArgumentNullException">Thrown when serviceProvider, pipelineBuilder, notificationPipelineBuilder, or statistics is null.</exception>
+    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, INotificationPipelineBuilder notificationPipelineBuilder, MediatorStatistics statistics)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _pipelineBuilder = pipelineBuilder ?? throw new ArgumentNullException(nameof(pipelineBuilder));
         _notificationPipelineBuilder = notificationPipelineBuilder ?? throw new ArgumentNullException(nameof(notificationPipelineBuilder));
+        _statistics = statistics ?? throw new ArgumentNullException(nameof(statistics));
     }
 
     /// <summary>
@@ -41,6 +46,8 @@ public class Mediator : IMediator
     /// <exception cref="InvalidOperationException">Thrown when no handler is found for the request type</exception>
     public async Task Send(IRequest request, CancellationToken cancellationToken = default)
     {
+        _statistics.IncrementCommand(request.GetType().Name);
+        
         Type requestType = request.GetType();
         Type handlerType = typeof(IRequestHandler<>).MakeGenericType(requestType);
 
@@ -114,6 +121,8 @@ public class Mediator : IMediator
     /// <exception cref="InvalidOperationException">Thrown when no handler is found for the request type or the handler returns null</exception>
     public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
+        _statistics.IncrementQuery(request.GetType().Name);
+        
         Type requestType = request.GetType();
         Type handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
 
@@ -258,6 +267,7 @@ public class Mediator : IMediator
     public async Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         ArgumentNullException.ThrowIfNull(notification);
+        _statistics.IncrementNotification(notification.GetType().Name);
 
         // Create final handler delegate that notifies all subscribers
         NotificationDelegate<TNotification> finalHandler = async (notif, token) =>

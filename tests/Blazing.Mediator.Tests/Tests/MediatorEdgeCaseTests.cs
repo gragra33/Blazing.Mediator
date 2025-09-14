@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Configuration;
+using Blazing.Mediator.Statistics;
 
 namespace Blazing.Mediator.Tests;
 
@@ -23,6 +24,8 @@ public class MediatorEdgeCaseTests
         services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderWithoutExecuteMethod>();
         services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
+        services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
+        services.AddSingleton<MediatorStatistics>();
         
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -45,6 +48,8 @@ public class MediatorEdgeCaseTests
         services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderWithoutExecuteMethod>();
         services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
+        services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
+        services.AddSingleton<MediatorStatistics>();
         
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -70,6 +75,8 @@ public class MediatorEdgeCaseTests
         services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderReturningNull>();
         services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
+        services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
+        services.AddSingleton<MediatorStatistics>();
         
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -92,6 +99,8 @@ public class MediatorEdgeCaseTests
         services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderReturningNull>();
         services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
+        services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
+        services.AddSingleton<MediatorStatistics>();
         
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -281,5 +290,16 @@ public class MediatorEdgeCaseTests
 
         // Assert
         result.ShouldBe("Exception Order: Handler: test");
+    }
+
+    /// <summary>
+    /// Simple console renderer for testing purposes
+    /// </summary>
+    public class TestStatisticsRenderer : IStatisticsRenderer
+    {
+        public void Render(string message)
+        {
+            Console.WriteLine(message);
+        }
     }
 }

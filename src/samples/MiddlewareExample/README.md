@@ -193,9 +193,10 @@ services.AddMediator(
 ```
 
 **Key Configuration Parameters:**
-- `enableStatisticsTracking: true` - Enables collection of execution statistics and runtime analysis
-- `discoverMiddleware: true` - Automatically discovers and registers middleware from the assembly
-- `assemblies` - Specifies which assemblies to scan for handlers and middleware
+
+-   `enableStatisticsTracking: true` - Enables collection of execution statistics and runtime analysis
+-   `discoverMiddleware: true` - Automatically discovers and registers middleware from the assembly
+-   `assemblies` - Specifies which assemblies to scan for handlers and middleware
 
 ## 📊 Expected Output
 

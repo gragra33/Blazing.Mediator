@@ -9,8 +9,9 @@ var host = Host.CreateDefaultBuilder(args)
         //   - NotificationAuditMiddleware
         services.AddMediator(
             configureMiddleware: null,
-            discoverMiddleware: false,                    // Don't discover request middleware
-            discoverNotificationMiddleware: true,         // DO discover notification middleware
+            enableStatisticsTracking: true,
+            discoverMiddleware: false,
+            discoverNotificationMiddleware: true,
             Assembly.GetExecutingAssembly()
         );
 

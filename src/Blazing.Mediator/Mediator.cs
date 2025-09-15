@@ -15,7 +15,7 @@ public class Mediator : IMediator
     private readonly IServiceProvider _serviceProvider;
     private readonly IMiddlewarePipelineBuilder _pipelineBuilder;
     private readonly INotificationPipelineBuilder _notificationPipelineBuilder;
-    private readonly MediatorStatistics _statistics;
+    private readonly MediatorStatistics? _statistics;
     
     // Thread-safe collections for notification subscribers
     private readonly ConcurrentDictionary<Type, ConcurrentBag<object>> _specificSubscribers = new();
@@ -27,14 +27,14 @@ public class Mediator : IMediator
     /// <param name="serviceProvider">The service provider to resolve handlers.</param>
     /// <param name="pipelineBuilder">The middleware pipeline builder.</param>
     /// <param name="notificationPipelineBuilder">The notification middleware pipeline builder.</param>
-    /// <param name="statistics">The statistics service for tracking mediator usage.</param>
-    /// <exception cref="ArgumentNullException">Thrown when serviceProvider, pipelineBuilder, notificationPipelineBuilder, or statistics is null.</exception>
-    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, INotificationPipelineBuilder notificationPipelineBuilder, MediatorStatistics statistics)
+    /// <param name="statistics">The statistics service for tracking mediator usage. Can be null if statistics tracking is disabled.</param>
+    /// <exception cref="ArgumentNullException">Thrown when serviceProvider, pipelineBuilder, or notificationPipelineBuilder is null.</exception>
+    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, INotificationPipelineBuilder notificationPipelineBuilder, MediatorStatistics? statistics)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _pipelineBuilder = pipelineBuilder ?? throw new ArgumentNullException(nameof(pipelineBuilder));
         _notificationPipelineBuilder = notificationPipelineBuilder ?? throw new ArgumentNullException(nameof(notificationPipelineBuilder));
-        _statistics = statistics ?? throw new ArgumentNullException(nameof(statistics));
+        _statistics = statistics; // Statistics can be null if tracking is disabled
     }
 
     /// <summary>
@@ -46,13 +46,14 @@ public class Mediator : IMediator
     /// <exception cref="InvalidOperationException">Thrown when no handler is found for the request type</exception>
     public async Task Send(IRequest request, CancellationToken cancellationToken = default)
     {
-        _statistics.IncrementCommand(request.GetType().Name);
+        // Conditionally track statistics if enabled
+        _statistics?.IncrementCommand(request.GetType().Name);
         
         Type requestType = request.GetType();
         Type handlerType = typeof(IRequestHandler<>).MakeGenericType(requestType);
 
         // Create final handler delegate that executes the actual handler
-        RequestHandlerDelegate finalHandler = async () =>
+        async Task FinalHandler()
         {
             // Check for multiple handler registrations
             IEnumerable<object?> handlers = _serviceProvider.GetServices(handlerType);
@@ -67,8 +68,7 @@ public class Mediator : IMediator
             }
 
             object handler = handlerArray[0];
-            MethodInfo method = handlerType.GetMethod("Handle")
-                                ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
+            MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
 
             try
             {
@@ -83,7 +83,7 @@ public class Mediator : IMediator
             {
                 throw ex.InnerException;
             }
-        };
+        }
 
         // Execute through middleware pipeline using reflection to call the generic method
         MethodInfo? executeMethod = _pipelineBuilder
@@ -98,12 +98,12 @@ public class Mediator : IMediator
         if (executeMethod == null)
         {
             // Fallback to direct execution if pipeline method not found
-            await finalHandler();
+            await FinalHandler();
             return;
         }
 
         MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(requestType);
-        Task? pipelineTask = (Task?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, finalHandler, cancellationToken]);
+        Task? pipelineTask = (Task?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, (RequestHandlerDelegate)FinalHandler, cancellationToken]);
 
         if (pipelineTask != null)
         {
@@ -121,13 +121,27 @@ public class Mediator : IMediator
     /// <exception cref="InvalidOperationException">Thrown when no handler is found for the request type or the handler returns null</exception>
     public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
-        _statistics.IncrementQuery(request.GetType().Name);
+        // Conditionally track statistics if enabled
+        if (_statistics != null)
+        {
+            // Efficiently determine if this is a query or command with minimal performance impact
+            bool isQuery = DetermineIfQuery(request);
+            
+            if (isQuery)
+            {
+                _statistics.IncrementQuery(request.GetType().Name);
+            }
+            else
+            {
+                _statistics.IncrementCommand(request.GetType().Name);
+            }
+        }
         
         Type requestType = request.GetType();
         Type handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
 
         // Create final handler delegate that executes the actual handler
-        RequestHandlerDelegate<TResponse> finalHandler = async () =>
+        async Task<TResponse> FinalHandler()
         {
             // Check for multiple handler registrations
             IEnumerable<object?> handlers = _serviceProvider.GetServices(handlerType);
@@ -142,8 +156,7 @@ public class Mediator : IMediator
             }
 
             object handler = handlerArray[0];
-            MethodInfo method = handlerType.GetMethod("Handle")
-                                ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
+            MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
 
             try
             {
@@ -160,7 +173,7 @@ public class Mediator : IMediator
             {
                 throw ex.InnerException;
             }
-        };
+        }
 
         // Execute through middleware pipeline using reflection to call the generic method with the correct runtime type
         MethodInfo? executeMethod = _pipelineBuilder
@@ -175,18 +188,18 @@ public class Mediator : IMediator
         if (executeMethod == null)
         {
             // Fallback to direct execution if pipeline method not found
-            return await finalHandler();
+            return await FinalHandler();
         }
 
         MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(requestType, typeof(TResponse));
-        Task<TResponse>? pipelineTask = (Task<TResponse>?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, finalHandler, cancellationToken]);
+        Task<TResponse>? pipelineTask = (Task<TResponse>?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, (RequestHandlerDelegate<TResponse>)FinalHandler, cancellationToken]);
 
         if (pipelineTask != null)
         {
             return await pipelineTask;
         }
 
-        return await finalHandler();
+        return await FinalHandler();
     }
     
     /// <summary>
@@ -203,12 +216,12 @@ public class Mediator : IMediator
         Type handlerType = typeof(IStreamRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
 
         // Create final handler delegate that executes the actual stream handler
-        StreamRequestHandlerDelegate<TResponse> finalHandler = () =>
+        IAsyncEnumerable<TResponse> FinalHandler()
         {
             // Check for multiple handler registrations
             IEnumerable<object?> handlers = _serviceProvider.GetServices(handlerType);
             object[] handlerArray = handlers.Where(h => h != null).ToArray()!;
-            
+
             switch (handlerArray)
             {
                 case { Length: 0 }:
@@ -218,8 +231,7 @@ public class Mediator : IMediator
             }
 
             object handler = handlerArray[0];
-            MethodInfo method = handlerType.GetMethod("Handle")
-                                ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
+            MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
 
             try
             {
@@ -230,7 +242,7 @@ public class Mediator : IMediator
             {
                 throw ex.InnerException;
             }
-        };
+        }
 
         // Execute through middleware pipeline using reflection to call the generic method
         MethodInfo? executeMethod = _pipelineBuilder
@@ -245,13 +257,13 @@ public class Mediator : IMediator
         if (executeMethod == null)
         {
             // Fallback to direct execution if pipeline method not found
-            return finalHandler();
+            return FinalHandler();
         }
 
         MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(requestType, typeof(TResponse));
-        IAsyncEnumerable<TResponse>? pipelineResult = (IAsyncEnumerable<TResponse>?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, finalHandler, cancellationToken]);
+        IAsyncEnumerable<TResponse>? pipelineResult = (IAsyncEnumerable<TResponse>?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, (StreamRequestHandlerDelegate<TResponse>)FinalHandler, cancellationToken]);
 
-        return pipelineResult ?? finalHandler();
+        return pipelineResult ?? FinalHandler();
     }
 
     #region Notification Methods
@@ -267,10 +279,12 @@ public class Mediator : IMediator
     public async Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         ArgumentNullException.ThrowIfNull(notification);
-        _statistics.IncrementNotification(notification.GetType().Name);
+        
+        // Conditionally track statistics if enabled
+        _statistics?.IncrementNotification(notification.GetType().Name);
 
         // Create final handler delegate that notifies all subscribers
-        NotificationDelegate<TNotification> finalHandler = async (notif, token) =>
+        async Task FinalHandler(TNotification notif, CancellationToken token)
         {
             var tasks = new List<Task>();
 
@@ -297,10 +311,10 @@ public class Mediator : IMediator
             {
                 await Task.WhenAll(tasks);
             }
-        };
+        }
 
         // Execute through notification middleware pipeline
-        await _notificationPipelineBuilder.ExecutePipeline(notification, _serviceProvider, finalHandler, cancellationToken);
+        await _notificationPipelineBuilder.ExecutePipeline(notification, _serviceProvider, FinalHandler, cancellationToken);
     }
 
     /// <summary>
@@ -315,7 +329,7 @@ public class Mediator : IMediator
 
         _specificSubscribers.AddOrUpdate(
             typeof(TNotification),
-            new ConcurrentBag<object> { subscriber },
+            [subscriber],
             (_, existing) =>
             {
                 existing.Add(subscriber);
@@ -343,26 +357,27 @@ public class Mediator : IMediator
     {
         ArgumentNullException.ThrowIfNull(subscriber);
 
-        if (_specificSubscribers.TryGetValue(typeof(TNotification), out var subscribers))
+        if (!_specificSubscribers.TryGetValue(typeof(TNotification), out var subscribers))
         {
-            // Create new bag without the subscriber
-            var newSubscribers = new ConcurrentBag<object>();
-            foreach (var existing in subscribers)
-            {
-                if (!ReferenceEquals(existing, subscriber))
-                {
-                    newSubscribers.Add(existing);
-                }
-            }
+            return;
+        }
 
-            if (newSubscribers.IsEmpty)
-            {
-                _specificSubscribers.TryRemove(typeof(TNotification), out _);
-            }
-            else
-            {
-                _specificSubscribers.TryUpdate(typeof(TNotification), newSubscribers, subscribers);
-            }
+        // Create new bag without the subscriber
+        var newSubscribers = new ConcurrentBag<object>();
+        foreach (var existing in from existing in subscribers
+                 where !ReferenceEquals(existing, subscriber)
+                 select existing)
+        {
+            newSubscribers.Add(existing);
+        }
+
+        if (newSubscribers.IsEmpty)
+        {
+            _specificSubscribers.TryRemove(typeof(TNotification), out _);
+        }
+        else
+        {
+            _specificSubscribers.TryUpdate(typeof(TNotification), newSubscribers, subscribers);
         }
     }
 
@@ -376,12 +391,11 @@ public class Mediator : IMediator
 
         // Remove from generic subscribers
         var newGenericSubscribers = new ConcurrentBag<INotificationSubscriber>();
-        foreach (var existing in _genericSubscribers)
+        foreach (var existing in from existing in _genericSubscribers
+                                 where !ReferenceEquals(existing, subscriber)
+                                 select existing)
         {
-            if (!ReferenceEquals(existing, subscriber))
-            {
-                newGenericSubscribers.Add(existing);
-            }
+            newGenericSubscribers.Add(existing);
         }
 
         // Replace the entire bag
@@ -407,9 +421,52 @@ public class Mediator : IMediator
         catch (Exception ex)
         {
             // Log the exception but don't let it propagate to other subscribers
-            // In a real implementation, you might want to use a logger here
             Console.WriteLine($"Exception in notification subscriber: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Efficiently determines if a request is a query or command with minimal performance impact.
+    /// First checks primary interfaces, then falls back to name-based detection using ReadOnlySpan.
+    /// </summary>
+    /// <typeparam name="TResponse">The response type</typeparam>
+    /// <param name="request">The request to analyze</param>
+    /// <returns>True if it's a query, false if it's a command</returns>
+    private static bool DetermineIfQuery<TResponse>(IRequest<TResponse> request)
+    {
+        Type requestType = request.GetType();
+        
+        // Fast path: Check if request directly implements IQuery<TResponse>
+        if (request is IQuery<TResponse>)
+        {
+            return true;
+        }
+        
+        // Fast path: Check if request directly implements ICommand<TResponse>
+        if (request is ICommand<TResponse>)
+        {
+            return false;
+        }
+        
+        // Fallback: Check type name suffix using ReadOnlySpan for performance
+        ReadOnlySpan<char> typeName = requestType.Name.AsSpan();
+        
+        // Check for "Query" suffix (case-insensitive)
+        if (typeName.Length >= 5 && 
+            typeName[^5..].Equals("Query".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        
+        // Check for "Command" suffix (case-insensitive)
+        if (typeName.Length >= 7 && 
+            typeName[^7..].Equals("Command".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+        
+        // Default to query if no clear indication (maintains backward compatibility)
+        return true;
     }
 
     #endregion

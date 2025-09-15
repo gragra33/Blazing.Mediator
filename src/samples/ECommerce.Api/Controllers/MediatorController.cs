@@ -52,11 +52,12 @@ public class MediatorController : ControllerBase
     /// <summary>
     /// Analyzes all queries in the application grouped by assembly and namespace.
     /// </summary>
+    /// <param name="detailed">If true, returns comprehensive analysis with all properties. If false, returns compact analysis with basic information only.</param>
     /// <returns>Detailed analysis of all discovered queries</returns>
     [HttpGet("analyze/queries")]
-    public IActionResult AnalyzeQueries()
+    public IActionResult AnalyzeQueries([FromQuery] bool detailed = true)
     {
-        var queries = _mediatorStatistics.AnalyzeQueries(_serviceProvider);
+        var queries = _mediatorStatistics.AnalyzeQueries(_serviceProvider, detailed);
         
         var result = queries
             .GroupBy(q => q.Assembly)
@@ -76,7 +77,9 @@ public class MediatorController : ControllerBase
                             {
                                 q.ClassName,
                                 q.TypeParameters,
+                                PrimaryInterface = q.PrimaryInterface,
                                 ResponseType = q.ResponseType?.Name,
+                                IsResultType = q.IsResultType,
                                 FullTypeName = q.Type.FullName,
                                 HandlerStatus = q.HandlerStatus.ToString(),
                                 q.HandlerDetails,
@@ -98,6 +101,7 @@ public class MediatorController : ControllerBase
         return Ok(new
         {
             TotalQueries = queries.Count,
+            IsDetailed = detailed,
             QueriesByAssembly = result,
             Summary = new
             {
@@ -117,11 +121,12 @@ public class MediatorController : ControllerBase
     /// <summary>
     /// Analyzes all commands in the application grouped by assembly and namespace.
     /// </summary>
+    /// <param name="detailed">If true, returns comprehensive analysis with all properties. If false, returns compact analysis with basic information only.</param>
     /// <returns>Detailed analysis of all discovered commands</returns>
     [HttpGet("analyze/commands")]
-    public IActionResult AnalyzeCommands()
+    public IActionResult AnalyzeCommands([FromQuery] bool detailed = true)
     {
-        var commands = _mediatorStatistics.AnalyzeCommands(_serviceProvider);
+        var commands = _mediatorStatistics.AnalyzeCommands(_serviceProvider, detailed);
         
         var result = commands
             .GroupBy(c => c.Assembly)
@@ -141,7 +146,9 @@ public class MediatorController : ControllerBase
                             {
                                 c.ClassName,
                                 c.TypeParameters,
+                                PrimaryInterface = c.PrimaryInterface,
                                 ResponseType = c.ResponseType?.Name,
+                                IsResultType = c.IsResultType,
                                 FullTypeName = c.Type.FullName,
                                 HandlerStatus = c.HandlerStatus.ToString(),
                                 c.HandlerDetails,
@@ -163,6 +170,7 @@ public class MediatorController : ControllerBase
         return Ok(new
         {
             TotalCommands = commands.Count,
+            IsDetailed = detailed,
             CommandsByAssembly = result,
             Summary = new
             {
@@ -182,12 +190,13 @@ public class MediatorController : ControllerBase
     /// <summary>
     /// Gets a comprehensive analysis of both queries and commands.
     /// </summary>
+    /// <param name="detailed">If true, returns comprehensive analysis with all properties. If false, returns compact analysis with basic information only.</param>
     /// <returns>Complete mediator analysis including queries, commands, and statistics</returns>
     [HttpGet("analyze")]
-    public IActionResult GetCompleteAnalysis()
+    public IActionResult GetCompleteAnalysis([FromQuery] bool detailed = true)
     {
-        var queries = _mediatorStatistics.AnalyzeQueries(_serviceProvider);
-        var commands = _mediatorStatistics.AnalyzeCommands(_serviceProvider);
+        var queries = _mediatorStatistics.AnalyzeQueries(_serviceProvider, detailed);
+        var commands = _mediatorStatistics.AnalyzeCommands(_serviceProvider, detailed);
 
         return Ok(new
         {
@@ -196,6 +205,7 @@ public class MediatorController : ControllerBase
                 TotalQueries = queries.Count,
                 TotalCommands = commands.Count,
                 TotalTypes = queries.Count + commands.Count,
+                IsDetailed = detailed,
                 HealthStatus = new
                 {
                     QueriesWithHandlers = queries.Count(q => q.HandlerStatus == HandlerStatus.Single),
@@ -212,7 +222,9 @@ public class MediatorController : ControllerBase
                 {
                     q.ClassName,
                     q.TypeParameters,
+                    PrimaryInterface = q.PrimaryInterface,
                     ResponseType = q.ResponseType?.Name,
+                    IsResultType = q.IsResultType,
                     HandlerStatus = q.HandlerStatus.ToString(),
                     q.HandlerDetails,
                     StatusIcon = q.HandlerStatus switch
@@ -229,7 +241,9 @@ public class MediatorController : ControllerBase
                 {
                     c.ClassName,
                     c.TypeParameters,
+                    PrimaryInterface = c.PrimaryInterface,
                     ResponseType = c.ResponseType?.Name,
+                    IsResultType = c.IsResultType,
                     HandlerStatus = c.HandlerStatus.ToString(),
                     c.HandlerDetails,
                     StatusIcon = c.HandlerStatus switch

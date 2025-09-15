@@ -18,12 +18,27 @@ public class MediatorConfiguration
     public INotificationPipelineBuilder NotificationPipelineBuilder { get; } = new NotificationPipelineBuilder();
 
     /// <summary>
+    /// Gets or sets whether statistics tracking is enabled for Send commands.
+    /// </summary>
+    public bool EnableStatisticsTracking { get; set; }
+
+    /// <summary>
     /// Initializes a new instance of the MediatorConfiguration class.
     /// </summary>
     /// <param name="services">The service collection for automatic DI registration of middleware</param>
     public MediatorConfiguration(IServiceCollection? services = null)
     {
         _services = services;
+    }
+
+    /// <summary>
+    /// Enables statistics tracking for Send commands.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithStatisticsTracking()
+    {
+        EnableStatisticsTracking = true;
+        return this;
     }
 
     /// <summary>

@@ -40,8 +40,8 @@ public class MockPipelineBuilderReturningNull : IMiddlewarePipelineBuilder, IMid
     {
         return new List<(Type, int, object?)>();
     }
-    
-    public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider)
+
+    public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider, bool? isDetailed)
     {
         return new List<MiddlewareAnalysis>();
     }

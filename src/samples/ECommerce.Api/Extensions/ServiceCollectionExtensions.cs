@@ -86,9 +86,12 @@ public static class ServiceCollectionExtensions
     {
         services.AddMediator(config =>
         {
+            // Enable statistics tracking for performance monitoring
+            config.EnableStatisticsTracking = true;
+
             // Add conditional middleware for order operations
             config.AddMiddleware(typeof(OrderLoggingMiddleware<,>));
-            
+
             // Add conditional middleware for product operations  
             config.AddMiddleware(typeof(ProductLoggingMiddleware<,>));
 

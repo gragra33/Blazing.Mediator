@@ -32,6 +32,7 @@ public interface IMiddlewarePipelineInspector
     /// Provides detailed analysis including order display formatting, class names, and type parameters.
     /// </summary>
     /// <param name="serviceProvider">Service provider to resolve middleware instances for actual order values.</param>
+    /// <param name="isDetailed">Indicates whether to include detailed analysis information. Defaults to true.</param>
     /// <returns>Read-only list of middleware analysis information sorted by execution order</returns>
-    IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider);
+    IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider, bool? isDetailed = true);
 }

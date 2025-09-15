@@ -6,20 +6,39 @@ using System.Reflection;
 
 namespace Blazing.Mediator.Tests.NotificationTests;
 
+/// <summary>
+/// Contains basic tests for notification publishing and subscription in the mediator.
+/// </summary>
 public class BasicNotificationTests
 {
-    // Test notification
+    /// <summary>
+    /// Test notification type for verifying notification delivery.
+    /// </summary>
     public class TestNotification : INotification
     {
+        /// <summary>
+        /// Gets or sets the message for the notification.
+        /// </summary>
         public string Message { get; set; } = string.Empty;
+        /// <summary>
+        /// Gets or sets the value for the notification.
+        /// </summary>
         public int Value { get; set; }
     }
 
-    // Test subscriber
+    /// <summary>
+    /// Subscriber for specific notification type used in tests.
+    /// </summary>
     public class TestSubscriber : INotificationSubscriber<TestNotification>
     {
+        /// <summary>
+        /// Gets the list of received notifications.
+        /// </summary>
         public List<TestNotification> ReceivedNotifications { get; } = new();
 
+        /// <summary>
+        /// Handles the notification when published.
+        /// </summary>
         public Task OnNotification(TestNotification notification, CancellationToken cancellationToken = default)
         {
             ReceivedNotifications.Add(notification);
@@ -27,11 +46,19 @@ public class BasicNotificationTests
         }
     }
 
-    // Generic subscriber
+    /// <summary>
+    /// Subscriber for any notification type used in tests.
+    /// </summary>
     public class GenericSubscriber : INotificationSubscriber
     {
+        /// <summary>
+        /// Gets the list of received notifications.
+        /// </summary>
         public List<INotification> ReceivedNotifications { get; } = new();
 
+        /// <summary>
+        /// Handles the notification when published.
+        /// </summary>
         public Task OnNotification(INotification notification, CancellationToken cancellationToken = default)
         {
             ReceivedNotifications.Add(notification);

@@ -3,11 +3,11 @@ namespace Blazing.Mediator.Pipeline;
 /// <summary>
 /// This is part of the core Blazing.Mediator infrastructure and contains no business logic.
 /// </summary>
-public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddlewarePipelineInspector
+public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddlewarePipelineInspector
 {
     private readonly List<MiddlewareInfo> _middlewareInfos = [];
 
-    private record MiddlewareInfo(Type Type, int Order, object? Configuration = null);
+    private sealed record MiddlewareInfo(Type Type, int Order, object? Configuration = null);
 
     /// <summary>
     /// Determines the order for a middleware type. Middleware with explicit Order property use that value.
@@ -213,7 +213,7 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
     /// <summary>
     /// Minimal request implementation that satisfies both IRequest and IRequest{T} constraints for middleware inspection.
     /// </summary>
-    private class MinimalRequest : IRequest, IRequest<object> { /* skipped */ }
+    private sealed class MinimalRequest : IRequest, IRequest<object> { /* skipped */ }
 
     /// <inheritdoc />
     public RequestHandlerDelegate<TResponse> Build<TRequest, TResponse>(
@@ -381,7 +381,7 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
         // Get middleware types that can handle this request type, sorted by order
         List<(Type Type, int Order)> applicableMiddleware = [];
 
-        foreach ((Type middlewareType, int order, var _) in _middlewareInfos)
+        foreach ((Type middlewareType, int order, _) in _middlewareInfos)
         {
             // Handle open generic types by making them closed generic types
             Type actualMiddlewareType;
@@ -608,12 +608,12 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
     }
 
     /// <inheritdoc />
-    public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider)
+    public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider, bool? isDetailed = true)
     {
         var middlewareInfos = GetDetailedMiddlewareInfo(serviceProvider);
-        
+
         var analysisResults = new List<MiddlewareAnalysis>();
-        
+
         foreach (var (type, order, configuration) in middlewareInfos.OrderBy(m => m.Order))
         {
             var orderDisplay = order == int.MaxValue ? "Default" : order.ToString();
@@ -621,17 +621,22 @@ public class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddleware
             var typeParameters = type.IsGenericType ? 
                 $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>" : 
                 string.Empty;
-            
+
+            var detailed = isDetailed ?? true;
+
+            // Always discover handlers, but adjust output detail based on mode
+            var handlerInfo = detailed ? configuration : null; // Include configuration only in detailed mode
+
             analysisResults.Add(new MiddlewareAnalysis(
                 Type: type,
                 Order: order,
                 OrderDisplay: orderDisplay,
                 ClassName: className,
-                TypeParameters: typeParameters,
-                Configuration: configuration
+                TypeParameters: detailed ? typeParameters : string.Empty, // Skip type parameters in compact mode
+                Configuration: handlerInfo
             ));
         }
-        
+
         return analysisResults;
     }
 }

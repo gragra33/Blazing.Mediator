@@ -1,5 +1,15 @@
 ﻿# Version History
 
+### V1.6.2 - 18 January, 2025
+
+-   **Enhanced Handler Analysis**: Updated `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` with comprehensive handler detection and status reporting
+-   **Handler Status Tracking**: New `HandlerStatus` enum with ASCII markers (`+` = found, `!` = missing, `#` = multiple) for easy visual identification
+-   **Primary Interface Detection**: Enhanced `QueryCommandAnalysis` with `PrimaryInterface` property showing the main interface implemented (IQuery, ICommand, IRequest)
+-   **IResult Detection**: New `IsResultType` property identifies ASP.NET Core IResult implementations for better API analysis
+-   **Improved Statistics Display**: Enhanced console output in sample projects with multi-line, detailed analysis format for better readability
+-   **Comprehensive Test Coverage**: Updated tests to cover all new `QueryCommandAnalysis` properties with full validation and edge case testing
+-   **Documentation Enhancement**: Updated `MEDIATOR_PATTERN_GUIDE.md` with detailed `QueryCommandAnalysis` property table and enhanced example outputs
+
 ### V1.6.1 - 15 September, 2025
 
 -   **MediatorStatistics Analysis**: New `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` methods for comprehensive CQRS type discovery and analysis

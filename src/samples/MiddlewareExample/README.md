@@ -25,6 +25,12 @@ A comprehensive demonstration of the Blazing.Mediator library showcasing CQRS pa
 -   [🔍 Middleware Pipeline Inspection](#-middleware-pipeline-inspection)
     -   [IMiddlewarePipelineInspector](#imiddlewarepipelineinspector)
     -   [MiddlewarePipelineAnalyzer Helper Class](#middlewarepipelineanalyzer-helper-class)
+-   [📊 Mediator Statistics & Analysis](#-mediator-statistics--analysis)
+    -   [MediatorStatistics Service](#mediatorstatistics-service)
+    -   [Key Analysis Methods](#key-analysis-methods)
+    -   [Analysis Output Features](#analysis-output-features)
+    -   [Runtime Execution Statistics](#runtime-execution-statistics)
+    -   [Integration with Application Flow](#integration-with-application-flow)
 -   [🎯 Key Learnings](#-key-learnings)
 -   [🔧 Technologies Used](#-technologies-used)
 -   [📚 Further Reading](#-further-reading)
@@ -66,6 +72,7 @@ This example adheres to the following software engineering principles:
 -   **Simple Setup**: Single-line mediator registration with automatic discovery of handlers and middleware
 -   **Handler Auto-Discovery**: Automatically finds and registers all implementations
 -   **Middleware Auto-Registration**: Seamlessly discovers and registers middleware components in proper execution order
+-   **Statistics Tracking**: Optional statistics collection for runtime analysis of queries and commands
 -   **Manual Override**: Optional manual registration available for advanced scenarios and fine-grained control
 -   **Zero Configuration**: Works out-of-the-box with conventional patterns
 
@@ -148,11 +155,13 @@ This example adheres to the following software engineering principles:
 
 -   `Runner.cs` - E-commerce demonstration service:
     -   `InspectMiddlewarePipeline()` - Pipeline inspection and diagnostics using `IMiddlewarePipelineInspector`
+    -   `InspectMediatorTypes()` - Comprehensive analysis of registered queries and commands using `MediatorStatistics`
     -   `DemonstrateProductLookup()` - Product query functionality
     -   `DemonstrateInventoryManagement()` - Stock management
     -   `DemonstrateOrderConfirmation()` - Email notifications
     -   `DemonstrateCustomerRegistration()` - Customer onboarding with validation
     -   `DemonstrateCustomerDetailsUpdate()` - Customer details update with validation error handling and retry success
+    -   Constructor parameters: `IMediator`, `ILogger<Runner>`, `IMiddlewarePipelineInspector`, `IServiceProvider`, and `MediatorStatistics`
 -   `MiddlewarePipelineAnalyzer.cs` - Advanced static helper class for middleware pipeline analysis:
     -   `AnalyzeMiddleware()` - Processes and sorts middleware by execution order using `IMiddlewarePipelineInspector`
     -   `ExtractMiddlewareInfo()` - Extracts detailed information from middleware types and actual order values
@@ -171,6 +180,22 @@ This example adheres to the following software engineering principles:
 cd src/MiddlewareExample
 dotnet run
 ```
+
+### ⚙️ Configuration
+
+The example is configured with the following settings in `Program.cs`:
+
+```csharp
+services.AddMediator(
+    enableStatisticsTracking: true,    // Enable runtime statistics collection
+    discoverMiddleware: true,          // Automatically discover middleware
+    assemblies: Assembly.GetExecutingAssembly());
+```
+
+**Key Configuration Parameters:**
+- `enableStatisticsTracking: true` - Enables collection of execution statistics and runtime analysis
+- `discoverMiddleware: true` - Automatically discovers and registers middleware from the assembly
+- `assemblies` - Specifies which assemblies to scan for handlers and middleware
 
 ## 📊 Expected Output
 
@@ -212,6 +237,88 @@ Registered middleware:
   - [100] ValidationMiddleware<TRequest>
   - [100] ValidationMiddleware<TRequest, TResponse>
 
+=== COMPREHENSIVE MEDIATOR ANALYSIS ===
+
+COMPACT MODE (isDetailed: false):
+══════════════════════════════════════
+* 1 QUERIES DISCOVERED:
+  * Assembly: MiddlewareExample
+    * Namespace: MiddlewareExample.Queries
+      + GetProductQuery : IRequest<String>
+
+* 4 COMMANDS DISCOVERED:
+  * Assembly: MiddlewareExample
+    * Namespace: MiddlewareExample.Commands
+      + UpdateInventoryCommand : IRequest<Int32>
+      + SendOrderConfirmationCommand : IRequest
+      + RegisterCustomerCommand : IRequest
+      + UpdateCustomerDetailsCommand : IRequest<Boolean>
+
+LEGEND: + = Handler found, ! = No handler, # = Multiple handlers
+
+DETAILED MODE (isDetailed: true - Default):
+════════════════════════════════════════════════
+* 1 QUERIES DISCOVERED:
+  * Assembly: MiddlewareExample
+    * Namespace: MiddlewareExample.Queries
+      + GetProductQuery : IRequest<String>
+        │ Type:        MiddlewareExample.Queries.GetProductQuery
+        │ Returns:     String
+        │ Handler:     GetProductQueryHandler
+        │ Status:      Single
+        │ Assembly:    MiddlewareExample
+        │ Namespace:   MiddlewareExample.Queries
+        │ Handler(s):  1 registered
+        └─ Result Type: NO (standard type)
+
+* 4 COMMANDS DISCOVERED:
+  * Assembly: MiddlewareExample
+    * Namespace: MiddlewareExample.Commands
+      + UpdateInventoryCommand : IRequest<Int32>
+        │ Type:        MiddlewareExample.Commands.UpdateInventoryCommand
+        │ Returns:     Int32
+        │ Handler:     UpdateInventoryCommandHandler
+        │ Status:      Single
+        │ Assembly:    MiddlewareExample
+        │ Namespace:   MiddlewareExample.Commands
+        │ Handler(s):  1 registered
+        └─ Result Type: NO (standard type)
+
+      + SendOrderConfirmationCommand : IRequest
+        │ Type:        MiddlewareExample.Commands.SendOrderConfirmationCommand
+        │ Returns:     void
+        │ Handler:     SendOrderConfirmationCommandHandler
+        │ Status:      Single
+        │ Assembly:    MiddlewareExample
+        │ Namespace:   MiddlewareExample.Commands
+        │ Handler(s):  1 registered
+        └─ Result Type: NO (standard type)
+
+      + RegisterCustomerCommand : IRequest
+        │ Type:        MiddlewareExample.Commands.RegisterCustomerCommand
+        │ Returns:     void
+        │ Handler:     RegisterCustomerCommandHandler
+        │ Status:      Single
+        │ Assembly:    MiddlewareExample
+        │ Namespace:   MiddlewareExample.Commands
+        │ Handler(s):  1 registered
+        └─ Result Type: NO (standard type)
+
+      + UpdateCustomerDetailsCommand : IRequest<Boolean>
+        │ Type:        MiddlewareExample.Commands.UpdateCustomerDetailsCommand
+        │ Returns:     Boolean
+        │ Handler:     UpdateCustomerDetailsCommandHandler
+        │ Status:      Single
+        │ Assembly:    MiddlewareExample
+        │ Namespace:   MiddlewareExample.Commands
+        │ Handler(s):  1 registered
+        └─ Result Type: NO (standard type)
+
+LEGEND:
+  + = Handler found (Single)    ! = No handler (Missing)    # = Multiple handlers
+  │ = Property details          └─ = Additional information
+===============================================
+
 info: Starting E-Commerce Demo with Blazing.Mediator...
 
 -------- PRODUCT LOOKUP --------
@@ -249,6 +356,19 @@ dbug: >> Updating customer details (valid data): CUST-123456 - John Doe (john.do
 info: .. Updating customer details for ID: CUST-123456
 info: -- Customer details updated successfully for CUST-123456
 dbug: << Customer details updated successfully!
+
+=== EXECUTION STATISTICS ===
+Query Executions:
+  GetProductQuery: 1 execution(s)
+
+Command Executions:
+  UpdateInventoryCommand: 1 execution(s)
+  SendOrderConfirmationCommand: 1 execution(s)
+  RegisterCustomerCommand: 1 execution(s)
+  UpdateCustomerDetailsCommand: 2 execution(s)
+
+Total Operations: 6
+=============================
 
 info: E-Commerce Demo completed!
 ```
@@ -345,26 +465,142 @@ This inspection capability is invaluable for:
 -   **Testing**: Verifying correct middleware registration in unit tests
 -   **Monitoring**: Runtime analysis of pipeline configuration
 
+## 📊 Mediator Statistics & Analysis
+
+This example demonstrates comprehensive mediator analysis and statistics tracking capabilities using Blazing.Mediator's built-in statistics features:
+
+### MediatorStatistics Service
+
+The `MediatorStatistics` service provides runtime analysis and execution tracking:
+
+```csharp
+public class Runner(
+    IMediator mediator,
+    ILogger<Runner> logger,
+    IMiddlewarePipelineInspector pipelineInspector,
+    IServiceProvider serviceProvider,
+    MediatorStatistics mediatorStatistics)  // Injected statistics service
+{
+    // ... implementation
+}
+```
+
+### Key Analysis Methods
+
+**Query and Command Analysis:**
+
+-   `AnalyzeQueries(serviceProvider, isDetailed)`: Analyzes all registered query types with handler information
+-   `AnalyzeCommands(serviceProvider, isDetailed)`: Analyzes all registered command types with handler information
+-   `ReportStatistics()`: Reports execution statistics collected during runtime
+
+**Analysis Modes:**
+
+-   **Compact Mode** (`isDetailed: false`): Shows essential information with status indicators
+-   **Detailed Mode** (`isDetailed: true`, default): Shows comprehensive information including types, handlers, and response details
+
+**Handler Status Indicators:**
+
+-   `+` = Single handler found (Correct)
+-   `!` = No handler registered (Missing)
+-   `#` = Multiple handlers registered (Conflict)
+
+### Analysis Output Features
+
+**Compact Analysis Example:**
+
+```
+* 1 QUERIES DISCOVERED:
+  * Assembly: MiddlewareExample
+    * Namespace: MiddlewareExample.Queries
+      + GetProductQuery : IRequest<String>
+
+* 4 COMMANDS DISCOVERED:
+  * Assembly: MiddlewareExample
+    * Namespace: MiddlewareExample.Commands
+      + UpdateInventoryCommand : IRequest<Int32>
+      + SendOrderConfirmationCommand : IRequest
+      + RegisterCustomerCommand : IRequest
+      + UpdateCustomerDetailsCommand : IRequest<Boolean>
+
+LEGEND: + = Handler found, ! = No handler, # = Multiple handlers
+```
+
+**Detailed Analysis Example:**
+
+```
+* 1 QUERIES DISCOVERED:
+  * Assembly: MiddlewareExample
+    * Namespace: MiddlewareExample.Queries
+      + GetProductQuery : IRequest<String>
+        │ Type:        MiddlewareExample.Queries.GetProductQuery
+        │ Returns:     String
+        │ Handler:     GetProductQueryHandler
+        │ Status:      Single
+        │ Assembly:    MiddlewareExample
+        │ Namespace:   MiddlewareExample.Queries
+        │ Handler(s):  1 registered
+        └─ Result Type: NO (standard type)
+```
+
+### Runtime Execution Statistics
+
+The statistics service tracks actual command/query execution counts during runtime:
+
+```
+=== EXECUTION STATISTICS ===
+Query Executions:
+  GetProductQuery: 1 execution(s)
+
+Command Executions:
+  UpdateInventoryCommand: 1 execution(s)
+  SendOrderConfirmationCommand: 1 execution(s)
+  RegisterCustomerCommand: 1 execution(s)
+  UpdateCustomerDetailsCommand: 2 execution(s)
+
+Total Operations: 6
+=============================
+```
+
+### Integration with Application Flow
+
+The example demonstrates statistics integration at multiple points:
+
+1. **Startup Analysis**: Comprehensive application structure analysis before execution
+2. **Runtime Tracking**: Automatic collection of execution statistics during operations
+3. **Final Report**: Summary of all operations performed during the session
+
+This provides valuable insights for:
+
+-   **Development**: Understanding application structure and handler coverage
+-   **Testing**: Verifying all commands/queries have proper handlers
+-   **Monitoring**: Tracking operation frequency and patterns
+-   **Debugging**: Identifying missing or duplicate handlers
+-   **Documentation**: Automatically generating application maps
+
 ## 🎯 Key Learnings
 
 This example teaches:
 
 -   **Auto-Registration Power**: How Blazing.Mediator's automatic discovery eliminates boilerplate dependency injection code
 -   **Convention over Configuration**: Working with established patterns for seamless handler and middleware registration
+-   **Statistics Tracking**: Comprehensive runtime analysis and execution tracking for queries and commands
+-   **Application Analysis**: Automatic discovery and validation of handler registration across your application
 -   **CQRS Pattern Implementation**: Proper separation of read/write operations in e-commerce context
 -   **SOLID Principles**: Single responsibility methods in the Runner service
 -   **Middleware Pipeline Design**: Cross-cutting concerns and execution order with custom ordering
 -   **Validation Strategy**: Declarative validation with error aggregation for customer data
 -   **Error Handling**: Global exception handling with error sanitization for both request-only and request-response patterns
--   **Dependency Injection**: Proper service registration and resolution
+-   **Dependency Injection**: Proper service registration and resolution with enhanced statistics capabilities
 -   **Clean Architecture**: Organized folder structure and separation of concerns
 -   **Real-world Scenarios**: Product management, inventory control, email notifications, customer onboarding, and data updates
 -   **Request-Response Patterns**: Handling commands that return values (like `UpdateCustomerDetailsCommand` returning `bool`)
 -   **Middleware Specificity**: How middleware can be applied to specific command types or generically
 -   **Pipeline Analysis**: Runtime inspection of middleware registration and execution order using `IMiddlewarePipelineInspector`
+-   **Mediator Statistics**: Comprehensive analysis of commands, queries, handlers, and execution patterns
 -   **Advanced Reflection**: Type analysis and generic parameter extraction for middleware introspection
 -   **Structured Logging**: Clean console output with custom formatters for better readability
 -   **Helper Utilities**: Building reusable analyzer classes for framework introspection (`MiddlewarePipelineAnalyzer`)
+-   **Runtime Monitoring**: Tracking execution frequency and patterns for operational insights
 
 ## 🔧 Technologies Used
 

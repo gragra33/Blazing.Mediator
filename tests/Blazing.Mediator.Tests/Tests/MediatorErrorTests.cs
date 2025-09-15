@@ -3,20 +3,11 @@ using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using System.Reflection;
+using Shouldly;
+using Xunit;
 
 namespace Blazing.Mediator.Tests
 {
-    /// <summary>
-    /// Simple console renderer for testing purposes
-    /// </summary>
-    public class TestStatisticsRenderer : IStatisticsRenderer
-    {
-        public void Render(string message)
-        {
-            Console.WriteLine(message);
-        }
-    }
-
     /// <summary>
     /// Tests for error scenarios and edge cases in Mediator
     /// </summary>
@@ -156,7 +147,7 @@ namespace Blazing.Mediator.Tests
             // Act & Assert - Test constructor with null service provider
             MiddlewarePipelineBuilder pipelineBuilder = new();
             NotificationPipelineBuilder notificationPipelineBuilder = new();
-            MediatorStatistics statistics = new(new TestStatisticsRenderer());
+            MediatorStatistics statistics = new(new ConsoleStatisticsRenderer());
             Assert.Throws<ArgumentNullException>(() => new Mediator(null!, pipelineBuilder, notificationPipelineBuilder, statistics));
         }
 
@@ -172,7 +163,7 @@ namespace Blazing.Mediator.Tests
 
             // Act & Assert - Test constructor with null pipeline builder
             NotificationPipelineBuilder notificationPipelineBuilder = new();
-            MediatorStatistics statistics = new(new TestStatisticsRenderer());
+            MediatorStatistics statistics = new(new ConsoleStatisticsRenderer());
             Assert.Throws<ArgumentNullException>(() => new Mediator(serviceProvider, null!, notificationPipelineBuilder, statistics));
         }
 
@@ -188,24 +179,27 @@ namespace Blazing.Mediator.Tests
 
             // Act & Assert - Test constructor with null notification pipeline builder
             MiddlewarePipelineBuilder pipelineBuilder = new();
-            MediatorStatistics statistics = new(new TestStatisticsRenderer());
+            MediatorStatistics statistics = new(new ConsoleStatisticsRenderer());
             Assert.Throws<ArgumentNullException>(() => new Mediator(serviceProvider, pipelineBuilder, null!, statistics));
         }
 
         /// <summary>
-        /// Tests that the Mediator constructor throws ArgumentNullException when statistics is null.
+        /// Tests that the Mediator constructor accepts null statistics when tracking is disabled.
         /// </summary>
         [Fact]
-        public void Mediator_Constructor_WithNullStatistics_ThrowsArgumentException()
+        public void Mediator_Constructor_WithNullStatistics_AcceptsNullStatistics()
         {
             // Arrange
             ServiceCollection services = new();
             ServiceProvider serviceProvider = services.BuildServiceProvider();
 
-            // Act & Assert - Test constructor with null statistics
+            // Act - Test constructor with null statistics (should not throw)
             MiddlewarePipelineBuilder pipelineBuilder = new();
             NotificationPipelineBuilder notificationPipelineBuilder = new();
-            Assert.Throws<ArgumentNullException>(() => new Mediator(serviceProvider, pipelineBuilder, notificationPipelineBuilder, null!));
+            var mediator = new Mediator(serviceProvider, pipelineBuilder, notificationPipelineBuilder, null);
+            
+            // Assert that the mediator was created successfully
+            mediator.ShouldNotBeNull();
         }
 
         /// <summary>

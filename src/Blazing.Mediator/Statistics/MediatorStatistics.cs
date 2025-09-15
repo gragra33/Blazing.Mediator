@@ -3,25 +3,13 @@ using System.Diagnostics;
 namespace Blazing.Mediator.Statistics;
 
 /// <summary>
-/// Interface for rendering mediator statistics output.
-/// </summary>
-public interface IStatisticsRenderer
-{
-    /// <summary>
-    /// Renders a statistics message.
-    /// </summary>
-    /// <param name="message">The message to render.</param>
-    void Render(string message);
-}
-
-/// <summary>
 /// Collects and reports statistics about mediator usage, including query and command analysis.
 /// </summary>
 public class MediatorStatistics
 {
-    private readonly ConcurrentDictionary<string, int> _queryCounts = new();
-    private readonly ConcurrentDictionary<string, int> _commandCounts = new();
-    private readonly ConcurrentDictionary<string, int> _notificationCounts = new();
+    private readonly ConcurrentDictionary<string, long> _queryCounts = new();
+    private readonly ConcurrentDictionary<string, long> _commandCounts = new();
+    private readonly ConcurrentDictionary<string, long> _notificationCounts = new();
     private readonly IStatisticsRenderer _renderer;
 
     /// <summary>
@@ -84,8 +72,9 @@ public class MediatorStatistics
     /// Analyzes all registered queries in the application and returns detailed information grouped by assembly and namespace.
     /// </summary>
     /// <param name="serviceProvider">Service provider to scan for registered query types.</param>
+    /// <param name="isDetailed">If true, returns comprehensive analysis with all properties. If false, returns compact analysis with basic information only.</param>
     /// <returns>Read-only list of query analysis information grouped by assembly with namespace.</returns>
-    public IReadOnlyList<QueryCommandAnalysis> AnalyzeQueries(IServiceProvider serviceProvider)
+    public IReadOnlyList<QueryCommandAnalysis> AnalyzeQueries(IServiceProvider serviceProvider, bool isDetailed = true)
     {
         // Look for IQuery<T> implementations first
         var queryTypes = FindTypesImplementingInterface(typeof(IQuery<>));
@@ -95,15 +84,16 @@ public class MediatorStatistics
             .Where(t => t.Name.Contains("Query", StringComparison.OrdinalIgnoreCase));
         
         var allQueryTypes = queryTypes.Concat(requestWithResponseTypes).Distinct().ToList();
-        return CreateAnalysisResults(allQueryTypes, serviceProvider);
+        return CreateAnalysisResults(allQueryTypes, serviceProvider, true, isDetailed);
     }
 
     /// <summary>
     /// Analyzes all registered commands in the application and returns detailed information grouped by assembly and namespace.
     /// </summary>
     /// <param name="serviceProvider">Service provider to scan for registered command types.</param>
+    /// <param name="isDetailed">If true, returns comprehensive analysis with all properties. If false, returns compact analysis with basic information only.</param>
     /// <returns>Read-only list of command analysis information grouped by assembly with namespace.</returns>
-    public IReadOnlyList<QueryCommandAnalysis> AnalyzeCommands(IServiceProvider serviceProvider)
+    public IReadOnlyList<QueryCommandAnalysis> AnalyzeCommands(IServiceProvider serviceProvider, bool isDetailed = true)
     {
         // Look for ICommand and ICommand<T> implementations first
         var commandTypes = FindTypesImplementingInterface(typeof(ICommand))
@@ -121,7 +111,7 @@ public class MediatorStatistics
             .Where(t => t.Name.Contains("Command", StringComparison.OrdinalIgnoreCase));
         
         var allCommandTypes = commandTypes.Concat(voidRequestTypes).Concat(requestWithResponseTypes).Distinct().ToList();
-        return CreateAnalysisResults(allCommandTypes, serviceProvider);
+        return CreateAnalysisResults(allCommandTypes, serviceProvider, false, isDetailed);
     }
 
     /// <summary>
@@ -144,13 +134,7 @@ public class MediatorStatistics
                     .Where(t => t is { IsAbstract: false, IsInterface: false, IsClass: true })
                     .ToList();
 
-                foreach (var type in assemblyTypes)
-                {
-                    if (ImplementsInterface(type, interfaceType))
-                    {
-                        types.Add(type);
-                    }
-                }
+                types.AddRange(assemblyTypes.Where(type => ImplementsInterface(type, interfaceType)));
             }
             catch (ReflectionTypeLoadException)
             {
@@ -255,7 +239,7 @@ public class MediatorStatistics
     /// <summary>
     /// Creates analysis results from a collection of types, grouped by assembly and namespace.
     /// </summary>
-    private static IReadOnlyList<QueryCommandAnalysis> CreateAnalysisResults(IEnumerable<Type> types, IServiceProvider serviceProvider)
+    private static IReadOnlyList<QueryCommandAnalysis> CreateAnalysisResults(IEnumerable<Type> types, IServiceProvider serviceProvider, bool isQuery, bool isDetailed)
     {
         var analysisResults = new List<QueryCommandAnalysis>();
 
@@ -264,6 +248,8 @@ public class MediatorStatistics
             var className = type.Name;
             var typeParameters = string.Empty;
             Type? responseType = null;
+            string primaryInterface;
+            bool isResultType = false;
 
             // Handle generic types
             if (type.IsGenericType)
@@ -280,51 +266,112 @@ public class MediatorStatistics
                 typeParameters = $"<{string.Join(", ", genericArgs.Select(t => t.Name))}>";
             }
 
-            // Get response type from interfaces
-            var queryInterface = type.GetInterfaces()
-                .FirstOrDefault(i => i.IsGenericType && 
-                               (i.GetGenericTypeDefinition() == typeof(IQuery<>) || 
-                                i.GetGenericTypeDefinition() == typeof(ICommand<>) ||
-                                i.GetGenericTypeDefinition() == typeof(IRequest<>)));
-
-            if (queryInterface != null)
+            // Determine primary interface and response type based on priority
+            var interfaces = type.GetInterfaces();
+            
+            if (isQuery)
             {
-                responseType = queryInterface.GetGenericArguments()[0];
+                // For queries, prioritize IQuery<T> > IRequest<T>
+                var queryInterface = interfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQuery<>));
+                if (queryInterface != null)
+                {
+                    primaryInterface = $"IQuery<{queryInterface.GetGenericArguments()[0].Name}>";
+                    responseType = queryInterface.GetGenericArguments()[0];
+                }
+                else
+                {
+                    var requestInterface = interfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
+                    if (requestInterface != null)
+                    {
+                        primaryInterface = $"IRequest<{requestInterface.GetGenericArguments()[0].Name}>";
+                        responseType = requestInterface.GetGenericArguments()[0];
+                    }
+                    else
+                    {
+                        primaryInterface = "IRequest";
+                    }
+                }
+            }
+            else
+            {
+                // For commands, prioritize ICommand > ICommand<T> > IRequest > IRequest<T>
+                if (interfaces.Any(i => i == typeof(ICommand)))
+                {
+                    primaryInterface = "ICommand";
+                }
+                else
+                {
+                    var commandInterface = interfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICommand<>));
+                    if (commandInterface != null)
+                    {
+                        primaryInterface = $"ICommand<{commandInterface.GetGenericArguments()[0].Name}>";
+                        responseType = commandInterface.GetGenericArguments()[0];
+                    }
+                    else if (interfaces.Any(i => i == typeof(IRequest)))
+                    {
+                        primaryInterface = "IRequest";
+                    }
+                    else
+                    {
+                        var requestInterface = interfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
+                        if (requestInterface != null)
+                        {
+                            primaryInterface = $"IRequest<{requestInterface.GetGenericArguments()[0].Name}>";
+                            responseType = requestInterface.GetGenericArguments()[0];
+                        }
+                        else
+                        {
+                            primaryInterface = "Unknown";
+                        }
+                    }
+                }
             }
 
-            // Find handlers for this request type
+            // ALWAYS discover handlers using the same logic, regardless of detail level
             var handlers = FindHandlersForRequestType(type, serviceProvider);
-            
-            // Determine handler status
             HandlerStatus handlerStatus;
             string handlerDetails;
-            
+
+            // Determine handler status based on discovered handlers
             switch (handlers.Count)
             {
                 case 0:
                     handlerStatus = HandlerStatus.Missing;
-                    handlerDetails = "No handler registered";
+                    handlerDetails = isDetailed ? "No handler registered" : "No handler";
                     break;
                 case 1:
                     handlerStatus = HandlerStatus.Single;
-                    handlerDetails = handlers[0].Name;
+                    handlerDetails = isDetailed ? handlers[0].Name : "Handler found";
                     break;
                 default:
                     handlerStatus = HandlerStatus.Multiple;
-                    handlerDetails = $"{handlers.Count} handlers: {string.Join(", ", handlers.Select(h => h.Name))}";
+                    handlerDetails = isDetailed 
+                        ? $"{handlers.Count} handlers: {string.Join(", ", handlers.Select(h => h.Name))}"
+                        : $"{handlers.Count} handlers";
                     break;
+            }
+
+            // Check if response type implements IResult (common in ASP.NET Core) - only if detailed
+            if (isDetailed && responseType != null)
+            {
+                // Check for IResult interface (Microsoft.AspNetCore.Http.IResult)
+                isResultType = responseType.GetInterfaces().Any(i => i.Name == "IResult") ||
+                              responseType.Name.Contains("Result") ||
+                              responseType.FullName?.Contains("Microsoft.AspNetCore.Http.IResult") == true;
             }
 
             analysisResults.Add(new QueryCommandAnalysis(
                 Type: type,
                 ClassName: className,
-                TypeParameters: typeParameters,
+                TypeParameters: isDetailed ? typeParameters : string.Empty, // Only include type parameters in detailed mode
                 Assembly: type.Assembly.GetName().Name ?? "Unknown",
                 Namespace: type.Namespace ?? "Unknown",
                 ResponseType: responseType,
+                PrimaryInterface: primaryInterface,
+                IsResultType: isResultType,
                 HandlerStatus: handlerStatus,
                 HandlerDetails: handlerDetails,
-                Handlers: handlers
+                Handlers: isDetailed ? handlers : new List<Type>() // Only include handler list in detailed mode
             ));
         }
 

@@ -18,6 +18,8 @@ The Mediator pattern decouples components by having them communicate through a c
 -   **Multiple Assembly Support**: Automatically scan and register handlers from multiple assemblies
 -   **Type Safety**: Compile-time type checking for requests, handlers, and responses
 -   **Comprehensive Documentation**: Complete guides, examples, and sample projects
+-   **Integrated Debugging Tools**: Inspect Queries, Commands, Request pipeline Middleware, and Notification pipeline Middleware to quickly identify and resolve issues.
+-   **Real-Time Statistics**: Monitor running Query and Command statistics to gain insights into application performance and usage patterns.
 
 ## Table of Contents
 
@@ -31,12 +33,8 @@ The Mediator pattern decouples components by having them communicate through a c
 8. [MediatorStatistics](#mediatorstatistics)
 9. [Validation and Error Handling](#validation-and-error-handling)
 10. [Testing Strategies](#testing-strategies)
-11. [Advanced Scenarios](#advanced-scenarios)
-12. [Best Practices](#best-practices)
-13. [Common Mistakes](#common-mistakes)
-14. [Troubleshooting](#troubleshooting)
-15. [Sample Projects](#sample-projects)
-16. [Complete Examples](#complete-examples)
+11. [Sample Projects](#sample-projects)
+12. [Complete Examples](#complete-examples)
 
 ## Quick Start
 
@@ -63,7 +61,7 @@ Install-Package Blazing.Mediator
 #### Manually adding to your project
 
 ```xml
-<PackageReference Include="Blazing.Mediator" Version="1.6.1" />
+<PackageReference Include="Blazing.Mediator" Version="1.6.2" />
 ```
 
 ### 2. Create Your First Query
@@ -655,12 +653,22 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand>
 
         _logger.LogInformation("Creating user with email {Email}", request.Email);
 
+        // Check if email already exists
+        if (await _userRepository.EmailExistsAsync(request.Email))
+        {
+            _logger.LogWarning("Attempted to create user with existing email {Email}", request.Email);
+            throw new ConflictException($"User with email {request.Email} already exists");
+        }
+
         // Create domain entity with business logic
-        var user = User.Create(
-            request.FirstName,
-            request.LastName,
-            request.Email,
-            request.DateOfBirth);
+        var user = new User
+        {
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            DateOfBirth = request.DateOfBirth,
+            CreatedAt = DateTime.UtcNow
+        };
 
         // Save using write-optimized repository
         await _userRepository.AddAsync(user);
@@ -669,7 +677,7 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand>
         // Dispatch domain events (CQRS often uses event sourcing)
         await _eventDispatcher.DispatchAsync(new UserCreatedEvent(user.Id, user.Email));
 
-        _logger.LogInformation("User {UserId} created successfully", user.Id);
+        _logger.LogInformation("User created successfully with ID {UserId}", user.Id);
     }
 }
 
@@ -696,15 +704,27 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand>
         if (!validationResult.IsValid)
             throw new ValidationException(validationResult.Errors);
 
-        // Get domain entity for business operations
+        _logger.LogInformation("Updating user {UserId}", request.UserId);
+
+        // Get existing user
         var user = await _userRepository.GetByIdAsync(request.UserId);
         if (user == null)
             throw new NotFoundException($"User with ID {request.UserId} not found");
 
-        // Use domain methods that encapsulate business logic
-        user.UpdatePersonalInfo(request.FirstName, request.LastName, request.Email);
+        // Check if email is being changed and if it already exists
+        if (user.Email != request.Email && await _userRepository.EmailExistsAsync(request.Email, request.UserId))
+        {
+            _logger.LogWarning("Attempted to update user {UserId} with existing email {Email}", request.UserId, request.Email);
+            throw new ConflictException($"User with email {request.Email} already exists");
+        }
 
-        // Save changes
+        // Update the user
+        user.FirstName = request.FirstName;
+        user.LastName = request.LastName;
+        user.Email = request.Email;
+        user.DateOfBirth = request.DateOfBirth;
+        user.UpdatedAt = DateTime.UtcNow;
+
         await _userRepository.UpdateAsync(user);
         await _userRepository.SaveChangesAsync();
 
@@ -786,6 +806,313 @@ public class CreateUserWithIdHandler : IRequestHandler<CreateUserWithIdCommand, 
 }
 ```
 
+## MediatorStatistics
+
+The `MediatorStatistics` class provides comprehensive analysis and monitoring capabilities for your Blazing.Mediator implementation. This powerful feature allows you to discover all CQRS types in your application, track runtime execution statistics, and gain insights into your mediator usage patterns. Whether you're debugging handler registration issues, monitoring performance, or documenting your application's architecture, MediatorStatistics offers both compact and detailed analysis modes to meet your specific needs.
+
+### Overview
+
+MediatorStatistics offers three main capabilities:
+
+1. **Runtime Statistics** - Track execution counts for queries, commands, and notifications
+2. **Query Analysis** - Discover all `IQuery<TResponse>` (`IRequest<TResponse>`) implementations in your application
+3. **Command Analysis** - Discover all `ICommand` / (`IRequest`) and `ICommand<TResponse>` (`IRequest<TResponse>`) implementations in your application
+
+**NOTE:** Query and Command analysis methods require that you follow the `xxxQuery`, `xxxCommand`, and `xxxHandler` naming conventions for best results. 
+
+### Setup and Registration
+
+The `MediatorStatistics` service is automatically registered when you call `AddMediator()`:
+
+```csharp
+services.AddMediator(typeof(MyQuery).Assembly);
+// MediatorStatistics is automatically registered with ConsoleStatisticsRenderer
+```
+
+You can provide a custom statistics renderer:
+
+```csharp
+services.AddSingleton<IStatisticsRenderer, MyCustomRenderer>();
+services.AddMediator(typeof(MyQuery).Assembly);
+```
+
+### Monitoring Runtime Statistics
+
+The `MediatorStatistics` class automatically tracks execution counts for queries, commands, and notifications. You can access the current statistics at any time:
+
+```csharp
+public class StatisticsMonitor
+{
+    private readonly MediatorStatistics _statistics;
+
+    public StatisticsMonitor(MediatorStatistics statistics)
+    {
+        _statistics = statistics;
+    }
+
+    public void PrintStats()
+    {
+        // Print current statistics
+        _statistics.ReportStatistics();
+    }
+}
+```
+
+#### ReportStatistics
+
+The `ReportStatistics` method displays current runtime statistics:
+
+```csharp
+public void ShowCurrentStatistics()
+{
+    // Display current statistics
+    _stats.ReportStatistics();
+
+    // Output example:
+    // Mediator Statistics:
+    // Queries: 15
+    // Commands: 8
+    // Notifications: 3
+}
+```
+
+### Runtime Statistics Tracking
+
+The statistics automatically track execution counts through the following internal methods:
+
+-   **IncrementQuery** - Called automatically when a query is executed
+-   **IncrementCommand** - Called automatically when a command is executed
+-   **IncrementNotification** - Called automatically when a notification is published
+
+These methods are called internally by the mediator and provide real-time usage tracking.
+
+### Query & Command Analysis Properties
+
+The `QueryCommandAnalysis` record provides comprehensive information about discovered queries and commands in your application:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Type` | `Type` | The actual .NET Type being analyzed |
+| `ClassName` | `string` | The clean class name without generic parameters (e.g., "GetUserQuery") |
+| `TypeParameters` | `string` | String representation of generic type parameters (e.g., "<T, U>") |
+| `Assembly` | `string` | The name of the assembly containing this type |
+| `Namespace` | `string` | The namespace of the type (or "Unknown" if null) |
+| `ResponseType` | `Type?` | The response type for queries/commands that return data, null for void commands |
+| `PrimaryInterface` | `string` | The primary interface implemented (IQuery<T>, ICommand, IRequest<T>, etc.) |
+| `IsResultType` | `bool` | True if the response type implements IResult interface (ASP.NET Core) |
+| `HandlerStatus` | `HandlerStatus` | The status of handlers for this request type (Single, Missing, Multiple) |
+| `HandlerDetails` | `string` | Detailed information about the handlers (handler name or error message) |
+| `Handlers` | `IReadOnlyList<Type>` | List of handler types registered for this request |
+
+#### HandlerStatus Enum
+
+| Value | ASCII Marker | Description |
+|-------|--------------|-------------|
+| `Single` | `+` | Exactly one handler is registered (ideal state) |
+| `Missing` | `!` | No handler is registered for this request type |
+| `Multiple` | `#` | Multiple handlers are registered (potential issue) |
+
+### Analyzing Queries and Commands
+
+The `MediatorStatistics` class provides convenient methods to analyze queries and commands:
+
+```csharp
+public class MyService
+{
+    private readonly MediatorStatistics _statistics;
+
+    public MyService(MediatorStatistics statistics)
+    {
+        _statistics = statistics;
+    }
+
+    public void Analyze()
+    {
+        // Analyze queries
+        var queryAnalysis = _statistics.AnalyzeQueries();
+
+        // Analyze commands
+        var commandAnalysis = _statistics.AnalyzeCommands();
+    }
+}
+```
+
+#### AnalyzeQueries
+
+The `AnalyzeQueries` method scans your application to discover all query implementations. It supports both simple and detailed output modes:
+
+```csharp
+public async Task AnalyzeApplicationQueries()
+{
+	// Simple analysis (default: isDetailed = true)
+	var queryAnalysis = _stats.AnalyzeQueries(_serviceProvider);
+
+	// Compact analysis (shows only basic information)
+	var compactAnalysis = _stats.AnalyzeQueries(_serviceProvider, isDetailed: false);
+
+	// Detailed analysis (shows all properties)
+	var detailedAnalysis = _stats.AnalyzeQueries(_serviceProvider, isDetailed: true);
+
+	Console.WriteLine($"Total Queries Discovered: {queryAnalysis.Count}");
+
+	foreach (var assembly in queryAnalysis.GroupBy(q => q.Assembly))
+	{
+		Console.WriteLine($"Assembly: {assembly.Key}");
+
+		foreach (var ns in assembly.GroupBy(q => q.Namespace))
+		{
+			Console.WriteLine($"  Namespace: {ns.Key}");
+
+			foreach (var query in ns)
+			{
+				Console.WriteLine($"    Query: {query.ClassName}");
+				Console.WriteLine($"    Response Type: {query.ResponseType?.Name}");
+				Console.WriteLine($"    Full Type: {query.Type.FullName}");
+			}
+		}
+	}
+}
+```
+
+#### AnalyzeCommands
+
+The `AnalyzeCommands` method discovers all command implementations with the same flexible output options:
+
+```csharp
+public async Task AnalyzeApplicationCommands()
+{
+    // Simple analysis (default: isDetailed = true)
+    var commandAnalysis = _stats.AnalyzeCommands(_serviceProvider);
+
+    // Compact analysis (shows only basic information)
+    var compactAnalysis = _stats.AnalyzeCommands(_serviceProvider, isDetailed: false);
+
+    // Detailed analysis (shows all properties)
+    var detailedAnalysis = _stats.AnalyzeCommands(_serviceProvider, isDetailed: true);
+
+    Console.WriteLine($"Total Commands Discovered: {commandAnalysis.Count}");
+
+    foreach (var assembly in commandAnalysis.GroupBy(c => c.Assembly))
+    {
+        Console.WriteLine($"Assembly: {assembly.Key}");
+
+        foreach (var ns in assembly.GroupBy(c => c.Namespace))
+        {
+            Console.WriteLine($"  Namespace: {ns.Key}");
+
+            foreach (var command in ns)
+            {
+                Console.WriteLine($"    Command: {command.ClassName}");
+                Console.WriteLine($"    Response Type: {command.ResponseType?.Name}");
+                Console.WriteLine($"    Full Type: {command.Type.FullName}");
+            }
+        }
+    }
+}
+```
+
+#### Output Modes
+
+The analysis methods support two output modes controlled by the `isDetailed` parameter:
+
+##### Compact Mode (`isDetailed: false`)
+
+Shows essential information in a concise format:
+
+```
+* QUERIES DISCOVERED:
+  * Assembly: ECommerce.Api
+    * Namespace: ECommerce.Api.Application.Queries
+      + GetProductQuery : IRequest<ProductDto>
+      + GetProductsQuery : IQuery<PagedResult<ProductDto>>
+      ! GetCategoriesQuery : IRequest<List<CategoryDto>>
+
+* COMMANDS DISCOVERED:
+  * Assembly: ECommerce.Api
+    * Namespace: ECommerce.Api.Application.Commands
+      + CreateOrderCommand : ICommand<OrderResult>
+      + UpdateProductCommand : ICommand
+      # DeleteProductCommand : IRequest
+```
+
+##### Detailed Mode (`isDetailed: true` - Default)
+
+Shows comprehensive information with all properties:
+
+```
+* QUERIES DISCOVERED:
+  * Assembly: ECommerce.Api
+    * Namespace: ECommerce.Api.Application.Queries
+      + GetProductQuery : IRequest<ProductDto>
+        │ Type:        ECommerce.Api.Application.Queries.GetProductQuery
+        │ Returns:     ProductDto
+        │ Handler:     GetProductQueryHandler
+        │ Status:      Single
+        │ Assembly:    ECommerce.Api
+        │ Namespace:   ECommerce.Api.Application.Queries
+        │ Handler(s):  1 registered
+        └─ Result Type: NO (standard type)
+
+      + GetProductsQuery : IQuery<PagedResult<ProductDto>>
+        │ Type:        ECommerce.Api.Application.Queries.GetProductsQuery
+        │ Returns:     PagedResult<ProductDto> (IResult)
+        │ Handler:     GetProductsQueryHandler
+        │ Status:      Single
+        │ Assembly:    ECommerce.Api
+        │ Namespace:   ECommerce.Api.Application.Queries
+        │ Handler(s):  1 registered
+        └─ Result Type: YES (implements IResult)
+
+      ! GetCategoriesQuery : IRequest<List<CategoryDto>>
+        │ Type:        ECommerce.Api.Application.Queries.GetCategoriesQuery
+        │ Returns:     List<CategoryDto>
+        │ Handler:     No handler registered
+        │ Status:      Missing
+        │ Assembly:    ECommerce.Api
+        │ Namespace:   ECommerce.Api.Application.Queries
+        │ Handler(s):  0 registered
+        └─ Result Type: NO (standard type)
+
+* COMMANDS DISCOVERED:
+  * Assembly: ECommerce.Api
+    * Namespace: ECommerce.Api.Application.Commands
+      + CreateOrderCommand : ICommand<OrderResult>
+        │ Type:        ECommerce.Api.Application.Commands.CreateOrderCommand
+        │ Returns:     OrderResult
+        │ Handler:     CreateOrderCommandHandler
+        │ Status:      Single
+        │ Assembly:    ECommerce.Api
+        │ Namespace:   ECommerce.Api.Application.Commands
+        │ Handler(s):  1 registered
+        └─ Result Type: NO (standard type)
+
+      + UpdateProductCommand : ICommand
+        │ Type:        ECommerce.Api.Application.Commands.UpdateProductCommand
+        │ Returns:     void
+        │ Handler:     UpdateProductCommandHandler
+        │ Status:      Single
+        │ Assembly:    ECommerce.Api
+        │ Namespace:   ECommerce.Api.Application.Commands
+        │ Handler(s):  1 registered
+        └─ Result Type: NO (standard type)
+
+      # DeleteProductCommand : IRequest
+        │ Type:        ECommerce.Api.Application.Commands.DeleteProductCommand
+        │ Returns:     void
+        │ Handler:     2 handlers: DeleteProductHandler, AuditDeleteProductHandler
+        │ Status:      Multiple
+        │ Assembly:    ECommerce.Api
+        │ Namespace:   ECommerce.Api.Application.Commands
+        │ All Types:   [DeleteProductHandler, AuditDeleteProductHandler]
+        │ Handler(s):  2 registered
+        └─ Result Type: NO (standard type)
+
+LEGEND:
+  + = Handler found (Single)    ! = No handler (Missing)    # = Multiple handlers
+  │ = Property details          └─ = Additional information
+===============================================
+```
+
 ## Validation and Error Handling
 
 Proper validation and error handling are crucial for robust applications. Here are common patterns used with Blazing.Mediator:
@@ -838,7 +1165,8 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, int>
         {
             FirstName = request.FirstName,
             LastName = request.LastName,
-            Email = request.Email
+            Email = request.Email,
+            CreatedAt = DateTime.UtcNow
         };
 
         await _userRepository.AddAsync(user);
@@ -996,7 +1324,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register Mediator
+// Register Mediator (same registration regardless of API style)
 builder.Services.AddMediator(typeof(Program).Assembly);
 
 var app = builder.Build();
@@ -1008,11 +1336,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Define API endpoints
+app.UseHttpsRedirection();
+
+// Define API endpoints using minimal API style
 var api = app.MapGroup("/api/users").WithTags("Users");
 
-// Query endpoints (CQRS reads)
-api.MapGet("/{id:int}", async (int id, IMediator mediator) =>
+api.MapGet("/{id}", async (int id, IMediator mediator) =>
 {
     try
     {
@@ -1062,6 +1391,10 @@ api.MapPost("/", async (CreateUserCommand command, IMediator mediator) =>
     {
         return Results.BadRequest(ex.Errors.Select(e => e.ErrorMessage));
     }
+    catch (ConflictException ex)
+    {
+        return Results.Conflict(new { message = ex.Message });
+    }
 })
 .WithName("CreateUser")
 .Accepts<CreateUserCommand>("application/json")
@@ -1081,10 +1414,12 @@ Controllers provide a more structured, object-oriented approach. This example sh
 public class UsersController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly ILogger<UsersController> _logger;
 
-    public UsersController(IMediator mediator)
+    public UsersController(IMediator mediator, ILogger<UsersController> logger)
     {
         _mediator = mediator;
+        _logger = logger;
     }
 
     [HttpGet("{id}")]
@@ -1126,24 +1461,6 @@ public class UsersController : ControllerBase
         {
             await _mediator.Send(command);
             return CreatedAtAction(nameof(GetUser), new { id = 0 }, null);
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(ex.Errors);
-        }
-        catch (ConflictException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
-    }
-
-    [HttpPost("with-id")]
-    public async Task<ActionResult<int>> CreateUserWithId([FromBody] CreateUserWithIdCommand command)
-    {
-        try
-        {
-            var userId = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetUser), new { id = userId }, userId);
         }
         catch (ValidationException ex)
         {
@@ -1226,10 +1543,7 @@ public class OrdersController : ControllerBase
 
             _logger.LogInformation("Order {OrderId} created successfully", response.OrderId);
 
-            return CreatedAtAction(
-                nameof(GetOrder),
-                new { id = response.OrderId },
-                response);
+            return CreatedAtAction(nameof(GetOrder), new { id = response.OrderId }, response);
         }
         catch (ValidationException ex)
         {
@@ -1404,7 +1718,7 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
         _logger = logger;
     }
 
-    public int Order => 1; // Execution order
+    public int Order => 1; // Execute after general logging middleware
 
     public bool ShouldExecute(TRequest request)
     {
@@ -1427,24 +1741,7 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
 
         try
         {
-            // Serialize and log request details (be careful with sensitive data in production)
-            var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
-            _logger.LogInformation("🛒 ORDER REQUEST DATA: {RequestData}", requestJson);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning("🛒 Could not serialize order request: {Error}", ex.Message);
-        }
-
-        TResponse response;
-        try
-        {
-            // Execute the next middleware or handler
-            response = await next();
+            var response = await next();
 
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
@@ -1452,20 +1749,6 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
             // Log successful response
             _logger.LogInformation("🛒 ORDER RESPONSE: {RequestType} completed successfully in {Duration}ms",
                 requestType, duration.TotalMilliseconds);
-
-            try
-            {
-                var responseJson = JsonSerializer.Serialize(response, new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                });
-                _logger.LogInformation("🛒 ORDER RESPONSE DATA: {ResponseData}", responseJson);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning("🛒 Could not serialize order response: {Error}", ex.Message);
-            }
 
             return response;
         }
@@ -1475,8 +1758,8 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
             var duration = endTime - startTime;
 
             // Log error
-            _logger.LogError(ex, "🛒 ORDER ERROR: {RequestType} failed after {Duration}ms with error: {ErrorMessage}",
-                requestType, duration.TotalMilliseconds, ex.Message);
+            _logger.LogError(ex, "🛒 ORDER ERROR: {RequestType} failed after {Duration}ms",
+                requestType, duration.TotalMilliseconds);
 
             throw;
         }
@@ -1735,17 +2018,8 @@ builder.Services.AddMediatorWithNotificationMiddleware(
 builder.Services.AddMediator(
     discoverMiddleware: true,
     typeof(Program).Assembly,                    // Current assembly (API)
-    typeof(OrderLoggingMiddleware<,>).Assembly,  // Application layer
-    typeof(ValidationMiddleware<,>).Assembly     // Infrastructure layer
-);
-
-// With granular control (v1.6.0+)
-builder.Services.AddMediator(
-    discoverMiddleware: true,                     // Auto-discover request middleware
-    discoverNotificationMiddleware: true,         // Auto-discover notification middleware
-    typeof(Program).Assembly,
-    typeof(OrderLoggingMiddleware<,>).Assembly,
-    typeof(ValidationMiddleware<,>).Assembly
+    typeof(GetUserHandler).Assembly,             // Application layer
+    typeof(LoggingMiddleware<,>).Assembly        // Infrastructure layer
 );
 ```
 
@@ -1955,7 +2229,7 @@ public class CachingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRe
 
     public bool ShouldExecute(TRequest request)
     {
-        // Only cache query operations (not commands)
+        // Only execute for query operations (not commands)
         return request is IRequest<TResponse> &&
                request.GetType().Name.EndsWith("Query", StringComparison.OrdinalIgnoreCase);
     }
@@ -2087,734 +2361,110 @@ public class DebugService
 }
 ```
 
-#### MiddlewareAnalysis Properties
-
-The `MiddlewareAnalysis` record provides detailed information about each middleware component:
-
-```csharp
-public record MiddlewareAnalysis(
-    Type Type,                  // The full middleware type
-    int Order,                  // Numeric execution order
-    string OrderDisplay,        // Formatted order string (e.g., "int.MinValue", "100")
-    string ClassName,           // Clean class name without generic suffixes
-    string TypeParameters,      // Generic type parameters (e.g., "<TRequest, TResponse>")
-    object? Configuration       // Optional configuration object
-);
-```
-
-#### Example Output
-
-```
-📊 Middleware Pipeline Analysis
-═══════════════════════════════════════
-🔧 int.MinValue | ErrorHandlingMiddleware<TRequest, TResponse>
-🔧    -1 | ValidationMiddleware<TRequest, TResponse>
-🔧     0 | LoggingMiddleware<TRequest, TResponse>
-🔧     1 | MetricsMiddleware<TRequest, TResponse>
-🔧    10 | CachingMiddleware<TRequest, TResponse>
-🔧 int.MaxValue | FinalProcessingMiddleware<TRequest, TResponse>
-═══════════════════════════════════════
-📈 Total middleware components: 6
-```
-
-#### Accessing the Pipeline Inspector
-
-The pipeline inspector is automatically registered when you add Blazing.Mediator to your services:
-
-```csharp
-// In your service constructor
-public class MyService
-{
-    public MyService(IMiddlewarePipelineInspector pipelineInspector)
-    {
-        // Inspector is automatically available
-    }
-}
-
-// Or resolve it directly from the service provider
-var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
-```
-
-#### Best Practices for Pipeline Debugging
-
-1. **Use in Development**: Leverage pipeline analysis during development to understand middleware execution
-2. **Monitoring Integration**: Include pipeline analysis in health checks and monitoring dashboards
-3. **Performance Tracking**: Monitor middleware order and execution for performance optimization
-4. **Troubleshooting**: Use when debugging unexpected middleware behavior or execution order
-5. **Documentation**: Generate pipeline documentation automatically using the analysis output
-
-## MediatorStatistics
-
-The `MediatorStatistics` class provides comprehensive analysis and monitoring capabilities for your Blazing.Mediator implementation. This powerful feature allows you to discover all CQRS types in your application and track runtime execution statistics.
-
-### Overview
-
-MediatorStatistics offers three main capabilities:
-
-1. **Query Analysis** - Discover all `IQuery<TResponse>` implementations in your application
-2. **Command Analysis** - Discover all `ICommand` and `ICommand<TResponse>` implementations in your application
-3. **Runtime Statistics** - Track execution counts for queries, commands, and notifications
-
-### Setup and Registration
-
-The `MediatorStatistics` service is automatically registered when you call `AddMediator()`:
-
-```csharp
-services.AddMediator(typeof(MyQuery).Assembly);
-// MediatorStatistics is automatically registered with ConsoleStatisticsRenderer
-```
-
-You can provide a custom statistics renderer:
-
-```csharp
-services.AddSingleton<IStatisticsRenderer, MyCustomRenderer>();
-services.AddMediator(typeof(MyQuery).Assembly);
-```
-
-### Core Features
-
-#### AnalyzeQueries
-
-The `AnalyzeQueries` method scans your application to discover all query implementations:
-
-```csharp
-public class MediatorAnalysisService
-{
-    private readonly MediatorStatistics _stats;
-    private readonly IServiceProvider _serviceProvider;
-
-    public MediatorAnalysisService(MediatorStatistics stats, IServiceProvider serviceProvider)
-    {
-        _stats = stats;
-        _serviceProvider = serviceProvider;
-    }
-
-    public async Task AnalyzeApplicationQueries()
-    {
-        var queryAnalysis = _stats.AnalyzeQueries(_serviceProvider);
-
-        Console.WriteLine($"Total Queries Discovered: {queryAnalysis.TotalQueries}");
-
-        foreach (var assembly in queryAnalysis.QueriesByAssembly)
-        {
-            Console.WriteLine($"Assembly: {assembly.Assembly}");
-
-            foreach (var ns in assembly.Namespaces)
-            {
-                Console.WriteLine($"  Namespace: {ns.Namespace}");
-
-                foreach (var query in ns.Queries)
-                {
-                    Console.WriteLine($"    Query: {query.ClassName}");
-                    Console.WriteLine($"    Response Type: {query.ResponseType}");
-                    Console.WriteLine($"    Full Type: {query.FullTypeName}");
-                }
-            }
-        }
-    }
-}
-```
-
-#### AnalyzeCommands
-
-The `AnalyzeCommands` method discovers all command implementations:
-
-```csharp
-public async Task AnalyzeApplicationCommands()
-{
-    var commandAnalysis = _stats.AnalyzeCommands(_serviceProvider);
-
-    Console.WriteLine($"Total Commands Discovered: {commandAnalysis.TotalCommands}");
-
-    foreach (var assembly in commandAnalysis.CommandsByAssembly)
-    {
-        Console.WriteLine($"Assembly: {assembly.Assembly}");
-
-        foreach (var ns in assembly.Namespaces)
-        {
-            Console.WriteLine($"  Namespace: {ns.Namespace}");
-
-            foreach (var command in ns.Commands)
-            {
-                Console.WriteLine($"    Command: {command.ClassName}");
-                Console.WriteLine($"    Response Type: {command.ResponseType}");
-                Console.WriteLine($"    Full Type: {command.FullTypeName}");
-            }
-        }
-    }
-}
-```
-
-#### ReportStatistics
-
-The `ReportStatistics` method displays current runtime statistics:
-
-```csharp
-public void ShowCurrentStatistics()
-{
-    // Display current statistics
-    _stats.ReportStatistics();
-
-    // Output example:
-    // Mediator Statistics:
-    // Queries: 15
-    // Commands: 8
-    // Notifications: 3
-}
-```
-
-### Runtime Statistics Tracking
-
-The statistics automatically track execution counts through the following internal methods:
-
--   **IncrementQuery** - Called automatically when a query is executed
--   **IncrementCommand** - Called automatically when a command is executed
--   **IncrementNotification** - Called automatically when a notification is published
-
-These methods are called internally by the mediator and provide real-time usage tracking.
-
-### Example Output
-
-#### Query Analysis Output
-
-```
-🔍 QUERIES DISCOVERED:
-  📦 Assembly: ECommerce.Api
-    📁 ECommerce.Api.Application.Queries
-      🔍 GetProductsQuery<TResponse> → PagedResult<ProductDto>
-      🔍 GetProductByIdQuery → ProductDto
-    📁 ECommerce.Api.Features.Orders
-      🔍 GetOrderHistoryQuery → List<OrderDto>
-```
-
-#### Command Analysis Output
-
-```
-⚡ COMMANDS DISCOVERED:
-  📦 Assembly: ECommerce.Api
-    📁 ECommerce.Api.Application.Commands
-      ⚡ CreateProductCommand → Guid
-      ⚡ UpdateProductCommand → void
-    📁 ECommerce.Api.Features.Orders
-      ⚡ ProcessOrderCommand → OrderResult
-```
-
-### Practical Usage Examples
-
-#### Health Check Integration
-
-```csharp
-public class MediatorHealthCheck : IHealthCheck
-{
-    private readonly MediatorStatistics _stats;
-    private readonly IServiceProvider _serviceProvider;
-
-    public MediatorHealthCheck(MediatorStatistics stats, IServiceProvider serviceProvider)
-    {
-        _stats = stats;
-        _serviceProvider = serviceProvider;
-    }
-
-    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var queries = _stats.AnalyzeQueries(_serviceProvider);
-            var commands = _stats.AnalyzeCommands(_serviceProvider);
-
-            var data = new Dictionary<string, object>
-            {
-                ["TotalQueries"] = queries.TotalQueries,
-                ["TotalCommands"] = commands.TotalCommands,
-                ["QueriesExecuted"] = _stats.QueryCount,
-                ["CommandsExecuted"] = _stats.CommandCount,
-                ["NotificationsPublished"] = _stats.NotificationCount
-            };
-
-            return Task.FromResult(HealthCheckResult.Healthy("Mediator is healthy", data));
-        }
-        catch (Exception ex)
-        {
-            return Task.FromResult(HealthCheckResult.Unhealthy("Mediator health check failed", ex));
-        }
-    }
-}
-```
-
-#### API Endpoints for Monitoring
-
-```csharp
-[ApiController]
-[Route("api/[controller]")]
-public class MediatorAnalysisController : ControllerBase
-{
-    private readonly MediatorStatistics _stats;
-    private readonly IServiceProvider _serviceProvider;
-
-    public MediatorAnalysisController(MediatorStatistics stats, IServiceProvider serviceProvider)
-    {
-        _stats = stats;
-        _serviceProvider = serviceProvider;
-    }
-
-    [HttpGet("queries")]
-    public IActionResult GetQueries()
-    {
-        var analysis = _stats.AnalyzeQueries(_serviceProvider);
-        return Ok(analysis);
-    }
-
-    [HttpGet("commands")]
-    public IActionResult GetCommands()
-    {
-        var analysis = _stats.AnalyzeCommands(_serviceProvider);
-        return Ok(analysis);
-    }
-
-    [HttpGet("statistics")]
-    public IActionResult GetStatistics()
-    {
-        return Ok(new
-        {
-            Queries = _stats.QueryCount,
-            Commands = _stats.CommandCount,
-            Notifications = _stats.NotificationCount,
-            Timestamp = DateTime.UtcNow
-        });
-    }
-
-    [HttpGet("comprehensive-report")]
-    public IActionResult GetComprehensiveReport()
-    {
-        var queries = _stats.AnalyzeQueries(_serviceProvider);
-        var commands = _stats.AnalyzeCommands(_serviceProvider);
-
-        return Ok(new
-        {
-            Analysis = new
-            {
-                Queries = queries,
-                Commands = commands
-            },
-            Statistics = new
-            {
-                QueryCount = _stats.QueryCount,
-                CommandCount = _stats.CommandCount,
-                NotificationCount = _stats.NotificationCount
-            },
-            GeneratedAt = DateTime.UtcNow
-        });
-    }
-}
-```
-
-### Custom Statistics Renderer
-
-Create custom renderers for different output formats:
-
-```csharp
-public class JsonStatisticsRenderer : IStatisticsRenderer
-{
-    private readonly ILogger<JsonStatisticsRenderer> _logger;
-
-    public JsonStatisticsRenderer(ILogger<JsonStatisticsRenderer> logger)
-    {
-        _logger = logger;
-    }
-
-    public void RenderStatistics(int queryCount, int commandCount, int notificationCount)
-    {
-        var statistics = new
-        {
-            QueryCount = queryCount,
-            CommandCount = commandCount,
-            NotificationCount = notificationCount,
-            Timestamp = DateTime.UtcNow
-        };
-
-        var json = JsonSerializer.Serialize(statistics, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
-
-        _logger.LogInformation("Mediator Statistics: {Statistics}", json);
-    }
-}
-
-// Register the custom renderer
-services.AddSingleton<IStatisticsRenderer, JsonStatisticsRenderer>();
-```
-
-### Best Practices
-
-1. **Development Analysis**: Use `AnalyzeQueries` and `AnalyzeCommands` during development to understand your CQRS structure
-2. **Monitoring Integration**: Include statistics in health checks and monitoring dashboards
-3. **Performance Tracking**: Monitor execution counts to identify heavily used patterns
-4. **Documentation**: Auto-generate documentation from discovered queries and commands
-5. **Custom Renderers**: Create specialized renderers for different environments (console, logging, APIs)
-
 ## Sample Projects
 
-The Blazing.Mediator library includes two comprehensive sample projects that demonstrate different architectural approaches and middleware usage patterns. Both projects showcase real-world implementations of CQRS with the Mediator pattern.
+The Blazing.Mediator library includes several comprehensive sample projects that demonstrate different architectural approaches, middleware usage patterns, and feature implementations. These projects showcase real-world implementations of CQRS with the Mediator pattern, providing practical examples you can learn from and adapt to your own projects.
 
 ### ECommerce.Api - Traditional Controller Architecture
 
-**📁 Location**: `src/samples/ECommerce.Api/`
-
-This sample demonstrates a traditional e-commerce API using Controllers with conditional middleware for optimal performance.
+The ECommerce.Api sample demonstrates a traditional ASP.NET Core Web API architecture using MVC controllers. This project showcases:
 
 #### Key Features
+- **Traditional MVC Controllers**: RESTful API endpoints using controller classes
+- **Complete CRUD Operations**: Full Create, Read, Update, Delete functionality
+- **Advanced Error Handling**: Comprehensive exception handling with proper HTTP status codes
+- **Input Validation**: FluentValidation integration with detailed error responses
+- **Complex Business Logic**: Order processing, inventory management, and customer operations
+- **MediatorStatistics Integration**: Dedicated controller for analyzing queries and commands
 
--   **Product Management**: CRUD operations for products with stock management
--   **Order Processing**: Complete order lifecycle from creation to completion
--   **Conditional Middleware**: Performance-optimized logging for specific request types
--   **Entity Framework**: In-memory database for development, SQL Server for production
--   **FluentValidation**: Comprehensive validation using FluentValidation library
--   **Error Handling**: Robust error handling with proper HTTP status codes
+#### Sample Endpoints
+```http
+# Get all products
+GET http://localhost:5001/api/products
 
-#### Architecture Overview
+# Get specific product
+GET http://localhost:5001/api/products/1
 
+# Create new product
+POST http://localhost:5001/api/products
+Content-Type: application/json
+
+{
+  "name": "New Product",
+  "description": "Product description",
+  "price": 99.99,
+  "stockQuantity": 100
+}
+
+# Update product
+PUT http://localhost:5001/api/products/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Updated Product",
+  "description": "Updated description",
+  "price": 149.99,
+  "stockQuantity": 150
+}
+
+# Delete product
+DELETE http://localhost:5001/api/products/1
+
+# Mediator Analysis Endpoints
+GET http://localhost:5001/api/mediator/analyze/queries
+GET http://localhost:5001/api/mediator/analyze/commands
+GET http://localhost:5001/api/mediator/analyze?detailed=false
+```
+
+#### Project Structure
 ```
 ECommerce.Api/
-├── Application/           # Application layer (CQRS & business logic)
-│   ├── Commands/          # Write operations (CQRS Commands)
-│   │   ├── CancelOrderCommand.cs
-│   │   ├── CreateOrderCommand.cs
-│   │   ├── CreateProductCommand.cs
-│   │   ├── DeactivateProductCommand.cs
-│   │   ├── ProcessOrderCommand.cs
-│   │   ├── ProcessOrderResponse.cs
-│   │   ├── UpdateOrderStatusCommand.cs
-│   │   ├── UpdateProductCommand.cs
-│   │   └── UpdateProductStockCommand.cs
-│   ├── Queries/           # Read operations (CQRS Queries)
-│   │   ├── GetCustomerOrdersQuery.cs
-│   │   ├── GetLowStockProductsQuery.cs
-│   │   ├── GetOrderByIdQuery.cs
-│   │   ├── GetOrdersQuery.cs
-│   │   ├── GetOrderStatisticsQuery.cs
-│   │   ├── GetProductByIdQuery.cs
-│   │   └── GetProductsQuery.cs
-│   ├── Handlers/          # Business logic handlers
-│   │   ├── Commands/      # Command handlers
-│   │   │   ├── CancelOrderHandler.cs
-│   │   │   ├── CreateOrderHandler.cs
-│   │   │   ├── CreateProductHandler.cs
-│   │   │   ├── DeactivateProductHandler.cs
-│   │   │   ├── ProcessOrderHandler.cs
-│   │   │   ├── UpdateOrderStatusHandler.cs
-│   │   │   ├── UpdateProductHandler.cs
-│   │   │   └── UpdateProductStockHandler.cs
-│   │   └── Queries/       # Query handlers
-│   │       ├── GetCustomerOrdersHandler.cs
-│   │       ├── GetLowStockProductsHandler.cs
-│   │       ├── GetOrderByIdHandler.cs
-│   │       ├── GetOrdersHandler.cs
-│   │       ├── GetOrderStatisticsHandler.cs
-│   │       ├── GetProductByIdHandler.cs
-│   │       └── GetProductsHandler.cs
-│   ├── Middleware/        # Conditional middleware
-│   │   ├── OrderLoggingMiddleware.cs
-│   │   └── ProductLoggingMiddleware.cs
-│   ├── DTOs/              # Data transfer objects
-│   │   ├── CreateOrderRequest.cs
-│   │   ├── OperationResult.cs
-│   │   ├── OrderDto.cs
-│   │   ├── OrderItemDto.cs
-│   │   ├── OrderItemRequest.cs
-│   │   ├── OrderStatisticsDto.cs
-│   │   ├── PagedResult.cs
-│   │   ├── ProductDto.cs
-│   │   └── ProductSalesDto.cs
-│   ├── Mappings/          # Object mapping profiles
-│   │   └── ECommerceMappingExtensions.cs
-│   ├── Validators/        # FluentValidation validators
-│   │   ├── CreateOrderCommandValidator.cs
-│   │   ├── CreateProductCommandValidator.cs
-│   │   ├── ProcessOrderCommandValidator.cs
-│   │   ├── UpdateProductCommandValidator.cs
-│   │   └── UpdateProductStockCommandValidator.cs
-│   └── Exceptions/        # Custom exceptions
-│       └── ValidationException.cs
-├── Controllers/           # API Controllers (MVC approach)
-│   ├── OrdersController.cs
-│   └── ProductsController.cs
-├── Domain/                # Domain layer
-│   └── Entities/          # Domain entities
-│       ├── Order.cs
-│       ├── OrderItem.cs
-│       ├── OrderStatus.cs
-│       └── Product.cs
-├── Infrastructure/        # Infrastructure layer
-│   └── Data/              # Data access
-│       └── ECommerceDbContext.cs
-├── Endpoints/             # Minimal API endpoints (alternative to controllers)
-│   └── ProductEndpoints.cs
-├── Extensions/            # Service registration extensions
-│   ├── ServiceCollectionExtensions.cs
-│   └── WebApplicationExtensions.cs
-├── Properties/            # Assembly properties
-│   └── launchSettings.json
-├── ECommerce.http         # HTTP test file
-├── test-product.json      # Sample test data
-├── Add-XmlDocs.ps1        # PowerShell script for XML documentation
-├── Program.cs             # Application configuration & startup
-├── appsettings.json       # Configuration settings
-└── ECommerce.Api.csproj   # Project file
+├── Controllers/
+│   ├── ProductsController.cs      # Product management endpoints
+│   ├── OrdersController.cs        # Order processing endpoints
+│   ├── CustomersController.cs     # Customer management endpoints
+│   └── MediatorController.cs      # Mediator analysis endpoints
+├── Application/
+│   ├── Commands/                  # Write operations (CQRS Commands)
+│   ├── Queries/                   # Read operations (CQRS Queries)
+│   └── Handlers/                  # Command and Query handlers
+├── Models/                        # DTOs and request/response models
+└── Program.cs                     # Service registration and configuration
 ```
 
-#### Sample Request/Response Flow
+### UserManagement.Api - Modern Minimal APIs
 
-**Creating an Order:**
-
-```http
-POST /api/orders
-Content-Type: application/json
-
-{
-  "customerId": 1,
-  "customerEmail": "customer@example.com",
-  "shippingAddress": "123 Main St, City, State",
-  "items": [
-    {
-      "productId": 1,
-      "quantity": 2,
-      "unitPrice": 29.99
-    }
-  ]
-}
-```
-
-**Middleware Output:**
-
-```
-🛒 ORDER REQUEST: CreateOrderCommand started at 2025-07-01 10:30:15.123
-🛒 ORDER REQUEST DATA: {
-  "customerId": 1,
-  "customerEmail": "customer@example.com",
-  "shippingAddress": "123 Main St, City, State",
-  "items": [...]
-}
-🛒 ORDER RESPONSE: CreateOrderCommand completed successfully in 45ms
-```
-
-**Response:**
-
-```json
-{
-    "success": true,
-    "data": 12345,
-    "message": "Order created successfully"
-}
-```
-
-#### Testing the ECommerce API
-
-Use the provided HTTP file for testing:
-
-```http
-### Get all products
-GET http://localhost:5000/api/products
-
-### Get specific product
-GET http://localhost:5000/api/products/1
-
-### Create new product
-POST http://localhost:5000/api/products
-Content-Type: application/json
-
-{
-  "name": "Wireless Headphones",
-  "description": "High-quality wireless headphones",
-  "price": 99.99,
-  "stockQuantity": 50,
-  "categoryId": 1
-}
-
-### Create order
-POST http://localhost:5000/api/orders
-Content-Type: application/json
-
-{
-  "customerId": 1,
-  "customerEmail": "test@example.com",
-  "shippingAddress": "123 Test Street, Test City",
-  "items": [
-    {
-      "productId": 1,
-      "quantity": 2,
-      "unitPrice": 99.99
-    }
-  ]
-}
-```
-
-### UserManagement.Api - Modern Minimal API Architecture
-
-**📁 Location**: `src/samples/UserManagement.Api/`
-
-This sample demonstrates a modern user management API using Minimal APIs with comprehensive standard middleware.
+The UserManagement.Api sample demonstrates modern ASP.NET Core Minimal APIs. This project showcases:
 
 #### Key Features
+- **Minimal API Endpoints**: Lightweight, functional API design
+- **Clean Architecture**: Simplified structure with focused functionality
+- **User Management**: Complete user lifecycle management
+- **Authentication & Authorization**: Token-based authentication patterns
+- **Performance Optimized**: Minimal overhead with maximum efficiency
 
--   **User Management**: Complete CRUD operations for users
--   **Minimal APIs**: Modern .NET approach with functional endpoints
--   **Standard Middleware**: Comprehensive logging for all operations
--   **Clean Architecture**: Separation of concerns with clear layer boundaries
--   **Error Handling**: Centralised error handling with proper responses
--   **Swagger Integration**: Complete API documentation
-
-#### Architecture Overview
-
-```
-UserManagement.Api/
-├── Application/           # Application layer (CQRS & business logic)
-│   ├── Commands/          # Write operations (CQRS Commands)
-│   │   ├── ActivateUserAccountCommand.cs
-│   │   ├── CreateUserCommand.cs
-│   │   ├── CreateUserWithIdCommand.cs
-│   │   ├── DeactivateUserAccountCommand.cs
-│   │   ├── DeleteUserCommand.cs
-│   │   ├── UpdateUserCommand.cs
-│   │   └── UpdateUserWithResultCommand.cs
-│   ├── Queries/           # Read operations (CQRS Queries)
-│   │   ├── GetActiveUsersQuery.cs
-│   │   ├── GetUserByIdQuery.cs
-│   │   ├── GetUsersQuery.cs
-│   │   ├── GetUserStatisticsQuery.cs
-│   │   └── UserStatisticsDto.cs
-│   ├── Handlers/          # Business logic handlers
-│   │   ├── Commands/      # Command handlers
-│   │   │   ├── ActivateUserAccountHandler.cs
-│   │   │   ├── CreateUserHandler.cs
-│   │   │   ├── CreateUserWithIdHandler.cs
-│   │   │   ├── DeactivateUserAccountHandler.cs
-│   │   │   ├── DeleteUserHandler.cs
-│   │   │   ├── UpdateUserHandler.cs
-│   │   │   └── UpdateUserWithResultHandler.cs
-│   │   └── Queries/       # Query handlers
-│   │       ├── GetActiveUsersHandler.cs
-│   │       ├── GetUserByIdHandler.cs
-│   │       ├── GetUsersHandler.cs
-│   │       └── GetUserStatisticsHandler.cs
-│   ├── Middleware/        # Standard middleware (logs all operations)
-│   │   ├── GeneralLoggingMiddleware.cs
-│   │   └── GeneralCommandLoggingMiddleware.cs
-│   ├── DTOs/              # Data transfer objects
-│   │   ├── OperationResult.cs
-│   │   ├── PagedResult.cs
-│   │   └── UserDto.cs
-│   ├── Mappings/          # Object mapping profiles
-│   │   └── UserMappingExtensions.cs
-│   ├── Validators/        # FluentValidation validators
-│   │   ├── CreateUserCommandValidator.cs
-│   │   ├── CreateUserWithIdCommandValidator.cs
-│   │   ├── UpdateUserCommandValidator.cs
-│   │   └── UpdateUserWithResultCommandValidator.cs
-│   └── Exceptions/        # Custom exceptions
-│       ├── BusinessException.cs
-│       ├── NotFoundException.cs
-│       └── ValidationException.cs
-├── Domain/                # Domain layer
-│   └── Entities/          # Domain entities
-│       └── User.cs
-├── Infrastructure/        # Infrastructure layer
-│   └── Data/              # Data access
-│       └── UserManagementDbContext.cs
-├── Endpoints/             # Minimal API endpoints
-│   ├── UserCommandEndpoints.cs
-│   └── UserQueryEndpoints.cs
-├── Extensions/            # Service registration extensions
-│   ├── ServiceCollectionExtensions.cs
-│   └── WebApplicationExtensions.cs
-├── Properties/            # Assembly properties
-│   └── launchSettings.json
-├── UserManagement.http    # HTTP test file
-├── Program.cs             # Application configuration & startup
-├── appsettings.json       # Configuration settings
-└── UserManagement.Api.csproj # Project file
-```
-
-#### Sample Request/Response Flow
-
-**Getting User by ID:**
-
+#### Sample Endpoints
 ```http
-GET /api/users/123
-```
+# Get all users
+GET http://localhost:5002/api/users
 
-**Middleware Output:**
+# Get specific user
+GET http://localhost:5002/api/users/1
 
-```
-🔍 REQUEST: GetUserByIdQuery started at 2025-07-01 10:30:20.456
-🔍 REQUEST DATA: { "userId": 123 }
-🔍 RESPONSE: GetUserByIdQuery completed successfully in 12ms
-```
-
-**Response:**
-
-```json
-{
-    "id": 123,
-    "firstName": "John",
-    "lastName": "Doe",
-    "email": "john.doe@example.com",
-    "isActive": true,
-    "createdAt": "2025-01-01T00:00:00Z"
-}
-```
-
-**Creating a User:**
-
-```http
-POST /api/users
-Content-Type: application/json
-
-{
-  "firstName": "Jane",
-  "lastName": "Smith",
-  "email": "jane.smith@example.com",
-  "dateOfBirth": "1990-05-15"
-}
-```
-
-**Middleware Output:**
-
-```
-🔍 COMMAND: CreateUserCommand started at 2025-07-01 10:31:15.789
-🔍 COMMAND DATA: {
-  "firstName": "Jane",
-  "lastName": "Smith",
-  "email": "jane.smith@example.com",
-  "dateOfBirth": "1990-05-15"
-}
-🔍 COMMAND COMPLETED: CreateUserCommand completed successfully in 25ms
-```
-
-#### Testing the UserManagement API
-
-Use the provided HTTP file for testing:
-
-```http
-### Get all users
-GET http://localhost:5001/api/users
-
-### Get specific user
-GET http://localhost:5001/api/users/1
-
-### Create new user
-POST http://localhost:5001/api/users
+# Create new user
+POST http://localhost:5002/api/users
 Content-Type: application/json
 
 {
   "firstName": "John",
   "lastName": "Doe",
   "email": "john.doe@example.com",
-  "dateOfBirth": "1985-03-20"
+  "dateOfBirth": "1990-01-01"
 }
 
-### Update user
-PUT http://localhost:5001/api/users/1
+# Update user
+PUT http://localhost:5002/api/users/1
 Content-Type: application/json
 
 {
@@ -2824,69 +2474,116 @@ Content-Type: application/json
   "email": "john.smith@example.com"
 }
 
-### Delete user
-DELETE http://localhost:5001/api/users/1
+# Delete user
+DELETE http://localhost:5002/api/users/1
 ```
+
+### MiddlewareExample - Comprehensive Middleware Demonstration
+
+The MiddlewareExample sample is a console application that demonstrates the full power of the Blazing.Mediator middleware pipeline:
+
+#### Key Features
+- **Multiple Middleware Types**: Standard and conditional middleware examples
+- **Middleware Ordering**: Demonstrates proper middleware execution order
+- **Cross-Cutting Concerns**: Logging, validation, caching, and monitoring
+- **Error Handling**: Comprehensive exception handling throughout the pipeline
+- **MediatorStatistics**: Live analysis of queries and commands with both compact and detailed modes
+- **Real-world Scenarios**: E-commerce operations with complex business logic
+
+### Streaming.Api - Real-time Data Streaming
+
+The Streaming.Api sample demonstrates real-time data streaming capabilities:
+
+#### Key Features
+- **Blazor WebAssembly Client**: Interactive web client for real-time data
+- **SignalR Integration**: Real-time communication between server and clients
+- **Streaming Handlers**: `IStreamRequestHandler` implementations for continuous data
+- **Multiple Consumers**: Handle multiple concurrent data streams
+- **Real-time Updates**: Live data updates pushed to connected clients
+
+### SimpleNotificationExample - Event-Driven Architecture
+
+The SimpleNotificationExample demonstrates the notification/event system:
+
+#### Key Features
+- **Domain Events**: Publisher-subscriber pattern implementation
+- **Multiple Handlers**: Multiple handlers for single events
+- **Notification Middleware**: Cross-cutting concerns for events
+- **Event Sourcing Patterns**: Examples of event-driven architecture
 
 ### Running the Sample Projects
 
 #### Prerequisites
 
--   .NET 9.0 SDK
--   Visual Studio 2022 or VS Code
--   SQL Server LocalDB (for production mode) or uses In-Memory database (development mode)
+- **.NET 9 SDK** or later
+- **Visual Studio 2022** or **Visual Studio Code** with C# extension
+- **Git** for cloning the repository
 
-#### Getting Started
+#### Quick Start
 
-1. **Clone the repository:**
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/gragra33/Blazing.Mediator.git
+   cd Blazing.Mediator
+   ```
 
-    ```bash
-    git clone https://github.com/gragra33/blazing.mediator.git
-    cd blazing.mediator
-    ```
+2. **Run ECommerce.Api**:
+   ```bash
+   cd src/samples/ECommerce.Api
+   dotnet run
+   ```
+   Navigate to `https://localhost:5001/swagger` to explore the API.
 
-2. **Run ECommerce API:**
+3. **Run UserManagement.Api**:
+   ```bash
+   cd src/samples/UserManagement.Api
+   dotnet run
+   ```
+   Navigate to `https://localhost:5002/swagger` to explore the Minimal API.
 
-    ```bash
-    cd src/samples/ECommerce.Api
-    dotnet run
-    ```
+4. **Run MiddlewareExample**:
+   ```bash
+   cd src/samples/MiddlewareExample
+   dotnet run
+   ```
+   View comprehensive console output showing middleware pipeline execution.
 
-    Navigate to: `https://localhost:5000/swagger`
+5. **Run Streaming.Api**:
+   ```bash
+   cd src/samples/Streaming.Api/Streaming.Api
+   dotnet run
+   ```
+   Navigate to `https://localhost:5003` to see the Blazor WebAssembly client.
 
-3. **Run UserManagement API:**
-    ```bash
-    cd src/samples/UserManagement.Api
-    dotnet run
-    ```
-    Navigate to: `https://localhost:5001/swagger`
+6. **Run SimpleNotificationExample**:
+   ```bash
+   cd src/samples/SimpleNotificationExample
+   dotnet run
+   ```
+   View notification/event handling in the console output.
 
-#### Sample Comparison
+#### Development Tips
 
-| Feature          | ECommerce.Api          | UserManagement.Api     |
-| ---------------- | ---------------------- | ---------------------- |
-| **API Style**    | Controllers            | Minimal APIs           |
-| **Middleware**   | Conditional            | Standard               |
-| **Database**     | Entity Framework       | In-Memory/Repository   |
-| **Validation**   | FluentValidation       | Built-in               |
-| **Architecture** | Traditional Layers     | Clean Architecture     |
-| **Use Case**     | Complex Business Logic | Simple CRUD Operations |
-| **Performance**  | Optimized Middleware   | Comprehensive Logging  |
+- **Use Multiple Terminals**: Run multiple samples simultaneously to compare approaches
+- **Swagger Documentation**: All API samples include comprehensive Swagger documentation
+- **Debugging**: Set breakpoints in handlers and middleware to understand execution flow
+- **Middleware Analysis**: Use the MediatorController endpoints to analyze your application
+- **Performance Testing**: Use the benchmarking projects to measure performance impacts
 
-Both samples demonstrate the flexibility of Blazing.Mediator and show that the library works equally well with different architectural approaches and API styles.
+All samples demonstrate the flexibility of Blazing.Mediator and show that the library works equally well with different architectural approaches, API styles, and application types.
 
 ## Complete Examples
 
-This section provides complete, runnable examples that demonstrate various aspects of Blazing.Mediator implementation.
+This section provides complete, runnable examples that demonstrate various aspects of Blazing.Mediator implementation. These examples are designed to be copied and adapted for your own projects.
 
-### Complete CRUD Implementation
+### Complete CRUD API with Validation
 
-Here's a complete implementation showing all aspects of a User management system:
+Here's a complete example of a User Management API with full CRUD operations, validation, and error handling:
 
-#### 1. Domain Models
+#### 1. Domain Models and DTOs
 
 ```csharp
-// Domain/Entities/User.cs
+// Domain/User.cs
 public class User
 {
     public int Id { get; set; }
@@ -2894,111 +2591,47 @@ public class User
     public string LastName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public DateTime DateOfBirth { get; set; }
-    public bool IsActive { get; set; } = true;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-
-    public string FullName => $"{FirstName} {LastName}";
-    public int Age => DateTime.Now.Year - DateOfBirth.Year;
+    public bool IsActive { get; set; } = true;
 }
-```
 
-#### 2. DTOs
-
-```csharp
-// Application/DTOs/UserDto.cs
+// DTOs/UserDto.cs
 public class UserDto
 {
     public int Id { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
-    public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public DateTime DateOfBirth { get; set; }
-    public int Age { get; set; }
+    public string FullName => $"{FirstName} {LastName}";
+    public int Age => DateTime.Now.Year - DateOfBirth.Year;
     public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
 }
 
-// Application/DTOs/CreateUserDto.cs
-public class CreateUserDto
-{
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public DateTime DateOfBirth { get; set; }
-}
-
-// Application/DTOs/PagedResult.cs
+// DTOs/PagedResult.cs
 public class PagedResult<T>
 {
-    public List<T> Items { get; set; } = [];
+    public List<T> Items { get; set; } = new();
     public int TotalCount { get; set; }
     public int Page { get; set; }
     public int PageSize { get; set; }
-    public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
     public bool HasNextPage => Page < TotalPages;
     public bool HasPreviousPage => Page > 1;
 }
 ```
 
-#### 3. Repository Interface
+#### 2. CQRS Operations
 
 ```csharp
-// Application/Interfaces/IUserRepository.cs
-public interface IUserRepository
-{
-    Task<User?> GetByIdAsync(int id);
-    Task<User?> GetByEmailAsync(string email);
-    Task<PagedResult<User>> GetPagedAsync(int page, int pageSize, string? searchTerm = null);
-    Task<List<User>> GetAllActiveAsync();
-    Task<int> AddAsync(User user);
-    Task UpdateAsync(User user);
-    Task DeleteAsync(int id);
-    Task<bool> EmailExistsAsync(string email, int? excludeUserId = null);
-    Task<int> GetTotalCountAsync();
-}
-```
-
-#### 4. Queries (CQRS Read Side)
-
-```csharp
-// Application/Queries/GetUserByIdQuery.cs
+// Queries/GetUserByIdQuery.cs
 public class GetUserByIdQuery : IRequest<UserDto>
 {
     public int UserId { get; set; }
 }
 
-public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UserDto>
-{
-    private readonly IUserRepository _repository;    private readonly ILogger<GetUserByIdHandler> _logger;
-
-    public GetUserByIdHandler(IUserRepository repository, ILogger<GetUserByIdHandler> logger)
-    {
-        _repository = repository;
-        _logger = logger;
-    }
-
-    public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
-    {
-        _logger.LogDebug("Getting user with ID {UserId}", request.UserId);
-
-        var user = await _repository.GetByIdAsync(request.UserId);
-
-        if (user == null)
-        {
-            _logger.LogWarning("User with ID {UserId} not found", request.UserId);
-            throw new NotFoundException($"User with ID {request.UserId} not found");
-        }
-
-        var userDto = user.ToDto(); // Use extension method for mapping
-
-        _logger.LogDebug("Successfully retrieved user {UserId}", request.UserId);
-        return userDto;
-    }
-}
-
-// Application/Queries/GetUsersQuery.cs
+// Queries/GetUsersQuery.cs
 public class GetUsersQuery : IRequest<PagedResult<UserDto>>
 {
     public int Page { get; set; } = 1;
@@ -3007,37 +2640,7 @@ public class GetUsersQuery : IRequest<PagedResult<UserDto>>
     public bool IncludeInactive { get; set; } = false;
 }
 
-public class GetUsersHandler : IRequestHandler<GetUsersQuery, PagedResult<UserDto>>
-{
-    private readonly IUserRepository _repository;
-    private readonly ILogger<GetUsersHandler> _logger;
-
-    public GetUsersHandler(IUserRepository repository, ILogger<GetUsersHandler> logger)
-    {
-        _repository = repository;
-        _logger = logger;
-    }
-
-    public async Task<PagedResult<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
-    {
-        _logger.LogDebug("Getting users: Page {Page}, PageSize {PageSize}, SearchTerm: {SearchTerm}",
-            request.Page, request.PageSize, request.SearchTerm);
-
-        var users = await _repository.GetPagedAsync(request.Page, request.PageSize, request.SearchTerm);
-
-        // Use extension method for mapping to paginated DTO
-        var result = users.Items.ToPagedDto(users.TotalCount, request.Page, request.PageSize);
-
-        _logger.LogDebug("Retrieved {Count} users out of {Total}", result.Items.Count, result.TotalCount);
-        return result;
-    }
-}
-```
-
-#### 5. Commands (CQRS Write Side)
-
-```csharp
-// Application/Commands/CreateUserCommand.cs
+// Commands/CreateUserCommand.cs
 public class CreateUserCommand : IRequest<int>
 {
     public string FirstName { get; set; } = string.Empty;
@@ -3046,58 +2649,7 @@ public class CreateUserCommand : IRequest<int>
     public DateTime DateOfBirth { get; set; }
 }
 
-public class CreateUserHandler : IRequestHandler<CreateUserCommand, int>
-{
-    private readonly IUserRepository _repository;
-    private readonly IValidator<CreateUserCommand> _validator;
-    private readonly ILogger<CreateUserHandler> _logger;
-
-    public CreateUserHandler(IUserRepository repository, IValidator<CreateUserCommand> validator, ILogger<CreateUserHandler> logger)
-    {
-        _repository = repository;
-        _validator = validator;
-        _logger = logger;
-    }
-
-    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Creating user with email {Email}", request.Email);
-
-        // Validate the command
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var errors = string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage));
-            _logger.LogWarning("Validation failed for CreateUserCommand: {Errors}", errors);
-            throw new ValidationException(validationResult.Errors);
-        }
-
-        // Check if email already exists
-        if (await _repository.EmailExistsAsync(request.Email))
-        {
-            _logger.LogWarning("Attempted to create user with existing email {Email}", request.Email);
-            throw new ConflictException($"User with email {request.Email} already exists");
-        }
-
-        // Create domain entity with business logic
-        var user = new User
-        {
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Email = request.Email,
-            DateOfBirth = request.DateOfBirth,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        // Save using write-optimized repository
-        var userId = await _repository.AddAsync(user);
-
-        _logger.LogInformation("User created successfully with ID {UserId}", userId);
-        return userId;
-    }
-}
-
-// Application/Commands/UpdateUserCommand.cs
+// Commands/UpdateUserCommand.cs
 public class UpdateUserCommand : IRequest
 {
     public int UserId { get; set; }
@@ -3107,127 +2659,41 @@ public class UpdateUserCommand : IRequest
     public DateTime DateOfBirth { get; set; }
 }
 
-public class UpdateUserHandler : IRequestHandler<UpdateUserCommand>
-{
-    private readonly IUserRepository _repository;
-    private readonly IValidator<UpdateUserCommand> _validator;
-    private readonly ILogger<UpdateUserHandler> _logger;
-
-    public UpdateUserHandler(IUserRepository repository, IValidator<UpdateUserCommand> validator, ILogger<UpdateUserHandler> logger)
-    {
-        _repository = repository;
-        _validator = validator;
-        _logger = logger;
-    }
-
-    public async Task Handle(UpdateUserCommand request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Updating user {UserId}", request.UserId);
-
-        // Validate the command
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var errors = string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage));
-            _logger.LogWarning("Validation failed for UpdateUserCommand: {Errors}", errors);
-            throw new ValidationException(validationResult.Errors);
-        }
-
-        // Get existing user
-        var user = await _repository.GetByIdAsync(request.UserId);
-        if (user == null)
-        {
-            _logger.LogWarning("Attempted to update non-existent user {UserId}", request.UserId);
-            throw new NotFoundException($"User with ID {request.UserId} not found");
-        }
-
-        // Check if email is being changed and if it already exists
-        if (user.Email != request.Email && await _repository.EmailExistsAsync(request.Email, request.UserId))
-        {
-            _logger.LogWarning("Attempted to update user {UserId} with existing email {Email}", request.UserId, request.Email);
-            throw new ConflictException($"User with email {request.Email} already exists");
-        }
-
-        // Update the user
-        user.FirstName = request.FirstName;
-        user.LastName = request.LastName;
-        user.Email = request.Email;
-        user.DateOfBirth = request.DateOfBirth;
-        user.UpdatedAt = DateTime.UtcNow;
-
-        await _repository.UpdateAsync(user);
-
-        _logger.LogInformation("User {UserId} updated successfully", request.UserId);
-    }
-}
-
-// Application/Commands/DeleteUserCommand.cs
+// Commands/DeleteUserCommand.cs
 public class DeleteUserCommand : IRequest
 {
     public int UserId { get; set; }
 }
-
-public class DeleteUserHandler : IRequestHandler<DeleteUserCommand>
-{
-    private readonly IUserRepository _repository;
-    private readonly ILogger<DeleteUserHandler> _logger;
-
-    public DeleteUserHandler(IUserRepository repository, ILogger<DeleteUserHandler> logger)
-    {
-        _repository = repository;
-        _logger = logger;
-    }
-
-    public async Task Handle(DeleteUserCommand request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Deleting user {UserId}", request.UserId);
-
-        // Check if user exists
-        var user = await _repository.GetByIdAsync(request.UserId);
-        if (user == null)
-        {
-            _logger.LogWarning("Attempted to delete non-existent user {UserId}", request.UserId);
-            throw new NotFoundException($"User with ID {request.UserId} not found");
-        }
-
-        await _repository.DeleteAsync(request.UserId);
-
-        _logger.LogInformation("User {UserId} deleted successfully", request.UserId);
-    }
-}
 ```
 
-#### 6. Validation
+#### 3. Validation with FluentValidation
 
 ```csharp
-// Application/Validators/CreateUserCommandValidator.cs
+// Validators/CreateUserCommandValidator.cs
 public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
 {
     public CreateUserCommandValidator()
     {
         RuleFor(x => x.FirstName)
             .NotEmpty().WithMessage("First name is required")
-            .MaximumLength(50).WithMessage("First name cannot exceed 50 characters")
-            .Matches(@"^[a-zA-Z\s'-]+$").WithMessage("First name contains invalid characters");
+            .MaximumLength(50).WithMessage("First name cannot exceed 50 characters");
 
         RuleFor(x => x.LastName)
             .NotEmpty().WithMessage("Last name is required")
-            .MaximumLength(50).WithMessage("Last name cannot exceed 50 characters")
-            .Matches(@"^[a-zA-Z\s'-]+$").WithMessage("Last name contains invalid characters");
+            .MaximumLength(50).WithMessage("Last name cannot exceed 50 characters");
 
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email is required")
-            .EmailAddress().WithMessage("Email must be a valid email address")
-            .MaximumLength(255).WithMessage("Email cannot exceed 255 characters");
+            .EmailAddress().WithMessage("Email must be valid")
+            .MaximumLength(254).WithMessage("Email cannot exceed 254 characters");
 
         RuleFor(x => x.DateOfBirth)
-            .NotEmpty().WithMessage("Date of birth is required")
             .LessThan(DateTime.Today).WithMessage("Date of birth must be in the past")
             .GreaterThan(DateTime.Today.AddYears(-120)).WithMessage("Date of birth cannot be more than 120 years ago");
     }
 }
 
-// Application/Validators/UpdateUserCommandValidator.cs
+// Validators/UpdateUserCommandValidator.cs
 public class UpdateUserCommandValidator : AbstractValidator<UpdateUserCommand>
 {
     public UpdateUserCommandValidator()
@@ -3235,380 +2701,42 @@ public class UpdateUserCommandValidator : AbstractValidator<UpdateUserCommand>
         RuleFor(x => x.UserId)
             .GreaterThan(0).WithMessage("User ID must be greater than 0");
 
-
-
         RuleFor(x => x.FirstName)
             .NotEmpty().WithMessage("First name is required")
-            .MaximumLength(50).WithMessage("First name cannot exceed 50 characters")
-            .Matches(@"^[a-zA-Z\s'-]+$").WithMessage("First name contains invalid characters");
+            .MaximumLength(50).WithMessage("First name cannot exceed 50 characters");
 
         RuleFor(x => x.LastName)
             .NotEmpty().WithMessage("Last name is required")
-            .MaximumLength(50).WithMessage("Last name cannot exceed 50 characters")
-            .Matches(@"^[a-zA-Z\s'-]+$").WithMessage("Last name contains invalid characters");
+            .MaximumLength(50).WithMessage("Last name cannot exceed 50 characters");
 
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email is required")
-            .EmailAddress().WithMessage("Email must be a valid email address")
-            .MaximumLength(255).WithMessage("Email cannot exceed 255 characters");
+            .EmailAddress().WithMessage("Email must be valid")
+            .MaximumLength(254).WithMessage("Email cannot exceed 254 characters");
 
         RuleFor(x => x.DateOfBirth)
-            .NotEmpty().WithMessage("Date of birth is required")
             .LessThan(DateTime.Today).WithMessage("Date of birth must be in the past")
             .GreaterThan(DateTime.Today.AddYears(-120)).WithMessage("Date of birth cannot be more than 120 years ago");
     }
 }
 ```
 
-#### 7. Exception Classes
-
-```csharp
-// Application/Exceptions/NotFoundException.cs
-public class NotFoundException : Exception
-{
-    public NotFoundException(string message) : base(message) { }
-
-    public NotFoundException(string message, Exception innerException) : base(message, innerException) { }
-}
-
-// Application/Exceptions/ConflictException.cs
-public class ConflictException : Exception
-{
-    public ConflictException(string message) : base(message) { }
-
-    public ConflictException(string message, Exception innerException) : base(message, innerException) { }
-}
-
-// Application/Exceptions/ValidationException.cs
-public class ValidationException : Exception
-{
-    public IEnumerable<ValidationFailure> Errors { get; }
-
-    public ValidationException(IEnumerable<ValidationFailure> failures)
-        : base("One or more validation failures have occurred.")
-    {
-        Errors = failures;
-    }
-}
-```
-
-#### 8. Mapping Extensions
-
-Instead of AutoMapper, we use manual extension methods for mapping between domain entities and DTOs. This provides better performance, compile-time safety, and explicit control over the mapping logic.
-
-```csharp
-// Application/Mappings/UserMappingExtensions.cs
-using Application.DTOs;
-using Domain.Entities;
-
-namespace Application.Mappings;
-
-/// <summary>
-/// Extension methods for mapping between User domain entities and DTOs.
-/// Provides explicit, performant mapping without external dependencies.
-/// </summary>
-public static class UserMappingExtensions
-{
-    /// <summary>
-    /// Converts a User domain entity to a UserDto.
-    /// </summary>
-    /// <param name="user">The user entity to convert.</param>
-    /// <returns>A UserDto representation of the user.</returns>
-    public static UserDto ToDto(this User user)
-    {
-        return new UserDto
-        {
-            Id = user.Id,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            FullName = user.GetFullName(), // Use domain logic
-            Email = user.Email,
-            DateOfBirth = user.DateOfBirth,
-            Age = user.GetAge(), // Calculated property
-            IsActive = user.IsActive,
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt
-        };
-    }
-
-    /// <summary>
-    /// Converts a collection of User domain entities to a list of UserDtos.
-    /// </summary>
-    /// <param name="users">The collection of user entities to convert.</param>
-    /// <returns>A list of UserDto representations.</returns>
-    public static List<UserDto> ToDto(this IEnumerable<User> users)
-    {
-        return users.Select(u => u.ToDto()).ToList();
-    }
-
-    /// <summary>
-    /// Converts a collection of User domain entities to a paginated result with UserDtos.
-    /// </summary>
-    /// <param name="users">The collection of user entities to convert.</param>
-    /// <param name="totalCount">The total number of users available.</param>
-    /// <param name="page">The current page number.</param>
-    /// <param name="pageSize">The number of items per page.</param>
-    /// <returns>A paginated result containing UserDtos.</returns>
-    public static PagedResult<UserDto> ToPagedDto(this IEnumerable<User> users, int totalCount, int page, int pageSize)
-    {
-        return new PagedResult<UserDto>
-        {
-            Items = users.ToDto(),
-            TotalCount = totalCount,
-            Page = page,
-            PageSize = pageSize
-        };
-    }
-
-    /// <summary>
-    /// Converts a CreateUserCommand to a User domain entity.
-    /// </summary>
-    /// <param name="command">The command containing user creation data.</param>
-    /// <returns>A new User entity ready for persistence.</returns>
-    public static User ToEntity(this CreateUserCommand command)
-    {
-        return User.Create(
-            command.FirstName,
-            command.LastName,
-            command.Email,
-            command.DateOfBirth);
-    }
-}
-```
-
-#### Benefits of Manual Mapping Extensions
-
-✅ **Performance**: No reflection overhead - direct property assignment  
-✅ **Compile-time Safety**: Compilation errors if properties don't match  
-✅ **Explicit Control**: Clear, readable mapping logic with custom transformations  
-✅ **No Dependencies**: Reduces external package dependencies  
-✅ **IntelliSense Support**: Full IDE support with auto-completion  
-✅ **Easy Testing**: Simple to test and mock mapping behavior  
-✅ **Domain Logic Integration**: Can call domain methods for calculated properties
-
-````
-
-#### 9. API Controller
-
-```csharp
-// Controllers/UsersController.cs
-[ApiController]
-[Route("api/[controller]")]
-public class UsersController : ControllerBase
-{
-    private readonly IMediator _mediator;
-    private readonly ILogger<UsersController> _logger;
-
-    public UsersController(IMediator mediator, ILogger<UsersController> logger)
-    {
-        _mediator = mediator;
-        _logger = logger;
-    }
-
-    /// <summary>
-    /// Get user by ID
-    /// </summary>
-    /// <param name="id">The user ID</param>
-    /// <returns>User details</returns>
-    [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<UserDto>> GetUser(int id)
-    {
-        try
-        {
-            var query = new GetUserByIdQuery { UserId = id };
-            var user = await _mediator.Send(query);
-            return Ok(user);
-        }
-        catch (NotFoundException)
-        {
-            return NotFound();
-        }
-    }
-
-    /// <summary>
-    /// Get users with pagination
-    /// </summary>
-    /// <param name="page">Page number (default: 1)</param>
-    /// <param name="pageSize">Page size (default: 10)</param>
-    /// <param name="searchTerm">Search term for filtering</param>
-    /// <param name="includeInactive">Include inactive users</param>
-    /// <returns>Paginated list of users</returns>
-    [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<UserDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResult<UserDto>>> GetUsers(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string searchTerm = null,
-        [FromQuery] bool includeInactive = false)
-    {
-        var query = new GetUsersQuery
-        {
-            Page = page,
-            PageSize = pageSize,
-            SearchTerm = searchTerm,
-            IncludeInactive = includeInactive
-        };
-
-        var result = await _mediator.Send(query);
-        return Ok(result);
-    }
-
-    /// <summary>
-    /// Create a new user
-    /// </summary>
-    /// <param name="dto">User creation data</param>
-    /// <returns>Created user ID</returns>
-    [HttpPost]
-    [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<int>> CreateUser([FromBody] CreateUserDto dto)
-    {
-        try
-        {
-            var command = new CreateUserCommand
-            {
-                FirstName = dto.FirstName,
-                LastName = dto.LastName,
-                Email = dto.Email,
-                DateOfBirth = dto.DateOfBirth
-            };
-
-            var userId = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetUser), new { id = userId }, userId);
-        }
-        catch (ValidationException ex)
-        {
-            var errors = ex.Errors.Select(e => new { e.PropertyName, e.ErrorMessage });
-            return BadRequest(new { message = "Validation failed", errors });
-        }
-        catch (ConflictException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Update an existing user
-    /// </summary>
-    /// <param name="id">User ID</param>
-    /// <param name="command">User update data</param>
-    /// <returns>No content on success</returns>
-    [HttpPut("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult> UpdateUser(int id, [FromBody] UpdateUserCommand command)
-    {
-        if (id != command.UserId)
-        {
-            return BadRequest("ID mismatch");
-        }
-
-        try
-        {
-            await _mediator.Send(command);
-            return NoContent();
-        }
-        catch (ValidationException ex)
-        {
-            var errors = ex.Errors.Select(e => new { e.PropertyName, e.ErrorMessage });
-            return BadRequest(new { message = "Validation failed", errors });
-        }
-        catch (NotFoundException)
-        {
-            return NotFound();
-        }
-        catch (ConflictException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Delete a user
-    /// </summary>
-    /// <param name="id">User ID</param>
-    /// <returns>No content on success</returns>
-    [HttpDelete("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> DeleteUser(int id)
-    {
-        try
-        {
-            var command = new DeleteUserCommand { UserId = id };
-            await _mediator.Send(command);
-            return NoContent();
-        }
-        catch (NotFoundException)
-        {
-            return NotFound();
-        }
-    }
-}
-````
-
-#### 10. Program Configuration
-
-```csharp
-// Program.cs
-using Blazing.Mediator;
-using FluentValidation;
-
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Add FluentValidation
-builder.Services.AddValidatorsFromAssembly(typeof(CreateUserCommandValidator).Assembly);
-
-// Register Mediator with middleware
-builder.Services.AddMediator(config =>
-{
-    // Add logging middleware for all requests
-    config.AddMiddleware<GeneralLoggingMiddleware<,>>();
-    config.AddMiddleware<GeneralCommandLoggingMiddleware<>>();
-}, typeof(Program).Assembly);
-
-// Register application services
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
-app.UseAuthorization();
-
-// Global exception handling middleware
-app.UseMiddleware<ExceptionHandlingMiddleware>();
-
-app.MapControllers();
-
-app.Run();
-```
-
 This complete example demonstrates:
 
--   **CQRS Implementation**: Clear separation between commands and queries
--   **Validation**: Comprehensive input validation using FluentValidation
--   **Error Handling**: Proper exception handling with custom exceptions
--   **Logging**: Structured logging throughout the application
--   **Mapping**: Clean object mapping using AutoMapper
--   **API Design**: RESTful API design with proper HTTP status codes
--   **Middleware**: Custom middleware for cross-cutting concerns
--   **Testing Ready**: Easy to test with dependency injection
+- ✅ **Full CRUD Operations** with proper HTTP status codes
+- ✅ **CQRS Implementation** with clear separation of commands and queries
+- ✅ **Comprehensive Validation** using FluentValidation
+- ✅ **Error Handling** with custom exceptions and proper responses
+- ✅ **Repository Pattern** with Entity Framework Core
+- ✅ **AutoMapper Integration** for object mapping
+- ✅ **Pagination Support** for efficient data retrieval
+- ✅ **Search Functionality** with filtering capabilities
+- ✅ **API Documentation** with Swagger/OpenAPI
+- ✅ **Dependency Injection** throughout the application
+- ✅ **Clean Architecture** with proper separation of concerns
 
-The example shows how all the concepts come together in a real-world application using Blazing.Mediator with CQRS patterns.
+You can use this example as a foundation for your own applications, adapting the patterns and structure to meet your specific requirements.
+
+
+
+

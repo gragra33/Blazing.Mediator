@@ -83,6 +83,9 @@ public static class ServiceCollectionExtensions
     {
         services.AddMediator(config =>
         {
+            // Enable statistics tracking for performance monitoring
+            config.EnableStatisticsTracking = true;
+
             // Add general logging middleware for all requests (queries with responses)
             config.AddMiddleware(typeof(GeneralLoggingMiddleware<,>));
             // Add general logging middleware for all commands (void commands)

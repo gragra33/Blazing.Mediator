@@ -31,6 +31,8 @@ public enum HandlerStatus
 /// <param name="Assembly">The name of the assembly containing this type.</param>
 /// <param name="Namespace">The namespace of the type.</param>
 /// <param name="ResponseType">The response type for queries/commands that return values, null for void commands.</param>
+/// <param name="PrimaryInterface">The primary interface implemented (IQuery, ICommand, or IRequest).</param>
+/// <param name="IsResultType">True if the response type implements IResult interface.</param>
 /// <param name="HandlerStatus">The status of handlers for this request type.</param>
 /// <param name="HandlerDetails">Detailed information about the handlers.</param>
 /// <param name="Handlers">List of handler types registered for this request.</param>
@@ -41,6 +43,8 @@ public record QueryCommandAnalysis(
     string Assembly,
     string Namespace,
     Type? ResponseType,
+    string PrimaryInterface,
+    bool IsResultType,
     HandlerStatus HandlerStatus,
     string HandlerDetails,
     IReadOnlyList<Type> Handlers

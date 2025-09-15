@@ -1,6 +1,6 @@
 ﻿# Version History
 
-### V1.6.2 - 18 January, 2025
+### V1.6.2 - 18 September, 2025
 
 -   **Enhanced Handler Analysis**: Updated `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` with comprehensive handler detection and status reporting
 -   **Handler Status Tracking**: New `HandlerStatus` enum with ASCII markers (`+` = found, `!` = missing, `#` = multiple) for easy visual identification
@@ -14,7 +14,7 @@
 
 -   **MediatorStatistics Analysis**: New `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` methods for comprehensive CQRS type discovery and analysis
 -   **Runtime Statistics**: Enhanced `ReportStatistics()` functionality with automatic execution tracking via `IncrementQuery`, `IncrementCommand`, and `IncrementNotification`
--   **Statistics Monitoring**: Built-in performance monitoring and usage analytics with flexible `IStatisticsRenderer` system for custom output formats
+-   **Statistics Monitoring**: Built-in performance monitoring and usage analytics with a flexible `IStatisticsRenderer` system for custom output formats
 -   **Application Insights**: Complete application discovery capabilities perfect for health checks, monitoring dashboards, and development tooling
 
 ### V1.6.0 - 12 September, 2025

@@ -40,7 +40,7 @@ public class InventoryManagementService : BackgroundService,
             // Simulate inventory system processing delay
             await Task.Delay(50, cancellationToken);
 
-            _logger.LogWarning("⚠️  LOW STOCK ALERT");
+            _logger.LogWarning("!  LOW STOCK ALERT");
             _logger.LogWarning("   Product: {ProductName} (ID: {ProductId})", notification.ProductName, notification.ProductId);
             _logger.LogWarning("   Current Stock: {CurrentStock}", notification.CurrentStock);
             _logger.LogWarning("   Minimum Threshold: {MinimumThreshold}", notification.MinimumThreshold);
@@ -73,7 +73,7 @@ public class InventoryManagementService : BackgroundService,
             // Simulate inventory system processing delay
             await Task.Delay(50, cancellationToken);
 
-            _logger.LogError("🚨 OUT OF STOCK ALERT - URGENT");
+            _logger.LogError("! OUT OF STOCK ALERT - URGENT");
             _logger.LogError("   Product: {ProductName} (ID: {ProductId})", notification.ProductName, notification.ProductId);
             _logger.LogError("   Price: ${Price:F2}", notification.Price);
             _logger.LogError("   Last Known Stock: {LastKnownStock}", notification.LastKnownStock);
@@ -108,7 +108,7 @@ public class InventoryManagementService : BackgroundService,
             // Simulate inventory tracking delay
             await Task.Delay(25, cancellationToken);
 
-            _logger.LogInformation("📦 INVENTORY TRACKING - Order #{OrderId}", notification.OrderId);
+            _logger.LogInformation("* INVENTORY TRACKING - Order #{OrderId}", notification.OrderId);
             _logger.LogInformation("   Customer: {CustomerEmail}", notification.CustomerEmail);
             _logger.LogInformation("   Items Reserved:");
 
@@ -184,7 +184,7 @@ public class InventoryManagementService : BackgroundService,
         // Simulate sending notification to purchasing system
         await Task.Delay(25, cancellationToken);
 
-        _logger.LogInformation("📋 REORDER NOTIFICATION SENT TO PURCHASING");
+        _logger.LogInformation("* REORDER NOTIFICATION SENT TO PURCHASING");
         _logger.LogInformation("   Product: {ProductName} (ID: {ProductId})",
             notification.ProductName, notification.ProductId);
         _logger.LogInformation("   Reorder Quantity: {ReorderQuantity}", reorderQuantity);
@@ -207,7 +207,7 @@ public class InventoryManagementService : BackgroundService,
         // Simulate sending urgent notification to purchasing system
         await Task.Delay(25, cancellationToken);
 
-        _logger.LogError("🚨 URGENT REORDER NOTIFICATION SENT TO PURCHASING");
+        _logger.LogError("! URGENT REORDER NOTIFICATION SENT TO PURCHASING");
         _logger.LogError("   Product: {ProductName} (ID: {ProductId})",
             notification.ProductName, notification.ProductId);
         _logger.LogError("   URGENT Reorder Quantity: {ReorderQuantity}", reorderQuantity);
@@ -230,7 +230,7 @@ public class InventoryManagementService : BackgroundService,
         // Simulate sending notification to customer service
         await Task.Delay(25, cancellationToken);
 
-        _logger.LogWarning("📞 CUSTOMER SERVICE NOTIFICATION");
+        _logger.LogWarning("* CUSTOMER SERVICE NOTIFICATION");
         _logger.LogWarning("   Product Out of Stock: {ProductName} (ID: {ProductId})",
             notification.ProductName, notification.ProductId);
         _logger.LogWarning("   Action Required: Update website availability");

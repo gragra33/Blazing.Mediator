@@ -14,7 +14,8 @@ namespace ECommerce.Api.Application.Handlers.Queries;
 /// </summary>
 /// <param name="context">The database context for querying product data.</param>
 // Product Query Handlers
-public class GetProductByIdHandler(ECommerceDbContext context) : IRequestHandler<GetProductByIdQuery, ProductDto>
+public class GetProductByIdHandler(ECommerceDbContext context)
+    : IRequestHandler<GetProductByIdQuery, ProductDto>
 {
     /// <summary>
     /// Handles the get product by ID query and returns the product details.

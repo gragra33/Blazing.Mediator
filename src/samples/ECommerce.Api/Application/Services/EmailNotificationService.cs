@@ -41,7 +41,7 @@ public class EmailNotificationService : BackgroundService,
             await Task.Delay(100, cancellationToken);
 
             // Log the mock email to console (in real-world, this would send actual email)
-            _logger.LogInformation("📧 ORDER CONFIRMATION EMAIL SENT");
+            _logger.LogInformation("* ORDER CONFIRMATION EMAIL SENT");
             _logger.LogInformation("   To: {CustomerEmail}", notification.CustomerEmail);
             _logger.LogInformation("   Subject: Order Confirmation - Order #{OrderId}", notification.OrderId);
             _logger.LogInformation("   Order Total: ${TotalAmount:F2}", notification.TotalAmount);
@@ -81,7 +81,7 @@ public class EmailNotificationService : BackgroundService,
                 var emailSubject = GetEmailSubjectForStatus(notification.NewStatus, notification.OrderId);
                 var statusMessage = GetStatusMessage(notification.NewStatus);
 
-                _logger.LogInformation("📧 ORDER STATUS UPDATE EMAIL SENT");
+                _logger.LogInformation("* ORDER STATUS UPDATE EMAIL SENT");
                 _logger.LogInformation("   To: {CustomerEmail}", notification.CustomerEmail);
                 _logger.LogInformation("   Subject: {Subject}", emailSubject);
                 _logger.LogInformation("   Order #{OrderId} Status: {PreviousStatus} → {NewStatus}",

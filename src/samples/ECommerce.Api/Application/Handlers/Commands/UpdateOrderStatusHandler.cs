@@ -11,7 +11,8 @@ namespace ECommerce.Api.Application.Handlers.Commands;
 /// </summary>
 /// <param name="context">The database context for accessing order data.</param>
 /// <param name="mediator">The mediator for publishing notifications.</param>
-public class UpdateOrderStatusHandler(ECommerceDbContext context, IMediator mediator) : IRequestHandler<UpdateOrderStatusCommand>
+public class UpdateOrderStatusHandler(ECommerceDbContext context, IMediator mediator)
+    : IRequestHandler<UpdateOrderStatusCommand>
 {
     /// <summary>
     /// Handles the update order status command by finding the order and updating its status.

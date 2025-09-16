@@ -353,6 +353,10 @@ public class ValidationMiddleware<TRequest> : IRequestMiddleware<TRequest>
 
 The library includes seven comprehensive sample projects demonstrating different approaches:
 
+## Sample Projects
+
+The library includes eight comprehensive sample projects demonstrating different approaches:
+
 1. **Blazing.Mediator.Examples** - Complete feature showcase and migration guide from MediatR
 
     - All core Blazing.Mediator features with side-by-side MediatR comparisons
@@ -410,6 +414,7 @@ The library includes seven comprehensive sample projects demonstrating different
     - Entity Framework integration with domain event publishing
     - FluentValidation integration with validation middleware
     - Background services for notification processing
+    - **Mediator Statistics Endpoints**: Built-in API endpoints for monitoring mediator usage including query/command analysis, runtime statistics, and pipeline inspection
 
 7. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
 
@@ -417,6 +422,7 @@ The library includes seven comprehensive sample projects demonstrating different
     - Comprehensive logging middleware
     - Clean architecture patterns
     - Error handling examples
+    - **Mediator Statistics Endpoints**: Comprehensive API endpoints for analyzing mediator performance including query/command discovery, execution tracking, and detailed runtime statistics
 
 8. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
     - Memory-efficient `IAsyncEnumerable<T>` streaming with large datasets
@@ -425,7 +431,6 @@ The library includes seven comprehensive sample projects demonstrating different
     - Stream middleware pipeline with logging and performance monitoring
     - Interactive streaming controls and real-time data visualization
     - 6 different streaming examples from minimal APIs to interactive WebAssembly clients
-
 ## History
 
 ### V1.7.0
@@ -438,6 +443,7 @@ The library includes seven comprehensive sample projects demonstrating different
 -   **Generic Constraint Validation**: Advanced generic type constraint checking with support for complex constraint scenarios including class, struct, and interface constraints
 -   **Enhanced Type Safety**: Compile-time enforcement of middleware applicability through generic type constraints reducing runtime errors and improving performance
 -   **Comprehensive Test Coverage**: Extensive test suite for type constraint validation covering edge cases, constraint inheritance, and complex generic scenarios
+-   **Enhanced Sample Projects**: Updated ECommerce.Api and UserManagement.Api with comprehensive mediator statistics endpoints for runtime monitoring and analysis
 
 ### V1.6.2
 

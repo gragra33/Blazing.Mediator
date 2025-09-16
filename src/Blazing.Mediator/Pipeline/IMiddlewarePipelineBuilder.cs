@@ -47,7 +47,7 @@ public interface IMiddlewarePipelineBuilder
     /// <param name="finalHandler">The final handler to execute after all middleware</param>
     /// <returns>A delegate that executes the complete pipeline</returns>
     RequestHandlerDelegate<TResponse> Build<TRequest, TResponse>(
-        IServiceProvider serviceProvider, 
+        IServiceProvider serviceProvider,
         RequestHandlerDelegate<TResponse> finalHandler)
         where TRequest : IRequest<TResponse>;
 
@@ -75,7 +75,7 @@ public interface IMiddlewarePipelineBuilder
     /// <param name="finalHandler">The final handler to execute after all middleware</param>
     /// <returns>A delegate that executes the complete pipeline</returns>
     RequestHandlerDelegate Build<TRequest>(
-        IServiceProvider serviceProvider, 
+        IServiceProvider serviceProvider,
         RequestHandlerDelegate finalHandler)
         where TRequest : IRequest;
 
@@ -105,7 +105,7 @@ public interface IMiddlewarePipelineBuilder
     /// <param name="finalHandler">The final handler to execute after all middleware</param>
     /// <returns>A delegate that executes the complete stream pipeline</returns>
     StreamRequestHandlerDelegate<TResponse> BuildStreamPipeline<TRequest, TResponse>(
-        IServiceProvider serviceProvider, 
+        IServiceProvider serviceProvider,
         StreamRequestHandlerDelegate<TResponse> finalHandler)
         where TRequest : IStreamRequest<TResponse>;
 }

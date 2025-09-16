@@ -13,17 +13,17 @@ public class UpdateUserWithResultCommand : IRequest<OperationResult>
     /// Gets or sets the unique identifier of the user to update.
     /// </summary>
     public int UserId { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the updated first name of the user.
     /// </summary>
     public string FirstName { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the updated last name of the user.
     /// </summary>
     public string LastName { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the updated email address of the user.
     /// </summary>

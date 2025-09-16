@@ -1,8 +1,8 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
-using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Configuration;
+using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Tests;
 
@@ -26,7 +26,7 @@ public class MediatorEdgeCaseTests
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
         services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
         services.AddSingleton<MediatorStatistics>();
-        
+
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -50,7 +50,7 @@ public class MediatorEdgeCaseTests
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
         services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
         services.AddSingleton<MediatorStatistics>();
-        
+
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -77,7 +77,7 @@ public class MediatorEdgeCaseTests
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
         services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
         services.AddSingleton<MediatorStatistics>();
-        
+
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -101,7 +101,7 @@ public class MediatorEdgeCaseTests
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
         services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
         services.AddSingleton<MediatorStatistics>();
-        
+
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -142,12 +142,12 @@ public class MediatorEdgeCaseTests
     {
         // Arrange
         ServiceCollection services = new();
-        
+
         var config = new MediatorConfiguration();
         config.PipelineBuilder.AddMiddleware<MiddlewareWithNoParameterlessConstructor>();
-        
+
         services.AddSingleton(config);
-        services.AddScoped<IMiddlewarePipelineBuilder>(provider => 
+        services.AddScoped<IMiddlewarePipelineBuilder>(provider =>
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
         services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
 
@@ -170,12 +170,12 @@ public class MediatorEdgeCaseTests
     {
         // Arrange
         ServiceCollection services = new();
-        
+
         var config = new MediatorConfiguration();
         config.PipelineBuilder.AddMiddleware<CommandMiddlewareWithNoParameterlessConstructor>();
-        
+
         services.AddSingleton(config);
-        services.AddScoped<IMiddlewarePipelineBuilder>(provider => 
+        services.AddScoped<IMiddlewarePipelineBuilder>(provider =>
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
 
@@ -204,7 +204,7 @@ public class MediatorEdgeCaseTests
 
         // Act
         var result = builder.Build<TestQuery, string>(serviceProvider, finalHandler);
-        
+
         // Assert - The returned delegate should throw when called
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => result());
         exception.Message.ShouldContain("Use ExecutePipeline method instead");
@@ -224,7 +224,7 @@ public class MediatorEdgeCaseTests
 
         // Act
         var result = builder.Build<TestCommand>(serviceProvider, finalHandler);
-        
+
         // Assert - The returned delegate should throw when called
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => result());
         exception.Message.ShouldContain("Use ExecutePipeline method instead for commands");
@@ -238,12 +238,12 @@ public class MediatorEdgeCaseTests
     {
         // Arrange
         ServiceCollection services = new();
-        
+
         var config = new MediatorConfiguration(services);
         config.PipelineBuilder.AddMiddleware(typeof(GenericMiddleware<,>));
-        
+
         services.AddSingleton(config);
-        services.AddScoped<IMiddlewarePipelineBuilder>(provider => 
+        services.AddScoped<IMiddlewarePipelineBuilder>(provider =>
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
         services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
         services.AddScoped(typeof(GenericMiddleware<,>));
@@ -269,12 +269,12 @@ public class MediatorEdgeCaseTests
     {
         // Arrange
         ServiceCollection services = new();
-        
+
         var config = new MediatorConfiguration(services);
         config.PipelineBuilder.AddMiddleware<MiddlewareWithExceptionInOrder>();
-        
+
         services.AddSingleton(config);
-        services.AddScoped<IMiddlewarePipelineBuilder>(provider => 
+        services.AddScoped<IMiddlewarePipelineBuilder>(provider =>
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
         services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
         services.AddScoped<MiddlewareWithExceptionInOrder>();

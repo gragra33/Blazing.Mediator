@@ -189,21 +189,22 @@ public class ProductsController(IMediator mediator) : ControllerBase
 
             // Calculate new stock (ensure it doesn't go negative)
             var newStock = Math.Max(0, product.StockQuantity - quantity);
-            
+
             // Update stock
-            await mediator.Send(new UpdateProductStockCommand 
-            { 
-                ProductId = id, 
-                StockQuantity = newStock 
+            await mediator.Send(new UpdateProductStockCommand
+            {
+                ProductId = id,
+                StockQuantity = newStock
             });
 
-            return Ok(new { 
-                message = $"Stock reduced by {quantity} units", 
+            return Ok(new
+            {
+                message = $"Stock reduced by {quantity} units",
                 productId = id,
                 productName = product.Name,
                 previousStock = product.StockQuantity,
                 newStock = newStock,
-                notificationTrigger = newStock <= 10 ? "Low Stock Notification Sent" : 
+                notificationTrigger = newStock <= 10 ? "Low Stock Notification Sent" :
                                      newStock == 0 ? "Out of Stock Notification Sent" : "No Notification"
             });
         }
@@ -249,10 +250,11 @@ public class ProductsController(IMediator mediator) : ControllerBase
             };
 
             var result = await mediator.Send(mockOrder);
-            
+
             if (result.Success)
             {
-                return Ok(new { 
+                return Ok(new
+                {
                     message = $"Bulk order simulation completed",
                     orderId = result.Data,
                     productId = id,

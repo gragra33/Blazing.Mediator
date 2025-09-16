@@ -1,5 +1,5 @@
-using Blazing.Mediator.Statistics;
 using Blazing.Mediator.Abstractions;
+using Blazing.Mediator.Statistics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace UserManagement.Api.Controllers;
@@ -23,7 +23,7 @@ public class MediatorAnalysisController : ControllerBase
     /// <param name="serviceProvider">The service provider for type discovery.</param>
     /// <param name="logger">The logger instance.</param>
     public MediatorAnalysisController(
-        MediatorStatistics mediatorStatistics, 
+        MediatorStatistics mediatorStatistics,
         IServiceProvider serviceProvider,
         ILogger<MediatorAnalysisController> logger)
     {
@@ -40,7 +40,7 @@ public class MediatorAnalysisController : ControllerBase
     public IActionResult GetHealth()
     {
         _logger.LogInformation("Health check requested");
-        
+
         return Ok(new
         {
             Status = "Healthy",
@@ -58,11 +58,11 @@ public class MediatorAnalysisController : ControllerBase
     public IActionResult GetRuntimeStatistics()
     {
         _logger.LogInformation("Runtime statistics requested");
-        
+
         // Create a custom statistics renderer that captures output
         var capturedOutput = new List<string>();
         var captureRenderer = new CapturingStatisticsRenderer(capturedOutput);
-        
+
         // Create a temporary statistics instance with our capture renderer to get current stats
         var tempStats = new MediatorStatistics(captureRenderer);
         tempStats.ReportStatistics();
@@ -84,9 +84,9 @@ public class MediatorAnalysisController : ControllerBase
     public IActionResult AnalyzeQueries()
     {
         _logger.LogInformation("Query analysis requested");
-        
+
         var queries = _mediatorStatistics.AnalyzeQueries(_serviceProvider);
-        
+
         var result = new
         {
             Analysis = "User Management Queries",
@@ -155,9 +155,9 @@ public class MediatorAnalysisController : ControllerBase
     public IActionResult AnalyzeCommands()
     {
         _logger.LogInformation("Command analysis requested");
-        
+
         var commands = _mediatorStatistics.AnalyzeCommands(_serviceProvider);
-        
+
         var result = new
         {
             Analysis = "User Management Commands",
@@ -226,7 +226,7 @@ public class MediatorAnalysisController : ControllerBase
     public IActionResult GetComprehensiveReport()
     {
         _logger.LogInformation("Comprehensive analysis report requested");
-        
+
         var queries = _mediatorStatistics.AnalyzeQueries(_serviceProvider);
         var commands = _mediatorStatistics.AnalyzeCommands(_serviceProvider);
 
@@ -254,9 +254,10 @@ public class MediatorAnalysisController : ControllerBase
             Queries = queries
                 .Where(q => q.Assembly == assembly)
                 .GroupBy(q => q.Namespace)
-                .ToDictionary(g => g.Key, g => g.Select(q => new { 
-                    q.ClassName, 
-                    q.TypeParameters, 
+                .ToDictionary(g => g.Key, g => g.Select(q => new
+                {
+                    q.ClassName,
+                    q.TypeParameters,
                     ResponseType = q.ResponseType?.Name,
                     HandlerStatus = q.HandlerStatus.ToString(),
                     q.HandlerDetails,
@@ -271,9 +272,10 @@ public class MediatorAnalysisController : ControllerBase
             Commands = commands
                 .Where(c => c.Assembly == assembly)
                 .GroupBy(c => c.Namespace)
-                .ToDictionary(g => g.Key, g => g.Select(c => new { 
-                    c.ClassName, 
-                    c.TypeParameters, 
+                .ToDictionary(g => g.Key, g => g.Select(c => new
+                {
+                    c.ClassName,
+                    c.TypeParameters,
                     ResponseType = c.ResponseType?.Name,
                     HandlerStatus = c.HandlerStatus.ToString(),
                     c.HandlerDetails,

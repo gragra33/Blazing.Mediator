@@ -6,7 +6,8 @@ builder.RootComponents.Add<App>("#app");
 
 // Add HttpClient for API communication
 // Point to the main Streaming.Api server for API calls
-builder.Services.AddScoped(sp => new HttpClient { 
+builder.Services.AddScoped(sp => new HttpClient
+{
     BaseAddress = new Uri("https://localhost:7021/") // Main API server HTTPS URL
 });
 

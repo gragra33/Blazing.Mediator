@@ -23,7 +23,7 @@ public interface IStreamRequestMiddleware<in TRequest, TResponse>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>An async enumerable of response items</returns>
     IAsyncEnumerable<TResponse> HandleAsync(
-        TRequest request, 
-        StreamRequestHandlerDelegate<TResponse> next, 
+        TRequest request,
+        StreamRequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken);
 }

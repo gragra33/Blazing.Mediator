@@ -14,7 +14,7 @@ public class RegisterCustomerCommand : IRequest
     /// Gets or sets the customer's email address.
     /// </summary>
     public string Email { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the customer's preferred contact method.
     /// </summary>

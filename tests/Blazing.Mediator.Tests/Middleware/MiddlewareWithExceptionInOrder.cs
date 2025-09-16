@@ -7,12 +7,12 @@ namespace Blazing.Mediator.Tests;
 /// </summary>
 public class MiddlewareWithExceptionInOrder : IRequestMiddleware<MiddlewareTestQuery, string>
 {
-    public int Order 
-    { 
-        get 
-        { 
-            throw new InvalidOperationException("Cannot get order"); 
-        } 
+    public int Order
+    {
+        get
+        {
+            throw new InvalidOperationException("Cannot get order");
+        }
     }
 
     public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)

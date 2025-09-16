@@ -1,10 +1,5 @@
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator.Abstractions;
-using Blazing.Mediator.Configuration;
-using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
+using System.Runtime.CompilerServices;
 
 namespace Blazing.Mediator;
 
@@ -188,9 +183,9 @@ public static class ServiceCollectionExtensions
     /// <param name="discoverMiddleware">Whether to automatically discover and register request middleware from assemblies.</param>  
     /// <param name="assemblies">Assemblies to scan for handlers and optionally middleware.</param>  
     /// <returns>The service collection for chaining.</returns>  
-    public static IServiceCollection AddMediator(this IServiceCollection services, bool enableStatisticsTracking, bool discoverMiddleware, params Assembly[]? assemblies)  
-    {  
-        return AddMediatorCore(services, null, enableStatisticsTracking, discoverMiddleware, discoverMiddleware, assemblies, null);  
+    public static IServiceCollection AddMediator(this IServiceCollection services, bool enableStatisticsTracking, bool discoverMiddleware, params Assembly[]? assemblies)
+    {
+        return AddMediatorCore(services, null, enableStatisticsTracking, discoverMiddleware, discoverMiddleware, assemblies, null);
     }
     #endregion
 
@@ -200,11 +195,11 @@ public static class ServiceCollectionExtensions
     /// Core implementation for all AddMediator methods to prevent recursion.
     /// </summary>
     private static IServiceCollection AddMediatorCore(
-        IServiceCollection services, 
-        Action<MediatorConfiguration>? configureMiddleware, 
-        bool enableStatisticsTracking, 
-        bool? discoverMiddleware, 
-        bool? discoverNotificationMiddleware, 
+        IServiceCollection services,
+        Action<MediatorConfiguration>? configureMiddleware,
+        bool enableStatisticsTracking,
+        bool? discoverMiddleware,
+        bool? discoverNotificationMiddleware,
         Assembly[]? assemblies,
         Assembly? callingAssembly)
     {
@@ -501,10 +496,10 @@ public static class ServiceCollectionExtensions
         foreach (Type middlewareType in middlewareTypes)
         {
             // Check if it's a notification middleware type
-            bool isNotificationMiddleware = middlewareType.GetInterfaces().Any(i => 
-                i == typeof(INotificationMiddleware) || 
+            bool isNotificationMiddleware = middlewareType.GetInterfaces().Any(i =>
+                i == typeof(INotificationMiddleware) ||
                 i == typeof(IConditionalNotificationMiddleware));
-                
+
             if (isNotificationMiddleware)
             {
                 configuration.AddNotificationMiddleware(middlewareType);
@@ -525,7 +520,7 @@ public static class ServiceCollectionExtensions
              i.GetGenericTypeDefinition() == typeof(IConditionalMiddleware<,>) ||
              i.GetGenericTypeDefinition() == typeof(IStreamRequestMiddleware<,>) ||
              i.GetGenericTypeDefinition() == typeof(IConditionalStreamRequestMiddleware<,>))) ||
-             (includeNotificationMiddleware && 
+             (includeNotificationMiddleware &&
              (i == typeof(INotificationMiddleware) ||
              i == typeof(IConditionalNotificationMiddleware)));
     }
@@ -567,7 +562,7 @@ public static class ServiceCollectionExtensions
         (i.GetGenericTypeDefinition() == typeof(IRequestHandler<>) ||
          i.GetGenericTypeDefinition() == typeof(IRequestHandler<,>) ||
          i.GetGenericTypeDefinition() == typeof(IStreamRequestHandler<,>));
-     
+
     }
 
     #endregion

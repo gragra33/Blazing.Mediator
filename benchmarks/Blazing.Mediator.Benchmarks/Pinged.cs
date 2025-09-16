@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Blazing.Mediator;
 
 namespace Blazing.Mediator.Benchmarks
 {

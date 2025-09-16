@@ -83,7 +83,7 @@ public class StreamingErrorHandlingTests : IClassFixture<StreamingApiWebApplicat
                 linesRead++;
             }
             cts.Cancel(); // Simulate client disconnection
-            
+
             // Try to read more - should handle cancellation gracefully
             await reader.ReadLineAsync();
         }
@@ -118,14 +118,14 @@ public class StreamingErrorHandlingTests : IClassFixture<StreamingApiWebApplicat
         var content3 = await response3.Content.ReadAsStringAsync();
 
         // Should return empty arrays or appropriate empty responses
-        var contacts1 = JsonSerializer.Deserialize<ContactDto[]>(content1, new JsonSerializerOptions 
-        { 
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+        var contacts1 = JsonSerializer.Deserialize<ContactDto[]>(content1, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
-        
-        var contacts2 = JsonSerializer.Deserialize<ContactDto[]>(content2, new JsonSerializerOptions 
-        { 
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+
+        var contacts2 = JsonSerializer.Deserialize<ContactDto[]>(content2, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         contacts1?.Length.ShouldBe(0);
@@ -225,7 +225,7 @@ public class StreamingErrorHandlingTests : IClassFixture<StreamingApiWebApplicat
 
         // Assert
         responses.ShouldAllBe(r => r.IsSuccessStatusCode);
-        
+
         // All responses should return the same count
         var contents = await Task.WhenAll(responses.Select(r => r.Content.ReadAsStringAsync()));
         var firstContent = contents.First();
@@ -245,7 +245,7 @@ public class StreamingErrorHandlingTests : IClassFixture<StreamingApiWebApplicat
             var response = await _client.GetAsync("/api/contacts/stream/sse", cts.Token);
             using var stream = await response.Content.ReadAsStreamAsync();
             using var reader = new StreamReader(stream);
-            
+
             // Try to read the entire stream with short timeout
             while (await reader.ReadLineAsync() != null)
             {

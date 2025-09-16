@@ -1,5 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using static Blazing.Mediator.Tests.NotificationTests.NotificationMiddlewareTests;
 
@@ -167,7 +167,7 @@ public class AnalyzeMiddlewareTests
         // Verify some expected auto-discovered middleware
         requestAnalysis.ShouldContain(a => a.Type == typeof(FirstQueryMiddleware));
         requestAnalysis.ShouldContain(a => a.Type == typeof(AutoDiscoveryStaticOrderMiddleware));
-        
+
         notificationAnalysis.ShouldContain(a => a.Type == typeof(LoggingNotificationMiddleware));
         notificationAnalysis.ShouldContain(a => a.Type == typeof(ConditionalNotificationMiddleware));
     }
@@ -200,15 +200,15 @@ public class AnalyzeMiddlewareTests
         // Should be ordered by Order property (5, then fallback orders)
         // Note: Middleware with explicit order come first, then unordered middleware in registration order
         var orderedTypes = analysis.OrderBy(a => a.Order).ToList();
-        
+
         // First should be AutoDiscoveryStaticOrderMiddleware with order 5
         orderedTypes[0].Type.ShouldBe(typeof(AutoDiscoveryStaticOrderMiddleware));
         orderedTypes[0].Order.ShouldBe(5);
-        
+
         // Then FirstQueryMiddleware with fallback order
         orderedTypes[1].Type.ShouldBe(typeof(FirstQueryMiddleware));
         orderedTypes[1].Order.ShouldBe(2146483647);
-        
+
         // Finally SecondQueryMiddleware with fallback order + 1
         orderedTypes[2].Type.ShouldBe(typeof(SecondQueryMiddleware));
         orderedTypes[2].Order.ShouldBe(2146483648);

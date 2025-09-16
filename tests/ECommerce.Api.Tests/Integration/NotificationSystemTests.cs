@@ -2,14 +2,8 @@ using Blazing.Mediator;
 using ECommerce.Api.Application.Commands;
 using ECommerce.Api.Application.Notifications;
 using ECommerce.Api.Application.Services;
-using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace ECommerce.Api.Tests.Integration;
@@ -66,7 +60,7 @@ public class NotificationSystemTests : IClassFixture<WebApplicationFactory<Progr
 
         _output.WriteLine($"✅ Product created successfully with ID: {result}");
         _output.WriteLine($"🔔 ProductCreatedNotification should have been published");
-        
+
         // If stock is low (< 10), low stock notification should also be published
         if (product.StockQuantity < 10)
         {
@@ -135,7 +129,7 @@ public class NotificationSystemTests : IClassFixture<WebApplicationFactory<Progr
 
         // Assert
         Assert.NotNull(mediator);
-        
+
         _output.WriteLine($"✅ Mediator is properly registered and configured");
         _output.WriteLine($"🔔 NotificationLoggingMiddleware should be in the pipeline");
         _output.WriteLine($"📊 NotificationMetricsMiddleware should be in the pipeline");

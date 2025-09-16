@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace Streaming.Api.Tests.Integration;
 
 /// <summary>
@@ -26,7 +24,7 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<dynamic>(content);
-        
+
         // Should return a count object
         content.ShouldContain("count");
     }
@@ -40,16 +38,16 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
-        
+
         var content = await response.Content.ReadAsStringAsync();
-        var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions 
-        { 
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+        var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         contacts.ShouldNotBeNull();
         contacts.Length.ShouldBeGreaterThan(0);
-        
+
         // Verify contact structure
         var firstContact = contacts.First();
         firstContact.Id.ShouldBeGreaterThan(0);
@@ -67,16 +65,16 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions 
-        { 
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+        var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         contacts.ShouldNotBeNull();
         // Verify filtering worked (assuming test data contains contacts with "john")
         if (contacts.Length > 0)
         {
-            contacts.ShouldAllBe(c => 
+            contacts.ShouldAllBe(c =>
                 c.FirstName.Contains("john", StringComparison.OrdinalIgnoreCase) ||
                 c.LastName.Contains("john", StringComparison.OrdinalIgnoreCase) ||
                 c.Email.Contains("john", StringComparison.OrdinalIgnoreCase));
@@ -92,16 +90,16 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
-        
+
         var content = await response.Content.ReadAsStringAsync();
-        var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions 
-        { 
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+        var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         contacts.ShouldNotBeNull();
         contacts.Length.ShouldBeGreaterThan(0);
-        
+
         // Verify contact structure
         var firstContact = contacts.First();
         firstContact.Id.ShouldBeGreaterThan(0);
@@ -119,16 +117,16 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions 
-        { 
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+        var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         contacts.ShouldNotBeNull();
         // Verify filtering worked
         if (contacts.Length > 0)
         {
-            contacts.ShouldAllBe(c => 
+            contacts.ShouldAllBe(c =>
                 c.FirstName.Contains("doe", StringComparison.OrdinalIgnoreCase) ||
                 c.LastName.Contains("doe", StringComparison.OrdinalIgnoreCase) ||
                 c.Email.Contains("doe", StringComparison.OrdinalIgnoreCase));
@@ -144,17 +142,17 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("text/event-stream");
-        
+
         var content = await response.Content.ReadAsStringAsync();
-        
+
         // Verify SSE format
         content.ShouldContain("event: start");
         content.ShouldContain("data:");
         content.ShouldContain("event: data");
-        
+
         // Should contain contact data events
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        
+
         // Find contact data by looking for "event: data" followed by "data: " lines
         var contactDataLines = new List<string>();
         for (int i = 0; i < lines.Length - 1; i++)
@@ -164,17 +162,17 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
                 contactDataLines.Add(lines[i + 1]);
             }
         }
-        
+
         contactDataLines.Count.ShouldBeGreaterThan(0);
-        
+
         // Verify at least one contact data line can be parsed
         var firstDataLine = contactDataLines.First();
         var jsonData = firstDataLine.Substring(6); // Remove "data: " prefix
-        var contact = JsonSerializer.Deserialize<ContactDto>(jsonData, new JsonSerializerOptions 
-        { 
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+        var contact = JsonSerializer.Deserialize<ContactDto>(jsonData, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
-        
+
         contact.ShouldNotBeNull();
         contact.Id.ShouldBeGreaterThan(0);
     }
@@ -188,16 +186,16 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("text/event-stream");
-        
+
         var content = await response.Content.ReadAsStringAsync();
-        
+
         // Verify SSE format and filtering
         content.ShouldContain("event: start");
         content.ShouldContain("event: data");
-        
+
         // Extract and verify contact data
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        
+
         // Find contact data by looking for "event: data" followed by "data: " lines
         var contactDataLines = new List<string>();
         for (int i = 0; i < lines.Length - 1; i++)
@@ -207,17 +205,17 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
                 contactDataLines.Add(lines[i + 1]);
             }
         }
-        
+
         if (contactDataLines.Count > 0)
         {
             foreach (var dataLine in contactDataLines)
             {
                 var jsonData = dataLine.Substring(6); // Remove "data: " prefix
-                var contact = JsonSerializer.Deserialize<ContactDto>(jsonData, new JsonSerializerOptions 
-                { 
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+                var contact = JsonSerializer.Deserialize<ContactDto>(jsonData, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
-                
+
                 // Verify filtering
                 if (contact != null)
                 {
@@ -242,17 +240,17 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        
+
         // Should include progress events for large datasets
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var progressLines = lines.Where(line => line.StartsWith("event: progress")).ToArray();
-        
+
         // If we have enough data, there should be progress events
         var dataLines = lines.Where(line => line.StartsWith("data: {")).ToArray();
         if (dataLines.Length >= 50)
         {
             progressLines.Length.ShouldBeGreaterThan(0);
-            
+
             // Verify progress data format
             var progressDataLines = lines.Where(line => line.StartsWith("data: {\"processed\"")).ToArray();
             progressDataLines.Length.ShouldBeGreaterThan(0);
@@ -264,7 +262,7 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
     {
         // Arrange
         var tasks = new List<Task<HttpResponseMessage>>();
-        
+
         // Act - Make multiple concurrent requests
         for (int i = 0; i < 5; i++)
         {
@@ -272,9 +270,9 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
             tasks.Add(_client.GetAsync("/api/contacts/all"));
             tasks.Add(_client.GetAsync("/api/contacts/stream"));
         }
-        
+
         var responses = await Task.WhenAll(tasks);
-        
+
         // Assert
         responses.ShouldAllBe(r => r.IsSuccessStatusCode);
     }

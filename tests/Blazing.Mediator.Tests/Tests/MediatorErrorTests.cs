@@ -1,10 +1,8 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using Shouldly;
-using Xunit;
 
 namespace Blazing.Mediator.Tests
 {
@@ -197,7 +195,7 @@ namespace Blazing.Mediator.Tests
             MiddlewarePipelineBuilder pipelineBuilder = new();
             NotificationPipelineBuilder notificationPipelineBuilder = new();
             var mediator = new Mediator(serviceProvider, pipelineBuilder, notificationPipelineBuilder, null);
-            
+
             // Assert that the mediator was created successfully
             mediator.ShouldNotBeNull();
         }
@@ -476,7 +474,7 @@ namespace Blazing.Mediator.Tests
             // Act - Register same assembly twice
             services.AddMediator(typeof(TestCommand).Assembly);
             services.AddMediator(typeof(TestCommand).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
 
             // Assert - Should not throw and should work correctly
@@ -501,7 +499,7 @@ namespace Blazing.Mediator.Tests
                 config.AddMiddleware<FirstQueryMiddleware>();
                 config.AddMiddleware<SecondQueryMiddleware>();
             }, typeof(MiddlewareTestQueryHandler).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -526,7 +524,7 @@ namespace Blazing.Mediator.Tests
             {
                 config.AddMiddleware<ThrowingQueryMiddleware>();
             }, typeof(MiddlewareTestQueryHandler).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -549,19 +547,19 @@ namespace Blazing.Mediator.Tests
             {
                 config.AddMiddleware<ConditionalQueryMiddleware>();
             }, typeof(ConditionalQueryHandler).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
             // Test with condition met
             ConditionalQuery queryWithCondition = new() { ShouldExecuteMiddleware = true, Value = "condition-met" };
-            
+
             string result1 = await mediator.Send(queryWithCondition);
             result1.ShouldBe("Conditional: Handler: condition-met");
 
             // Test with condition not met
             ConditionalQuery queryWithoutCondition = new() { ShouldExecuteMiddleware = false, Value = "condition-not-met" };
-            
+
             string result2 = await mediator.Send(queryWithoutCondition);
             result2.ShouldBe("Handler: condition-not-met");
         }
@@ -580,7 +578,7 @@ namespace Blazing.Mediator.Tests
                 config.AddMiddleware<LowOrderQueryMiddleware>();  // Order = 1
                 config.AddMiddleware<MidOrderQueryMiddleware>();  // Order = 50
             }, typeof(MiddlewareTestQueryHandler).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -605,7 +603,7 @@ namespace Blazing.Mediator.Tests
             {
                 config.AddMiddleware<CancellationCheckQueryMiddleware>();
             }, typeof(MiddlewareTestQueryHandler).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -630,7 +628,7 @@ namespace Blazing.Mediator.Tests
                 config.AddMiddleware<FirstQueryMiddleware>();
                 config.AddMiddleware<SecondQueryMiddleware>();
             }, typeof(TestQuery).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMiddlewarePipelineInspector inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
 
@@ -655,7 +653,7 @@ namespace Blazing.Mediator.Tests
             {
                 config.AddMiddleware<FirstQueryMiddleware>();
             }, typeof(TestQuery).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMiddlewarePipelineInspector inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
 
@@ -678,7 +676,7 @@ namespace Blazing.Mediator.Tests
             {
                 config.AddMiddleware<AsyncQueryMiddleware>();
             }, typeof(MiddlewareTestQueryHandler).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -753,7 +751,7 @@ namespace Blazing.Mediator.Tests
             services.AddScoped<IRequestHandler<DuplicateHandlerCommand>, DuplicateCommandHandler1>();
             services.AddScoped<IRequestHandler<DuplicateHandlerCommand>, DuplicateCommandHandler2>();
             services.AddMediator((Assembly[])null!);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 

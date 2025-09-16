@@ -21,10 +21,10 @@ public class EmailNotificationHandler(ILogger<EmailNotificationHandler> logger)
             logger.LogInformation("   Order: #{OrderId}", notification.OrderId);
             logger.LogInformation("   Total: ${TotalAmount:F2}", notification.TotalAmount);
             logger.LogInformation("   Items Count: {ItemCount}", notification.Items.Count);
-            
+
             foreach (var item in notification.Items)
             {
-                logger.LogInformation("   - {ProductName} x{Quantity} @ ${UnitPrice:F2}", 
+                logger.LogInformation("   - {ProductName} x{Quantity} @ ${UnitPrice:F2}",
                     item.ProductName, item.Quantity, item.UnitPrice);
             }
 

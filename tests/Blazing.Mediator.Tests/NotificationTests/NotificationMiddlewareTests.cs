@@ -1,9 +1,6 @@
-using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Configuration;
-using Xunit;
 using Microsoft.Extensions.DependencyInjection;
-using Shouldly;
 using System.Reflection;
 
 namespace Blazing.Mediator.Tests.NotificationTests;
@@ -66,14 +63,14 @@ public class NotificationMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         var loggingMiddleware = new LoggingNotificationMiddleware();
-        
+
         services.AddMediator(config =>
         {
             config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
         }, Array.Empty<Assembly>());
-        
+
         services.AddSingleton(loggingMiddleware);
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -98,14 +95,14 @@ public class NotificationMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         var conditionalMiddleware = new ConditionalNotificationMiddleware();
-        
+
         services.AddMediator(config =>
         {
             config.AddNotificationMiddleware<ConditionalNotificationMiddleware>();
         }, Array.Empty<Assembly>());
-        
+
         services.AddSingleton(conditionalMiddleware);
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -135,16 +132,16 @@ public class NotificationMiddlewareTests
         var services = new ServiceCollection();
         var loggingMiddleware = new LoggingNotificationMiddleware();
         var conditionalMiddleware = new ConditionalNotificationMiddleware();
-        
+
         services.AddMediator(config =>
         {
             config.AddNotificationMiddleware<ConditionalNotificationMiddleware>(); // Order 5
             config.AddNotificationMiddleware<LoggingNotificationMiddleware>(); // Order 10
         }, Array.Empty<Assembly>());
-        
+
         services.AddSingleton(loggingMiddleware);
         services.AddSingleton(conditionalMiddleware);
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -159,7 +156,7 @@ public class NotificationMiddlewareTests
         // Conditional middleware (Order 5) should execute first, then logging middleware (Order 10)
         conditionalMiddleware.ProcessedMessages.Count.ShouldBe(1);
         loggingMiddleware.LoggedMessages.Count.ShouldBe(2);
-        
+
         // The logging middleware should log around the conditional middleware
         loggingMiddleware.LoggedMessages[0].ShouldBe("Before: TestNotification");
         loggingMiddleware.LoggedMessages[1].ShouldBe("After: TestNotification");
@@ -172,13 +169,13 @@ public class NotificationMiddlewareTests
         var services = new ServiceCollection();
         var loggingMiddleware = new LoggingNotificationMiddleware();
         var conditionalMiddleware = new ConditionalNotificationMiddleware();
-        
+
         services.AddMediator(config =>
         {
             config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
             config.AddNotificationMiddleware<ConditionalNotificationMiddleware>();
         }, Array.Empty<Assembly>());
-        
+
         services.AddSingleton(loggingMiddleware);
         services.AddSingleton(conditionalMiddleware);
 
@@ -189,11 +186,11 @@ public class NotificationMiddlewareTests
         var mediatorType = mediator.GetType();
         var notificationPipelineBuilderField = mediatorType.GetField("_notificationPipelineBuilder", BindingFlags.NonPublic | BindingFlags.Instance);
         notificationPipelineBuilderField.ShouldNotBeNull();
-        
+
         var pipelineBuilder = notificationPipelineBuilderField.GetValue(mediator);
         pipelineBuilder.ShouldNotBeNull();
         pipelineBuilder.ShouldBeAssignableTo<INotificationMiddlewarePipelineInspector>();
-        
+
         var inspector = (INotificationMiddlewarePipelineInspector)pipelineBuilder;
 
         // Act & Assert - GetRegisteredMiddleware
@@ -211,7 +208,7 @@ public class NotificationMiddlewareTests
         // Act & Assert - GetDetailedMiddlewareInfo without service provider
         var detailedInfo = inspector.GetDetailedMiddlewareInfo();
         detailedInfo.Count.ShouldBe(2);
-        
+
         var loggingInfo = detailedInfo.First(info => info.Type == typeof(LoggingNotificationMiddleware));
         loggingInfo.Order.ShouldBe(10); // From the LoggingNotificationMiddleware.Order property
         loggingInfo.Configuration.ShouldBeNull();
@@ -223,7 +220,7 @@ public class NotificationMiddlewareTests
         // Act & Assert - GetDetailedMiddlewareInfo with service provider
         var detailedInfoWithProvider = inspector.GetDetailedMiddlewareInfo(serviceProvider);
         detailedInfoWithProvider.Count.ShouldBe(2);
-        
+
         // Should get runtime order values from DI-registered instances
         var runtimeLoggingInfo = detailedInfoWithProvider.First(info => info.Type == typeof(LoggingNotificationMiddleware));
         runtimeLoggingInfo.Order.ShouldBe(10); // Runtime value from the actual instance
@@ -241,15 +238,15 @@ public class NotificationMiddlewareTests
         var services = new ServiceCollection();
         var loggingMiddleware = new LoggingNotificationMiddleware();
         var conditionalMiddleware = new ConditionalNotificationMiddleware();
-        
+
         var config = "test-configuration";
-        
+
         services.AddMediator(mediatorConfig =>
         {
             mediatorConfig.AddNotificationMiddleware<LoggingNotificationMiddleware>(config);
             mediatorConfig.AddNotificationMiddleware<ConditionalNotificationMiddleware>();
         }, Array.Empty<Assembly>());
-        
+
         services.AddSingleton(loggingMiddleware);
         services.AddSingleton(conditionalMiddleware);
 
@@ -260,11 +257,11 @@ public class NotificationMiddlewareTests
         var mediatorType = mediator.GetType();
         var notificationPipelineBuilderField = mediatorType.GetField("_notificationPipelineBuilder", BindingFlags.NonPublic | BindingFlags.Instance);
         notificationPipelineBuilderField.ShouldNotBeNull();
-        
+
         var pipelineBuilder = notificationPipelineBuilderField.GetValue(mediator);
         pipelineBuilder.ShouldNotBeNull();
         pipelineBuilder.ShouldBeAssignableTo<INotificationMiddlewarePipelineInspector>();
-        
+
         var inspector = (INotificationMiddlewarePipelineInspector)pipelineBuilder;
 
         // Act & Assert - GetMiddlewareConfiguration should include the configuration
@@ -306,7 +303,7 @@ public class NotificationMiddlewareTests
 
         // Assert - AnalyzeMiddleware should return meaningful data
         analysis.ShouldNotBeNull();
-        
+
         // Each analysis should have valid data
         foreach (var middlewareAnalysis in analysis)
         {
@@ -351,7 +348,7 @@ public class NotificationMiddlewareTests
         // AnalyzeMiddleware should return the registered middleware data
         analysis.ShouldNotBeNull();
         analysis.Count.ShouldBe(1);
-        
+
         var middlewareAnalysis = analysis[0];
         middlewareAnalysis.ClassName.ShouldBe("LoggingNotificationMiddleware");
         middlewareAnalysis.Type.ShouldBe(typeof(LoggingNotificationMiddleware));
@@ -363,13 +360,13 @@ public class NotificationMiddlewareTests
     /// <summary>
     /// Tests that AnalyzeMiddleware returns ordered results
     /// </summary>
-    [Fact]  
+    [Fact]
     public void NotificationMiddleware_AnalyzeMiddleware_ReturnsOrderedResults()
     {
         // Arrange
         var loggingMiddleware = new LoggingNotificationMiddleware(); // Order 10
         var conditionalMiddleware = new ConditionalNotificationMiddleware(); // Order 5
-        
+
         var services = new ServiceCollection();
         services.AddMediator(config =>
         {
@@ -394,11 +391,11 @@ public class NotificationMiddlewareTests
 
         // Assert - Should be sorted by order (ascending)
         analysis.Count.ShouldBe(2);
-        
+
         // ConditionalNotificationMiddleware should be first (Order = 5)
         analysis[0].ClassName.ShouldBe("ConditionalNotificationMiddleware");
         analysis[0].Order.ShouldBe(5);
-        
+
         // LoggingNotificationMiddleware should be second (Order = 10)  
         analysis[1].ClassName.ShouldBe("LoggingNotificationMiddleware");
         analysis[1].Order.ShouldBe(10);

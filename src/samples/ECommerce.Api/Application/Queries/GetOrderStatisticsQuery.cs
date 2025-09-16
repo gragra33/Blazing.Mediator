@@ -12,7 +12,7 @@ public class GetOrderStatisticsQuery : IRequest<OrderStatisticsDto>
     /// Gets or sets the start date for statistics calculation.
     /// </summary>
     public DateTime? FromDate { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the end date for statistics calculation.
     /// </summary>

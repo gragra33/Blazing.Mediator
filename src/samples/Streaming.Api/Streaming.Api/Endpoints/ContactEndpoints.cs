@@ -1,7 +1,7 @@
-using System.Text.Json;
 using Blazing.Mediator;
-using Streaming.Api.Shared.DTOs;
 using Streaming.Api.Requests;
+using Streaming.Api.Shared.DTOs;
+using System.Text.Json;
 
 namespace Streaming.Api.Endpoints;
 
@@ -35,7 +35,7 @@ public static class ContactEndpoints
         {
             var request = new GetAllContactsRequest { SearchTerm = search };
             var contacts = await mediator.Send(request, cancellationToken).ConfigureAwait(false);
-            
+
             return Results.Json(contacts, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         })
         .WithName("GetAllContacts")
@@ -46,11 +46,11 @@ public static class ContactEndpoints
         group.MapGet("/stream", (IMediator mediator, string? search, CancellationToken cancellationToken) =>
         {
             var request = new StreamContactsRequest { SearchTerm = search };
-            
+
             return Results.Stream(async stream =>
             {
                 var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-                
+
                 await JsonSerializer.SerializeAsync(stream, mediator.SendStream(request, cancellationToken), options, cancellationToken).ConfigureAwait(false);
             }, contentType: "application/json");
         })
@@ -61,7 +61,7 @@ public static class ContactEndpoints
         group.MapGet("/stream/sse", (IMediator mediator, string? search, CancellationToken cancellationToken) =>
         {
             var request = new StreamContactsRequest { SearchTerm = search };
-            
+
             return Results.Stream(async stream =>
             {
                 var writer = new StreamWriter(stream, leaveOpen: true) { AutoFlush = false };
@@ -80,7 +80,7 @@ public static class ContactEndpoints
                     await foreach (var contact in mediator.SendStream(request, cancellationToken))
                     {
                         count++;
-                        
+
                         // Send contact data with immediate flush for true streaming
                         await writer.WriteLineAsync("event: data").ConfigureAwait(false);
                         await writer.WriteLineAsync($"data: {JsonSerializer.Serialize(contact, options)}").ConfigureAwait(false);
@@ -119,11 +119,11 @@ public static class ContactEndpoints
         group.MapGet("/stream/metadata", (IMediator mediator, string? search, CancellationToken cancellationToken) =>
         {
             var request = new StreamContactsWithMetadataRequest { SearchTerm = search };
-            
+
             return Results.Stream(async stream =>
             {
                 var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-                
+
                 await JsonSerializer.SerializeAsync(stream, mediator.SendStream(request, cancellationToken), options, cancellationToken).ConfigureAwait(false);
             }, contentType: "application/json");
         })
@@ -134,7 +134,7 @@ public static class ContactEndpoints
         group.MapGet("/stream/metadata/sse", (IMediator mediator, string? search, CancellationToken cancellationToken) =>
         {
             var request = new StreamContactsWithMetadataRequest { SearchTerm = search };
-            
+
             return Results.Stream(async stream =>
             {
                 var writer = new StreamWriter(stream, leaveOpen: true) { AutoFlush = false };
@@ -145,7 +145,7 @@ public static class ContactEndpoints
                     await foreach (var response in mediator.SendStream(request, cancellationToken))
                     {
                         var eventType = response.IsComplete ? "complete" : "data";
-                        
+
                         // Each response is immediately flushed for true streaming
                         await writer.WriteLineAsync($"event: {eventType}").ConfigureAwait(false);
                         await writer.WriteLineAsync($"data: {JsonSerializer.Serialize(response, options)}").ConfigureAwait(false);
@@ -167,7 +167,7 @@ public static class ContactEndpoints
         group.MapGet("/stream/direct", async (HttpContext context, IMediator mediator, string? search, CancellationToken cancellationToken) =>
         {
             var request = new StreamContactsRequest { SearchTerm = search };
-            
+
             // Set headers for SSE - disable all buffering
             context.Response.Headers.ContentType = "text/event-stream";
             context.Response.Headers.CacheControl = "no-cache";
@@ -175,7 +175,7 @@ public static class ContactEndpoints
             context.Response.Headers.AccessControlAllowOrigin = "*";
 
             var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            
+
             try
             {
                 // Send start event immediately
@@ -187,7 +187,7 @@ public static class ContactEndpoints
                 await foreach (var contact in mediator.SendStream(request, cancellationToken))
                 {
                     count++;
-                    
+
                     // Write directly to HTTP response - completely bypasses buffering
                     await context.Response.WriteAsync("event: data\n").ConfigureAwait(false);
                     await context.Response.WriteAsync($"data: {JsonSerializer.Serialize(contact, options)}\n\n").ConfigureAwait(false);

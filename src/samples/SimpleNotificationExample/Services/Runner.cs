@@ -1,6 +1,5 @@
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Statistics;
-using System.Reflection;
 
 namespace SimpleNotificationExample.Services;
 
@@ -21,17 +20,17 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
         logger.LogInformation("  - Pipeline inspection using INotificationMiddlewarePipelineInspector");
         logger.LogInformation("  - Multiple notification handlers reacting to the same notification");
         logger.LogInformation("  - NEW: MediatorStatistics for analyzing queries, commands, and notifications");
-        logger.LogInformation ("");
+        logger.LogInformation("");
 
         // First, analyze the mediator types
         InspectMediatorTypes();
-        
+
         // Then analyze the notification middleware pipeline
         InspectNotificationMiddlewarePipeline();
-        
+
         logger.LogInformation("");
         logger.LogInformation("=== Starting Order Processing ===");
-        logger.LogInformation ("");
+        logger.LogInformation("");
 
         await CreateSampleOrders();
 
@@ -41,7 +40,7 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
         mediatorStatistics.ReportStatistics();
         logger.LogInformation("========================");
 
-        logger.LogInformation ("");
+        logger.LogInformation("");
         logger.LogInformation("* Demo completed! Both subscribers processed all notifications.");
         logger.LogInformation("Check the logs above to see how each subscriber handled the OrderCreatedNotification.");
         logger.LogInformation("Notice how the middleware executed in order: Validation -> Logging -> Metrics -> Audit");
@@ -55,7 +54,7 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
     private void InspectMediatorTypes()
     {
         logger.LogInformation("=== MEDIATOR TYPE ANALYSIS ===");
-        logger.LogInformation ("");
+        logger.LogInformation("");
 
         // Analyze all queries in the application
         var queries = mediatorStatistics.AnalyzeQueries(serviceProvider);
@@ -80,7 +79,7 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
                             _ => "?"
                         };
                         var responseType = query.ResponseType?.Name ?? "void";
-                        logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} -> {ResponseType} ({HandlerDetails})", 
+                        logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} -> {ResponseType} ({HandlerDetails})",
                             statusIcon, query.ClassName, query.TypeParameters, responseType, query.HandlerDetails);
                     }
                 }
@@ -115,7 +114,7 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
                             _ => "?"
                         };
                         var responseType = command.ResponseType?.Name ?? "void";
-                        logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} -> {ResponseType} ({HandlerDetails})", 
+                        logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} -> {ResponseType} ({HandlerDetails})",
                             statusIcon, command.ClassName, command.TypeParameters, responseType, command.HandlerDetails);
                     }
                 }
@@ -125,8 +124,8 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
         {
             logger.LogInformation("  (No commands discovered)");
         }
-        
-        logger.LogInformation ("");
+
+        logger.LogInformation("");
         logger.LogInformation("Legend: + = Handler found, ! = No handler, # = Multiple handlers");
         logger.LogInformation("=========================");
     }
@@ -141,7 +140,7 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
         // Get the notification pipeline inspector from the mediator using reflection
         var mediatorType = mediator.GetType();
         var notificationPipelineBuilderField = mediatorType.GetField("_notificationPipelineBuilder", BindingFlags.NonPublic | BindingFlags.Instance);
-        
+
         if (notificationPipelineBuilderField?.GetValue(mediator) is INotificationMiddlewarePipelineInspector inspector)
         {
             // Use the built-in analysis method from the core library
@@ -150,19 +149,19 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
             logger.LogInformation("Auto-discovered notification middleware (in execution order):");
             foreach (var middleware in middlewareAnalysis)
             {
-                logger.LogInformation("  - [{OrderDisplay}] {ClassName}{TypeParameters}", 
-                    middleware.OrderDisplay, 
-                    middleware.ClassName, 
+                logger.LogInformation("  - [{OrderDisplay}] {ClassName}{TypeParameters}",
+                    middleware.OrderDisplay,
+                    middleware.ClassName,
                     middleware.TypeParameters);
             }
 
             // Show additional inspection details
             var registeredTypes = inspector.GetRegisteredMiddleware();
             var configurations = inspector.GetMiddlewareConfiguration();
-            
+
             logger.LogInformation("");
             logger.LogInformation("Total registered notification middleware: {Count}", registeredTypes.Count);
-            
+
             var configuredMiddleware = configurations.Where(config => config.Configuration != null).ToList();
             if (configuredMiddleware.Any())
             {
@@ -224,8 +223,8 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
         for (int i = 0; i < orders.Length; i++)
         {
             var order = orders[i];
-            
-            logger.LogInformation("📋 Creating Order #{OrderId} for {CustomerName}", 
+
+            logger.LogInformation("📋 Creating Order #{OrderId} for {CustomerName}",
                 order.OrderId, order.CustomerName);
 
             var totalAmount = order.Items.Sum(item => item.Quantity * item.UnitPrice);

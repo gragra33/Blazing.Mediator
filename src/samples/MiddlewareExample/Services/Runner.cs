@@ -1,5 +1,4 @@
 ﻿using Blazing.Mediator.Statistics;
-using Blazing.Mediator.Abstractions;
 
 namespace MiddlewareExample.Services;
 
@@ -41,7 +40,7 @@ public class Runner(
         logger.LogInformation("COMPACT MODE (isDetailed: false):");
         logger.LogInformation("══════════════════════════════════════");
         ShowCompactAnalysis();
-        
+
         logger.LogInformation("");
         logger.LogInformation("DETAILED MODE (isDetailed: true - Default):");
         logger.LogInformation("════════════════════════════════════════════════");
@@ -75,7 +74,7 @@ public class Runner(
                             HandlerStatus.Multiple => "#",
                             _ => "?"
                         };
-                        
+
                         logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} : {PrimaryInterface}", statusIcon, query.ClassName, query.TypeParameters, query.PrimaryInterface);
                     }
                 }
@@ -108,7 +107,7 @@ public class Runner(
                             HandlerStatus.Multiple => "#",
                             _ => "?"
                         };
-                        
+
                         logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} : {PrimaryInterface}", statusIcon, command.ClassName, command.TypeParameters, command.PrimaryInterface);
                     }
                 }
@@ -118,7 +117,7 @@ public class Runner(
         {
             logger.LogInformation("  (No commands discovered)");
         }
-        
+
         logger.LogInformation("");
         logger.LogInformation("LEGEND: + = Handler found, ! = No handler, # = Multiple handlers");
     }
@@ -152,7 +151,7 @@ public class Runner(
                         };
                         var responseType = query.ResponseType?.Name ?? "void";
                         var resultIndicator = query.IsResultType ? " (IResult)" : "";
-                        
+
                         logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} : {PrimaryInterface}", statusIcon, query.ClassName, query.TypeParameters, query.PrimaryInterface);
                         logger.LogInformation("        │ Type:        {FullTypeName}", query.Type.FullName);
                         logger.LogInformation("        │ Returns:     {ResponseType}{ResultIndicator}", responseType, resultIndicator);
@@ -160,7 +159,7 @@ public class Runner(
                         logger.LogInformation("        │ Status:      {HandlerStatus}", query.HandlerStatus);
                         logger.LogInformation("        │ Assembly:    {Assembly}", query.Assembly);
                         logger.LogInformation("        │ Namespace:   {Namespace}", query.Namespace);
-                        
+
                         if (query.Handlers.Count > 1)
                         {
                             logger.LogInformation("        │ All Types:   [{HandlerTypes}]", string.Join(", ", query.Handlers.Select(h => h.Name)));
@@ -204,7 +203,7 @@ public class Runner(
                         };
                         var responseType = command.ResponseType?.Name ?? "void";
                         var resultIndicator = command.IsResultType ? " (IResult)" : "";
-                        
+
                         logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} : {PrimaryInterface}", statusIcon, command.ClassName, command.TypeParameters, command.PrimaryInterface);
                         logger.LogInformation("        │ Type:        {FullTypeName}", command.Type.FullName);
                         logger.LogInformation("        │ Returns:     {ResponseType}{ResultIndicator}", responseType, resultIndicator);
@@ -212,7 +211,7 @@ public class Runner(
                         logger.LogInformation("        │ Status:      {HandlerStatus}", command.HandlerStatus);
                         logger.LogInformation("        │ Assembly:    {Assembly}", command.Assembly);
                         logger.LogInformation("        │ Namespace:   {Namespace}", command.Namespace);
-                        
+
                         if (command.Handlers.Count > 1)
                         {
                             logger.LogInformation("        │ All Types:   [{HandlerTypes}]", string.Join(", ", command.Handlers.Select(h => h.Name)));
@@ -231,7 +230,7 @@ public class Runner(
         {
             logger.LogInformation("  (No commands discovered)");
         }
-        
+
         logger.LogInformation("");
         logger.LogInformation("LEGEND:");
         logger.LogInformation("  + = Handler found (Single)    ! = No handler (Missing)    # = Multiple handlers");
@@ -286,12 +285,12 @@ public class Runner(
     {
         logger.LogDebug("-------- INVENTORY MANAGEMENT --------");
 
-        var inventoryCommand = new UpdateInventoryCommand 
-        { 
-            ProductId = "WIDGET-001", 
+        var inventoryCommand = new UpdateInventoryCommand
+        {
+            ProductId = "WIDGET-001",
             QuantityChange = -5  // Simulating a sale of 5 units
         };
-        logger.LogDebug(">> Updating inventory for: {ProductId}, change: {QuantityChange}", 
+        logger.LogDebug(">> Updating inventory for: {ProductId}, change: {QuantityChange}",
             inventoryCommand.ProductId, inventoryCommand.QuantityChange);
 
         var newStockCount = await mediator.Send(inventoryCommand);
@@ -305,12 +304,12 @@ public class Runner(
     {
         logger.LogDebug("-------- ORDER CONFIRMATION --------");
 
-        var emailCommand = new SendOrderConfirmationCommand 
-        { 
-            OrderId = "ORD-2025-001", 
-            CustomerEmail = "customer@example.com" 
+        var emailCommand = new SendOrderConfirmationCommand
+        {
+            OrderId = "ORD-2025-001",
+            CustomerEmail = "customer@example.com"
         };
-        logger.LogDebug(">> Sending order confirmation for: {OrderId} to: {CustomerEmail}", 
+        logger.LogDebug(">> Sending order confirmation for: {OrderId} to: {CustomerEmail}",
             emailCommand.OrderId, emailCommand.CustomerEmail);
 
         await mediator.Send(emailCommand);
@@ -333,7 +332,7 @@ public class Runner(
                 ContactMethod = "Email"
             };
 
-            logger.LogDebug(">> Registering customer: {FullName} ({Email})", 
+            logger.LogDebug(">> Registering customer: {FullName} ({Email})",
                 registerCustomer.FullName, registerCustomer.Email);
 
             await mediator.Send(registerCustomer);
@@ -369,11 +368,11 @@ public class Runner(
                 ContactMethod = "Email"
             };
 
-            logger.LogDebug(">> Updating customer details (invalid data): {CustomerId} - {FullName} ({Email})", 
+            logger.LogDebug(">> Updating customer details (invalid data): {CustomerId} - {FullName} ({Email})",
                 updateCustomer.CustomerId, updateCustomer.FullName, updateCustomer.Email);
 
             var isSuccess = await mediator.Send(updateCustomer);
-            
+
             if (isSuccess)
             {
                 logger.LogDebug("<< Customer details updated successfully!");
@@ -403,11 +402,11 @@ public class Runner(
                 ContactMethod = "Email"
             };
 
-            logger.LogDebug(">> Updating customer details (valid data): {CustomerId} - {FullName} ({Email})", 
+            logger.LogDebug(">> Updating customer details (valid data): {CustomerId} - {FullName} ({Email})",
                 updateCustomerValid.CustomerId, updateCustomerValid.FullName, updateCustomerValid.Email);
 
             var isSuccess = await mediator.Send(updateCustomerValid);
-            
+
             if (isSuccess)
             {
                 logger.LogDebug("<< Customer details updated successfully!");

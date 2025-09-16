@@ -38,7 +38,7 @@ public interface INotificationPipelineBuilder
     /// <param name="finalHandler">The final handler to execute after all middleware</param>
     /// <returns>A delegate that executes the complete pipeline</returns>
     NotificationDelegate<TNotification> Build<TNotification>(
-        IServiceProvider serviceProvider, 
+        IServiceProvider serviceProvider,
         NotificationDelegate<TNotification> finalHandler)
         where TNotification : INotification;
 

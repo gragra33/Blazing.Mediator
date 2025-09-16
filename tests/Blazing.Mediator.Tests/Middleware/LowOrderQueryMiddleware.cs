@@ -9,7 +9,7 @@ public class LowOrderQueryMiddleware : IRequestMiddleware<MiddlewareTestQuery, s
     /// Gets the order priority for this middleware.
     /// </summary>
     public int Order => 1;
-    
+
     /// <summary>
     /// Handles the query request asynchronously.
     /// </summary>

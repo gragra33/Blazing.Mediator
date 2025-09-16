@@ -39,14 +39,14 @@ public class InventoryNotificationHandler(ILogger<InventoryNotificationHandler> 
         // Simulate inventory processing delay
         await Task.Delay(50, cancellationToken);
 
-        logger.LogInformation("   - Updating inventory for {ProductName} (ID: {ProductId})", 
+        logger.LogInformation("   - Updating inventory for {ProductName} (ID: {ProductId})",
             item.ProductName, item.ProductId);
         logger.LogInformation("      Quantity sold: {Quantity}", item.Quantity);
-        
+
         // Simulate stock calculation
         var currentStock = Random.Shared.Next(0, 100);
         var newStock = Math.Max(0, currentStock - item.Quantity);
-        
+
         logger.LogInformation("      Stock before: {CurrentStock}, after: {NewStock}", currentStock, newStock);
     }
 
@@ -58,7 +58,7 @@ public class InventoryNotificationHandler(ILogger<InventoryNotificationHandler> 
         {
             // Simulate random low stock scenarios for demonstration
             var stockLevel = Random.Shared.Next(0, 50);
-            
+
             if (stockLevel <= 10)
             {
                 if (stockLevel == 0)

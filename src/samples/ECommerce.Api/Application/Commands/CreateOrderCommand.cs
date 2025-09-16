@@ -12,17 +12,17 @@ public class CreateOrderCommand : IRequest<OperationResult<int>>
     /// Gets or sets the customer identifier.
     /// </summary>
     public int CustomerId { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the customer email address.
     /// </summary>
     public string CustomerEmail { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the shipping address for the order.
     /// </summary>
     public string ShippingAddress { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the list of items to include in the order.
     /// </summary>

@@ -12,7 +12,7 @@ public class UpdateOrderStatusCommand : IRequest
     /// Gets or sets the unique identifier of the order to update.
     /// </summary>
     public int OrderId { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the new status for the order.
     /// </summary>

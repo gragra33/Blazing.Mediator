@@ -9,13 +9,13 @@ public class SendOrderConfirmationCommandHandler(ILogger<SendOrderConfirmationCo
     /// <inheritdoc />
     public Task Handle(SendOrderConfirmationCommand request, CancellationToken cancellationToken = default)
     {
-        logger.LogDebug(".. Sending order confirmation for order: {OrderId} to: {CustomerEmail}", 
+        logger.LogDebug(".. Sending order confirmation for order: {OrderId} to: {CustomerEmail}",
             request.OrderId, request.CustomerEmail);
-        
+
         // Simulate sending email
-        logger.LogInformation("-- Order confirmation email sent successfully for order {OrderId} to {CustomerEmail}", 
+        logger.LogInformation("-- Order confirmation email sent successfully for order {OrderId} to {CustomerEmail}",
             request.OrderId, request.CustomerEmail);
-        
+
         return Task.CompletedTask;
     }
 }

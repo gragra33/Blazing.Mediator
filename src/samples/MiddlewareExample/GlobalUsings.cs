@@ -1,6 +1,3 @@
-global using System;
-global using System.Diagnostics;
-global using System.Reflection;
 global using Blazing.Mediator;
 global using Blazing.Mediator.Abstractions;
 global using FluentValidation;
@@ -15,4 +12,7 @@ global using MiddlewareExample.Commands;
 global using MiddlewareExample.Logging;
 global using MiddlewareExample.Queries;
 global using MiddlewareExample.Services;
+global using System;
+global using System.Diagnostics;
+global using System.Reflection;
 global using ValidationException = System.ComponentModel.DataAnnotations.ValidationException;

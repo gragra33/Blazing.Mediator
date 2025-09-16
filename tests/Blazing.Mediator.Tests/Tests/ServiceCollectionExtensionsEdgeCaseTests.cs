@@ -130,7 +130,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromCallingAssembly(config => 
+        services.AddMediatorFromCallingAssembly(config =>
         {
             config.PipelineBuilder.AddMiddleware<FirstQueryMiddleware>();
         });
@@ -169,7 +169,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies(assembly => 
+        services.AddMediatorFromLoadedAssemblies(assembly =>
             assembly.GetName().Name?.Contains("Blazing.Mediator") == true);
 
         // Assert
@@ -268,11 +268,11 @@ public class ServiceCollectionExtensionsEdgeCaseTests
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
-        
+
         // Should be able to resolve both interfaces that TestMultiInterfaceHandler implements
         var commandHandler = serviceProvider.GetService<IRequestHandler<TestMultiCommand>>();
         var queryHandler = serviceProvider.GetService<IRequestHandler<TestMultiQuery, string>>();
-        
+
         commandHandler.ShouldNotBeNull();
         queryHandler.ShouldNotBeNull();
         commandHandler.ShouldBeOfType<TestMultiInterfaceHandler>();

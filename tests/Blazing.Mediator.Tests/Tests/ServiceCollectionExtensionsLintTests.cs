@@ -1,10 +1,7 @@
-using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using Shouldly;
-using Xunit;
 
 namespace Blazing.Mediator.Tests.Tests
 {
@@ -33,7 +30,7 @@ namespace Blazing.Mediator.Tests.Tests
             methods.ShouldContain("AddMediatorFromCallingAssembly");
             methods.ShouldContain("AddMediatorFromLoadedAssemblies");
             methods.ShouldContain("AddMediatorWithNotificationMiddleware");
-            
+
             // Verify we have multiple overloads
             methods.Count.ShouldBeGreaterThan(10);
         }
@@ -72,7 +69,7 @@ namespace Blazing.Mediator.Tests.Tests
             Should.NotThrow(() => services.AddMediator(null, (Type[])null!));
             Should.NotThrow(() => services.AddMediator(null, true, (Assembly[])null!));
             Should.NotThrow(() => services.AddMediator(null, true, (Type[])null!));
-            
+
             // Verify mediator can still be resolved
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
@@ -94,7 +91,7 @@ namespace Blazing.Mediator.Tests.Tests
             Should.NotThrow(() => services.AddMediator(false, typeof(ServiceCollectionExtensionsLintTests)));
             Should.NotThrow(() => services.AddMediatorWithNotificationMiddleware(false, Array.Empty<Assembly>()));
             Should.NotThrow(() => services.AddMediatorWithNotificationMiddleware(true, Array.Empty<Assembly>()));
-            
+
             // Verify services are registered correctly
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
@@ -112,16 +109,16 @@ namespace Blazing.Mediator.Tests.Tests
 
             // Act & Assert - Test all calling assembly overloads
             Should.NotThrow(() => services.AddMediatorFromCallingAssembly());
-            
+
             // Test with configuration
             Should.NotThrow(() => services.AddMediatorFromCallingAssembly(config => { }));
-            
+
             // Test with middleware discovery
             Should.NotThrow(() => services.AddMediatorFromCallingAssembly(discoverMiddleware: false));
-            
+
             // Test with all parameters
             Should.NotThrow(() => services.AddMediatorFromCallingAssembly(null, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false));
-            
+
             // Verify services are registered
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
@@ -139,19 +136,19 @@ namespace Blazing.Mediator.Tests.Tests
 
             // Act & Assert - Test loaded assemblies overloads
             Should.NotThrow(() => services.AddMediatorFromLoadedAssemblies());
-            
+
             // Test with filter
             Should.NotThrow(() => services.AddMediatorFromLoadedAssemblies(assembly => assembly.GetName().Name!.Contains("Blazing.Mediator")));
-            
+
             // Test with middleware discovery
             Should.NotThrow(() => services.AddMediatorFromLoadedAssemblies(discoverMiddleware: false));
-            
+
             // Test with configuration and filter
             Should.NotThrow(() => services.AddMediatorFromLoadedAssemblies(config => { }, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator")));
-            
+
             // Test with all parameters
             Should.NotThrow(() => services.AddMediatorFromLoadedAssemblies(null, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator")));
-            
+
             // Verify services are registered
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
@@ -174,10 +171,10 @@ namespace Blazing.Mediator.Tests.Tests
             Should.NotThrow(() => services.AddMediator(null, Array.Empty<Type>()));
             Should.NotThrow(() => services.AddMediator(null, true, Array.Empty<Assembly>()));
             Should.NotThrow(() => services.AddMediator(null, false, Array.Empty<Assembly>()));
-            
+
             // Test with null configuration but valid assemblies
             Should.NotThrow(() => services.AddMediator((Action<MediatorConfiguration>?)null, typeof(ServiceCollectionExtensionsLintTests).Assembly));
-            
+
             // Verify final state
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
@@ -194,7 +191,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act & Assert - Test multiple registrations
-            Should.NotThrow(() => 
+            Should.NotThrow(() =>
             {
                 services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, (Assembly[])null!);
                 services.AddMediator(configureMiddleware: null, enableStatisticsTracking: false, (Assembly[])null!); // Should not override
@@ -202,12 +199,12 @@ namespace Blazing.Mediator.Tests.Tests
                 services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, typeof(ServiceCollectionExtensionsLintTests).Assembly); // Duplicate
                 services.AddMediatorFromCallingAssembly();
             });
-            
+
             // Verify services are still functional
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             mediator.ShouldNotBeNull();
-            
+
             // Verify statistics configuration (should be based on first registration)
             var statistics = serviceProvider.GetService<MediatorStatistics>();
             statistics.ShouldNotBeNull(); // Should be available because first registration enabled it

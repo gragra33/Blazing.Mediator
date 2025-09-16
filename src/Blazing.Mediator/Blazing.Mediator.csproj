@@ -7,17 +7,17 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Blazing.Mediator</PackageId>
-    <Version>1.6.2</Version>
+    <Version>1.7.0</Version>
     <Authors>Graeme Grant</Authors>
     <Product>Blazing.Mediator</Product>
-    <Description>A high-performance, lightweight implementation of the Mediator pattern with built-in CQRS support for .NET applications. Features advanced middleware pipeline with ordered execution, conditional middleware, automatic DI registration, and pipeline inspection. Supports native streaming capabilities with middleware support for IAsyncEnumerable data processing, JSON streaming, Server-Sent Events (SSE), and AI response streaming. Includes notification system with middleware pipeline support and real-time event processing.</Description>
-    <PackageTags>mediator;cqrs;command;query;middleware;pipeline;dependency-injection;streaming;async-enumerable;real-time;json-streaming;sse;server-sent-events;notifications;observer-pattern;event-driven;publish-subscribe;pattern;architecture;clean-code;conditional;samples;minimal-api;controllers;ai-streaming;high-performance;subscription-management</PackageTags>
+    <Description>A high-performance, lightweight implementation of the Mediator pattern with built-in CQRS support for .NET applications. Features advanced middleware pipeline with ordered execution, conditional middleware, type-constrained middleware, automatic DI registration, and pipeline inspection. Supports native streaming capabilities with middleware support for IAsyncEnumerable data processing, JSON streaming, Server-Sent Events (SSE), and AI response streaming. Includes notification system with middleware pipeline support and real-time event processing.</Description>
+    <PackageTags>mediator;cqrs;command;query;middleware;pipeline;dependency-injection;streaming;async-enumerable;real-time;json-streaming;sse;server-sent-events;notifications;observer-pattern;event-driven;publish-subscribe;pattern;architecture;clean-code;conditional;type-constrained;samples;minimal-api;controllers;ai-streaming;high-performance;subscription-management</PackageTags>
     <RepositoryUrl>https://github.com/gragra33/blazing.mediator</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
     <Copyright>Copyright (c) 2025 Graeme Grant</Copyright>
-    <PackageReleaseNotes>Version 1.6.2: Added MediatorStatistics with comprehensive analysis capabilities for queries, commands, and notifications. Enhanced with pluggable statistics rendering system and runtime usage tracking. Updated all sample projects to demonstrate new analysis features through console output and REST API endpoints.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.7.0: Added type-constrained middleware support for Request and Notification pipelines. Enhanced middleware pipeline with generic type constraint validation for selective middleware execution based on interface types (ICommand, IQuery, INotification). New TypedMiddlewareExample sample project demonstrating type-constrained middleware with ICommand/IQuery distinction. Comprehensive test coverage for type constraints with edge case validation.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

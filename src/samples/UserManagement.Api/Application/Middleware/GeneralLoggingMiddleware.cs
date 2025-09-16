@@ -26,15 +26,15 @@ public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<
         // Use Console.WriteLine for simple logging since we can't easily inject ILogger
         var requestType = request.GetType().Name;
         var startTime = DateTime.UtcNow;
-        
+
         // Log the request
         Console.WriteLine($"🔍 REQUEST: {requestType} started at {startTime:yyyy-MM-dd HH:mm:ss.fff}");
-        
+
         try
         {
             // Serialize and log request details (be careful with sensitive data in production)
-            var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions 
-            { 
+            var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions
+            {
                 WriteIndented = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
@@ -50,18 +50,18 @@ public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<
         {
             // Execute the next middleware or handler
             response = await next();
-            
+
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
-            
+
             // Log successful response
             Console.WriteLine($"🔍 RESPONSE: {requestType} completed successfully in {duration.TotalMilliseconds}ms at {endTime:yyyy-MM-dd HH:mm:ss.fff}");
-            
+
             try
             {
                 // Serialize and log response details
-                var responseJson = JsonSerializer.Serialize(response, new JsonSerializerOptions 
-                { 
+                var responseJson = JsonSerializer.Serialize(response, new JsonSerializerOptions
+                {
                     WriteIndented = true,
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
@@ -76,10 +76,10 @@ public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<
         {
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
-            
+
             // Log error response
             Console.WriteLine($"🔍 ERROR: {requestType} failed after {duration.TotalMilliseconds}ms at {endTime:yyyy-MM-dd HH:mm:ss.fff} - {ex.Message}");
-            
+
             throw;
         }
 

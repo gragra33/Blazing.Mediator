@@ -19,13 +19,13 @@ var host = Host.CreateDefaultBuilder(args)
             config.AddMiddleware(typeof(GenericRequestPreProcessor<,>));
             config.AddMiddleware(typeof(GenericRequestMiddleware<,>));
             config.AddMiddleware(typeof(GenericRequestPostProcessor<,>));
-            
+
             // Add conditional middleware for specific request types
             config.AddMiddleware(typeof(ConstrainedRequestPostProcessor));
-            
+
             // Add stream request middleware for streaming functionality
             config.AddMiddleware(typeof(GenericStreamRequestMiddleware<,>));
-            
+
         }, typeof(Program).Assembly);
 
         // Register the WrappingWriter for dependency injection
@@ -73,7 +73,7 @@ Console.WriteLine();
 try
 {
     await Runner.Run(mediator, writer, "Blazing.Mediator Examples", testStreams: true);
-    
+
     Console.WriteLine();
     Console.WriteLine(separator);
     Console.WriteLine("Examples completed successfully!");

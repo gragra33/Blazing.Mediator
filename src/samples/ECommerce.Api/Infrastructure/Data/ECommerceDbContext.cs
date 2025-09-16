@@ -13,12 +13,12 @@ public class ECommerceDbContext(DbContextOptions<ECommerceDbContext> options) : 
     /// Gets or sets the products table.
     /// </summary>
     public DbSet<Product> Products { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the orders table.
     /// </summary>
     public DbSet<Order> Orders { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the order items table.
     /// </summary>

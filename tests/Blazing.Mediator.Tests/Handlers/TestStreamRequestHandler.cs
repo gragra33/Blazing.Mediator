@@ -1,5 +1,3 @@
-using Blazing.Mediator;
-
 namespace Blazing.Mediator.Tests.Handlers;
 
 /// <summary>
@@ -12,7 +10,7 @@ public class TestStreamRequestHandler : IStreamRequestHandler<Commands.TestStrea
     public async IAsyncEnumerable<string> Handle(Commands.TestStreamRequest request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         LastExecutedRequest = request;
-        
+
         // Simulate some async work
         await Task.Delay(10, cancellationToken).ConfigureAwait(false);
 
@@ -21,7 +19,7 @@ public class TestStreamRequestHandler : IStreamRequestHandler<Commands.TestStrea
         {
             if (cancellationToken.IsCancellationRequested)
                 yield break;
-                
+
             if (string.IsNullOrWhiteSpace(request.SearchTerm))
                 yield return $"Item {i}";
             else

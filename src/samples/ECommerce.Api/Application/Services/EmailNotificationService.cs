@@ -46,10 +46,10 @@ public class EmailNotificationService : BackgroundService,
             _logger.LogInformation("   Subject: Order Confirmation - Order #{OrderId}", notification.OrderId);
             _logger.LogInformation("   Order Total: ${TotalAmount:F2}", notification.TotalAmount);
             _logger.LogInformation("   Items: {ItemCount}", notification.Items.Count);
-            
+
             foreach (var item in notification.Items)
             {
-                _logger.LogInformation("   - {ProductName} x{Quantity} @ ${UnitPrice:F2}", 
+                _logger.LogInformation("   - {ProductName} x{Quantity} @ ${UnitPrice:F2}",
                     item.ProductName, item.Quantity, item.UnitPrice);
             }
 
@@ -84,7 +84,7 @@ public class EmailNotificationService : BackgroundService,
                 _logger.LogInformation("📧 ORDER STATUS UPDATE EMAIL SENT");
                 _logger.LogInformation("   To: {CustomerEmail}", notification.CustomerEmail);
                 _logger.LogInformation("   Subject: {Subject}", emailSubject);
-                _logger.LogInformation("   Order #{OrderId} Status: {PreviousStatus} → {NewStatus}", 
+                _logger.LogInformation("   Order #{OrderId} Status: {PreviousStatus} → {NewStatus}",
                     notification.OrderId, notification.PreviousStatus, notification.NewStatus);
                 _logger.LogInformation("   Message: {StatusMessage}", statusMessage);
                 _logger.LogInformation("   Order Total: ${TotalAmount:F2}", notification.TotalAmount);
@@ -161,7 +161,7 @@ public class EmailNotificationService : BackgroundService,
         // Subscribe to notifications through the mediator
         using var scope = _serviceProvider.CreateScope();
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-        
+
         mediator.Subscribe<OrderCreatedNotification>(this);
         mediator.Subscribe<OrderStatusChangedNotification>(this);
 
@@ -188,7 +188,7 @@ public class EmailNotificationService : BackgroundService,
             // Unsubscribe from notifications
             using var scope = _serviceProvider.CreateScope();
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            
+
             mediator.Unsubscribe<OrderCreatedNotification>(this);
             mediator.Unsubscribe<OrderStatusChangedNotification>(this);
 

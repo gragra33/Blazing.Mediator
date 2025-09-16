@@ -212,7 +212,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     // Validation Tests
-    
+
     /// <summary>
     /// Tests that creating a product with invalid data returns BadRequest status with validation errors.
     /// </summary>
@@ -237,7 +237,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
-        
+
         errors.ShouldNotBeNull();
         errors!.ShouldContain("Product name is required");
         errors.ShouldContain("Price must be greater than 0");
@@ -268,7 +268,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
-        
+
         errors.ShouldNotBeNull();
         errors!.ShouldContain("Product name is required");
     }
@@ -297,7 +297,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
-        
+
         errors.ShouldNotBeNull();
         errors!.ShouldContain("Product name is required");
         errors.ShouldContain("Product price must be greater than 0");
@@ -351,7 +351,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
-        
+
         errors.ShouldNotBeNull();
         errors!.ShouldContain("Stock quantity cannot be negative");
     }

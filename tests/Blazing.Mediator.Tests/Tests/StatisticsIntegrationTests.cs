@@ -1,6 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 namespace Blazing.Mediator.Tests;
@@ -69,10 +68,10 @@ public class StatisticsIntegrationTests
         // Execute some queries
         await mediator.Send(new TestQuery { Message = "Test1" });
         await mediator.Send(new TestQuery { Message = "Test2" });
-        
+
         // Execute some commands
         await mediator.Send(new TestCommand { Action = "Action1" });
-        
+
         // Publish some notifications
         await mediator.Publish(new TestNotification { Event = "Event1" });
         await mediator.Publish(new TestNotification { Event = "Event2" });

@@ -1,6 +1,6 @@
+using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests;
 
@@ -437,12 +437,12 @@ public class ServiceCollectionExtensionsTests
         result.ShouldContain("StaticOrder:");
         result.ShouldContain("InstanceOrder:");
         result.ShouldContain("Conditional:");
-        
+
         // Verify execution order (static order 5 < instance order 10 < conditional order 15)
         int staticPos = result.IndexOf("StaticOrder:", StringComparison.Ordinal);
         int instancePos = result.IndexOf("InstanceOrder:", StringComparison.Ordinal);
         int conditionalPos = result.IndexOf("Conditional:", StringComparison.Ordinal);
-        
+
         staticPos.ShouldBeLessThan(instancePos);
         instancePos.ShouldBeLessThan(conditionalPos);
     }
@@ -502,7 +502,7 @@ public class ServiceCollectionExtensionsTests
         result.ShouldNotContain("InstanceOrder:");
         result.ShouldNotContain("NoOrder:");
         result.ShouldNotContain("Conditional:");
-        
+
         // Should just return the base handler result
         result.ShouldBe("Handler: auto-test");
     }
@@ -515,10 +515,10 @@ public class ServiceCollectionExtensionsTests
     {
         // Arrange
         ServiceCollection services = new();
-        
+
         // Create a minimal assembly with just our test middleware by using a Type array
         // This tests the auto-discovery mechanism without the problematic ThrowingQueryMiddleware
-        
+
         // Act - Use auto-discovery but limit the scope
         services.AddMediator(config =>
         {
@@ -556,7 +556,7 @@ public class ServiceCollectionExtensionsTests
 
         // Act
         ServiceProvider serviceProvider = services.BuildServiceProvider();
-        
+
         // Assert
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
         mediator.ShouldNotBeNull();

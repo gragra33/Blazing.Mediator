@@ -9,12 +9,12 @@ public enum HandlerStatus
     /// No handler is registered for this request type.
     /// </summary>
     Missing,
-    
+
     /// <summary>
     /// Exactly one handler is registered (ideal state).
     /// </summary>
     Single,
-    
+
     /// <summary>
     /// Multiple handlers are registered (potential issue).
     /// </summary>

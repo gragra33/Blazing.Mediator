@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Threading.Channels;
 
 namespace Streaming.Api.Tests.Performance;
 
@@ -31,7 +30,7 @@ public class StreamingPerformanceTests : IClassFixture<StreamingApiWebApplicatio
         // Assert
         response.EnsureSuccessStatusCode();
         stopwatch.Elapsed.ShouldBeLessThan(maxAllowedTime);
-        
+
         var content = await response.Content.ReadAsStringAsync();
         content.ShouldNotBeNullOrEmpty();
     }
@@ -87,7 +86,7 @@ public class StreamingPerformanceTests : IClassFixture<StreamingApiWebApplicatio
         // Assert
         responses.ShouldAllBe(r => r.IsSuccessStatusCode);
         stopwatch.Elapsed.ShouldBeLessThan(TimeSpan.FromMinutes(1)); // All requests within 1 minute
-        
+
         // Verify all responses have content
         foreach (var response in responses)
         {
@@ -101,13 +100,13 @@ public class StreamingPerformanceTests : IClassFixture<StreamingApiWebApplicatio
     {
         // Arrange
         var bulkStopwatch = Stopwatch.StartNew();
-        
+
         // Act - Bulk request
         var bulkResponse = await _client.GetAsync("/api/contacts/all");
         bulkStopwatch.Stop();
-        
+
         var streamStopwatch = Stopwatch.StartNew();
-        
+
         // Act - Stream request
         var streamResponse = await _client.GetAsync("/api/contacts/stream");
         streamStopwatch.Stop();
@@ -115,23 +114,23 @@ public class StreamingPerformanceTests : IClassFixture<StreamingApiWebApplicatio
         // Assert
         bulkResponse.EnsureSuccessStatusCode();
         streamResponse.EnsureSuccessStatusCode();
-        
+
         var bulkContent = await bulkResponse.Content.ReadAsStringAsync();
         var streamContent = await streamResponse.Content.ReadAsStringAsync();
-        
+
         // Both should return same data structure
-        var bulkContacts = JsonSerializer.Deserialize<ContactDto[]>(bulkContent, new JsonSerializerOptions 
-        { 
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+        var bulkContacts = JsonSerializer.Deserialize<ContactDto[]>(bulkContent, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
-        
-        var streamContacts = JsonSerializer.Deserialize<ContactDto[]>(streamContent, new JsonSerializerOptions 
-        { 
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+
+        var streamContacts = JsonSerializer.Deserialize<ContactDto[]>(streamContent, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         bulkContacts?.Length.ShouldBe(streamContacts?.Length ?? 0);
-        
+
         // Performance characteristics may vary, but both should complete reasonably
         bulkStopwatch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(30));
         streamStopwatch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(30));
@@ -194,7 +193,7 @@ public class StreamingPerformanceTests : IClassFixture<StreamingApiWebApplicatio
         // Assert
         responses.ShouldAllBe(r => r.IsSuccessStatusCode);
         stopwatch.Elapsed.ShouldBeLessThan(TimeSpan.FromMinutes(2)); // All filtered requests within 2 minutes
-        
+
         // Verify filtered responses have content
         foreach (var response in responses)
         {

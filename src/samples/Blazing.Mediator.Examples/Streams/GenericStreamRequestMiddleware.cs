@@ -36,17 +36,17 @@ public class GenericStreamRequestMiddleware<TRequest, TResponse> : IStreamReques
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>An async enumerable of response items</returns>
     public async IAsyncEnumerable<TResponse> HandleAsync(
-        TRequest request, 
-        StreamRequestHandlerDelegate<TResponse> next, 
+        TRequest request,
+        StreamRequestHandlerDelegate<TResponse> next,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await _writer.WriteLineAsync("-- Handling StreamRequest");
-        
+
         await foreach (var item in next())
         {
             yield return item;
         }
-        
+
         await _writer.WriteLineAsync("-- Finished StreamRequest");
     }
 }

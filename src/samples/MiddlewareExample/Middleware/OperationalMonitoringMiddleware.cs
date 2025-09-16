@@ -17,13 +17,13 @@ public class OperationalMonitoringMiddleware<TRequest>(ILogger<OperationalMonito
     {
         var operationType = typeof(TRequest).Name;
         logger.LogDebug(">> Monitoring operation started: {OperationType}", operationType);
-        
+
         var stopwatch = Stopwatch.StartNew();
-        
+
         await next();
-        
+
         stopwatch.Stop();
-        logger.LogInformation("<< Operation completed: {OperationType} in {ElapsedMs}ms", 
+        logger.LogInformation("<< Operation completed: {OperationType} in {ElapsedMs}ms",
             operationType, stopwatch.ElapsedMilliseconds);
     }
 }

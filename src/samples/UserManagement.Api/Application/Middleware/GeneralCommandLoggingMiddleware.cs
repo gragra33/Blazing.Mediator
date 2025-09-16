@@ -25,15 +25,15 @@ public class GeneralCommandLoggingMiddleware<TRequest> : IRequestMiddleware<TReq
         // Use Console.WriteLine for simple logging since we can't easily inject ILogger
         var requestType = request.GetType().Name;
         var startTime = DateTime.UtcNow;
-        
+
         // Log the command
         Console.WriteLine($"🔍 COMMAND: {requestType} started at {startTime:yyyy-MM-dd HH:mm:ss.fff}");
-        
+
         try
         {
             // Serialize and log command details (be careful with sensitive data in production)
-            var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions 
-            { 
+            var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions
+            {
                 WriteIndented = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
@@ -48,10 +48,10 @@ public class GeneralCommandLoggingMiddleware<TRequest> : IRequestMiddleware<TReq
         {
             // Execute the next middleware or handler
             await next();
-            
+
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
-            
+
             // Log successful completion
             Console.WriteLine($"🔍 COMMAND COMPLETED: {requestType} completed successfully in {duration.TotalMilliseconds}ms at {endTime:yyyy-MM-dd HH:mm:ss.fff}");
         }
@@ -59,10 +59,10 @@ public class GeneralCommandLoggingMiddleware<TRequest> : IRequestMiddleware<TReq
         {
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
-            
+
             // Log error
             Console.WriteLine($"🔍 COMMAND ERROR: {requestType} failed after {duration.TotalMilliseconds}ms at {endTime:yyyy-MM-dd HH:mm:ss.fff} - {ex.Message}");
-            
+
             throw;
         }
     }

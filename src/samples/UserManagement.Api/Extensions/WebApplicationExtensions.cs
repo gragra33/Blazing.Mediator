@@ -19,7 +19,7 @@ public static class WebApplicationExtensions
         app.ConfigureDevelopmentEnvironment();
         app.ConfigureMiddleware();
         app.ConfigureEndpoints();
-        
+
         return app;
     }
 

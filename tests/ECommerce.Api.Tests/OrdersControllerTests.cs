@@ -229,7 +229,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         OperationResult<int>? result = JsonSerializer.Deserialize<OperationResult<int>>(responseContent, _jsonOptions);
-        
+
         result.ShouldNotBeNull();
         result!.Success.ShouldBeFalse();
         result.Message.ShouldBe("Validation failed");
@@ -321,7 +321,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
     }
 
     // Additional validation and error scenario tests
-    
+
     /// <summary>
     /// Tests that creating an order with a non-existent product returns BadRequest status with appropriate error message.
     /// </summary>
@@ -352,7 +352,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         OperationResult<int>? result = JsonSerializer.Deserialize<OperationResult<int>>(responseContent, _jsonOptions);
-        
+
         result.ShouldNotBeNull();
         result!.Success.ShouldBeFalse();
         result.Message.ShouldContain("Product with ID 9999 not found or inactive");
@@ -388,7 +388,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         OperationResult<int>? result = JsonSerializer.Deserialize<OperationResult<int>>(responseContent, _jsonOptions);
-        
+
         result.ShouldNotBeNull();
         result!.Success.ShouldBeFalse();
         result.Message.ShouldBe("Validation failed");
@@ -416,7 +416,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         OperationResult<bool>? result = JsonSerializer.Deserialize<OperationResult<bool>>(responseContent, _jsonOptions);
-        
+
         result.ShouldNotBeNull();
         result!.Success.ShouldBeFalse();
         result.Message.ShouldBe("Order with ID 9999 not found");

@@ -147,7 +147,7 @@ public class NotificationMetricsMiddleware : INotificationMiddleware
             var metrics = _metrics[notificationName];
             metrics.TotalCount++;
             metrics.TotalDurationMs += durationMs;
-            
+
             if (success)
             {
                 metrics.SuccessCount++;

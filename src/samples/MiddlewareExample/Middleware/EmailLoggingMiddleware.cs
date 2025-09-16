@@ -12,15 +12,15 @@ public class EmailLoggingMiddleware(ILogger<EmailLoggingMiddleware> logger)
     /// <inheritdoc />
     public async Task HandleAsync(SendOrderConfirmationCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
-        logger.LogDebug(">> Email operation started for order: {OrderId} to: {CustomerEmail}", 
+        logger.LogDebug(">> Email operation started for order: {OrderId} to: {CustomerEmail}",
             request.OrderId, request.CustomerEmail);
-        
+
         var stopwatch = Stopwatch.StartNew();
-        
+
         await next();
-        
+
         stopwatch.Stop();
-        logger.LogDebug("<< Email operation completed in {ElapsedMs}ms for order: {OrderId}", 
+        logger.LogDebug("<< Email operation completed in {ElapsedMs}ms for order: {OrderId}",
             stopwatch.ElapsedMilliseconds, request.OrderId);
     }
 }

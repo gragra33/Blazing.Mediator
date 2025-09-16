@@ -1,5 +1,5 @@
-using Blazing.Mediator.Statistics;
 using Blazing.Mediator.Abstractions;
+using Blazing.Mediator.Statistics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECommerce.Api.Controllers;
@@ -36,7 +36,7 @@ public class MediatorController : ControllerBase
         // Create a custom statistics renderer that captures output
         var capturedOutput = new List<string>();
         var captureRenderer = new CapturingStatisticsRenderer(capturedOutput);
-        
+
         // Create a temporary statistics instance with our capture renderer
         var tempStats = new MediatorStatistics(captureRenderer);
         tempStats.ReportStatistics();
@@ -58,7 +58,7 @@ public class MediatorController : ControllerBase
     public IActionResult AnalyzeQueries([FromQuery] bool detailed = true)
     {
         var queries = _mediatorStatistics.AnalyzeQueries(_serviceProvider, detailed);
-        
+
         var result = queries
             .GroupBy(q => q.Assembly)
             .OrderBy(g => g.Key)
@@ -127,7 +127,7 @@ public class MediatorController : ControllerBase
     public IActionResult AnalyzeCommands([FromQuery] bool detailed = true)
     {
         var commands = _mediatorStatistics.AnalyzeCommands(_serviceProvider, detailed);
-        
+
         var result = commands
             .GroupBy(c => c.Assembly)
             .OrderBy(g => g.Key)

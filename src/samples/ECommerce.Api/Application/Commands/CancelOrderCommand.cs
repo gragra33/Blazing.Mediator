@@ -12,7 +12,7 @@ public class CancelOrderCommand : IRequest<OperationResult<bool>>
     /// Gets or sets the identifier of the order to cancel.
     /// </summary>
     public int OrderId { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the reason for cancelling the order.
     /// </summary>

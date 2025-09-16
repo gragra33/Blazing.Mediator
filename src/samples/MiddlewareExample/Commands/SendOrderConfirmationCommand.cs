@@ -9,7 +9,7 @@ public class SendOrderConfirmationCommand : IRequest
     /// Gets or sets the order ID for the confirmation.
     /// </summary>
     public required string OrderId { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the customer email address.
     /// </summary>

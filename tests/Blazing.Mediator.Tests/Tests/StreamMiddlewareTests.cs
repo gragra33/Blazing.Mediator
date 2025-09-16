@@ -1,8 +1,5 @@
-using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
-using Blazing.Mediator.Tests;
 using Microsoft.Extensions.DependencyInjection;
-using Shouldly;
 
 namespace Blazing.Mediator.Tests.Tests;
 
@@ -24,7 +21,7 @@ public class StreamMiddlewareTests
     /// </summary>
     public class TestStreamRequestHandler : IStreamRequestHandler<TestStreamRequest, string>
     {
-        public async IAsyncEnumerable<string> Handle(TestStreamRequest request, 
+        public async IAsyncEnumerable<string> Handle(TestStreamRequest request,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             for (int i = 1; i <= request.Count; i++)
@@ -47,8 +44,8 @@ public class StreamMiddlewareTests
     {
         public int Order => 1;
 
-        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))
@@ -65,8 +62,8 @@ public class StreamMiddlewareTests
     {
         public int Order => 2;
 
-        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))
@@ -83,8 +80,8 @@ public class StreamMiddlewareTests
     {
         public int Order => 100;
 
-        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))
@@ -101,8 +98,8 @@ public class StreamMiddlewareTests
     {
         public int Order => 0;
 
-        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))
@@ -123,8 +120,8 @@ public class StreamMiddlewareTests
     {
         public int Order => -1; // Execute before others
 
-        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             // Add a prefix item
@@ -147,8 +144,8 @@ public class StreamMiddlewareTests
     {
         public int Order => 0;
 
-        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var count = 0;
@@ -171,8 +168,8 @@ public class StreamMiddlewareTests
     {
         public int Order => 0;
 
-        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))
@@ -216,7 +213,7 @@ public class StreamMiddlewareTests
 
         // Assert
         results.Count.ShouldBe(2);
-        
+
         // Order should be: HighOrder (100) -> Second (2) -> First (1) -> Handler
         // So result wrapping is: First(Second(HighOrder(Handler-test-X)))
         results[0].ShouldBe("First(Second(HighOrder(Handler-test-1)))");
@@ -440,7 +437,7 @@ public class StreamMiddlewareTests
 
         // Assert
         results.Count.ShouldBe(4); // Start + 2 items + End
-        
+
         // Pipeline order: Enhancing (-1) -> Second (2) -> First (1) -> Handler
         // Result wrapping: Enhanced(First(Second(Handler-X)))
         results[0].ShouldBe("Enhanced-Start");
@@ -525,7 +522,7 @@ public class StreamMiddlewareTests
     {
         // Note: This test would require the StreamingLoggingMiddleware to be available
         // in the test context. For now, we test with our own middleware implementations.
-        
+
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator(config =>

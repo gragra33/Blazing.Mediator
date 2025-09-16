@@ -1,8 +1,5 @@
-using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
-using Blazing.Mediator.Tests;
 using Microsoft.Extensions.DependencyInjection;
-using Shouldly;
 
 namespace Blazing.Mediator.Tests.Tests;
 
@@ -24,7 +21,7 @@ public class ConditionalStreamMiddlewareTests
     /// </summary>
     public class ConditionalTestStreamRequestHandler : IStreamRequestHandler<ConditionalTestStreamRequest, string>
     {
-        public async IAsyncEnumerable<string> Handle(ConditionalTestStreamRequest request, 
+        public async IAsyncEnumerable<string> Handle(ConditionalTestStreamRequest request,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             for (int i = 1; i <= request.Count; i++)
@@ -52,8 +49,8 @@ public class ConditionalStreamMiddlewareTests
             return request.ShouldExecuteMiddleware;
         }
 
-        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))
@@ -75,8 +72,8 @@ public class ConditionalStreamMiddlewareTests
             return request.Value.Contains("special");
         }
 
-        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))
@@ -98,8 +95,8 @@ public class ConditionalStreamMiddlewareTests
             return request.Count > 3;
         }
 
-        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))
@@ -121,8 +118,8 @@ public class ConditionalStreamMiddlewareTests
             return request.ShouldExecuteMiddleware;
         }
 
-        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))
@@ -148,8 +145,8 @@ public class ConditionalStreamMiddlewareTests
             return request.Value.StartsWith("enhance");
         }
 
-        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             yield return "Enhanced-Start";
@@ -175,8 +172,8 @@ public class ConditionalStreamMiddlewareTests
             return request.Value.Contains("exception");
         }
 
-        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var count = 0;
@@ -204,8 +201,8 @@ public class ConditionalStreamMiddlewareTests
             return request.ShouldExecuteMiddleware;
         }
 
-        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))
@@ -645,7 +642,7 @@ public class ConditionalStreamMiddlewareTests
         var request = new ConditionalTestStreamRequest("test", 10, ShouldExecuteMiddleware: true);
 
         using var cts = new CancellationTokenSource();
-        
+
         // Act & Assert
         await Should.ThrowAsync<OperationCanceledException>(async () =>
         {
@@ -680,7 +677,7 @@ public class ConditionalStreamMiddlewareTests
         var request = new ConditionalTestStreamRequest("test", 10, ShouldExecuteMiddleware: false);
 
         using var cts = new CancellationTokenSource();
-        
+
         // Act & Assert
         await Should.ThrowAsync<OperationCanceledException>(async () =>
         {
@@ -777,8 +774,8 @@ public class ConditionalStreamMiddlewareTests
     {
         public int Order => 1;
 
-        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(ConditionalTestStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))

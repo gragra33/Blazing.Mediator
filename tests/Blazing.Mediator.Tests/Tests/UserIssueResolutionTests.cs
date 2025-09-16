@@ -1,6 +1,6 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 namespace Blazing.Mediator.Tests;
@@ -95,7 +95,7 @@ public class UserIssueResolutionTests
         // Verify notification middleware discovery
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        
+
         // Should have auto-discovered notification middleware
         notificationMiddleware.Count.ShouldBeGreaterThan(0);
 
@@ -146,7 +146,7 @@ public class UserIssueResolutionTests
         // Check notification middleware
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        
+
         if (discoverNotifications)
         {
             notificationMiddleware.Count.ShouldBeGreaterThan(0);
@@ -227,7 +227,7 @@ public class UserIssueResolutionTests
 
         // Assert - Verify this produces the exact configuration the user wanted
         var serviceProvider = services.BuildServiceProvider();
-        
+
         // 1. Mediator should be registered and working
         var mediator = serviceProvider.GetRequiredService<IMediator>();
         mediator.ShouldNotBeNull();

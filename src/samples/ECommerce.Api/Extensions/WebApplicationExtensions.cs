@@ -17,7 +17,7 @@ public static class WebApplicationExtensions
     {
         app.ConfigureDevelopmentEnvironment();
         app.ConfigureMiddleware();
-        
+
         return app;
     }
 

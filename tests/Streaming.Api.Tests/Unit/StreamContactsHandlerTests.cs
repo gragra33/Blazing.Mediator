@@ -1,12 +1,10 @@
 using Blazing.Mediator;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging;
 using Streaming.Api.Handlers;
 using Streaming.Api.Requests;
 using Streaming.Api.Services;
-using Streaming.Api.Shared.DTOs;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.FileProviders;
 using System.Reflection;
 
 namespace Streaming.Api.Tests.Unit;
@@ -24,22 +22,22 @@ public class StreamContactsHandlerTests
     {
         _services = new ServiceCollection();
         _services.AddLogging(builder => builder.AddConsole());
-        
+
         // Mock IWebHostEnvironment for ContactService
         _services.AddSingleton<IWebHostEnvironment>(new TestWebHostEnvironment());
-        
+
         // Register ContactService first
         _services.AddSingleton<IContactService, ContactService>();
-        
+
         // Add Mediator with manual handler registration since assembly scanning has issues in test context
         _services.AddMediator(Array.Empty<Assembly>());
-        
+
         // Manually register all the handlers we need for testing
         _services.AddScoped<IStreamRequestHandler<StreamContactsRequest, ContactDto>, StreamContactsHandler>();
         _services.AddScoped<IStreamRequestHandler<StreamContactsWithMetadataRequest, StreamResponse<ContactDto>>, StreamContactsWithMetadataHandler>();
         _services.AddScoped<IRequestHandler<GetContactCountRequest, int>, GetContactCountHandler>();
         _services.AddScoped<IRequestHandler<GetAllContactsRequest, ContactDto[]>, GetAllContactsHandler>();
-        
+
         _serviceProvider = _services.BuildServiceProvider();
         _mediator = _serviceProvider.GetRequiredService<IMediator>();
     }
@@ -60,7 +58,7 @@ public class StreamContactsHandlerTests
         // Assert
         results.ShouldNotBeEmpty();
         results.Count.ShouldBeGreaterThan(0);
-        
+
         // Verify contact structure
         var firstContact = results.First();
         firstContact.Id.ShouldBeGreaterThan(0);
@@ -85,7 +83,7 @@ public class StreamContactsHandlerTests
         // Assert
         if (results.Count > 0)
         {
-            results.ShouldAllBe(c => 
+            results.ShouldAllBe(c =>
                 c.FirstName.Contains("john", StringComparison.OrdinalIgnoreCase) ||
                 c.LastName.Contains("john", StringComparison.OrdinalIgnoreCase) ||
                 c.Email.Contains("john", StringComparison.OrdinalIgnoreCase));
@@ -137,7 +135,7 @@ public class StreamContactsHandlerTests
 
         // Assert
         results.ShouldNotBeEmpty();
-        
+
         // Verify stream response structure
         var firstResponse = results.First();
         firstResponse.ShouldNotBeNull();
@@ -170,7 +168,7 @@ public class StreamContactsHandlerTests
         // Assert
         contacts.ShouldNotBeNull();
         contacts.Length.ShouldBeGreaterThan(0);
-        
+
         // Verify contact structure
         var firstContact = contacts.First();
         firstContact.Id.ShouldBeGreaterThan(0);
@@ -190,10 +188,10 @@ public class StreamContactsHandlerTests
 
         // Assert
         contacts.ShouldNotBeNull();
-        
+
         if (contacts.Length > 0)
         {
-            contacts.ShouldAllBe(c => 
+            contacts.ShouldAllBe(c =>
                 c.FirstName.Contains("doe", StringComparison.OrdinalIgnoreCase) ||
                 c.LastName.Contains("doe", StringComparison.OrdinalIgnoreCase) ||
                 c.Email.Contains("doe", StringComparison.OrdinalIgnoreCase));
@@ -210,24 +208,24 @@ public class TestWebHostEnvironment : IWebHostEnvironment
     public string ApplicationName { get; set; } = "Streaming.Api.Tests";
     public string ContentRootPath { get; set; } = Directory.GetCurrentDirectory();
     public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
-    
+
     // Point to the test project root directory so ContactService can find "data/Mock_Contacts.json"
     public string WebRootPath { get; set; } = GetTestProjectRoot();
     public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
-    
+
     private static string GetTestProjectRoot()
     {
         // Navigate from bin/Debug/net9.0 back to project root
         var currentDir = Directory.GetCurrentDirectory();
         var projectRoot = currentDir;
-        
+
         // If we're in a bin directory, go up to find the project root
-        while (Path.GetFileName(projectRoot) != "Streaming.Api.Tests" && 
+        while (Path.GetFileName(projectRoot) != "Streaming.Api.Tests" &&
                Directory.GetParent(projectRoot) != null)
         {
             projectRoot = Directory.GetParent(projectRoot)!.FullName;
         }
-        
+
         return projectRoot;
     }
 }

@@ -2,9 +2,9 @@
 @projectUrl = https://localhost:54336
 
 ###
-# E-Commerce API - Sample HTTP Requests with Notification System Demo
-# This file demonstrates all endpoints available in the ECommerce.Api sample project
-# which showcases the Blazing.Mediator library with CQRS pattern implementation and notification system.
+# E-Commerce API - Complete HTTP Requests Collection with Real-Time Statistics
+# This file demonstrates ALL endpoints available in the ECommerce.Api sample project
+# showcasing the Blazing.Mediator library with CQRS patterns, notifications, and real-time statistics.
 #
 # 🔔 NOTIFICATION SYSTEM DEMONSTRATION:
 # The application includes a comprehensive notification system that demonstrates:
@@ -14,20 +14,66 @@
 # - Background services that process notifications
 # - Real-time logging of notification events
 #
-# To observe notifications in action:
-# 1. Start the ECommerce.Api project
-# 2. Watch the console output for notification logs
-# 3. Execute the requests below, especially the "NOTIFICATION SYSTEM DEMONSTRATIONS" section
-# 4. Look for console messages starting with 📧 (email notifications) and 📦 (inventory notifications)
+# 🔥 REAL-TIME STATISTICS TRACKING:
+# - Session-based mediator statistics tracking
+# - Global application usage metrics
+# - Real-time query and command execution tracking
+# - Complete type analysis and handler verification
 #
-# To use these requests:
+# To observe the full system in action:
 # 1. Start the ECommerce.Api project
-# 2. Execute requests individually using your HTTP client
+# 2. Watch the console output for notification logs (📧 and 📦 emojis)
+# 3. Monitor real-time statistics through the statistics endpoints
+# 4. Execute the requests below to see both notifications and statistics
+#
 ###
 
 ###
 # Health Check - Swagger UI
 GET {{$projectUrl}}/swagger/index.html
+
+###
+# 🔥 REAL-TIME MEDIATOR STATISTICS ENDPOINTS - Session and Global Tracking
+
+###
+# Get current session ID for statistics tracking
+GET {{$projectUrl}}/api/mediator/session
+
+###
+# Get comprehensive real-time global mediator statistics
+GET {{$projectUrl}}/api/mediator/statistics
+
+###
+# Get all active sessions with their statistics
+GET {{$projectUrl}}/api/mediator/statistics/sessions
+
+###
+# Get statistics for a specific session (replace with actual session ID from /session endpoint)
+GET {{$projectUrl}}/api/mediator/statistics/session/stats_1758006198_6cb83558
+
+###
+# Get detailed query analysis
+GET {{$projectUrl}}/api/mediator/analyze/queries?detailed=true
+
+###
+# Get detailed command analysis
+GET {{$projectUrl}}/api/mediator/analyze/commands?detailed=true
+
+###
+# Get complete mediator analysis (queries + commands)
+GET {{$projectUrl}}/api/mediator/analyze?detailed=true
+
+###
+# Get compact query analysis
+GET {{$projectUrl}}/api/mediator/analyze/queries?detailed=false
+
+###
+# Get compact command analysis  
+GET {{$projectUrl}}/api/mediator/analyze/commands?detailed=false
+
+###
+# Get compact complete analysis
+GET {{$projectUrl}}/api/mediator/analyze?detailed=false
 
 ###
 # PRODUCT ENDPOINTS - Product management operations
@@ -65,7 +111,7 @@ GET {{$projectUrl}}/api/products/low-stock
 GET {{$projectUrl}}/api/products/low-stock?threshold=5
 
 ###
-# Create new product
+# Create new product (triggers ProductCreatedNotification)
 POST {{$projectUrl}}/api/products
 Content-Type: application/json
 
@@ -101,7 +147,7 @@ Content-Type: application/json
 }
 
 ###
-# Update existing product
+# Update existing product (triggers ProductUpdatedNotification)
 PUT {{$projectUrl}}/api/products/1
 Content-Type: application/json
 
@@ -113,7 +159,7 @@ Content-Type: application/json
 }
 
 ###
-# Update product stock quantity
+# Update product stock quantity (may trigger stock notifications)
 PUT {{$projectUrl}}/api/products/1/stock
 Content-Type: application/json
 
@@ -170,13 +216,13 @@ GET {{$projectUrl}}/api/orders/statistics
 GET {{$projectUrl}}/api/orders/statistics?fromDate=2024-01-01&toDate=2024-12-31
 
 ###
-# Create new order
+# Create new order (triggers OrderCreatedNotification and inventory tracking)
 POST {{$projectUrl}}/api/orders
 Content-Type: application/json
 
 {
   "customerId": 1,
-  "email@test.com",
+  "customerEmail": "customer@test.com",
   "orderItems": [
     {
       "productId": 1,
@@ -198,6 +244,7 @@ Content-Type: application/json
 
 {
   "customerId": 2,
+  "customerEmail": "customer2@test.com",
   "orderItems": [
     {
       "productId": 1,
@@ -221,7 +268,7 @@ Content-Type: application/json
 }
 
 ###
-# Update order status
+# Update order status (triggers OrderStatusChangedNotification)
 PUT {{$projectUrl}}/api/orders/1/status
 Content-Type: application/json
 
@@ -232,7 +279,7 @@ Content-Type: application/json
 }
 
 ###
-# Cancel order
+# Cancel order (triggers OrderStatusChangedNotification)
 POST {{$projectUrl}}/api/orders/1/cancel
 Content-Type: application/json
 
@@ -287,6 +334,7 @@ Content-Type: application/json
 
 {
   "customerId": 101,
+  "customerEmail": "customer101@test.com",
   "orderItems": [
     {
       "productId": 2,
@@ -308,6 +356,7 @@ Content-Type: application/json
 
 {
   "customerId": 102,
+  "customerEmail": "customer102@test.com",
   "orderItems": [
     {
       "productId": 4,
@@ -339,6 +388,7 @@ Content-Type: application/json
 
 {
   "customerId": 999,
+  "customerEmail": "invalid@test.com",
   "orderItems": [
     {
       "productId": 9999,
@@ -407,6 +457,91 @@ Content-Type: application/json
 ###
 # Now order the product we just created (use the returned ID)
 POST {{$projectUrl}}/api/products/3/simulate-bulk-order?orderQuantity=8
+
+###
+# 🔥 REAL-TIME STATISTICS TRACKING DEMONSTRATION
+# These requests demonstrate how statistics are tracked in real-time
+
+###
+# Step 1: Get initial session ID and baseline statistics
+GET {{$projectUrl}}/api/mediator/session
+
+###
+# Step 2: Get initial global statistics (should show baseline)
+GET {{$projectUrl}}/api/mediator/statistics
+
+###
+# Step 3: Execute various queries to generate statistics
+GET {{$projectUrl}}/api/products
+GET {{$projectUrl}}/api/products/1
+GET {{$projectUrl}}/api/products/low-stock
+GET {{$projectUrl}}/api/orders
+GET {{$projectUrl}}/api/orders/statistics
+
+###
+# Step 4: Execute various commands to generate statistics
+POST {{$projectUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Statistics Demo Product",
+  "description": "Product created to demonstrate statistics tracking",
+  "price": 199.99,
+  "stockQuantity": 20
+}
+
+###
+# Create another product for statistics
+POST {{$projectUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Stats Demo 2",
+  "description": "Another product for statistics demo",
+  "price": 99.99,
+  "stockQuantity": 50
+}
+
+###
+# Create an order for statistics
+POST {{$projectUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 500,
+  "customerEmail": "stats@demo.com",
+  "orderItems": [
+    {
+      "productId": 1,
+      "quantity": 1,
+      "unitPrice": 199.99
+    }
+  ]
+}
+
+###
+# Step 5: Check updated global statistics (should show increased counts)
+GET {{$projectUrl}}/api/mediator/statistics
+
+###
+# Step 6: Check session-specific statistics (use your session ID from step 1)
+GET {{$projectUrl}}/api/mediator/statistics/session/stats_1758006198_6cb83558
+
+###
+# Step 7: Check all active sessions
+GET {{$projectUrl}}/api/mediator/statistics/sessions
+
+###
+# Step 8: Analyze queries and commands
+GET {{$projectUrl}}/api/mediator/analyze/queries
+
+###
+# Step 9: Analyze commands
+GET {{$projectUrl}}/api/mediator/analyze/commands
+
+###
+# Step 10: Get complete analysis
+GET {{$projectUrl}}/api/mediator/analyze
 
 ###
 # NOTIFICATION WORKFLOW DEMONSTRATION
@@ -480,155 +615,115 @@ Content-Type: application/json
 }
 
 ###
-# SWAGGER ENDPOINTS FOR NOTIFICATION SYSTEM DEMONSTRATION
-# Access Swagger UI at: https://localhost:54336/swagger/index.html
-# The following endpoints are available and demonstrate different notification scenarios:
+# 🎯 COMPREHENSIVE TESTING WORKFLOW
 
 ###
-# 🔔 NOTIFICATION-TRIGGERING ENDPOINTS IN SWAGGER UI
-# These endpoints can be tested directly in Swagger and will trigger notifications visible in the console
+# PHASE 1: Statistics Baseline
+GET {{$projectUrl}}/api/mediator/session
+GET {{$projectUrl}}/api/mediator/statistics
+GET {{$projectUrl}}/api/mediator/analyze
 
 ###
-# 📧 EMAIL NOTIFICATION ENDPOINTS (OrderCreatedNotification, OrderStatusChangedNotification)
-
-# POST /api/orders - Create Order (triggers OrderCreatedNotification)
-# - Creates order and sends email confirmation
-# - Triggers inventory tracking notifications
-# - May trigger low stock/out of stock notifications
-
-# POST /api/orders/process - Process Order (triggers OrderCreatedNotification + status changes)
-# - Complete order processing workflow
-# - Triggers multiple notifications
-
-# PUT /api/orders/{id}/status - Update Order Status (triggers OrderStatusChangedNotification)
-# - Updates order status (Processing, Shipped, Delivered, Cancelled)
-# - Sends email status updates for specific statuses
-
-# POST /api/orders/{id}/cancel - Cancel Order (triggers OrderStatusChangedNotification)
-# - Cancels order and sends cancellation email
-
-# 🆕 POST /api/orders/{id}/complete - Complete Order Workflow (triggers multiple OrderStatusChangedNotifications)
-# - Processes order through: Processing → Shipped → Delivered
-# - Triggers multiple email notifications with delays
-
-# 🆕 POST /api/orders/{id}/process-workflow - Full Order Workflow (triggers multiple OrderStatusChangedNotifications)
-# - Complete workflow: Confirmed → Processing → Shipped → Delivered
-# - Demonstrates full notification lifecycle
+# PHASE 2: Product Operations
+POST {{$projectUrl}}/api/products
+GET {{$projectUrl}}/api/products
+PUT {{$projectUrl}}/api/products/1
+GET {{$projectUrl}}/api/products/low-stock
 
 ###
-# 📦 INVENTORY MANAGEMENT ENDPOINTS (ProductStockLowNotification, ProductOutOfStockNotification)
-
-# POST /api/products - Create Product (triggers ProductCreatedNotification)
-# - Creates new product
-# - Logs product creation to inventory system
-
-# PUT /api/products/{id}/stock - Update Stock (may trigger stock notifications)
-# - Updates product stock levels
-# - Triggers low stock alerts if below threshold (10)
-# - Triggers out of stock alerts if stock reaches 0
-
-# 🆕 POST /api/products/{id}/reduce-stock?quantity={amount} - Reduce Stock (triggers stock notifications)
-# - Reduces product stock by specified amount
-# - Demonstrates low stock and out of stock notifications
-# - Example: /api/products/1/reduce-stock?quantity=5
-
-# 🆕 POST /api/products/{id}/simulate-bulk-order?orderQuantity={amount} - Simulate Bulk Order (triggers multiple notifications)
-# - Creates mock order to demonstrate inventory impact
-# - Triggers OrderCreatedNotification, inventory tracking, and stock alerts
-# - Example: /api/products/1/simulate-bulk-order?orderQuantity=15
+# PHASE 3: Order Operations  
+POST {{$projectUrl}}/api/orders
+GET {{$projectUrl}}/api/orders
+PUT {{$projectUrl}}/api/orders/1/status
+GET {{$projectUrl}}/api/orders/statistics
 
 ###
-# 📊 MONITORING AND QUERY ENDPOINTS (for observing system state)
-
-# GET /api/products/low-stock?threshold={number} - Get Low Stock Products
-# - Lists products below stock threshold
-# - Useful for seeing which products triggered notifications
-
-# GET /api/orders - Get Orders (with status filtering)
-# - View orders by status to see notification triggers
-# - Filter by status: ?status=0 (Pending), ?status=1 (Confirmed), ?status=2 (Processing), ?status=3 (Shipped), ?status=4 (Delivered), ?status=5 (Cancelled)
-
-# GET /api/orders/statistics - Get Order Statistics
-# - View order statistics to understand notification volume
+# PHASE 4: Notification Triggers
+POST {{$projectUrl}}/api/products/1/reduce-stock?quantity=10
+POST {{$projectUrl}}/api/products/1/simulate-bulk-order?orderQuantity=5
+POST {{$projectUrl}}/api/orders/1/process-workflow
 
 ###
-# 🎯 RECOMMENDED SWAGGER TESTING SEQUENCE FOR NOTIFICATIONS
-
-# 1. Open Swagger UI: https://localhost:54336/swagger/index.html
-# 2. Watch console output for notification logs (📧 and 📦 emojis)
-# 3. Execute endpoints in this order:
-
-# STEP 1: Create test product
-# POST /api/products
-# {
-#   "name": "Notification Test Product",
-#   "description": "Product for testing notifications",
-#   "price": 99.99,
-#   "stockQuantity": 20
-# }
-# → Watch for: ProductCreatedNotification
-
-# STEP 2: Create order to trigger notifications
-# POST /api/orders
-# {
-#   "customerId": 1,
-#   "customerEmail": "test@notifications.com",
-#   "orderItems": [
-#     {
-#       "productId": 1,
-#       "quantity": 15
-#     }
-#   ]
-# }
-# → Watch for: OrderCreatedNotification, inventory tracking
-
-# STEP 3: Process order through full workflow
-# POST /api/orders/1/process-workflow
-# → Watch for: Multiple OrderStatusChangedNotifications (Confirmed → Processing → Shipped → Delivered)
-
-# STEP 4: Reduce stock to trigger low stock alert
-# POST /api/products/1/reduce-stock?quantity=8
-# → Watch for: ProductStockLowNotification
-
-# STEP 5: Simulate bulk order to trigger out of stock
-# POST /api/products/1/simulate-bulk-order?orderQuantity=10
-# → Watch for: OrderCreatedNotification, ProductOutOfStockNotification
+# PHASE 5: Statistics Review
+GET {{$projectUrl}}/api/mediator/statistics
+GET {{$projectUrl}}/api/mediator/statistics/sessions
+GET {{$projectUrl}}/api/mediator/analyze/queries
+GET {{$projectUrl}}/api/mediator/analyze/commands
 
 ###
-# 🔍 CONSOLE OUTPUT TO WATCH FOR
+# 🔍 MONITORING AND ANALYSIS
 
-# When testing in Swagger, watch the console for these notification patterns:
+###
+# Real-time statistics monitoring (run periodically during testing)
+GET {{$projectUrl}}/api/mediator/statistics
+
+###
+# Session tracking (replace with your session ID)
+GET {{$projectUrl}}/api/mediator/statistics/session/YOUR_SESSION_ID_HERE
+
+###
+# Type analysis and handler verification
+GET {{$projectUrl}}/api/mediator/analyze?detailed=true
+
+###
+# Query-specific analysis
+GET {{$projectUrl}}/api/mediator/analyze/queries?detailed=true
+
+###
+# Command-specific analysis
+GET {{$projectUrl}}/api/mediator/analyze/commands?detailed=true
+
+###
+# 📊 EXPECTED STATISTICS AFTER FULL TESTING
+
+# After running the complete test suite, you should see statistics like:
+# - UniqueQueryTypes: 8+ (GetProductsQuery, GetProductByIdQuery, GetOrdersQuery, etc.)
+# - UniqueCommandTypes: 10+ (CreateProductCommand, UpdateProductCommand, CreateOrderCommand, etc.)
+# - TotalQueryExecutions: 20+ (depending on number of queries executed)
+# - TotalCommandExecutions: 15+ (depending on number of commands executed)
+# - ActiveSessions: 1+ (your testing session)
+
+# The analysis endpoints will show:
+# - Complete handler mappings for all queries and commands
+# - Handler status (Single, Missing, Multiple)
+# - Type parameters and response types
+# - Assembly and namespace organization
+
+###
+# 🚀 SWAGGER UI COMPREHENSIVE TESTING
+
+# Access the complete API documentation and interactive testing at:
+GET {{$projectUrl}}/swagger/index.html
+
+# The Swagger UI provides:
+# - Interactive testing of all endpoints including statistics
+# - Real-time notification system demonstration
+# - Complete request/response schemas
+# - Statistics monitoring through the web interface
+# - Type analysis and handler verification
+# - Session tracking capabilities
+
+###
+# 🔔 NOTIFICATION CONSOLE OUTPUT TO WATCH FOR
+
+# When testing, watch the console for these notification patterns:
 
 # 📧 EMAIL NOTIFICATIONS:
-# - "📧 ORDER CONFIRMATION EMAIL SENT"
-# - "📧 ORDER STATUS UPDATE EMAIL SENT"
+# - "📧 ORDER CONFIRMATION EMAIL SENT to {email}"
+# - "📧 ORDER STATUS UPDATE EMAIL SENT to {email}"
 # - Shows customer email, order details, and status changes
 
 # 📦 INVENTORY NOTIFICATIONS:
-# - "📦 INVENTORY TRACKING - Order #X"
-# - "⚠️ LOW STOCK ALERT"
-# - "🚨 OUT OF STOCK ALERT - URGENT"
+# - "📦 INVENTORY TRACKING - Order #{id} created"
+# - "⚠️ LOW STOCK ALERT for Product #{id}"
+# - "🚨 OUT OF STOCK ALERT - URGENT for Product #{id}"
 # - "📋 REORDER NOTIFICATION SENT TO PURCHASING"
 
 # 🔔 NOTIFICATION MIDDLEWARE:
-# - "🔔 NOTIFICATION PUBLISHING: [NotificationType]"
-# - "✅ NOTIFICATION COMPLETED: [NotificationType]"
+# - "🔔 NOTIFICATION PUBLISHING: {NotificationType}"
+# - "✅ NOTIFICATION COMPLETED: {NotificationType}"
 
-###
-# 🚀 ADVANCED NOTIFICATION TESTING SCENARIOS
-
-# Test concurrent notifications:
-# POST /api/products/1/simulate-bulk-order?orderQuantity=25
-# POST /api/products/2/simulate-bulk-order?orderQuantity=30
-# → Creates multiple orders simultaneously to test notification handling
-
-# Test notification workflow with multiple products:
-# POST /api/products (create product with stock 5)
-# POST /api/products/X/simulate-bulk-order?orderQuantity=3 (triggers low stock)
-# POST /api/products/X/simulate-bulk-order?orderQuantity=5 (triggers out of stock)
-
-# Test order status progression:
-# POST /api/orders (create order)
-# PUT /api/orders/X/status with status=2 (Processing)
-# PUT /api/orders/X/status with status=3 (Shipped)  
-# PUT /api/orders/X/status with status=4 (Delivered)
+# 📊 STATISTICS TRACKING:
+# - Real-time updates to query and command execution counts
+# - Session creation and tracking messages
+# - Type discovery and analysis results

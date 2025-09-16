@@ -1,5 +1,6 @@
 using UserManagement.Api.Endpoints;
 using UserManagement.Api.Infrastructure.Data;
+using UserManagement.Api.Middleware;
 
 namespace UserManagement.Api.Extensions;
 
@@ -41,6 +42,12 @@ public static class WebApplicationExtensions
     private static void ConfigureMiddleware(this WebApplication app)
     {
         app.UseHttpsRedirection();
+        
+        // Add session middleware (required for statistics)
+        app.UseSession();
+        
+        // Add session tracking middleware to initialize session IDs
+        app.UseMiddleware<SessionTrackingMiddleware>();
     }
 
     /// <summary>
@@ -48,12 +55,25 @@ public static class WebApplicationExtensions
     /// </summary>
     private static void ConfigureEndpoints(this WebApplication app)
     {
-        var api = app.MapGroup("/api/users")
+        // User management endpoints
+        var userApi = app.MapGroup("/api/users")
             .WithTags("Users");
 
         // Separate query and command endpoints for better organization
-        api.MapUserQueryEndpoints();
-        api.MapUserCommandEndpoints();
+        userApi.MapUserQueryEndpoints();
+        userApi.MapUserCommandEndpoints();
+
+        // Mediator analysis endpoints (minimal API)
+        var analysisApi = app.MapGroup("/api/analysis")
+            .WithTags("Analysis");
+
+        analysisApi.MapMediatorAnalysisEndpoints();
+
+        // Mediator statistics endpoints (minimal API)
+        var mediatorApi = app.MapGroup("/api/mediator")
+            .WithTags("Mediator Statistics");
+
+        mediatorApi.MapMediatorStatisticsEndpoints();
     }
 
     /// <summary>

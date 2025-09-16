@@ -1,8 +1,7 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
-using Blazing.Mediator.Statistics;
 using Blazing.Mediator.Pipeline;
-using System.Text;
+using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Tests.Statistics;
 
@@ -143,18 +142,18 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
-        
+
         services.AddSingleton<IStatisticsRenderer>(renderer);
         services.AddSingleton(statistics);
-        
+
         // Register only the core mediator services without assembly scanning
         services.AddSingleton<IMediator, Mediator>();
         services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
         services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        
+
         // Register only the specific handler we need for this test
         services.AddScoped<IRequestHandler<TestQueryWithInterface, string>, TestQueryWithInterfaceHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -178,18 +177,18 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
-        
+
         services.AddSingleton<IStatisticsRenderer>(renderer);
         services.AddSingleton(statistics);
-        
+
         // Register only the core mediator services without assembly scanning
         services.AddSingleton<IMediator, Mediator>();
         services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
         services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        
+
         // Register only the specific handler we need for this test
         services.AddScoped<IRequestHandler<TestCommandWithInterface, int>, TestCommandWithInterfaceHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -213,18 +212,18 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
-        
+
         services.AddSingleton<IStatisticsRenderer>(renderer);
         services.AddSingleton(statistics);
-        
+
         // Register only the core mediator services without assembly scanning
         services.AddSingleton<IMediator, Mediator>();
         services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
         services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        
+
         // Register only the specific handler we need for this test
         services.AddScoped<IRequestHandler<TestRequestNamedQuery, string>, TestRequestNamedQueryHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -248,18 +247,18 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
-        
+
         services.AddSingleton<IStatisticsRenderer>(renderer);
         services.AddSingleton(statistics);
-        
+
         // Register only the core mediator services without assembly scanning
         services.AddSingleton<IMediator, Mediator>();
         services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
         services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        
+
         // Register only the specific handler we need for this test
         services.AddScoped<IRequestHandler<TestRequestNamedCommand, bool>, TestRequestNamedCommandHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -283,18 +282,18 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
-        
+
         services.AddSingleton<IStatisticsRenderer>(renderer);
         services.AddSingleton(statistics);
-        
+
         // Register only the core mediator services without assembly scanning
         services.AddSingleton<IMediator, Mediator>();
         services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
         services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        
+
         // Register only the specific handler we need for this test
         services.AddScoped<IRequestHandler<TestRequestLowercasequery, string>, TestRequestLowercasequeryHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -318,18 +317,18 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
-        
+
         services.AddSingleton<IStatisticsRenderer>(renderer);
         services.AddSingleton(statistics);
-        
+
         // Register only the core mediator services without assembly scanning
         services.AddSingleton<IMediator, Mediator>();
         services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
         services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        
+
         // Register only the specific handler we need for this test
         services.AddScoped<IRequestHandler<TestRequestLowercasecommand, int>, TestRequestLowercasecommandHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -353,18 +352,18 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
-        
+
         services.AddSingleton<IStatisticsRenderer>(renderer);
         services.AddSingleton(statistics);
-        
+
         // Register only the core mediator services without assembly scanning
         services.AddSingleton<IMediator, Mediator>();
         services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
         services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        
+
         // Register only the specific handler we need for this test
         services.AddScoped<IRequestHandler<AmbiguousRequest, string>, AmbiguousRequestHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -388,18 +387,18 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
-        
+
         services.AddSingleton<IStatisticsRenderer>(renderer);
         services.AddSingleton(statistics);
-        
+
         // Register only the core mediator services without assembly scanning
         services.AddSingleton<IMediator, Mediator>();
         services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
         services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        
+
         // Register only the specific handler we need for this test
         services.AddScoped<IRequestHandler<QueryNamedAsCommand, string>, QueryNamedAsCommandHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -423,21 +422,21 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
-        
+
         services.AddSingleton<IStatisticsRenderer>(renderer);
         services.AddSingleton(statistics);
-        
+
         // Register only the core mediator services without assembly scanning
         services.AddSingleton<IMediator, Mediator>();
         services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
         services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        
+
         // Register only the specific handlers we need for this test
         services.AddScoped<IRequestHandler<TestQueryWithInterface, string>, TestQueryWithInterfaceHandler>();
         services.AddScoped<IRequestHandler<TestCommandWithInterface, int>, TestCommandWithInterfaceHandler>();
         services.AddScoped<IRequestHandler<TestRequestNamedQuery, string>, TestRequestNamedQueryHandler>();
         services.AddScoped<IRequestHandler<TestRequestNamedCommand, bool>, TestRequestNamedCommandHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -496,7 +495,7 @@ public class MediatorStatisticsTests
         statistics.IncrementCommand("Command1");
         statistics.IncrementCommand("Command2");
         statistics.IncrementNotification("Notification1");
-        
+
         statistics.ReportStatistics();
 
         // Assert
@@ -524,17 +523,17 @@ public class MediatorStatisticsTests
         statistics.IncrementQuery("TestQuery");
         statistics.IncrementQuery("TestQuery");
         statistics.IncrementQuery("AnotherQuery");
-        
+
         statistics.IncrementCommand("TestCommand");
         statistics.IncrementCommand("TestCommand");
         statistics.IncrementCommand("AnotherCommand");
         statistics.IncrementCommand("ThirdCommand");
-        
+
         statistics.IncrementNotification("TestNotification");
 
         // Assert
         statistics.ReportStatistics();
-        
+
         // Should count unique types, not execution counts
         renderer.Messages.ShouldContain("Queries: 2"); // TestQuery, AnotherQuery
         renderer.Messages.ShouldContain("Commands: 3"); // TestCommand, AnotherCommand, ThirdCommand
@@ -561,7 +560,7 @@ public class MediatorStatisticsTests
 
         // Assert
         statistics.ReportStatistics();
-        
+
         // Should handle empty/null inputs without throwing and not count them
         renderer.Messages.ShouldContain("Queries: 0");
         renderer.Messages.ShouldContain("Commands: 0");
@@ -587,7 +586,7 @@ public class MediatorStatisticsTests
         // Assert
         queries.ShouldNotBeNull();
         commands.ShouldNotBeNull();
-        
+
         // Results might be empty or contain types from other tests/assemblies
         // But they should be valid collections
         queries.ShouldBeAssignableTo<IReadOnlyList<QueryCommandAnalysis>>();
@@ -615,10 +614,10 @@ public class MediatorStatisticsTests
 
         // Assert
         var queryTypes = results.Where(r => r.ClassName.Contains("Query", StringComparison.OrdinalIgnoreCase)).ToList();
-        
+
         // Should find at least some query types from the test assembly
         queryTypes.ShouldNotBeEmpty("Should find query types from the loaded assemblies");
-        
+
         // Verify structure of results including new handler information
         queryTypes.ShouldAllBe(r => !string.IsNullOrEmpty(r.ClassName));
         queryTypes.ShouldAllBe(r => !string.IsNullOrEmpty(r.Assembly));
@@ -647,10 +646,10 @@ public class MediatorStatisticsTests
         // Assert
         detailedResults.ShouldNotBeEmpty();
         compactResults.ShouldNotBeEmpty();
-        
+
         // Both modes should return same count
         detailedResults.Count.ShouldBe(compactResults.Count);
-        
+
         // Verify all results have required fields populated for detailed mode
         detailedResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.Assembly));
         detailedResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.Namespace)); // Namespace can be "Unknown"
@@ -660,7 +659,7 @@ public class MediatorStatisticsTests
         detailedResults.ShouldAllBe(r => Enum.IsDefined(typeof(HandlerStatus), r.HandlerStatus));
         detailedResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.HandlerDetails));
         detailedResults.ShouldAllBe(r => r.Handlers != null);
-        
+
         // Verify compact mode has basic fields but may have simplified handler details
         compactResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.Assembly));
         compactResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.Namespace));
@@ -668,10 +667,10 @@ public class MediatorStatisticsTests
         compactResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.PrimaryInterface));
         compactResults.ShouldAllBe(r => r.Type != null);
         compactResults.ShouldAllBe(r => Enum.IsDefined(typeof(HandlerStatus), r.HandlerStatus));
-        
+
         // Verify that results within the same assembly and namespace are ordered by class name
         var groupedResults = detailedResults.GroupBy(r => new { r.Assembly, r.Namespace });
-        
+
         foreach (var group in groupedResults)
         {
             var groupList = group.ToList();
@@ -679,10 +678,10 @@ public class MediatorStatisticsTests
             {
                 var current = groupList[i];
                 var previous = groupList[i - 1];
-                
+
                 // Within the same assembly and namespace, class names should be ordered
                 var classComparison = string.Compare(current.ClassName, previous.ClassName, StringComparison.Ordinal);
-                classComparison.ShouldBeGreaterThanOrEqualTo(0, 
+                classComparison.ShouldBeGreaterThanOrEqualTo(0,
                     $"Within the same assembly/namespace, class names should be ordered: {previous.ClassName} should come before {current.ClassName}");
             }
         }
@@ -706,7 +705,7 @@ public class MediatorStatisticsTests
 
         // Assert - Default should be the same as explicitly detailed
         defaultResults.Count.ShouldBe(explicitDetailedResults.Count);
-        
+
         // Verify that default mode includes detailed handler information
         if (defaultResults.Any())
         {
@@ -742,10 +741,10 @@ public class MediatorStatisticsTests
 
         // Assert
         var commandTypes = results.Where(r => r.ClassName.Contains("Command", StringComparison.OrdinalIgnoreCase)).ToList();
-        
+
         // Should find at least some command types from the test assembly
         commandTypes.ShouldNotBeEmpty("Should find command types from the loaded assemblies");
-        
+
         // Verify structure of results including new handler information
         commandTypes.ShouldAllBe(r => !string.IsNullOrEmpty(r.ClassName));
         commandTypes.ShouldAllBe(r => !string.IsNullOrEmpty(r.Assembly));
@@ -774,10 +773,10 @@ public class MediatorStatisticsTests
         // Assert
         detailedResults.ShouldNotBeEmpty();
         compactResults.ShouldNotBeEmpty();
-        
+
         // Both modes should return same count
         detailedResults.Count.ShouldBe(compactResults.Count);
-        
+
         // Verify all results have required fields populated for detailed mode
         detailedResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.Assembly));
         detailedResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.Namespace)); // Namespace can be "Unknown"
@@ -787,7 +786,7 @@ public class MediatorStatisticsTests
         detailedResults.ShouldAllBe(r => Enum.IsDefined(typeof(HandlerStatus), r.HandlerStatus));
         detailedResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.HandlerDetails));
         detailedResults.ShouldAllBe(r => r.Handlers != null);
-        
+
         // Verify compact mode has basic fields but may have simplified handler details
         compactResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.Assembly));
         compactResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.Namespace));
@@ -795,10 +794,10 @@ public class MediatorStatisticsTests
         compactResults.ShouldAllBe(r => !string.IsNullOrEmpty(r.PrimaryInterface));
         compactResults.ShouldAllBe(r => r.Type != null);
         compactResults.ShouldAllBe(r => Enum.IsDefined(typeof(HandlerStatus), r.HandlerStatus));
-        
+
         // Verify that results within the same assembly and namespace are ordered by class name
         var groupedResults = detailedResults.GroupBy(r => new { r.Assembly, r.Namespace });
-        
+
         foreach (var group in groupedResults)
         {
             var groupList = group.ToList();
@@ -806,10 +805,10 @@ public class MediatorStatisticsTests
             {
                 var current = groupList[i];
                 var previous = groupList[i - 1];
-                
+
                 // Within the same assembly and namespace, class names should be ordered
                 var classComparison = string.Compare(current.ClassName, previous.ClassName, StringComparison.Ordinal);
-                classComparison.ShouldBeGreaterThanOrEqualTo(0, 
+                classComparison.ShouldBeGreaterThanOrEqualTo(0,
                     $"Within the same assembly/namespace, class names should be ordered: {previous.ClassName} should come before {current.ClassName}");
             }
         }
@@ -829,11 +828,11 @@ public class MediatorStatisticsTests
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
         var services = new ServiceCollection();
-        
+
         // Use AddMediator to ensure proper registration
         services.AddMediator(typeof(TestQuery).Assembly);
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
 
         // Act
@@ -867,11 +866,11 @@ public class MediatorStatisticsTests
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
         var services = new ServiceCollection();
-        
+
         // Use AddMediator to ensure proper registration
         services.AddMediator(typeof(TestCommand).Assembly);
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
 
         // Act
@@ -914,11 +913,11 @@ public class MediatorStatisticsTests
 
         // Assert
         var allResults = queryResults.Concat(commandResults);
-        
+
         // Most results should have missing handlers since we didn't register any
         var missingHandlerResults = allResults.Where(r => r.HandlerStatus == HandlerStatus.Missing).ToList();
         missingHandlerResults.ShouldNotBeEmpty();
-        
+
         // Verify missing handler details
         missingHandlerResults.ShouldAllBe(r => r.HandlerDetails == "No handler registered");
         missingHandlerResults.ShouldAllBe(r => r.Handlers.Count == 0);
@@ -934,15 +933,15 @@ public class MediatorStatisticsTests
         var renderer = new TestStatisticsRenderer();
         var statistics = new MediatorStatistics(renderer);
         var services = new ServiceCollection();
-        
+
         // Use AddMediator to ensure proper registration
         services.AddMediator(typeof(TestCommand).Assembly);
-        
+
         // Register multiple handlers for the same command - this will actually cause DI issues,
         // but we want to test the detection logic
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
         services.AddScoped<IRequestHandler<TestCommand>, SecondTestCommandHandler>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
 
         // Act
@@ -957,7 +956,7 @@ public class MediatorStatisticsTests
             testCommandResult.HandlerStatus.ShouldNotBe(HandlerStatus.Missing);
             testCommandResult.Handlers.ShouldNotBeNull();
         }
-        
+
         // At minimum, verify the analysis structure works
         results.ShouldAllBe(r => Enum.IsDefined(typeof(HandlerStatus), r.HandlerStatus));
         results.ShouldAllBe(r => !string.IsNullOrEmpty(r.HandlerDetails));
@@ -978,7 +977,7 @@ public class MediatorStatisticsTests
             HandlerStatus.Multiple => "#",
             _ => "?"
         };
-        
+
         var missingIcon = HandlerStatus.Missing switch
         {
             HandlerStatus.Single => "+",
@@ -986,7 +985,7 @@ public class MediatorStatisticsTests
             HandlerStatus.Multiple => "#",
             _ => "?"
         };
-        
+
         var multipleIcon = HandlerStatus.Multiple switch
         {
             HandlerStatus.Single => "+",

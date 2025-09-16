@@ -1,8 +1,5 @@
-using Blazing.Mediator;
 using Microsoft.Extensions.DependencyInjection;
-using Shouldly;
 using System.Reflection;
-using Xunit;
 
 namespace Blazing.Mediator.Tests.ConfigurationTests;
 

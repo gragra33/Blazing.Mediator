@@ -1,8 +1,4 @@
-using Blazing.Mediator;
-using Xunit;
 using Microsoft.Extensions.DependencyInjection;
-using Shouldly;
-using System.Reflection;
 
 namespace Blazing.Mediator.Tests.NotificationTests;
 

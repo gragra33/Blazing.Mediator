@@ -1,7 +1,6 @@
-using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Abstractions;
-using System.Reflection;
+using Blazing.Mediator.Pipeline;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Tests;
 
@@ -327,7 +326,7 @@ public class NotificationPipelineBuilderComprehensiveTests
     {
         // Arrange
         TestNotificationExecutionTracker.Reset();
-        
+
         var builder = new NotificationPipelineBuilder();
         builder.AddMiddleware<TestNotificationMiddleware1>();
         builder.AddMiddleware<TestNotificationMiddleware2>();
@@ -472,7 +471,7 @@ public class NotificationPipelineBuilderComprehensiveTests
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             builder.ExecutePipeline(notification, serviceProvider, finalHandler, CancellationToken.None));
     }
 

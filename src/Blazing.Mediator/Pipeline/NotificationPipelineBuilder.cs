@@ -62,13 +62,14 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotifi
     {
         var orderAttribute = middlewareType.GetCustomAttributes(false)
             .FirstOrDefault(attr => attr.GetType().Name == "OrderAttribute");
-        if (orderAttribute != null)
+        if (orderAttribute == null)
         {
-            var orderProp = orderAttribute.GetType().GetProperty(OrderPropertyName);
-            if (orderProp != null && orderProp.PropertyType == typeof(int))
-            {
-                return (int)orderProp.GetValue(orderAttribute)!;
-            }
+            return null;
+        }
+        var orderProp = orderAttribute.GetType().GetProperty(OrderPropertyName);
+        if (orderProp != null && orderProp.PropertyType == typeof(int))
+        {
+            return (int)orderProp.GetValue(orderAttribute)!;
         }
 
         return null;
@@ -78,18 +79,39 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotifi
     {
         var instanceOrderProperty = middlewareType.GetProperty(OrderPropertyName, BindingFlags.Public | BindingFlags.Instance);
         if (instanceOrderProperty != null && instanceOrderProperty.PropertyType == typeof(int) &&
-            (!instanceOrderProperty.GetGetMethod()!.IsVirtual || 
+            (!instanceOrderProperty.GetGetMethod()!.IsVirtual ||
              instanceOrderProperty.DeclaringType != typeof(INotificationMiddleware)))
         {
             try
             {
+                // Handle generic type definitions by checking constraints first
+                Type typeToInstantiate = middlewareType;
+                if (middlewareType.IsGenericTypeDefinition)
+                {
+                    // Check if we can satisfy generic constraints for notification middleware
+                    // Use a minimal notification type for constraint checking
+                    if (!CanSatisfyGenericConstraints(middlewareType, typeof(MinimalNotification)))
+                    {
+                        return null; // Cannot satisfy constraints
+                    }
+
+                    try
+                    {
+                        typeToInstantiate = middlewareType.MakeGenericType(typeof(MinimalNotification));
+                    }
+                    catch (ArgumentException)
+                    {
+                        return null; // Constraints not satisfied
+                    }
+                }
+
                 // Create a temporary instance to get the Order value
-                object? instance = Activator.CreateInstance(middlewareType);
+                object? instance = Activator.CreateInstance(typeToInstantiate);
                 if (instance != null)
                 {
                     int orderValue = (int)instanceOrderProperty.GetValue(instance)!;
                     // Only use non-default values as explicit orders
-                    if (orderValue != 0) 
+                    if (orderValue != 0)
                     {
                         return orderValue;
                     }
@@ -114,9 +136,10 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotifi
 
         // Find the highest explicit order and add 1
         var highestExplicitOrder = _middlewareInfos.Max(m => m.Order);
-        
+
         // Ensure we don't exceed the maximum allowed order
         var nextOrder = highestExplicitOrder + 1;
+
         return Math.Min(nextOrder, int.MaxValue);
     }
 
@@ -127,6 +150,7 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotifi
         var middlewareType = typeof(TMiddleware);
         var order = GetMiddlewareOrder(middlewareType);
         _middlewareInfos.Add(new NotificationMiddlewareInfo(middlewareType, order));
+
         return this;
     }
 
@@ -142,6 +166,7 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotifi
         var middlewareType = typeof(TMiddleware);
         var order = GetMiddlewareOrder(middlewareType);
         _middlewareInfos.Add(new NotificationMiddlewareInfo(middlewareType, order, configuration));
+
         return this;
     }
 
@@ -155,6 +180,7 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotifi
 
         var order = GetMiddlewareOrder(middlewareType);
         _middlewareInfos.Add(new NotificationMiddlewareInfo(middlewareType, order));
+
         return this;
     }
 
@@ -181,11 +207,11 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotifi
 
         // Use service provider to get actual runtime order values using the same logic as ExecutePipeline
         var result = new List<(Type Type, int Order, object? Configuration)>();
-        
+
         foreach (var middlewareInfo in _middlewareInfos)
         {
             int actualOrder = middlewareInfo.Order; // Start with cached order
-            
+
             try
             {
                 // For notification middleware, directly resolve from DI to get actual runtime order
@@ -203,16 +229,16 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotifi
             {
                 // If we can't get instance, use cached order - same as ExecutePipeline
             }
-            
+
             result.Add((middlewareInfo.Type, actualOrder, middlewareInfo.Configuration));
         }
-        
+
         return result;
     }
 
     /// <inheritdoc />
     public NotificationDelegate<TNotification> Build<TNotification>(
-        IServiceProvider serviceProvider, 
+        IServiceProvider serviceProvider,
         NotificationDelegate<TNotification> finalHandler)
         where TNotification : INotification
     {
@@ -232,7 +258,7 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotifi
             pipeline = async (notification, cancellationToken) =>
             {
                 var middleware = (INotificationMiddleware)serviceProvider.GetRequiredService(middlewareInfo.Type);
-                
+
                 // Check if it's conditional middleware
                 if (middleware is IConditionalNotificationMiddleware conditionalMiddleware &&
                     !conditionalMiddleware.ShouldExecute(notification))
@@ -264,27 +290,190 @@ public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotifi
     public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider)
     {
         var middlewareInfos = GetDetailedMiddlewareInfo(serviceProvider);
-        
+
         var analysisResults = new List<MiddlewareAnalysis>();
-        
+
         foreach (var (type, order, configuration) in middlewareInfos.OrderBy(m => m.Order))
         {
             var orderDisplay = order == int.MaxValue ? "Default" : order.ToString();
             var className = type.Name;
-            var typeParameters = type.IsGenericType ? 
-                $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>" : 
+            var typeParameters = type.IsGenericType ?
+                $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>" :
                 string.Empty;
-            
+
+            // Extract generic constraints for notification middleware
+            var genericConstraints = GetGenericConstraints(type);
+
             analysisResults.Add(new MiddlewareAnalysis(
                 Type: type,
                 Order: order,
                 OrderDisplay: orderDisplay,
                 ClassName: className,
                 TypeParameters: typeParameters,
+                GenericConstraints: genericConstraints,
                 Configuration: configuration
             ));
         }
-        
+
         return analysisResults;
     }
+
+    /// <summary>
+    /// Extracts generic constraints from a notification middleware type for display purposes.
+    /// </summary>
+    /// <param name="type">The type to analyze for generic constraints.</param>
+    /// <returns>A formatted string describing the generic constraints.</returns>
+    private static string GetGenericConstraints(Type type)
+    {
+        if (!type.IsGenericTypeDefinition)
+            return string.Empty;
+
+        var genericParameters = type.GetGenericArguments();
+        if (genericParameters.Length == 0)
+            return string.Empty;
+
+        var constraintParts = new List<string>();
+
+        foreach (var parameter in genericParameters)
+        {
+            var parameterConstraints = new List<string>();
+
+            // Check for reference type constraint (class)
+            if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.ReferenceTypeConstraint))
+            {
+                parameterConstraints.Add("class");
+            }
+
+            // Check for value type constraint (struct)
+            if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.NotNullableValueTypeConstraint))
+            {
+                parameterConstraints.Add("struct");
+            }
+
+            // Add type constraints (interfaces and base classes)
+            var typeConstraints = parameter.GetGenericParameterConstraints();
+            foreach (var constraint in typeConstraints)
+            {
+                if (constraint.IsInterface || constraint.IsClass)
+                {
+                    // Format generic types nicely
+                    string constraintName = FormatTypeName(constraint);
+                    parameterConstraints.Add(constraintName);
+                }
+            }
+
+            // Check for new() constraint
+            if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
+            {
+                parameterConstraints.Add("new()");
+            }
+
+            // If this parameter has constraints, add them
+            if (parameterConstraints.Count > 0)
+            {
+                var constraintText = $"where {parameter.Name} : {string.Join(", ", parameterConstraints)}";
+                constraintParts.Add(constraintText);
+            }
+        }
+
+        return constraintParts.Count > 0 ? string.Join(" ", constraintParts) : string.Empty;
+    }
+
+    /// <summary>
+    /// Formats a type name for display, handling generic types nicely.
+    /// </summary>
+    /// <param name="type">The type to format.</param>
+    /// <returns>A formatted type name string.</returns>
+    private static string FormatTypeName(Type type)
+    {
+        if (!type.IsGenericType)
+            return type.Name;
+
+        var genericTypeName = type.Name;
+        var backtickIndex = genericTypeName.IndexOf('`');
+        if (backtickIndex > 0)
+        {
+            genericTypeName = genericTypeName[..backtickIndex];
+        }
+
+        var genericArgs = type.GetGenericArguments();
+        var genericArgNames = genericArgs.Select(arg => arg.IsGenericParameter ? arg.Name : FormatTypeName(arg));
+
+        return $"{genericTypeName}<{string.Join(", ", genericArgNames)}>";
+    }
+
+    /// <summary>
+    /// Checks if a generic type definition can be instantiated with the given type arguments
+    /// by validating all generic constraints.
+    /// </summary>
+    /// <param name="genericTypeDefinition">The generic type definition to check.</param>
+    /// <param name="typeArguments">The type arguments to validate against the constraints.</param>
+    /// <returns>True if the type can be instantiated with the given arguments, false otherwise.</returns>
+    private static bool CanSatisfyGenericConstraints(Type genericTypeDefinition, params Type[] typeArguments)
+    {
+        if (!genericTypeDefinition.IsGenericTypeDefinition)
+        {
+            return false;
+        }
+
+        var genericParameters = genericTypeDefinition.GetGenericArguments();
+
+        if (genericParameters.Length != typeArguments.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < genericParameters.Length; i++)
+        {
+            var parameter = genericParameters[i];
+            var argument = typeArguments[i];
+
+            // Check class constraint
+            if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.ReferenceTypeConstraint) && argument.IsValueType)
+            {
+                return false;
+            }
+
+            // Check struct constraint
+            if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.NotNullableValueTypeConstraint) &&
+                (!argument.IsValueType || (argument.IsGenericType && argument.GetGenericTypeDefinition() == typeof(Nullable<>))))
+            {
+                return false;
+            }
+
+            // Check new() constraint
+            if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint) &&
+                !argument.IsValueType && argument.GetConstructor(Type.EmptyTypes) == null)
+            {
+                return false;
+            }
+
+            // Check type constraints (where T : SomeType)
+            var constraints = parameter.GetGenericParameterConstraints();
+            foreach (var constraint in constraints)
+            {
+                // For now, only enforce constraints that we can confidently validate
+                // to avoid false negatives that break existing functionality
+                if (constraint is { IsInterface: true, IsGenericType: false })
+                {
+                    // Simple interface constraint (like IDisposable)
+                    if (!constraint.IsAssignableFrom(argument))
+                        return false;
+                }
+                else if (constraint is { IsClass: true, IsGenericType: false } && !constraint.IsAssignableFrom(argument)) // Simple class constraint (like Exception)
+                {
+                    return false;
+                }
+                // For complex constraints involving generic types or generic parameters,
+                // let runtime handle the validation to avoid breaking existing scenarios
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Minimal notification implementation that satisfies basic INotification constraints for middleware inspection.
+    /// </summary>
+    private sealed class MinimalNotification : INotification { }
 }

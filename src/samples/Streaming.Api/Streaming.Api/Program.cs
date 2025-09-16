@@ -1,9 +1,8 @@
 using Blazing.Mediator;
-using Streaming.Api.Client.Pages;
 using Streaming.Api.Components;
 using Streaming.Api.Endpoints;
-using Streaming.Api.Services;
 using Streaming.Api.Middleware;
+using Streaming.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

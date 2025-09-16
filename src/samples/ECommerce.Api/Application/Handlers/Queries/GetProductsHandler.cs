@@ -12,7 +12,8 @@ namespace ECommerce.Api.Application.Handlers.Queries;
 /// Handler for retrieving a paginated list of products with optional filtering.
 /// </summary>
 /// <param name="context">The database context for accessing product data.</param>
-public class GetProductsHandler(ECommerceDbContext context) : IRequestHandler<GetProductsQuery, PagedResult<ProductDto>>
+public class GetProductsHandler(ECommerceDbContext context)
+    : IRequestHandler<GetProductsQuery, PagedResult<ProductDto>>
 {
     /// <summary>
     /// Handles the get products query by applying filters and pagination.

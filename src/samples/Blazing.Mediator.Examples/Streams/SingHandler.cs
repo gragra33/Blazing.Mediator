@@ -36,7 +36,7 @@ public class SingHandler : IStreamRequestHandler<Sing, Song>
                 yield break;
 
             yield return new Song { Message = $"Singing {note}" };
-            
+
             // Simulate some async work
             await Task.Delay(10, cancellationToken);
         }

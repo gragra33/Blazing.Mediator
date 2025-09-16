@@ -1,10 +1,6 @@
-using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator.Abstractions;
-using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using Shouldly;
-using Xunit;
 
 namespace Blazing.Mediator.Tests.Tests
 {
@@ -41,7 +37,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
             var renderer = serviceProvider.GetService<IStatisticsRenderer>();
-            
+
             statistics.ShouldBeNull();
             renderer.ShouldBeNull();
         }
@@ -62,7 +58,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
             var renderer = serviceProvider.GetService<IStatisticsRenderer>();
-            
+
             statistics.ShouldNotBeNull();
             renderer.ShouldNotBeNull();
         }
@@ -83,7 +79,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
             var renderer = serviceProvider.GetService<IStatisticsRenderer>();
-            
+
             statistics.ShouldBeNull();
             renderer.ShouldBeNull();
         }
@@ -644,7 +640,7 @@ namespace Blazing.Mediator.Tests.Tests
             var customRenderer = new TestStatisticsRenderer();
             services.AddSingleton<IStatisticsRenderer>(customRenderer);
             services.AddMediator(config => { }, enableStatisticsTracking: true, typeof(TestCommand).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
             var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
@@ -666,7 +662,7 @@ namespace Blazing.Mediator.Tests.Tests
             // Arrange
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: false, typeof(TestCommand).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();

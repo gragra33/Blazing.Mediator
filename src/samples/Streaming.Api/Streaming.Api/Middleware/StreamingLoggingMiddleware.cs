@@ -22,8 +22,8 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
     public int Order => 0; // Execute first
 
     public async IAsyncEnumerable<TResponse> HandleAsync(
-        TRequest request, 
-        StreamRequestHandlerDelegate<TResponse> next, 
+        TRequest request,
+        StreamRequestHandlerDelegate<TResponse> next,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var requestType = typeof(TRequest).Name;
@@ -36,8 +36,8 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
         try
         {
             // Serialize and log request details (be careful with sensitive data in production)
-            var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions 
-            { 
+            var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions
+            {
                 WriteIndented = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
@@ -63,7 +63,7 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
 
             _logger.LogError(ex, "❌ STREAM REQUEST: {RequestType} failed to start at {EndTime}. " +
                                 "Duration: {Duration}ms",
-                requestType, endTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), 
+                requestType, endTime.ToString("yyyy-MM-dd HH:mm:ss.fff"),
                 duration.TotalMilliseconds);
             throw;
         }
@@ -71,7 +71,7 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
         await foreach (var item in stream.WithCancellation(cancellationToken))
         {
             itemCount++;
-            
+
             // Log every 100 items to avoid log spam
             if (itemCount % 100 == 0)
             {
@@ -87,7 +87,7 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
 
         _logger.LogInformation("✅ STREAM REQUEST: {RequestType} completed at {EndTime}. " +
                                "Total duration: {Duration}ms, Stream duration: {StreamDuration}ms, Items: {ItemCount}",
-            requestType, completionTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), 
+            requestType, completionTime.ToString("yyyy-MM-dd HH:mm:ss.fff"),
             totalDuration.TotalMilliseconds, streamDuration.TotalMilliseconds, itemCount);
     }
 }

@@ -229,7 +229,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         OperationResult<int>? result = JsonSerializer.Deserialize<OperationResult<int>>(responseContent, _jsonOptions);
-        
+
         result.ShouldNotBeNull();
         result!.Success.ShouldBeFalse();
         result.Message.ShouldBe("Validation failed");
@@ -320,8 +320,81 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         result.ShouldNotBeNull();
     }
 
+    /// <summary>
+    /// Tests that completing an order progresses through all status changes and returns OK status.
+    /// This endpoint demonstrates the notification system with multiple status changes.
+    /// </summary>
+    [Fact]
+    public async Task CompleteOrder_WithValidId_ReturnsOkWithCompletionDetails()
+    {
+        // Act
+        HttpResponseMessage response = await _client.PostAsync("/api/orders/1/complete", null);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        string content = await response.Content.ReadAsStringAsync();
+        
+        // Verify the response contains completion information
+        content.ShouldNotBeNull();
+        content.ShouldContain("Order completed successfully");
+        content.ShouldContain("orderId");
+    }
+
+    /// <summary>
+    /// Tests that completing a non-existent order returns appropriate error status.
+    /// </summary>
+    [Fact]
+    public async Task CompleteOrder_WithNonExistentId_ReturnsInternalServerError()
+    {
+        // Act
+        HttpResponseMessage response = await _client.PostAsync("/api/orders/9999/complete", null);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        string content = await response.Content.ReadAsStringAsync();
+        content.ShouldContain("Internal server error");
+    }
+
+    /// <summary>
+    /// Tests that processing order workflow progresses through all status changes and returns OK status.
+    /// This endpoint demonstrates the full notification system workflow.
+    /// </summary>
+    [Fact]
+    public async Task ProcessOrderWorkflow_WithValidId_ReturnsOkWithWorkflowDetails()
+    {
+        // Act
+        HttpResponseMessage response = await _client.PostAsync("/api/orders/1/process-workflow", null);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        string content = await response.Content.ReadAsStringAsync();
+        
+        // Verify the response contains workflow completion information
+        content.ShouldNotBeNull();
+        content.ShouldContain("Order workflow completed successfully");
+        content.ShouldContain("orderId");
+        content.ShouldContain("finalStatus");
+        content.ShouldContain("Delivered");
+        content.ShouldContain("notificationsSent");
+    }
+
+    /// <summary>
+    /// Tests that processing order workflow for a non-existent order returns appropriate error status.
+    /// </summary>
+    [Fact]
+    public async Task ProcessOrderWorkflow_WithNonExistentId_ReturnsInternalServerError()
+    {
+        // Act
+        HttpResponseMessage response = await _client.PostAsync("/api/orders/9999/process-workflow", null);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        string content = await response.Content.ReadAsStringAsync();
+        content.ShouldContain("Internal server error");
+    }
+
     // Additional validation and error scenario tests
-    
+
     /// <summary>
     /// Tests that creating an order with a non-existent product returns BadRequest status with appropriate error message.
     /// </summary>
@@ -352,7 +425,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         OperationResult<int>? result = JsonSerializer.Deserialize<OperationResult<int>>(responseContent, _jsonOptions);
-        
+
         result.ShouldNotBeNull();
         result!.Success.ShouldBeFalse();
         result.Message.ShouldContain("Product with ID 9999 not found or inactive");
@@ -388,7 +461,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         OperationResult<int>? result = JsonSerializer.Deserialize<OperationResult<int>>(responseContent, _jsonOptions);
-        
+
         result.ShouldNotBeNull();
         result!.Success.ShouldBeFalse();
         result.Message.ShouldBe("Validation failed");
@@ -416,7 +489,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         OperationResult<bool>? result = JsonSerializer.Deserialize<OperationResult<bool>>(responseContent, _jsonOptions);
-        
+
         result.ShouldNotBeNull();
         result!.Success.ShouldBeFalse();
         result.Message.ShouldBe("Order with ID 9999 not found");

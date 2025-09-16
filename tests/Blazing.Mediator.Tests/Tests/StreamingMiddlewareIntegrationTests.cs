@@ -1,5 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -41,8 +41,8 @@ public class StreamingMiddlewareIntegrationTests
         public List<string> LogEntries { get; } = new();
 
         public async IAsyncEnumerable<TResponse> HandleAsync(
-            TRequest request, 
-            StreamRequestHandlerDelegate<TResponse> next, 
+            TRequest request,
+            StreamRequestHandlerDelegate<TResponse> next,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             LogEntries.Add($"Stream started: {typeof(TRequest).Name}");
@@ -72,12 +72,12 @@ public class StreamingMiddlewareIntegrationTests
         }
 
         public async IAsyncEnumerable<TResponse> HandleAsync(
-            TRequest request, 
-            StreamRequestHandlerDelegate<TResponse> next, 
+            TRequest request,
+            StreamRequestHandlerDelegate<TResponse> next,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             ProcessedRequests.Add($"Processing: {typeof(TRequest).Name}");
-            
+
             await foreach (var item in next().WithCancellation(cancellationToken))
             {
                 yield return item;
@@ -94,12 +94,12 @@ public class StreamingMiddlewareIntegrationTests
         // Arrange
         var loggingMiddleware = new StreamingLoggingMiddleware<TestStreamRequest, string>();
         var services = new ServiceCollection();
-        
+
         services.AddMediator(config =>
         {
             config.AddMiddleware<StreamingLoggingMiddleware<TestStreamRequest, string>>();
         }, _testAssembly);
-        
+
         services.AddSingleton(loggingMiddleware);
 
         var serviceProvider = services.BuildServiceProvider();
@@ -138,12 +138,12 @@ public class StreamingMiddlewareIntegrationTests
         // Arrange
         var conditionalMiddleware = new ConditionalStreamingMiddleware<TestStreamRequest, string>();
         var services = new ServiceCollection();
-        
+
         services.AddMediator(config =>
         {
             config.AddMiddleware<ConditionalStreamingMiddleware<TestStreamRequest, string>>();
         }, _testAssembly);
-        
+
         services.AddSingleton(conditionalMiddleware);
 
         var serviceProvider = services.BuildServiceProvider();
@@ -182,15 +182,15 @@ public class StreamingMiddlewareIntegrationTests
         // Arrange
         var loggingMiddleware = new StreamingLoggingMiddleware<TestStreamRequest, string>();
         var conditionalMiddleware = new ConditionalStreamingMiddleware<TestStreamRequest, string>();
-        
+
         var services = new ServiceCollection();
-        
+
         services.AddMediator(config =>
         {
             config.AddMiddleware<StreamingLoggingMiddleware<TestStreamRequest, string>>(); // Order 1
             config.AddMiddleware<ConditionalStreamingMiddleware<TestStreamRequest, string>>(); // Order 2
         }, _testAssembly);
-        
+
         services.AddSingleton(loggingMiddleware);
         services.AddSingleton(conditionalMiddleware);
 
@@ -208,11 +208,11 @@ public class StreamingMiddlewareIntegrationTests
 
         // Assert
         results.Count.ShouldBe(4);
-        
+
         // Both middleware should have executed
         loggingMiddleware.LogEntries.Count.ShouldBe(6); // Start + 4 items + Complete
         conditionalMiddleware.ProcessedRequests.Count.ShouldBe(1);
-        
+
         // Logging middleware (Order 1) should execute around conditional middleware (Order 2)
         loggingMiddleware.LogEntries[0].ShouldBe("Stream started: TestStreamRequest");
         conditionalMiddleware.ProcessedRequests[0].ShouldBe("Processing: TestStreamRequest");
@@ -226,7 +226,7 @@ public class StreamingMiddlewareIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        
+
         // Enable auto-discovery for request middleware (should include streaming middleware)
         services.AddMediator(
             configureMiddleware: null,
@@ -241,7 +241,7 @@ public class StreamingMiddlewareIntegrationTests
         // Verify that streaming middleware was discovered
         var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var registeredMiddleware = inspector.GetRegisteredMiddleware();
-        
+
         // Should include the streaming middleware types defined in this test class
         // Note: This depends on the auto-discovery implementation finding these middleware types
         registeredMiddleware.ShouldContain(typeof(StreamingLoggingMiddleware<,>));
@@ -270,12 +270,12 @@ public class StreamingMiddlewareIntegrationTests
         // Arrange
         var loggingMiddleware = new StreamingLoggingMiddleware<TestStreamRequest, string>();
         var services = new ServiceCollection();
-        
+
         services.AddMediator(config =>
         {
             config.AddMiddleware<StreamingLoggingMiddleware<TestStreamRequest, string>>();
         }, _testAssembly);
-        
+
         services.AddSingleton(loggingMiddleware);
 
         var serviceProvider = services.BuildServiceProvider();
@@ -311,7 +311,7 @@ public class StreamingMiddlewareIntegrationTests
 
         // Assert
         results.Count.ShouldBe(3);
-        
+
         // Middleware should have logged the items that were processed
         loggingMiddleware.LogEntries.Count.ShouldBeGreaterThanOrEqualTo(4); // Start + at least 3 items
         loggingMiddleware.LogEntries[0].ShouldBe("Stream started: TestStreamRequest");

@@ -14,6 +14,6 @@ public class ContactDto
     public string Country { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string Avatar { get; set; } = string.Empty;
-    
+
     public string FullName => $"{FirstName} {LastName}".Trim();
 }

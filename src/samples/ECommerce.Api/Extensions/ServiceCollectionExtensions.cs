@@ -2,6 +2,7 @@ using Blazing.Mediator;
 using ECommerce.Api.Application.Middleware;
 using ECommerce.Api.Application.Services;
 using ECommerce.Api.Infrastructure.Data;
+using ECommerce.Api.Services;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,6 +29,7 @@ public static class ServiceCollectionExtensions
         services.AddApiServices();
         services.AddDatabaseServices(configuration, environment);
         services.AddValidationServices();
+        services.AddStatisticsServices();
         services.AddMediatorServices();
         services.AddNotificationServices();
 
@@ -42,6 +44,16 @@ public static class ServiceCollectionExtensions
         services.AddControllers();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
+        services.AddHttpContextAccessor();
+
+        // Add session support for session-based statistics tracking
+        services.AddDistributedMemoryCache();
+        services.AddSession(options =>
+        {
+            options.IdleTimeout = TimeSpan.FromMinutes(30);
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
+        });
 
         return services;
     }
@@ -80,6 +92,19 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Registers statistics tracking services.
+    /// </summary>
+    private static IServiceCollection AddStatisticsServices(this IServiceCollection services)
+    {
+        services.AddSingleton<MediatorStatisticsTracker>();
+        
+        // Add a background service to clean up old sessions
+        services.AddHostedService<StatisticsCleanupService>();
+        
+        return services;
+    }
+
+    /// <summary>
     /// Registers Mediator with CQRS handlers and conditional middleware.
     /// </summary>
     private static IServiceCollection AddMediatorServices(this IServiceCollection services)
@@ -88,6 +113,10 @@ public static class ServiceCollectionExtensions
         {
             // Enable statistics tracking for performance monitoring
             config.EnableStatisticsTracking = true;
+
+            // Add our custom statistics tracking middleware first
+            config.AddMiddleware(typeof(Middleware.StatisticsTrackingMiddleware<,>));
+            config.AddMiddleware(typeof(Middleware.StatisticsTrackingVoidMiddleware<>));
 
             // Add conditional middleware for order operations
             config.AddMiddleware(typeof(OrderLoggingMiddleware<,>));

@@ -1,5 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using static Blazing.Mediator.Tests.NotificationTests.NotificationMiddlewareTests;
 
@@ -38,7 +38,7 @@ public class NotificationMiddlewareDiscoveryTests
         // Get notification middleware inspector
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        
+
         // Should discover notification middleware
         notificationMiddleware.Count.ShouldBeGreaterThan(0);
         notificationMiddleware.ShouldContain(typeof(LoggingNotificationMiddleware));
@@ -70,7 +70,7 @@ public class NotificationMiddlewareDiscoveryTests
         // Get notification middleware inspector
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        
+
         // Should NOT discover any notification middleware
         notificationMiddleware.Count.ShouldBe(0);
     }
@@ -189,7 +189,7 @@ public class NotificationMiddlewareDiscoveryTests
         {
             // Manually register one notification middleware
             config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
-        }, 
+        },
         discoverMiddleware: false,
         discoverNotificationMiddleware: true, // Auto-discover as well
         _testAssembly);
@@ -202,13 +202,13 @@ public class NotificationMiddlewareDiscoveryTests
         // Should have both manual and auto-discovered notification middleware
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        
+
         // Should include manually registered middleware
         notificationMiddleware.ShouldContain(typeof(LoggingNotificationMiddleware));
-        
+
         // Should also include auto-discovered middleware (ConditionalNotificationMiddleware)
         notificationMiddleware.ShouldContain(typeof(ConditionalNotificationMiddleware));
-        
+
         // Depending on implementation, LoggingNotificationMiddleware might appear twice
         // (once manual, once auto-discovered) or be deduplicated
         notificationMiddleware.Count.ShouldBeGreaterThanOrEqualTo(2);

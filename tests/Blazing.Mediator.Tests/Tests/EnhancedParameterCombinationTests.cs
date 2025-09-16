@@ -1,6 +1,6 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 namespace Blazing.Mediator.Tests;
@@ -61,8 +61,8 @@ public class EnhancedParameterCombinationTests
     [InlineData(true, true, true)]   // Stats + both middleware types
     [InlineData(false, true, true)]  // No stats + both middleware types
     public void AddMediator_StatisticsAndMiddlewareCombinations_WorkCorrectly(
-        bool enableStats, 
-        bool discoverRequest, 
+        bool enableStats,
+        bool discoverRequest,
         bool discoverNotification)
     {
         // Arrange

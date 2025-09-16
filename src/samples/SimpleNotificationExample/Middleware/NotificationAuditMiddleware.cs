@@ -34,18 +34,18 @@ public class NotificationAuditMiddleware(ILogger<NotificationAuditMiddleware> lo
             _auditLog.Add(auditEntry);
         }
 
-        logger.LogInformation("& Audit: Started processing {NotificationType} at {Timestamp}", 
+        logger.LogInformation("& Audit: Started processing {NotificationType} at {Timestamp}",
             auditEntry.NotificationType, auditEntry.Timestamp);
 
         try
         {
             await next(notification, cancellationToken);
-            
+
             auditEntry.Status = "Completed";
             auditEntry.CompletedAt = DateTime.UtcNow;
             auditEntry.Duration = (auditEntry.CompletedAt.Value - auditEntry.Timestamp).TotalMilliseconds;
 
-            logger.LogInformation("& Audit: Completed {NotificationType} in {Duration}ms", 
+            logger.LogInformation("& Audit: Completed {NotificationType} in {Duration}ms",
                 auditEntry.NotificationType, auditEntry.Duration);
         }
         catch (Exception ex)
@@ -55,7 +55,7 @@ public class NotificationAuditMiddleware(ILogger<NotificationAuditMiddleware> lo
             auditEntry.Duration = (auditEntry.CompletedAt.Value - auditEntry.Timestamp).TotalMilliseconds;
             auditEntry.ErrorMessage = ex.Message;
 
-            logger.LogWarning("& Audit: Failed {NotificationType} after {Duration}ms - {Error}", 
+            logger.LogWarning("& Audit: Failed {NotificationType} after {Duration}ms - {Error}",
                 auditEntry.NotificationType, auditEntry.Duration, ex.Message);
             throw;
         }

@@ -211,8 +211,135 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }
 
+    /// <summary>
+    /// Tests that reducing product stock with default quantity returns OK status with stock reduction details.
+    /// This endpoint demonstrates the inventory management notification system.
+    /// </summary>
+    [Fact]
+    public async Task ReduceStock_WithValidId_ReturnsOkWithStockReductionDetails()
+    {
+        // Act
+        HttpResponseMessage response = await _client.PostAsync("/api/products/1/reduce-stock", null);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        string content = await response.Content.ReadAsStringAsync();
+        
+        // Verify the response contains stock reduction information
+        content.ShouldNotBeNull();
+        content.ShouldContain("Stock reduced by");
+        content.ShouldContain("productId");
+        content.ShouldContain("productName");
+        content.ShouldContain("previousStock");
+        content.ShouldContain("newStock");
+        content.ShouldContain("notificationTrigger");
+    }
+
+    /// <summary>
+    /// Tests that reducing product stock with custom quantity returns OK status with appropriate stock reduction.
+    /// </summary>
+    [Fact]
+    public async Task ReduceStock_WithCustomQuantity_ReturnsOkWithCustomReduction()
+    {
+        // Act
+        HttpResponseMessage response = await _client.PostAsync("/api/products/1/reduce-stock?quantity=10", null);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        string content = await response.Content.ReadAsStringAsync();
+        
+        // Verify the response contains the custom quantity reduction
+        content.ShouldNotBeNull();
+        content.ShouldContain("Stock reduced by 10 units");
+    }
+
+    /// <summary>
+    /// Tests that reducing stock for a non-existent product returns InternalServerError status.
+    /// The reduce-stock endpoint handles errors via try-catch and returns 500 for any exceptions.
+    /// </summary>
+    [Fact]
+    public async Task ReduceStock_WithNonExistentId_ReturnsInternalServerError()
+    {
+        // Act
+        HttpResponseMessage response = await _client.PostAsync("/api/products/9999/reduce-stock", null);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        string content = await response.Content.ReadAsStringAsync();
+        content.ShouldContain("Internal server error");
+    }
+
+    /// <summary>
+    /// Tests that simulating a bulk order with default quantity returns OK status with order simulation details.
+    /// This endpoint demonstrates the notification system for inventory management.
+    /// </summary>
+    [Fact]
+    public async Task SimulateBulkOrder_WithValidId_ReturnsOkWithSimulationDetails()
+    {
+        // Act
+        HttpResponseMessage response = await _client.PostAsync("/api/products/1/simulate-bulk-order", null);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        string content = await response.Content.ReadAsStringAsync();
+        
+        // Verify the response contains bulk order simulation information
+        content.ShouldNotBeNull();
+        content.ShouldContain("Bulk order simulation completed");
+        content.ShouldContain("orderId");
+        content.ShouldContain("productId");
+        content.ShouldContain("productName");
+        content.ShouldContain("orderQuantity");
+        content.ShouldContain("notificationsSent");
+    }
+
+    /// <summary>
+    /// Tests that simulating a bulk order with custom quantity may fail with BadRequest if validation fails.
+    /// The simulate-bulk-order endpoint can return BadRequest if the order creation fails validation.
+    /// </summary>
+    [Fact]
+    public async Task SimulateBulkOrder_WithCustomQuantity_ReturnsAppropriateResponse()
+    {
+        // Act
+        HttpResponseMessage response = await _client.PostAsync("/api/products/1/simulate-bulk-order?orderQuantity=25", null);
+
+        // Assert
+        // This endpoint may return OK or BadRequest depending on validation and business rules
+        (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest).ShouldBeTrue();
+        
+        string content = await response.Content.ReadAsStringAsync();
+        content.ShouldNotBeNull();
+        
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            // If successful, verify the response contains the custom order quantity
+            content.ShouldContain("orderQuantity");
+        }
+        else
+        {
+            // If BadRequest, should contain error information
+            content.ShouldContain("error");
+        }
+    }
+
+    /// <summary>
+    /// Tests that simulating a bulk order for a non-existent product returns InternalServerError status.
+    /// The simulate-bulk-order endpoint handles errors via try-catch and returns 500 for any exceptions.
+    /// </summary>
+    [Fact]
+    public async Task SimulateBulkOrder_WithNonExistentId_ReturnsInternalServerError()
+    {
+        // Act
+        HttpResponseMessage response = await _client.PostAsync("/api/products/9999/simulate-bulk-order", null);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        string content = await response.Content.ReadAsStringAsync();
+        content.ShouldContain("Internal server error");
+    }
+
     // Validation Tests
-    
+
     /// <summary>
     /// Tests that creating a product with invalid data returns BadRequest status with validation errors.
     /// </summary>
@@ -237,7 +364,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
-        
+
         errors.ShouldNotBeNull();
         errors!.ShouldContain("Product name is required");
         errors.ShouldContain("Price must be greater than 0");
@@ -268,7 +395,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
-        
+
         errors.ShouldNotBeNull();
         errors!.ShouldContain("Product name is required");
     }
@@ -297,7 +424,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
-        
+
         errors.ShouldNotBeNull();
         errors!.ShouldContain("Product name is required");
         errors.ShouldContain("Product price must be greater than 0");
@@ -351,7 +478,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         string responseContent = await response.Content.ReadAsStringAsync();
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
-        
+
         errors.ShouldNotBeNull();
         errors!.ShouldContain("Stock quantity cannot be negative");
     }

@@ -184,27 +184,25 @@ public class ProductsController(IMediator mediator) : ControllerBase
         {
             // Get current stock
             var product = await mediator.Send(new GetProductByIdQuery { ProductId = id });
-            if (product == null)
-                return NotFound($"Product with ID {id} not found");
 
             // Calculate new stock (ensure it doesn't go negative)
             var newStock = Math.Max(0, product.StockQuantity - quantity);
-            
+
             // Update stock
-            await mediator.Send(new UpdateProductStockCommand 
-            { 
-                ProductId = id, 
-                StockQuantity = newStock 
+            await mediator.Send(new UpdateProductStockCommand
+            {
+                ProductId = id,
+                StockQuantity = newStock
             });
 
-            return Ok(new { 
-                message = $"Stock reduced by {quantity} units", 
+            return Ok(new
+            {
+                message = $"Stock reduced by {quantity} units",
                 productId = id,
                 productName = product.Name,
                 previousStock = product.StockQuantity,
-                newStock = newStock,
-                notificationTrigger = newStock <= 10 ? "Low Stock Notification Sent" : 
-                                     newStock == 0 ? "Out of Stock Notification Sent" : "No Notification"
+                newStock,
+                notificationTrigger = newStock <= 10 ? "Low Stock Notification Sent" : "No Notification"
             });
         }
         catch (Exception ex)
@@ -229,8 +227,6 @@ public class ProductsController(IMediator mediator) : ControllerBase
         {
             // Get current product
             var product = await mediator.Send(new GetProductByIdQuery { ProductId = id });
-            if (product == null)
-                return NotFound($"Product with ID {id} not found");
 
             // Create a mock order to trigger stock notifications
             var mockOrder = new CreateOrderCommand
@@ -238,33 +234,32 @@ public class ProductsController(IMediator mediator) : ControllerBase
                 CustomerId = 999,
                 CustomerEmail = "demo@notifications.com",
                 ShippingAddress = "123 Mock St, Test City, TS 12345",
-                Items = new List<OrderItemRequest>
-                {
-                    new OrderItemRequest
+                Items =
+                [
+                    new()
                     {
                         ProductId = id,
                         Quantity = orderQuantity
                     }
-                }
+                ]
             };
 
             var result = await mediator.Send(mockOrder);
-            
+
             if (result.Success)
             {
-                return Ok(new { 
-                    message = $"Bulk order simulation completed",
+                return Ok(new
+                {
+                    message = "Bulk order simulation completed",
                     orderId = result.Data,
                     productId = id,
                     productName = product.Name,
-                    orderQuantity = orderQuantity,
+                    orderQuantity,
                     notificationsSent = new[] { "Order Created", "Email Confirmation", "Inventory Tracking", "Low Stock Alert (if triggered)" }
                 });
             }
-            else
-            {
-                return BadRequest(new { error = "Order simulation failed", message = result.Message });
-            }
+
+            return BadRequest(new { error = "Order simulation failed", message = result.Message });
         }
         catch (Exception ex)
         {

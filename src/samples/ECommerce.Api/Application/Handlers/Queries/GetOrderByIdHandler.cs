@@ -12,7 +12,8 @@ namespace ECommerce.Api.Application.Handlers.Queries;
 /// Handler for retrieving a specific order by its unique identifier.
 /// </summary>
 /// <param name="context">The database context for accessing order data.</param>
-public class GetOrderByIdHandler(ECommerceDbContext context) : IRequestHandler<GetOrderByIdQuery, OrderDto>
+public class GetOrderByIdHandler(ECommerceDbContext context)
+    : IRequestHandler<GetOrderByIdQuery, OrderDto>
 {
     /// <summary>
     /// Handles the get order by ID query by retrieving the order with its items and product details.

@@ -1,8 +1,7 @@
-using System.IO;
-using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Blazing.Mediator.Benchmarks
 {
@@ -11,7 +10,7 @@ namespace Blazing.Mediator.Benchmarks
     public class Benchmarks
     {
         private IMediator _mediator;
-        private readonly Ping _request = new Ping {Message = "Hello World"};
+        private readonly Ping _request = new Ping { Message = "Hello World" };
         private readonly Pinged _notification = new Pinged();
 
         [GlobalSetup]

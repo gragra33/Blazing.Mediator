@@ -1,10 +1,7 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
-using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using Shouldly;
-using Xunit;
 
 namespace Blazing.Mediator.Tests.Tests
 {
@@ -22,7 +19,8 @@ namespace Blazing.Mediator.Tests.Tests
 
         #region ALL AddMediator Overloads Coverage
 
-        [Fact] public void AddMediator_DefaultParameters_DisablesStatistics()
+        [Fact]
+        public void AddMediator_DefaultParameters_DisablesStatistics()
         {
             ServiceCollection services = new();
             services.AddMediator();
@@ -30,7 +28,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<MediatorStatistics>().ShouldBeNull();
         }
 
-        [Fact] public void AddMediator_EnableStatisticsTrue_EnablesStatistics()
+        [Fact]
+        public void AddMediator_EnableStatisticsTrue_EnablesStatistics()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: true, (Assembly[])null!);
@@ -38,7 +37,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<MediatorStatistics>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_EnableStatisticsFalse_DisablesStatistics()
+        [Fact]
+        public void AddMediator_EnableStatisticsFalse_DisablesStatistics()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: false, (Assembly[])null!);
@@ -46,7 +46,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<MediatorStatistics>().ShouldBeNull();
         }
 
-        [Fact] public void AddMediator_WithAssemblies_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_WithAssemblies_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, typeof(TestCommand).Assembly);
@@ -54,7 +55,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_WithTypes_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_WithTypes_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, typeof(TestCommand), typeof(TestQuery));
@@ -62,7 +64,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_WithDiscoverMiddlewareAndAssemblies_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_WithDiscoverMiddlewareAndAssemblies_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: null, typeof(TestCommand).Assembly);
@@ -70,7 +73,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_WithDiscoverMiddlewareAndTypes_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_WithDiscoverMiddlewareAndTypes_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: null, typeof(TestCommand).Assembly);
@@ -78,7 +82,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_WithDiscoverMiddlewareAndNullTypes_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_WithDiscoverMiddlewareAndNullTypes_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: null, (Assembly[])null!);
@@ -86,7 +91,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorWithNotificationMiddleware_WithAssemblies_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorWithNotificationMiddleware_WithAssemblies_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorWithNotificationMiddleware(discoverNotificationMiddleware: false, typeof(TestCommand).Assembly);
@@ -94,7 +100,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorWithNotificationMiddleware_WithTypes_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorWithNotificationMiddleware_WithTypes_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorWithNotificationMiddleware(discoverNotificationMiddleware: false, typeof(TestCommand));
@@ -102,7 +109,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorWithNotificationMiddleware_WithNullTypes_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorWithNotificationMiddleware_WithNullTypes_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorWithNotificationMiddleware(discoverNotificationMiddleware: false, (Type[])null!);
@@ -110,7 +118,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_WithConfigurationAndAssemblies_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_WithConfigurationAndAssemblies_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, typeof(TestCommand).Assembly);
@@ -118,7 +127,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_WithConfigurationAndStatisticsDisabled_DisablesStatistics()
+        [Fact]
+        public void AddMediator_WithConfigurationAndStatisticsDisabled_DisablesStatistics()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: false, typeof(TestCommand).Assembly);
@@ -126,7 +136,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<MediatorStatistics>().ShouldBeNull();
         }
 
-        [Fact] public void AddMediator_WithConfigurationAndTypes_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_WithConfigurationAndTypes_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, typeof(TestCommand));
@@ -134,7 +145,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_WithConfigurationAndTypesAndStatisticsEnabled_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_WithConfigurationAndTypesAndStatisticsEnabled_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: true, typeof(TestCommand));
@@ -142,7 +154,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<MediatorStatistics>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_WithConfigurationAndNullTypes_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_WithConfigurationAndNullTypes_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: true, (Type[])null!);
@@ -150,7 +163,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_MainOverload_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_MainOverload_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, discoverMiddleware: false, discoverNotificationMiddleware: false, typeof(TestCommand).Assembly);
@@ -158,7 +172,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_MainOverloadWithStatistics_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_MainOverloadWithStatistics_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false, typeof(TestCommand).Assembly);
@@ -166,7 +181,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<MediatorStatistics>().ShouldBeNull();
         }
 
-        [Fact] public void AddMediator_MainOverloadWithNullAssemblies_UsesCallingAssembly()
+        [Fact]
+        public void AddMediator_MainOverloadWithNullAssemblies_UsesCallingAssembly()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, (Assembly[])null!);
@@ -174,7 +190,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_MainOverloadWithMiddlewareDiscovery_RegistersMiddleware()
+        [Fact]
+        public void AddMediator_MainOverloadWithMiddlewareDiscovery_RegistersMiddleware()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: true, discoverMiddleware: true, discoverNotificationMiddleware: true, typeof(TestCommand).Assembly);
@@ -186,7 +203,8 @@ namespace Blazing.Mediator.Tests.Tests
 
         #region AddMediatorFromCallingAssembly Coverage
 
-        [Fact] public void AddMediatorFromCallingAssembly_Basic_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorFromCallingAssembly_Basic_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorFromCallingAssembly();
@@ -194,7 +212,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorFromCallingAssembly_WithDiscoverMiddleware_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorFromCallingAssembly_WithDiscoverMiddleware_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorFromCallingAssembly(discoverMiddleware: false);
@@ -202,7 +221,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorFromCallingAssembly_WithConfiguration_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorFromCallingAssembly_WithConfiguration_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorFromCallingAssembly(config => { });
@@ -210,7 +230,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorFromCallingAssembly_WithConfigurationAndDiscoverMiddleware_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorFromCallingAssembly_WithConfigurationAndDiscoverMiddleware_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorFromCallingAssembly(config => { }, discoverMiddleware: false);
@@ -218,7 +239,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorFromCallingAssembly_WithAllParameters_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorFromCallingAssembly_WithAllParameters_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorFromCallingAssembly(config => { }, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false);
@@ -230,7 +252,8 @@ namespace Blazing.Mediator.Tests.Tests
 
         #region AddMediatorFromLoadedAssemblies Coverage
 
-        [Fact] public void AddMediatorFromLoadedAssemblies_Basic_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorFromLoadedAssemblies_Basic_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorFromLoadedAssemblies();
@@ -238,7 +261,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorFromLoadedAssemblies_WithFilter_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorFromLoadedAssemblies_WithFilter_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorFromLoadedAssemblies(assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
@@ -246,7 +270,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorFromLoadedAssemblies_WithDiscoverMiddleware_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorFromLoadedAssemblies_WithDiscoverMiddleware_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorFromLoadedAssemblies(discoverMiddleware: false);
@@ -254,7 +279,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorFromLoadedAssemblies_WithConfigurationAndFilter_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorFromLoadedAssemblies_WithConfigurationAndFilter_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorFromLoadedAssemblies(config => { }, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
@@ -262,7 +288,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorFromLoadedAssemblies_WithConfigurationDiscoverMiddlewareAndFilter_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorFromLoadedAssemblies_WithConfigurationDiscoverMiddlewareAndFilter_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorFromLoadedAssemblies(config => { }, discoverMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
@@ -270,7 +297,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediatorFromLoadedAssemblies_WithAllParameters_RegistersCorrectly()
+        [Fact]
+        public void AddMediatorFromLoadedAssemblies_WithAllParameters_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediatorFromLoadedAssemblies(config => { }, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
@@ -282,7 +310,8 @@ namespace Blazing.Mediator.Tests.Tests
 
         #region Edge Cases and Error Conditions
 
-        [Fact] public void AddMediator_WithNullServiceCollection_ThrowsArgumentNullException()
+        [Fact]
+        public void AddMediator_WithNullServiceCollection_ThrowsArgumentNullException()
         {
             Assert.Throws<ArgumentNullException>(() => ((IServiceCollection)null!).AddMediator());
             Assert.Throws<ArgumentNullException>(() => ((IServiceCollection)null!).AddMediatorFromCallingAssembly());
@@ -290,7 +319,8 @@ namespace Blazing.Mediator.Tests.Tests
             Assert.Throws<ArgumentNullException>(() => ((IServiceCollection)null!).AddMediatorWithNotificationMiddleware(false, Array.Empty<Assembly>()));
         }
 
-        [Fact] public void AddMediator_WithExistingStatisticsRenderer_DoesNotOverride()
+        [Fact]
+        public void AddMediator_WithExistingStatisticsRenderer_DoesNotOverride()
         {
             ServiceCollection services = new();
             var customRenderer = new TestStatisticsRenderer();
@@ -300,7 +330,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IStatisticsRenderer>().ShouldBeSameAs(customRenderer);
         }
 
-        [Fact] public void AddMediator_WithExistingMediatorStatistics_DoesNotOverride()
+        [Fact]
+        public void AddMediator_WithExistingMediatorStatistics_DoesNotOverride()
         {
             ServiceCollection services = new();
             var customRenderer = new TestStatisticsRenderer();
@@ -312,7 +343,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<MediatorStatistics>().ShouldBeSameAs(customStatistics);
         }
 
-        [Fact] public void AddMediator_WithDuplicateAssemblies_DeduplicatesCorrectly()
+        [Fact]
+        public void AddMediator_WithDuplicateAssemblies_DeduplicatesCorrectly()
         {
             ServiceCollection services = new();
             Assembly assembly = typeof(TestCommand).Assembly;
@@ -321,7 +353,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_WithEmptyAssemblies_RegistersCorrectly()
+        [Fact]
+        public void AddMediator_WithEmptyAssemblies_RegistersCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(Array.Empty<Assembly>());
@@ -329,7 +362,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_WithAssemblyWithoutHandlers_ProcessesCorrectly()
+        [Fact]
+        public void AddMediator_WithAssemblyWithoutHandlers_ProcessesCorrectly()
         {
             ServiceCollection services = new();
             Assembly assembly = typeof(string).Assembly;
@@ -342,7 +376,8 @@ namespace Blazing.Mediator.Tests.Tests
 
         #region Internal Logic Path Coverage
 
-        [Fact] public void AddMediator_ConditionalAssemblyHandling_WorksCorrectly()
+        [Fact]
+        public void AddMediator_ConditionalAssemblyHandling_WorksCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, (Assembly[])null!);
@@ -350,7 +385,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_ConditionalMiddlewareRegistration_WorksCorrectly()
+        [Fact]
+        public void AddMediator_ConditionalMiddlewareRegistration_WorksCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: true, discoverMiddleware: true, discoverNotificationMiddleware: false, typeof(TestCommand).Assembly);
@@ -358,7 +394,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMiddlewarePipelineInspector>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_ConditionalNotificationMiddlewareOnly_WorksCorrectly()
+        [Fact]
+        public void AddMediator_ConditionalNotificationMiddlewareOnly_WorksCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: true, typeof(TestCommand).Assembly);
@@ -366,7 +403,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<INotificationMiddlewarePipelineInspector>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_NullMiddlewareDiscovery_ConvertsToFalse()
+        [Fact]
+        public void AddMediator_NullMiddlewareDiscovery_ConvertsToFalse()
         {
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: true, discoverMiddleware: null, discoverNotificationMiddleware: null);
@@ -374,7 +412,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_ConditionalStatisticsRenderer_WorksCorrectly()
+        [Fact]
+        public void AddMediator_ConditionalStatisticsRenderer_WorksCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, (Assembly[])null!);
@@ -382,7 +421,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IStatisticsRenderer>().ShouldBeOfType<ConsoleStatisticsRenderer>();
         }
 
-        [Fact] public void AddMediator_ConditionalMediatorStatistics_WorksCorrectly()
+        [Fact]
+        public void AddMediator_ConditionalMediatorStatistics_WorksCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, (Assembly[])null!);
@@ -390,7 +430,8 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<MediatorStatistics>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_HandlerDuplicationPrevention_WorksCorrectly()
+        [Fact]
+        public void AddMediator_HandlerDuplicationPrevention_WorksCorrectly()
         {
             ServiceCollection services = new();
             Assembly assembly = typeof(TestCommandHandler).Assembly;
@@ -401,7 +442,8 @@ namespace Blazing.Mediator.Tests.Tests
             handlers.Count().ShouldBe(1);
         }
 
-        [Fact] public void AddMediator_PipelineInspectorRegistration_WorksCorrectly()
+        [Fact]
+        public void AddMediator_PipelineInspectorRegistration_WorksCorrectly()
         {
             ServiceCollection services = new();
             services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, (Assembly[])null!);
@@ -409,20 +451,21 @@ namespace Blazing.Mediator.Tests.Tests
             serviceProvider.GetService<IMiddlewarePipelineInspector>().ShouldNotBeNull();
         }
 
-        [Fact] public void AddMediator_ServiceLifetimes_AreCorrect()
+        [Fact]
+        public void AddMediator_ServiceLifetimes_AreCorrect()
         {
             ServiceCollection services = new();
             services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, (Assembly[])null!);
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-            
+
             using var scope1 = serviceProvider.CreateScope();
             using var scope2 = serviceProvider.CreateScope();
-            
+
             var mediator1 = scope1.ServiceProvider.GetService<IMediator>();
             var mediator2 = scope2.ServiceProvider.GetService<IMediator>();
             var stats1 = scope1.ServiceProvider.GetService<MediatorStatistics>();
             var stats2 = scope2.ServiceProvider.GetService<MediatorStatistics>();
-            
+
             mediator1.ShouldNotBeSameAs(mediator2); // Scoped
             stats1.ShouldBeSameAs(stats2); // Singleton
         }
@@ -431,12 +474,13 @@ namespace Blazing.Mediator.Tests.Tests
 
         #region Integration Tests
 
-        [Fact] public async Task AddMediator_FullIntegration_WorksEndToEnd()
+        [Fact]
+        public async Task AddMediator_FullIntegration_WorksEndToEnd()
         {
             ServiceCollection services = new();
             var customRenderer = new TestStatisticsRenderer();
             services.AddSingleton<IStatisticsRenderer>(customRenderer);
-            services.AddMediator(config => 
+            services.AddMediator(config =>
             {
                 config.AddMiddleware<FirstQueryMiddleware>();
             }, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, typeof(TestCommandHandler).Assembly);
@@ -449,19 +493,20 @@ namespace Blazing.Mediator.Tests.Tests
 
             var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
             statistics.ReportStatistics();
-            
+
             customRenderer.Messages.ShouldContain(msg => msg.Contains("Commands: 1"));
             customRenderer.Messages.ShouldContain(msg => msg.Contains("Queries: 1"));
             result.ShouldBe("First: Handler: test");
         }
 
-        [Fact] public async Task MediatorFactory_WithStatistics_InjectsStatisticsCorrectly()
+        [Fact]
+        public async Task MediatorFactory_WithStatistics_InjectsStatisticsCorrectly()
         {
             ServiceCollection services = new();
             var customRenderer = new TestStatisticsRenderer();
             services.AddSingleton<IStatisticsRenderer>(customRenderer);
             services.AddMediator(null, enableStatisticsTracking: true, typeof(TestCommand).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -472,11 +517,12 @@ namespace Blazing.Mediator.Tests.Tests
             customRenderer.Messages.ShouldContain(msg => msg.Contains("Commands: 1"));
         }
 
-        [Fact] public async Task MediatorFactory_WithoutStatistics_HandlesNullStatistics()
+        [Fact]
+        public async Task MediatorFactory_WithoutStatistics_HandlesNullStatistics()
         {
             ServiceCollection services = new();
             services.AddMediator(null, enableStatisticsTracking: false, typeof(TestCommand).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 

@@ -1,7 +1,5 @@
-using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
-using Shouldly;
 
 namespace Blazing.Mediator.Tests.Tests;
 
@@ -14,7 +12,7 @@ public class StreamMiddlewareDebugTests
 
     public class DebugStreamRequestHandler : IStreamRequestHandler<DebugStreamRequest, string>
     {
-        public async IAsyncEnumerable<string> Handle(DebugStreamRequest request, 
+        public async IAsyncEnumerable<string> Handle(DebugStreamRequest request,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             for (int i = 1; i <= request.Count; i++)
@@ -29,8 +27,8 @@ public class StreamMiddlewareDebugTests
     {
         public int Order => 1;
 
-        public async IAsyncEnumerable<string> HandleAsync(DebugStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(DebugStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in next().WithCancellation(cancellationToken))
@@ -44,8 +42,8 @@ public class StreamMiddlewareDebugTests
     {
         public int Order => -1;
 
-        public async IAsyncEnumerable<string> HandleAsync(DebugStreamRequest request, 
-            StreamRequestHandlerDelegate<string> next, 
+        public async IAsyncEnumerable<string> HandleAsync(DebugStreamRequest request,
+            StreamRequestHandlerDelegate<string> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             yield return "Enhanced-Start";
@@ -82,14 +80,14 @@ public class StreamMiddlewareDebugTests
 
         // Assert - Let's see what we actually get
         results.Count.ShouldBeGreaterThan(0);
-        
+
         // Print results for debugging
         Console.WriteLine("Actual results:");
         for (int i = 0; i < results.Count; i++)
         {
             Console.WriteLine($"  [{i}] = \"{results[i]}\"");
         }
-        
+
         // For now, just verify we got some results
         results.ShouldNotBeEmpty();
     }

@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Streaming.Api.Models;
 using Streaming.Api.Shared.DTOs;
+using System.Text.Json;
 
 namespace Streaming.Api.Services;
 
@@ -14,22 +14,22 @@ public interface IContactService
     /// Stream all contacts asynchronously
     /// </summary>
     IAsyncEnumerable<ContactDto> StreamContactsAsync(CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Stream contacts with search filter
     /// </summary>
     IAsyncEnumerable<ContactDto> StreamContactsAsync(string searchTerm, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Stream contacts with response wrapper including statistics
     /// </summary>
     IAsyncEnumerable<StreamResponse<ContactDto>> StreamContactsWithMetadataAsync(CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Stream contacts with metadata and search filtering
     /// </summary>
     IAsyncEnumerable<StreamResponse<ContactDto>> StreamContactsWithMetadataAsync(string searchTerm, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Get total count of contacts
     /// </summary>
@@ -59,7 +59,7 @@ public class ContactService : IContactService
     public async IAsyncEnumerable<ContactDto> StreamContactsAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var filePath = Path.Combine(_environment.WebRootPath, "data", "Mock_Contacts.json");
-        
+
         if (!File.Exists(filePath))
         {
             _logger.LogWarning("Contact data file not found at: {FilePath}", filePath);
@@ -70,7 +70,7 @@ public class ContactService : IContactService
 
         var processedCount = 0;
         Contact[]? jsonData = null;
-        
+
         try
         {
             await using var fileStream = File.OpenRead(filePath);
@@ -81,7 +81,7 @@ public class ContactService : IContactService
             _logger.LogError(ex, "Error parsing JSON file: {FilePath}", filePath);
             yield break;
         }
-        
+
         if (jsonData != null)
         {
             foreach (var contact in jsonData)
@@ -91,10 +91,10 @@ public class ContactService : IContactService
 
                 yield return MapToDto(contact);
                 processedCount++;            // Add small delay to simulate real streaming behavior
-            if (processedCount % 10 == 0)
-            {
-                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
-            }
+                if (processedCount % 10 == 0)
+                {
+                    await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
 
@@ -104,7 +104,7 @@ public class ContactService : IContactService
     public async IAsyncEnumerable<ContactDto> StreamContactsAsync(string searchTerm, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var normalizedSearchTerm = searchTerm?.Trim().ToLowerInvariant() ?? string.Empty;
-        
+
         if (string.IsNullOrEmpty(normalizedSearchTerm))
         {
             await foreach (var contact in StreamContactsAsync(cancellationToken))
@@ -168,7 +168,7 @@ public class ContactService : IContactService
     public async IAsyncEnumerable<StreamResponse<ContactDto>> StreamContactsWithMetadataAsync(string searchTerm, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var normalizedSearchTerm = searchTerm?.Trim().ToLowerInvariant() ?? string.Empty;
-        
+
         if (string.IsNullOrEmpty(normalizedSearchTerm))
         {
             await foreach (var response in StreamContactsWithMetadataAsync(cancellationToken))
@@ -189,12 +189,12 @@ public class ContactService : IContactService
             {
                 count++;
                 var elapsedTime = DateTime.UtcNow - startTime;
-                
+
                 var response = new StreamResponse<ContactDto>
                 {
                     Data = contact,
-                    Statistics = new StreamStatistics 
-                    { 
+                    Statistics = new StreamStatistics
+                    {
                         ProcessedItems = count,
                         TotalItems = count, // This will be updated at the end
                         ElapsedTime = elapsedTime
@@ -202,7 +202,7 @@ public class ContactService : IContactService
                 };
 
                 yield return response;
-                
+
                 // Small delay to demonstrate streaming
                 await Task.Delay(10, cancellationToken).ConfigureAwait(false);
             }
@@ -214,8 +214,8 @@ public class ContactService : IContactService
         {
             Data = new ContactDto(),
             IsComplete = true,
-            Statistics = new StreamStatistics 
-            { 
+            Statistics = new StreamStatistics
+            {
                 ProcessedItems = count,
                 TotalItems = count,
                 ElapsedTime = finalElapsedTime
@@ -226,7 +226,7 @@ public class ContactService : IContactService
     public async Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default)
     {
         var filePath = Path.Combine(_environment.WebRootPath, "data", "Mock_Contacts.json");
-        
+
         if (!File.Exists(filePath))
         {
             return 0;

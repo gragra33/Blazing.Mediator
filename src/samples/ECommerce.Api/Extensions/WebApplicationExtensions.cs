@@ -1,4 +1,5 @@
 using ECommerce.Api.Infrastructure.Data;
+using ECommerce.Api.Middleware;
 
 namespace ECommerce.Api.Extensions;
 
@@ -17,7 +18,7 @@ public static class WebApplicationExtensions
     {
         app.ConfigureDevelopmentEnvironment();
         app.ConfigureMiddleware();
-        
+
         return app;
     }
 
@@ -40,6 +41,8 @@ public static class WebApplicationExtensions
     private static void ConfigureMiddleware(this WebApplication app)
     {
         app.UseHttpsRedirection();
+        app.UseSession(); // Enable session support for statistics tracking
+        app.UseMiddleware<SessionTrackingMiddleware>(); // Add session tracking middleware early in pipeline
         app.UseAuthorization();
         app.MapControllers();
     }

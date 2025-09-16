@@ -1,6 +1,4 @@
 using Blazing.Mediator.Abstractions;
-using SimpleNotificationExample.Notifications;
-using SimpleNotificationExample.Services;
 
 namespace SimpleNotificationExample;
 
@@ -25,14 +23,14 @@ public class Runner
     {
         // First, let's inspect the notification middleware pipeline to show auto-discovery
         InspectNotificationPipeline();
-        
+
         Console.WriteLine();
         Console.WriteLine("# Publishing Order Created Notifications");
         Console.WriteLine();
 
         // Publish three different order notifications
         await PublishOrderCreatedNotifications();
-        
+
         Console.WriteLine();
         Console.WriteLine("# Demo completed!");
     }
@@ -61,7 +59,7 @@ public class Runner
         {
             Console.WriteLine($"    - [{middleware.OrderDisplay}] {middleware.ClassName}{middleware.TypeParameters}");
         }
-        
+
         var count = middlewareAnalysis.Count();
         Console.WriteLine();
         Console.WriteLine($"  Total: {count} notification middleware components auto-discovered");
@@ -88,7 +86,7 @@ public class Runner
 
         // Order 2: Bulk office supplies
         var order2 = new OrderCreatedNotification(
-            orderId: 2, 
+            orderId: 2,
             customerEmail: "bob@company.com",
             customerName: "Bob Smith",
             totalAmount: 249.50m,
@@ -103,7 +101,7 @@ public class Runner
         // Order 3: Premium service
         var order3 = new OrderCreatedNotification(
             orderId: 3,
-            customerEmail: "charlie@startup.io", 
+            customerEmail: "charlie@startup.io",
             customerName: "Charlie Wilson",
             totalAmount: 599.00m,
             items: [new OrderItem(303, "Premium Support Plan", 1, 599.00m)],

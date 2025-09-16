@@ -7,19 +7,9 @@ namespace ECommerce.Api.Application.Middleware;
 /// Middleware that logs all notifications published through the mediator.
 /// This middleware provides centralized logging and monitoring of all domain events.
 /// </summary>
-public class NotificationLoggingMiddleware : INotificationMiddleware
+public class NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware> logger)
+    : INotificationMiddleware
 {
-    private readonly ILogger<NotificationLoggingMiddleware> _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the NotificationLoggingMiddleware.
-    /// </summary>
-    /// <param name="logger">The logger instance for logging notifications.</param>
-    public NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware> logger)
-    {
-        _logger = logger;
-    }
-
     /// <summary>
     /// Processes a notification, logging it before and after execution.
     /// </summary>
@@ -36,9 +26,9 @@ public class NotificationLoggingMiddleware : INotificationMiddleware
 
         try
         {
-            _logger.LogInformation("🔔 NOTIFICATION PUBLISHING: {NotificationName}", notificationName);
-            _logger.LogDebug("   Notification Data: {@Notification}", notification);
-            _logger.LogDebug("   Started At: {StartTime:yyyy-MM-dd HH:mm:ss.fff} UTC", startTime);
+            logger.LogInformation("🔔 NOTIFICATION PUBLISHING: {NotificationName}", notificationName);
+            logger.LogDebug("   Notification Data: {@Notification}", notification);
+            logger.LogDebug("   Started At: {StartTime:yyyy-MM-dd HH:mm:ss.fff} UTC", startTime);
 
             // Call the next middleware in the pipeline
             await next(notification, cancellationToken);
@@ -46,19 +36,19 @@ public class NotificationLoggingMiddleware : INotificationMiddleware
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
 
-            _logger.LogInformation("✅ NOTIFICATION COMPLETED: {NotificationName}", notificationName);
-            _logger.LogDebug("   Duration: {Duration:F2}ms", duration.TotalMilliseconds);
-            _logger.LogDebug("   Completed At: {EndTime:yyyy-MM-dd HH:mm:ss.fff} UTC", endTime);
+            logger.LogInformation("✅ NOTIFICATION COMPLETED: {NotificationName}", notificationName);
+            logger.LogDebug("   Duration: {Duration:F2}ms", duration.TotalMilliseconds);
+            logger.LogDebug("   Completed At: {EndTime:yyyy-MM-dd HH:mm:ss.fff} UTC", endTime);
         }
         catch (Exception ex)
         {
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
 
-            _logger.LogError(ex, "❌ NOTIFICATION FAILED: {NotificationName}", notificationName);
-            _logger.LogError("   Duration: {Duration:F2}ms", duration.TotalMilliseconds);
-            _logger.LogError("   Failed At: {EndTime:yyyy-MM-dd HH:mm:ss.fff} UTC", endTime);
-            _logger.LogError("   Error: {ErrorMessage}", ex.Message);
+            logger.LogError(ex, "❌ NOTIFICATION FAILED: {NotificationName}", notificationName);
+            logger.LogError("   Duration: {Duration:F2}ms", duration.TotalMilliseconds);
+            logger.LogError("   Failed At: {EndTime:yyyy-MM-dd HH:mm:ss.fff} UTC", endTime);
+            logger.LogError("   Error: {ErrorMessage}", ex.Message);
 
             // Re-throw the exception to maintain the error flow
             throw;
@@ -147,7 +137,7 @@ public class NotificationMetricsMiddleware : INotificationMiddleware
             var metrics = _metrics[notificationName];
             metrics.TotalCount++;
             metrics.TotalDurationMs += durationMs;
-            
+
             if (success)
             {
                 metrics.SuccessCount++;

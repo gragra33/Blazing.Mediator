@@ -23,8 +23,8 @@ public interface IRequestMiddleware<in TRequest, TResponse>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The response</returns>
     Task<TResponse> HandleAsync(
-        TRequest request, 
-        RequestHandlerDelegate<TResponse> next, 
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken);
 }
 
@@ -50,7 +50,7 @@ public interface IRequestMiddleware<in TRequest>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>A task representing the completion of the command</returns>
     Task HandleAsync(
-        TRequest request, 
-        RequestHandlerDelegate next, 
+        TRequest request,
+        RequestHandlerDelegate next,
         CancellationToken cancellationToken);
 }

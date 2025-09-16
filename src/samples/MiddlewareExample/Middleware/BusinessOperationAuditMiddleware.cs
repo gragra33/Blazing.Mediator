@@ -19,15 +19,15 @@ public class BusinessOperationAuditMiddleware<TRequest, TResponse>(
     {
         var operationType = typeof(TRequest).Name;
         logger.LogDebug(">> Starting business operation audit: {OperationType}", operationType);
-        
+
         var stopwatch = Stopwatch.StartNew();
-        
+
         var response = await next();
-        
+
         stopwatch.Stop();
-        logger.LogInformation("<< Business operation completed: {OperationType} in {ElapsedMs}ms", 
+        logger.LogInformation("<< Business operation completed: {OperationType} in {ElapsedMs}ms",
             operationType, stopwatch.ElapsedMilliseconds);
-        
+
         return response;
     }
 }

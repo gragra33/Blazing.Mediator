@@ -3,20 +3,23 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using UserManagement.Api.Application.Middleware;
 using UserManagement.Api.Infrastructure.Data;
+using UserManagement.Api.Services;
+using UserManagement.Api.Middleware;
+using System.Reflection;
 
 namespace UserManagement.Api.Extensions;
 
 /// <summary>
 /// Extension methods for IServiceCollection to register application services.
-/// Follows dependency inversion principle by abstracting service registration logic.
+/// Follows single responsibility principle by separating service registration.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers all application services including database, validation, and mediator.
+    /// Adds all application services to the container following dependency inversion principle.
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="configuration">The application configuration.</param>
+    /// <param name="configuration">The configuration.</param>
     /// <param name="environment">The hosting environment.</param>
     /// <returns>The service collection for method chaining.</returns>
     public static IServiceCollection AddApplicationServices(
@@ -24,74 +27,85 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration,
         IWebHostEnvironment environment)
     {
-        services.AddApiServices();
+        services.AddHttpServices();
         services.AddDatabaseServices(configuration, environment);
-        services.AddValidationServices();
         services.AddMediatorServices();
+        services.AddValidationServices();
+        services.AddStatisticsServices();
 
         return services;
     }
 
     /// <summary>
-    /// Registers API-related services.
+    /// Adds HTTP-related services.
     /// </summary>
-    private static IServiceCollection AddApiServices(this IServiceCollection services)
+    private static void AddHttpServices(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
-
-        return services;
+        services.AddHttpContextAccessor();
+        
+        // Add session services for statistics tracking
+        services.AddDistributedMemoryCache();
+        services.AddSession(options =>
+        {
+            options.IdleTimeout = TimeSpan.FromHours(2);
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
+            options.Cookie.Name = "UserManagementApi.Session";
+        });
     }
 
     /// <summary>
-    /// Registers database services with environment-specific configurations.
+    /// Adds database services following interface segregation principle.
     /// </summary>
-    private static IServiceCollection AddDatabaseServices(
-        this IServiceCollection services,
-        IConfiguration configuration,
-        IWebHostEnvironment environment)
+    private static void AddDatabaseServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         if (environment.IsDevelopment())
         {
-            // Use In-Memory database for development/demo
-            services.AddDbContext<UserManagementDbContext>(options =>
-                options.UseInMemoryDatabase("UserManagementDb"));
+            services.AddDbContext<UserManagementDbContext>(options => options.UseInMemoryDatabase("UserManagementDb"));
         }
         else
         {
-            // Use SQL Server for production
             services.AddDbContext<UserManagementDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
         }
-
-        return services;
     }
 
     /// <summary>
-    /// Registers FluentValidation services.
+    /// Adds mediator services with auto-discovery and middleware registration.
     /// </summary>
-    private static IServiceCollection AddValidationServices(this IServiceCollection services)
-    {
-        services.AddValidatorsFromAssembly(typeof(ServiceCollectionExtensions).Assembly);
-        return services;
-    }
-
-    /// <summary>
-    /// Registers Mediator with CQRS handlers and general logging middleware.
-    /// </summary>
-    private static IServiceCollection AddMediatorServices(this IServiceCollection services)
+    private static void AddMediatorServices(this IServiceCollection services)
     {
         services.AddMediator(config =>
         {
-            // Enable statistics tracking for performance monitoring
-            config.EnableStatisticsTracking = true;
-
-            // Add general logging middleware for all requests (queries with responses)
+            // Keep existing middleware that was working - use typeof for generic middleware
             config.AddMiddleware(typeof(GeneralLoggingMiddleware<,>));
-            // Add general logging middleware for all commands (void commands)
             config.AddMiddleware(typeof(GeneralCommandLoggingMiddleware<>));
-        }, typeof(ServiceCollectionExtensions).Assembly);
+            
+            // Add statistics tracking middleware for both typed and void requests
+            config.AddMiddleware(typeof(StatisticsTrackingMiddleware<,>));
+            config.AddMiddleware(typeof(StatisticsTrackingVoidMiddleware<>));
+        }, Assembly.GetExecutingAssembly());
+    }
 
-        return services;
+    /// <summary>
+    /// Adds FluentValidation services following dependency inversion principle.
+    /// </summary>
+    private static void AddValidationServices(this IServiceCollection services)
+    {
+        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+    }
+
+    /// <summary>
+    /// Adds statistics tracking services.
+    /// </summary>
+    private static void AddStatisticsServices(this IServiceCollection services)
+    {
+        // Register statistics tracking services
+        services.AddSingleton<MediatorStatisticsTracker>();
+        
+        // Register background cleanup service
+        services.AddHostedService<StatisticsCleanupService>();
     }
 }

@@ -31,7 +31,7 @@ public class GenericHandler<TRequest, TResponse> : IRequestHandler<TRequest, TRe
     public async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken)
     {
         await _writer.WriteLineAsync($"--- Handled generic request: {typeof(TRequest).Name}");
-        
+
         // Return default response (this is just for demonstration)
         return default(TResponse)!;
     }

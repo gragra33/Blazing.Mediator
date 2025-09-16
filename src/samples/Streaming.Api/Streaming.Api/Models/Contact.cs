@@ -9,10 +9,10 @@ public class Contact
 {
     public int Id { get; set; }
     public string Avatar { get; set; } = string.Empty;
-    
+
     [JsonPropertyName("first_name")]
     public string FirstName { get; set; } = string.Empty;
-    
+
     [JsonPropertyName("last_name")]
     public string LastName { get; set; } = string.Empty;
     public string? Suffix { get; set; }
@@ -21,7 +21,7 @@ public class Contact
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public Company Company { get; set; } = new();
-    
+
     public string FullName => $"{FirstName} {LastName}".Trim();
 }
 
@@ -35,8 +35,8 @@ public class Address
     public string? State { get; set; }
     public string? PostalCode { get; set; }
     public string Country { get; set; } = string.Empty;
-    
-    public string FormattedAddress => 
+
+    public string FormattedAddress =>
         $"{Street}, {City}{(string.IsNullOrEmpty(State) ? "" : $", {State}")}{(string.IsNullOrEmpty(PostalCode) ? "" : $" {PostalCode}")}, {Country}";
 }
 

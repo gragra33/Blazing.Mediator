@@ -1,11 +1,9 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using Shouldly;
-using Xunit;
 
 namespace Blazing.Mediator.Tests.Tests
 {
@@ -31,7 +29,7 @@ namespace Blazing.Mediator.Tests.Tests
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-            
+
             // Abstract handler should not be resolvable
             var abstractHandlers = serviceProvider.GetServices<IRequestHandler<TestCommand>>();
             abstractHandlers.ShouldNotContain(h => h.GetType() == typeof(AbstractHandler));
@@ -51,7 +49,7 @@ namespace Blazing.Mediator.Tests.Tests
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-            
+
             // Interface handler should not be resolvable as concrete implementation
             var handlers = serviceProvider.GetServices<IRequestHandler<TestInterfaceCommand>>();
             handlers.ShouldNotContain(h => h.GetType().IsInterface);
@@ -71,10 +69,10 @@ namespace Blazing.Mediator.Tests.Tests
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-            
+
             var commandHandler = serviceProvider.GetService<IRequestHandler<TestMultiCommand>>();
             var queryHandler = serviceProvider.GetService<IRequestHandler<TestMultiQuery, string>>();
-            
+
             commandHandler.ShouldNotBeNull();
             queryHandler.ShouldNotBeNull();
             commandHandler.ShouldBeOfType<TestMultiInterfaceHandler>();
@@ -99,7 +97,7 @@ namespace Blazing.Mediator.Tests.Tests
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var handlers = serviceProvider.GetServices<IRequestHandler<TestCommand>>();
-            
+
             // Should only have one registration despite multiple calls
             handlers.Count().ShouldBe(1);
         }
@@ -118,15 +116,15 @@ namespace Blazing.Mediator.Tests.Tests
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-            
+
             // Command handler
             var commandHandler = serviceProvider.GetService<IRequestHandler<TestCommand>>();
             commandHandler.ShouldNotBeNull();
-            
+
             // Query handler
             var queryHandler = serviceProvider.GetService<IRequestHandler<TestQuery, string>>();
             queryHandler.ShouldNotBeNull();
-            
+
             // Stream handler might not exist in test assembly, so we skip this check
             // var streamHandler = serviceProvider.GetService<IStreamRequestHandler<TestStreamQuery, string>>();
         }
@@ -152,7 +150,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var inspector = serviceProvider.GetService<IMiddlewarePipelineInspector>();
             var notificationInspector = serviceProvider.GetService<INotificationMiddlewarePipelineInspector>();
-            
+
             inspector.ShouldNotBeNull();
             notificationInspector.ShouldNotBeNull();
         }
@@ -173,7 +171,7 @@ namespace Blazing.Mediator.Tests.Tests
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var inspector = serviceProvider.GetService<IMiddlewarePipelineInspector>();
-            
+
             inspector.ShouldNotBeNull();
             // Note: We can't test for abstract middleware since it doesn't exist,
             // but we can verify the inspector works
@@ -197,7 +195,7 @@ namespace Blazing.Mediator.Tests.Tests
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var inspector = serviceProvider.GetService<IMiddlewarePipelineInspector>();
-            
+
             inspector.ShouldNotBeNull();
             // Note: We can't test for interface middleware since it doesn't exist,
             // but we can verify the inspector works
@@ -221,7 +219,7 @@ namespace Blazing.Mediator.Tests.Tests
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var notificationInspector = serviceProvider.GetService<INotificationMiddlewarePipelineInspector>();
-            
+
             notificationInspector.ShouldNotBeNull();
         }
 
@@ -241,7 +239,7 @@ namespace Blazing.Mediator.Tests.Tests
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var inspector = serviceProvider.GetService<IMiddlewarePipelineInspector>();
-            
+
             inspector.ShouldNotBeNull();
             // Should work without issues despite duplicate assemblies
         }
@@ -266,10 +264,10 @@ namespace Blazing.Mediator.Tests.Tests
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var inspector = serviceProvider.GetService<IMiddlewarePipelineInspector>();
-            
+
             inspector.ShouldNotBeNull();
             var registeredMiddleware = inspector.GetRegisteredMiddleware();
-            
+
             // Should contain request middleware types
             registeredMiddleware.ShouldContain(typeof(FirstQueryMiddleware));
         }
@@ -290,7 +288,7 @@ namespace Blazing.Mediator.Tests.Tests
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var notificationInspector = serviceProvider.GetService<INotificationMiddlewarePipelineInspector>();
-            
+
             notificationInspector.ShouldNotBeNull();
         }
 
@@ -310,10 +308,10 @@ namespace Blazing.Mediator.Tests.Tests
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var inspector = serviceProvider.GetService<IMiddlewarePipelineInspector>();
-            
+
             inspector.ShouldNotBeNull();
             var registeredMiddleware = inspector.GetRegisteredMiddleware();
-            
+
             // Should identify conditional middleware
             registeredMiddleware.ShouldContain(typeof(ConditionalQueryMiddleware));
         }
@@ -336,11 +334,11 @@ namespace Blazing.Mediator.Tests.Tests
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-            
+
             // Command handler (IRequestHandler<T>)
             var commandHandler = serviceProvider.GetService<IRequestHandler<TestCommand>>();
             commandHandler.ShouldNotBeNull();
-            
+
             // Query handler (IRequestHandler<T, TResponse>)
             var queryHandler = serviceProvider.GetService<IRequestHandler<TestQuery, string>>();
             queryHandler.ShouldNotBeNull();
@@ -360,11 +358,11 @@ namespace Blazing.Mediator.Tests.Tests
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-            
+
             // We'll test that mediator itself is registered, but not as a handler
             var mediator = serviceProvider.GetService<IMediator>();
             mediator.ShouldNotBeNull(); // Mediator should be registered
-            
+
             // But it shouldn't be registered as a request handler
             var mediatorAsHandler = serviceProvider.GetService<IRequestHandler<TestCommand>>();
             // mediatorAsHandler should be null or the actual handler, not the mediator
@@ -385,7 +383,7 @@ namespace Blazing.Mediator.Tests.Tests
             bool configurationCalled = false;
 
             // Act
-            services.AddMediator(config => 
+            services.AddMediator(config =>
             {
                 configurationCalled = true;
                 config.AddMiddleware<FirstQueryMiddleware>();
@@ -394,7 +392,7 @@ namespace Blazing.Mediator.Tests.Tests
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var configuration = serviceProvider.GetService<MediatorConfiguration>();
-            
+
             configuration.ShouldNotBeNull();
             configurationCalled.ShouldBeTrue();
         }
@@ -409,7 +407,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediator(config => 
+            services.AddMediator(config =>
             {
                 config.AddMiddleware<FirstQueryMiddleware>();
             }, Array.Empty<Assembly>());
@@ -419,11 +417,11 @@ namespace Blazing.Mediator.Tests.Tests
             var pipelineBuilder = serviceProvider.GetService<IMiddlewarePipelineBuilder>();
             var notificationPipelineBuilder = serviceProvider.GetService<INotificationPipelineBuilder>();
             var configuration = serviceProvider.GetService<MediatorConfiguration>();
-            
+
             pipelineBuilder.ShouldNotBeNull();
             notificationPipelineBuilder.ShouldNotBeNull();
             configuration.ShouldNotBeNull();
-            
+
             // Should be the same instances as in configuration
             pipelineBuilder.ShouldBeSameAs(configuration.PipelineBuilder);
             notificationPipelineBuilder.ShouldBeSameAs(configuration.NotificationPipelineBuilder);
@@ -447,13 +445,13 @@ namespace Blazing.Mediator.Tests.Tests
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-            
+
             using var scope1 = serviceProvider.CreateScope();
             using var scope2 = serviceProvider.CreateScope();
-            
+
             var mediator1 = scope1.ServiceProvider.GetService<IMediator>();
             var mediator2 = scope2.ServiceProvider.GetService<IMediator>();
-            
+
             mediator1.ShouldNotBeNull();
             mediator2.ShouldNotBeNull();
             mediator1.ShouldNotBeSameAs(mediator2); // Different instances in different scopes
@@ -473,13 +471,13 @@ namespace Blazing.Mediator.Tests.Tests
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-            
+
             using var scope1 = serviceProvider.CreateScope();
             using var scope2 = serviceProvider.CreateScope();
-            
+
             var stats1 = scope1.ServiceProvider.GetService<MediatorStatistics>();
             var stats2 = scope2.ServiceProvider.GetService<MediatorStatistics>();
-            
+
             stats1.ShouldNotBeNull();
             stats2.ShouldNotBeNull();
             stats1.ShouldBeSameAs(stats2); // Same instance across scopes (singleton)

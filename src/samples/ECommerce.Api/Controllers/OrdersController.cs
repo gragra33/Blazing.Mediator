@@ -197,8 +197,8 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
 
         if (result.Success)
             return Ok(result);
-        else
-            return BadRequest(result);
+        
+        return BadRequest(result);
     }
 
     /// <summary>
@@ -269,11 +269,12 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
             await mediator.Send(new UpdateOrderStatusCommand { OrderId = id, Status = OrderStatus.Delivered });
             logger.LogInformation("Order {OrderId} delivered", id);
 
-            return Ok(new { 
-                message = "Order workflow completed successfully", 
+            return Ok(new
+            {
+                message = "Order workflow completed successfully",
                 orderId = id,
                 finalStatus = "Delivered",
-                notificationsSent = new[] { "Order Confirmed", "Processing Started", "Order Shipped", "Order Delivered" }
+                notificationsSent = (string[])["Order Confirmed", "Processing Started", "Order Shipped", "Order Delivered"]
             });
         }
         catch (Exception ex)

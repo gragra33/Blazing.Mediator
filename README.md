@@ -15,6 +15,7 @@ The Blazing.Mediator library provides:
 -   **Advanced Middleware Pipeline**: Optional middleware support with both standard and conditional middleware execution
     -   **Pipeline Inspection**: `IMiddlewarePipelineInspector` for advanced debugging and monitoring
     -   **Conditional Execution**: Execute middleware only for specific request types for optimal performance
+    -   **Type-Constrained Middleware**: _**(NEW!)**_ Constrain middleware to specific interface types (e.g., `ICommand`, `IQuery`) for precise targeting
     -   **Ordered Execution**: Control middleware execution order with priority-based sequencing
     -   **Full DI Support**: Complete dependency injection support for middleware components
 -   **Multiple Assembly Support**: Automatically scan and register handlers from multiple assemblies
@@ -39,6 +40,7 @@ The Blazing.Mediator library provides:
 -   **Subscription Management**: `INotificationSubscriber` interface for managing notification subscription lifecycle
 -   **Asynchronous Processing**: All notifications are processed asynchronously for better performance
 -   **Middleware Support**: Add cross-cutting concerns like logging and metrics to notification processing
+    -   **Type-Constrained Notification Middleware**: _**(NEW!)**_ Constrain notification middleware to specific notification types for precise processing control
 -   **New Middleware Analysis**: `INotificationMiddlewarePipelineInspector` for advanced debugging and monitoring
 -   **Type Safety**: Strongly typed notifications with compile-time checking
 -   **Testable Design**: Easy to test notification publishers and subscribers
@@ -73,6 +75,7 @@ The Blazing.Mediator library provides:
 -   [Middleware Pipeline](#middleware-pipeline)
 -   [Sample Projects](#sample-projects)
 -   [History](#history)
+    -   [V1.7.0](#v170)
     -   [V1.6.2](#v162)
     -   [V1.6.1](#v161)
     -   [V1.6.0](#v160)
@@ -101,7 +104,7 @@ Install-Package Blazing.Mediator
 #### Manually adding to your project
 
 ```xml
-<PackageReference Include="Blazing.Mediator" Version="1.6.2" />
+<PackageReference Include="Blazing.Mediator" Version="1.7.0" />
 ```
 
 ### Configuration
@@ -143,6 +146,25 @@ builder.Services.AddMediator(config =>
 
     // Add conditional middleware for specific request types
     config.AddMiddleware<ValidationMiddleware<,>>();
+}, typeof(Program).Assembly);
+```
+
+#### With Type-Constrained Middleware _**(NEW!)**_
+
+```csharp
+using Blazing.Mediator;
+
+// Register Mediator with type-constrained middleware
+builder.Services.AddMediator(config =>
+{
+    // Add middleware that only processes ICommand requests
+    config.AddMiddleware<ValidationMiddleware<>>(); // where TRequest : ICommand
+
+    // Add middleware that only processes IQuery<TResponse> requests  
+    config.AddMiddleware<CachingMiddleware<,>>(); // where TRequest : IQuery<TResponse>
+
+    // Add general middleware for all requests
+    config.AddMiddleware<LoggingMiddleware<,>>();
 }, typeof(Program).Assembly);
 ```
 
@@ -310,11 +332,30 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
         return response;
     }
 }
+
+// Type-constrained middleware - executes only for commands (NEW!)
+public class ValidationMiddleware<TRequest> : IRequestMiddleware<TRequest>
+    where TRequest : ICommand  // Only processes commands, not queries
+{
+    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"📋 Validating command: {typeof(TRequest).Name}");
+        
+        // Validation logic here
+        await ValidateAsync(request, cancellationToken);
+        
+        await next();
+    }
+}
 ```
 
 ### Sample Projects
 
-The library includes five comprehensive sample projects demonstrating different approaches:
+The library includes seven comprehensive sample projects demonstrating different approaches:
+
+## Sample Projects
+
+The library includes eight comprehensive sample projects demonstrating different approaches:
 
 1. **Blazing.Mediator.Examples** - Complete feature showcase and migration guide from MediatR
 
@@ -335,7 +376,16 @@ The library includes five comprehensive sample projects demonstrating different 
     - `MiddlewarePipelineAnalyzer` helper class for runtime pipeline analysis and introspection
     - detailed readme documentation included
 
-3. **SimpleNotificationExample** _**(NEW!)**_ - Console application demonstrating recommended scoped notification patterns
+3. **TypedMiddlewareExample** _**(NEW!)**_ - Console application demonstrating type-constrained middleware with CQRS interface distinction
+
+    - Clear separation between `ICommand` and `IQuery` interfaces with type-specific middleware
+    - Validation middleware that only processes commands, bypassing queries entirely
+    - Query-specific logging middleware demonstrating type constraints in action
+    - Visual distinction between command and query processing in console output
+    - Comprehensive examples showing how type constraints improve performance and maintainability
+    - Perfect demonstration of selective middleware execution based on interface types
+
+4. **SimpleNotificationExample** _**(NEW!)**_ - Console application demonstrating recommended scoped notification patterns
 
     - Recommended approach using default scoped `IMediator` registration (not singleton) for proper resource management
     - Simple, straightforward notification subscribers
@@ -345,7 +395,17 @@ The library includes five comprehensive sample projects demonstrating different 
     - Clear documentation showing why this is the preferred pattern over complex background service approaches
     - Perfect starting point for understanding notification patterns in Blazing.Mediator
 
-4. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware and notification system
+5. **TypedSimpleNotificationExample** _**(NEW!)**_ - Console application demonstrating type-constrained notification middleware with interface-based categorization
+
+    - Type-constrained notification middleware processing only specific notification categories (Order, Customer, Inventory)
+    - Interface-based notification categorization with `IOrderNotification`, `ICustomerNotification`, and `IInventoryNotification`
+    - Selective middleware execution based on notification interface types for optimal performance
+    - Dynamic pipeline analysis using `INotificationMiddlewarePipelineInspector` for runtime inspection
+    - Comprehensive notification metrics tracking with success rates and performance timing
+    - Visual distinction between different notification types in console output with category-specific processing
+    - Advanced notification pipeline debugging and monitoring capabilities
+
+6. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware and notification system
 
     - Product and Order management with CQRS patterns
     - Comprehensive notification system with domain events
@@ -354,23 +414,36 @@ The library includes five comprehensive sample projects demonstrating different 
     - Entity Framework integration with domain event publishing
     - FluentValidation integration with validation middleware
     - Background services for notification processing
+    - **Mediator Statistics Endpoints**: Built-in API endpoints for monitoring mediator usage including query/command analysis, runtime statistics, and pipeline inspection
 
-5. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
+7. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
 
     - User management operations
     - Comprehensive logging middleware
     - Clean architecture patterns
     - Error handling examples
+    - **Mediator Statistics Endpoints**: Comprehensive API endpoints for analyzing mediator performance including query/command discovery, execution tracking, and detailed runtime statistics
 
-6. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
+8. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
     - Memory-efficient `IAsyncEnumerable<T>` streaming with large datasets
     - JSON streaming and Server-Sent Events (SSE) endpoints
     - Multiple Blazor render modes (SSR, Auto, Static, WebAssembly)
     - Stream middleware pipeline with logging and performance monitoring
     - Interactive streaming controls and real-time data visualization
     - 6 different streaming examples from minimal APIs to interactive WebAssembly clients
-
 ## History
+
+### V1.7.0
+
+-   **Type-Constrained Middleware Support**: Enhanced middleware pipeline with generic type constraint validation for selective middleware execution based on interface types
+-   **Request Middleware Type Constraints**: Added support for constraining request middleware to specific interface types (e.g., `ICommand`, `IQuery`) for precise middleware targeting
+-   **Notification Middleware Type Constraints**: Extended type constraint support to notification middleware for selective notification processing based on interface implementations
+-   **Enhanced CQRS Interface Support**: Improved middleware pipeline to respect typed constraints for compile-time middleware applicability
+-   **TypedMiddlewareExample Sample**: New comprehensive sample project demonstrating type-constrained middleware with clear ICommand/IQuery distinction and selective validation
+-   **Generic Constraint Validation**: Advanced generic type constraint checking with support for complex constraint scenarios including class, struct, and interface constraints
+-   **Enhanced Type Safety**: Compile-time enforcement of middleware applicability through generic type constraints reducing runtime errors and improving performance
+-   **Comprehensive Test Coverage**: Extensive test suite for type constraint validation covering edge cases, constraint inheritance, and complex generic scenarios
+-   **Enhanced Sample Projects**: Updated ECommerce.Api and UserManagement.Api with comprehensive mediator statistics endpoints for runtime monitoring and analysis
 
 ### V1.6.2
 

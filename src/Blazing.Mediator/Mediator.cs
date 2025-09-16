@@ -16,7 +16,7 @@ public class Mediator : IMediator
     private readonly IMiddlewarePipelineBuilder _pipelineBuilder;
     private readonly INotificationPipelineBuilder _notificationPipelineBuilder;
     private readonly MediatorStatistics? _statistics;
-    
+
     // Thread-safe collections for notification subscribers
     private readonly ConcurrentDictionary<Type, ConcurrentBag<object>> _specificSubscribers = new();
     private readonly ConcurrentBag<INotificationSubscriber> _genericSubscribers = new();
@@ -48,7 +48,7 @@ public class Mediator : IMediator
     {
         // Conditionally track statistics if enabled
         _statistics?.IncrementCommand(request.GetType().Name);
-        
+
         Type requestType = request.GetType();
         Type handlerType = typeof(IRequestHandler<>).MakeGenericType(requestType);
 
@@ -126,7 +126,7 @@ public class Mediator : IMediator
         {
             // Efficiently determine if this is a query or command with minimal performance impact
             bool isQuery = DetermineIfQuery(request);
-            
+
             if (isQuery)
             {
                 _statistics.IncrementQuery(request.GetType().Name);
@@ -136,7 +136,7 @@ public class Mediator : IMediator
                 _statistics.IncrementCommand(request.GetType().Name);
             }
         }
-        
+
         Type requestType = request.GetType();
         Type handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
 
@@ -201,7 +201,7 @@ public class Mediator : IMediator
 
         return await FinalHandler();
     }
-    
+
     /// <summary>
     /// Sends a stream request through the middleware pipeline to its corresponding handler and returns an async enumerable.
     /// </summary>
@@ -279,7 +279,7 @@ public class Mediator : IMediator
     public async Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         ArgumentNullException.ThrowIfNull(notification);
-        
+
         // Conditionally track statistics if enabled
         _statistics?.IncrementNotification(notification.GetType().Name);
 
@@ -365,8 +365,8 @@ public class Mediator : IMediator
         // Create new bag without the subscriber
         var newSubscribers = new ConcurrentBag<object>();
         foreach (var existing in from existing in subscribers
-                 where !ReferenceEquals(existing, subscriber)
-                 select existing)
+                                 where !ReferenceEquals(existing, subscriber)
+                                 select existing)
         {
             newSubscribers.Add(existing);
         }
@@ -435,36 +435,36 @@ public class Mediator : IMediator
     private static bool DetermineIfQuery<TResponse>(IRequest<TResponse> request)
     {
         Type requestType = request.GetType();
-        
+
         // Fast path: Check if request directly implements IQuery<TResponse>
         if (request is IQuery<TResponse>)
         {
             return true;
         }
-        
+
         // Fast path: Check if request directly implements ICommand<TResponse>
         if (request is ICommand<TResponse>)
         {
             return false;
         }
-        
+
         // Fallback: Check type name suffix using ReadOnlySpan for performance
         ReadOnlySpan<char> typeName = requestType.Name.AsSpan();
-        
+
         // Check for "Query" suffix (case-insensitive)
-        if (typeName.Length >= 5 && 
+        if (typeName.Length >= 5 &&
             typeName[^5..].Equals("Query".AsSpan(), StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
-        
+
         // Check for "Command" suffix (case-insensitive)
-        if (typeName.Length >= 7 && 
+        if (typeName.Length >= 7 &&
             typeName[^7..].Equals("Command".AsSpan(), StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
-        
+
         // Default to query if no clear indication (maintains backward compatibility)
         return true;
     }

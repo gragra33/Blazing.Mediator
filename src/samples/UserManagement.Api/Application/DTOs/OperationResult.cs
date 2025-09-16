@@ -9,12 +9,12 @@ public class OperationResult
     /// Gets or sets a value indicating whether the operation was successful.
     /// </summary>
     public bool Success { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the message describing the operation result.
     /// </summary>
     public string Message { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets optional data returned from the operation.
     /// </summary>

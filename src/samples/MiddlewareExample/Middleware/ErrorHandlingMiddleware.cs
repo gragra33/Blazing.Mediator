@@ -30,7 +30,7 @@ public abstract class ErrorHandlingMiddlewareBase<TRequest>
                 Logger.LogError("!! Validation failed for {RequestType}: {Errors}", requestTypeName, vex.Message);
                 // Convert to a more generic error to avoid leaking internal details
                 throw new InvalidOperationException("Validation failed while processing the request", vex);
-            
+
             default:
                 Logger.LogError(exception, "!! ErrorHandlingMiddleware: Caught error in {RequestType}", requestTypeName);
                 // Convert to a more generic error to avoid leaking internal details

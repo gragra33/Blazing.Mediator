@@ -818,7 +818,7 @@ MediatorStatistics offers three main capabilities:
 2. **Query Analysis** - Discover all `IQuery<TResponse>` (`IRequest<TResponse>`) implementations in your application
 3. **Command Analysis** - Discover all `ICommand` / (`IRequest`) and `ICommand<TResponse>` (`IRequest<TResponse>`) implementations in your application
 
-**NOTE:** Query and Command analysis methods require that you follow the `xxxQuery`, `xxxCommand`, and `xxxHandler` naming conventions for best results. 
+**NOTE:** Query and Command analysis methods require that you follow the `xxxQuery`, `xxxCommand`, and `xxxHandler` naming conventions for best results.
 
 ### Setup and Registration
 
@@ -890,27 +890,27 @@ These methods are called internally by the mediator and provide real-time usage 
 
 The `QueryCommandAnalysis` record provides comprehensive information about discovered queries and commands in your application:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `Type` | `Type` | The actual .NET Type being analyzed |
-| `ClassName` | `string` | The clean class name without generic parameters (e.g., "GetUserQuery") |
-| `TypeParameters` | `string` | String representation of generic type parameters (e.g., "<T, U>") |
-| `Assembly` | `string` | The name of the assembly containing this type |
-| `Namespace` | `string` | The namespace of the type (or "Unknown" if null) |
-| `ResponseType` | `Type?` | The response type for queries/commands that return data, null for void commands |
-| `PrimaryInterface` | `string` | The primary interface implemented (IQuery<T>, ICommand, IRequest<T>, etc.) |
-| `IsResultType` | `bool` | True if the response type implements IResult interface (ASP.NET Core) |
-| `HandlerStatus` | `HandlerStatus` | The status of handlers for this request type (Single, Missing, Multiple) |
-| `HandlerDetails` | `string` | Detailed information about the handlers (handler name or error message) |
-| `Handlers` | `IReadOnlyList<Type>` | List of handler types registered for this request |
+| Property           | Type                  | Description                                                                     |
+| ------------------ | --------------------- | ------------------------------------------------------------------------------- |
+| `Type`             | `Type`                | The actual .NET Type being analyzed                                             |
+| `ClassName`        | `string`              | The clean class name without generic parameters (e.g., "GetUserQuery")          |
+| `TypeParameters`   | `string`              | String representation of generic type parameters (e.g., "<T, U>")               |
+| `Assembly`         | `string`              | The name of the assembly containing this type                                   |
+| `Namespace`        | `string`              | The namespace of the type (or "Unknown" if null)                                |
+| `ResponseType`     | `Type?`               | The response type for queries/commands that return data, null for void commands |
+| `PrimaryInterface` | `string`              | The primary interface implemented (IQuery<T>, ICommand, IRequest<T>, etc.)      |
+| `IsResultType`     | `bool`                | True if the response type implements IResult interface (ASP.NET Core)           |
+| `HandlerStatus`    | `HandlerStatus`       | The status of handlers for this request type (Single, Missing, Multiple)        |
+| `HandlerDetails`   | `string`              | Detailed information about the handlers (handler name or error message)         |
+| `Handlers`         | `IReadOnlyList<Type>` | List of handler types registered for this request                               |
 
 #### HandlerStatus Enum
 
-| Value | ASCII Marker | Description |
-|-------|--------------|-------------|
-| `Single` | `+` | Exactly one handler is registered (ideal state) |
-| `Missing` | `!` | No handler is registered for this request type |
-| `Multiple` | `#` | Multiple handlers are registered (potential issue) |
+| Value      | ASCII Marker | Description                                        |
+| ---------- | ------------ | -------------------------------------------------- |
+| `Single`   | `+`          | Exactly one handler is registered (ideal state)    |
+| `Missing`  | `!`          | No handler is registered for this request type     |
+| `Multiple` | `#`          | Multiple handlers are registered (potential issue) |
 
 ### Analyzing Queries and Commands
 
@@ -1320,7 +1320,7 @@ Minimal APIs provide a lightweight, functional approach to building HTTP APIs. T
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
+// Add services to the container
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -1329,7 +1329,7 @@ builder.Services.AddMediator(typeof(Program).Assembly);
 
 var app = builder.Build();
 
-// Configure pipeline
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -2236,17 +2236,18 @@ public class CachingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRe
 
     public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        // Generate cache key based on request type and properties
+        _logger.LogInformation("🔍 Checking cache for query: {RequestType}", typeof(TRequest).Name);
+
         var cacheKey = GenerateCacheKey(request);
 
-        // Try to get from cache first
+        // Check cache first
         if (_cache.TryGetValue(cacheKey, out TResponse? cachedResponse))
         {
             _logger.LogInformation("Cache hit for {RequestType}", typeof(TRequest).Name);
             return cachedResponse!;
         }
 
-        // Execute handler and cache the result
+        // Execute query and cache result
         var response = await next();
 
         var cacheOptions = new MemoryCacheEntryOptions
@@ -2263,7 +2264,6 @@ public class CachingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRe
 
     private string GenerateCacheKey(TRequest request)
     {
-        // Simple cache key generation - improve this for production use
         var requestType = typeof(TRequest).Name;
         var requestJson = JsonSerializer.Serialize(request);
         var hash = requestJson.GetHashCode();
@@ -2271,6 +2271,125 @@ public class CachingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRe
     }
 }
 ```
+
+#### Type-Constrained Middleware Registration
+
+```csharp
+// Program.cs - Register type-constrained middleware
+builder.Services.AddMediator(config =>
+{
+    // Validation middleware only processes commands (ICommand, ICommand<T>)
+    config.AddMiddleware<ValidationMiddleware<>>();
+    config.AddMiddleware<ValidationMiddleware<,>>();
+
+    // Caching middleware only processes queries (IQuery<T>)
+    config.AddMiddleware<CachingMiddleware<,>>();
+
+    // General middleware processes all requests
+    config.AddMiddleware<LoggingMiddleware<,>>();
+    config.AddMiddleware<GeneralCommandLoggingMiddleware<>>();
+
+}, typeof(Program).Assembly);
+```
+
+#### Benefits of Type-Constrained Middleware
+
+1. **Performance Optimization**: Middleware only executes for appropriate request types
+2. **Type Safety**: Compile-time verification that middleware constraints are satisfied
+3. **Clear Intent**: Explicit declaration of which request types middleware should process
+4. **Reduced Overhead**: No runtime type checking needed - constraints are validated at registration
+5. **CQRS Clarity**: Clear separation between command processing and query processing middleware
+
+#### Type Constraint Examples
+
+```csharp
+// Command-only middleware
+public class AuditMiddleware<TRequest> : IRequestMiddleware<TRequest>
+    where TRequest : ICommand
+{
+    // Only processes commands - never queries
+}
+
+// Query-only middleware
+public class QueryMetricsMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IQuery<TResponse>
+{
+    // Only processes queries - never commands
+}
+
+// Specific interface constraint
+public class OrderMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IOrderRequest<TResponse>
+{
+    // Only processes requests implementing IOrderRequest<T>
+}
+
+// Multiple constraints
+public class ComplexMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : class, IQuery<TResponse>, new()
+{
+    // Only processes queries that are reference types with parameterless constructor
+}
+```
+
+#### Complete Type-Constrained Example
+
+Here's a complete example showing how different middleware types work together:
+
+```csharp
+// CQRS Command (write operation)
+public class CreateOrderCommand : ICommand<int>
+{
+    public int CustomerId { get; set; }
+    public List<OrderItem> Items { get; set; } = new();
+    public string CustomerEmail { get; set; } = string.Empty;
+}
+
+// CQRS Query (read operation)
+public class GetOrderQuery : IQuery<OrderDto>
+{
+    public int OrderId { get; set; }
+}
+
+// Registration
+builder.Services.AddMediator(config =>
+{
+    // Command processing pipeline
+    config.AddMiddleware<ErrorHandlingMiddleware<>>();           // Order: int.MinValue (all requests)
+    config.AddMiddleware<ValidationMiddleware<>>();              // Order: 100 (commands only)
+    config.AddMiddleware<AuditMiddleware<>>();                   // Order: 200 (commands only)
+
+    // Query processing pipeline
+    config.AddMiddleware<ErrorHandlingMiddleware<,>>();          // Order: int.MinValue (all requests)
+    config.AddMiddleware<CachingMiddleware<,>>();                // Order: 50 (queries only)
+    config.AddMiddleware<QueryMetricsMiddleware<,>>();           // Order: 75 (queries only)
+
+    // General pipeline
+    config.AddMiddleware<LoggingMiddleware<,>>();                // Order: 10 (all requests)
+    config.AddMiddleware<GeneralCommandLoggingMiddleware<>>();   // Order: 10 (commands only)
+
+}, typeof(Program).Assembly);
+
+// Execution flow for CreateOrderCommand:
+// 1. ErrorHandlingMiddleware (int.MinValue) ✅
+// 2. LoggingMiddleware (10) ✅
+// 3. GeneralCommandLoggingMiddleware (10) ✅ (commands only)
+// 4. ValidationMiddleware (100) ✅ (commands only)
+// 5. AuditMiddleware (200) ✅ (commands only)
+// 6. CreateOrderHandler ✅
+
+// Execution flow for GetOrderQuery:
+// 1. ErrorHandlingMiddleware (int.MinValue) ✅
+// 2. LoggingMiddleware (10) ✅
+// 3. CachingMiddleware (50) ✅ (queries only)
+// 4. QueryMetricsMiddleware (75) ✅ (queries only)
+// 5. GetOrderHandler ✅
+
+// Note: ValidationMiddleware and AuditMiddleware are SKIPPED for queries
+// Note: CachingMiddleware and QueryMetricsMiddleware are SKIPPED for commands
+```
+
+This approach provides significant performance benefits by avoiding unnecessary middleware execution while maintaining clear separation of concerns between command and query processing pipelines.
 
 ### Middleware Best Practices
 
@@ -2363,214 +2482,80 @@ public class DebugService
 
 ## Sample Projects
 
-The Blazing.Mediator library includes several comprehensive sample projects that demonstrate different architectural approaches, middleware usage patterns, and feature implementations. These projects showcase real-world implementations of CQRS with the Mediator pattern, providing practical examples you can learn from and adapt to your own projects.
+The library includes eight comprehensive sample projects demonstrating different approaches:
 
-### ECommerce.Api - Traditional Controller Architecture
+1. **Blazing.Mediator.Examples** - Complete feature showcase and migration guide from MediatR
 
-The ECommerce.Api sample demonstrates a traditional ASP.NET Core Web API architecture using MVC controllers. This project showcases:
+    - All core Blazing.Mediator features with side-by-side MediatR comparisons
+    - Request/Response patterns (Ping/Pong), void commands (Jing), and notifications (Pinged)
+    - Streaming examples with `IAsyncEnumerable<T>` for real-time data processing
+    - Middleware pipeline demonstrations replacing MediatR pipeline behaviors
+    - Performance optimizations and migration patterns
+    - Perfect starting point for new users and MediatR migration
 
-#### Key Features
-- **Traditional MVC Controllers**: RESTful API endpoints using controller classes
-- **Complete CRUD Operations**: Full Create, Read, Update, Delete functionality
-- **Advanced Error Handling**: Comprehensive exception handling with proper HTTP status codes
-- **Input Validation**: FluentValidation integration with detailed error responses
-- **Complex Business Logic**: Order processing, inventory management, and customer operations
-- **MediatorStatistics Integration**: Dedicated controller for analyzing queries and commands
+2. **MiddlewareExample** - Console application demonstrating comprehensive middleware pipeline and inspection capabilities
 
-#### Sample Endpoints
-```http
-# Get all products
-GET http://localhost:5001/api/products
+    - E-commerce scenario with CQRS patterns and auto-registration functionality
+    - Advanced middleware pipeline with ordered execution and concrete/generic middleware with conditional operation
+    - Simple error handling and multi-validation middleware examples
+    - FluentValidation integration with error handling and retry patterns
+    - Enhanced `IMiddlewarePipelineInspector` for debugging and monitoring middleware execution
+    - `MiddlewarePipelineAnalyzer` helper class for runtime pipeline analysis and introspection
+    - detailed readme documentation included
 
-# Get specific product
-GET http://localhost:5001/api/products/1
+3. **TypedMiddlewareExample** _**(NEW!)**_ - Console application demonstrating type-constrained middleware with CQRS interface distinction
 
-# Create new product
-POST http://localhost:5001/api/products
-Content-Type: application/json
+    - Clear separation between `ICommand` and `IQuery` interfaces with type-specific middleware
+    - Validation middleware that only processes commands, bypassing queries entirely
+    - Query-specific logging middleware demonstrating type constraints in action
+    - Visual distinction between command and query processing in console output
+    - Comprehensive examples showing how type constraints improve performance and maintainability
+    - Perfect demonstration of selective middleware execution based on interface types
 
-{
-  "name": "New Product",
-  "description": "Product description",
-  "price": 99.99,
-  "stockQuantity": 100
-}
+4. **SimpleNotificationExample** _**(NEW!)**_ - Console application demonstrating recommended scoped notification patterns
 
-# Update product
-PUT http://localhost:5001/api/products/1
-Content-Type: application/json
+    - Recommended approach using default scoped `IMediator` registration (not singleton) for proper resource management
+    - Simple, straightforward notification subscribers
+    - Multiple subscribers reacting to the same notification (`OrderCreatedNotification`)
+    - Manual subscription management with runtime `IMediator.Subscribe()` control
+    - Enhanced with `MediatorStatistics` analysis and notification tracking demonstrations
+    - Clear documentation showing why this is the preferred pattern over complex background service approaches
+    - Perfect starting point for understanding notification patterns in Blazing.Mediator
 
-{
-  "id": 1,
-  "name": "Updated Product",
-  "description": "Updated description",
-  "price": 149.99,
-  "stockQuantity": 150
-}
+5. **TypedSimpleNotificationExample** _**(NEW!)**_ - Console application demonstrating type-constrained notification middleware with interface-based categorization
 
-# Delete product
-DELETE http://localhost:5001/api/products/1
+    - Type-constrained notification middleware processing only specific notification categories (Order, Customer, Inventory)
+    - Interface-based notification categorization with `IOrderNotification`, `ICustomerNotification`, and `IInventoryNotification`
+    - Selective middleware execution based on notification interface types for optimal performance
+    - Dynamic pipeline analysis using `INotificationMiddlewarePipelineInspector` for runtime inspection
+    - Comprehensive notification metrics tracking with success rates and performance timing
+    - Visual distinction between different notification types in console output with category-specific processing
+    - Advanced notification pipeline debugging and monitoring capabilities
 
-# Mediator Analysis Endpoints
-GET http://localhost:5001/api/mediator/analyze/queries
-GET http://localhost:5001/api/mediator/analyze/commands
-GET http://localhost:5001/api/mediator/analyze?detailed=false
-```
+6. **ECommerce.Api** - Demonstrates traditional Controller-based API with conditional middleware and notification system
 
-#### Project Structure
-```
-ECommerce.Api/
-├── Controllers/
-│   ├── ProductsController.cs      # Product management endpoints
-│   ├── OrdersController.cs        # Order processing endpoints
-│   ├── CustomersController.cs     # Customer management endpoints
-│   └── MediatorController.cs      # Mediator analysis endpoints
-├── Application/
-│   ├── Commands/                  # Write operations (CQRS Commands)
-│   ├── Queries/                   # Read operations (CQRS Queries)
-│   └── Handlers/                  # Command and Query handlers
-├── Models/                        # DTOs and request/response models
-└── Program.cs                     # Service registration and configuration
-```
+    - Product and Order management with CQRS patterns
+    - Comprehensive notification system with domain events
+    - Real-time order status notifications and subscription management
+    - Conditional logging middleware for performance optimization
+    - Entity Framework integration with domain event publishing
+    - FluentValidation integration with validation middleware
+    - Background services for notification processing
 
-### UserManagement.Api - Modern Minimal APIs
+7. **UserManagement.Api** - Demonstrates modern Minimal API approach with standard middleware
 
-The UserManagement.Api sample demonstrates modern ASP.NET Core Minimal APIs. This project showcases:
+    - User management operations
+    - Comprehensive logging middleware
+    - Clean architecture patterns
+    - Error handling examples
 
-#### Key Features
-- **Minimal API Endpoints**: Lightweight, functional API design
-- **Clean Architecture**: Simplified structure with focused functionality
-- **User Management**: Complete user lifecycle management
-- **Authentication & Authorization**: Token-based authentication patterns
-- **Performance Optimized**: Minimal overhead with maximum efficiency
-
-#### Sample Endpoints
-```http
-# Get all users
-GET http://localhost:5002/api/users
-
-# Get specific user
-GET http://localhost:5002/api/users/1
-
-# Create new user
-POST http://localhost:5002/api/users
-Content-Type: application/json
-
-{
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "john.doe@example.com",
-  "dateOfBirth": "1990-01-01"
-}
-
-# Update user
-PUT http://localhost:5002/api/users/1
-Content-Type: application/json
-
-{
-  "userId": 1,
-  "firstName": "John",
-  "lastName": "Smith",
-  "email": "john.smith@example.com"
-}
-
-# Delete user
-DELETE http://localhost:5002/api/users/1
-```
-
-### MiddlewareExample - Comprehensive Middleware Demonstration
-
-The MiddlewareExample sample is a console application that demonstrates the full power of the Blazing.Mediator middleware pipeline:
-
-#### Key Features
-- **Multiple Middleware Types**: Standard and conditional middleware examples
-- **Middleware Ordering**: Demonstrates proper middleware execution order
-- **Cross-Cutting Concerns**: Logging, validation, caching, and monitoring
-- **Error Handling**: Comprehensive exception handling throughout the pipeline
-- **MediatorStatistics**: Live analysis of queries and commands with both compact and detailed modes
-- **Real-world Scenarios**: E-commerce operations with complex business logic
-
-### Streaming.Api - Real-time Data Streaming
-
-The Streaming.Api sample demonstrates real-time data streaming capabilities:
-
-#### Key Features
-- **Blazor WebAssembly Client**: Interactive web client for real-time data
-- **SignalR Integration**: Real-time communication between server and clients
-- **Streaming Handlers**: `IStreamRequestHandler` implementations for continuous data
-- **Multiple Consumers**: Handle multiple concurrent data streams
-- **Real-time Updates**: Live data updates pushed to connected clients
-
-### SimpleNotificationExample - Event-Driven Architecture
-
-The SimpleNotificationExample demonstrates the notification/event system:
-
-#### Key Features
-- **Domain Events**: Publisher-subscriber pattern implementation
-- **Multiple Handlers**: Multiple handlers for single events
-- **Notification Middleware**: Cross-cutting concerns for events
-- **Event Sourcing Patterns**: Examples of event-driven architecture
-
-### Running the Sample Projects
-
-#### Prerequisites
-
-- **.NET 9 SDK** or later
-- **Visual Studio 2022** or **Visual Studio Code** with C# extension
-- **Git** for cloning the repository
-
-#### Quick Start
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/gragra33/Blazing.Mediator.git
-   cd Blazing.Mediator
-   ```
-
-2. **Run ECommerce.Api**:
-   ```bash
-   cd src/samples/ECommerce.Api
-   dotnet run
-   ```
-   Navigate to `https://localhost:5001/swagger` to explore the API.
-
-3. **Run UserManagement.Api**:
-   ```bash
-   cd src/samples/UserManagement.Api
-   dotnet run
-   ```
-   Navigate to `https://localhost:5002/swagger` to explore the Minimal API.
-
-4. **Run MiddlewareExample**:
-   ```bash
-   cd src/samples/MiddlewareExample
-   dotnet run
-   ```
-   View comprehensive console output showing middleware pipeline execution.
-
-5. **Run Streaming.Api**:
-   ```bash
-   cd src/samples/Streaming.Api/Streaming.Api
-   dotnet run
-   ```
-   Navigate to `https://localhost:5003` to see the Blazor WebAssembly client.
-
-6. **Run SimpleNotificationExample**:
-   ```bash
-   cd src/samples/SimpleNotificationExample
-   dotnet run
-   ```
-   View notification/event handling in the console output.
-
-#### Development Tips
-
-- **Use Multiple Terminals**: Run multiple samples simultaneously to compare approaches
-- **Swagger Documentation**: All API samples include comprehensive Swagger documentation
-- **Debugging**: Set breakpoints in handlers and middleware to understand execution flow
-- **Middleware Analysis**: Use the MediatorController endpoints to analyze your application
-- **Performance Testing**: Use the benchmarking projects to measure performance impacts
-
-All samples demonstrate the flexibility of Blazing.Mediator and show that the library works equally well with different architectural approaches, API styles, and application types.
+8. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
+    - Memory-efficient `IAsyncEnumerable<T>` streaming with large datasets
+    - JSON streaming and Server-Sent Events (SSE) endpoints
+    - Multiple Blazor render modes (SSR, Auto, Static, WebAssembly)
+    - Stream middleware pipeline with logging and performance monitoring
+    - Interactive streaming controls and real-time data visualization
+    - 6 different streaming examples from minimal APIs to interactive WebAssembly clients
 
 ## Complete Examples
 
@@ -2721,22 +2706,283 @@ public class UpdateUserCommandValidator : AbstractValidator<UpdateUserCommand>
 }
 ```
 
+#### 4. Handlers Implementation
+
+```csharp
+// Handler for GetUserByIdQuery
+public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UserDto>
+{
+    private readonly IUserRepository _userRepository;
+
+    public GetUserByIdHandler(IUserRepository userRepository)
+    {
+        _userRepository = userRepository;
+    }
+
+    public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
+    {
+        var user = await _userRepository.GetByIdAsync(request.UserId);
+        if (user == null)
+        {
+            throw new NotFoundException($"User with ID {request.UserId} not found");
+        }
+
+        return new UserDto
+        {
+            Id = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email,
+            DateOfBirth = user.DateOfBirth,
+            IsActive = user.IsActive
+        };
+    }
+}
+
+// Handler for GetUsersQuery
+public class GetUsersHandler : IRequestHandler<GetUsersQuery, PagedResult<UserDto>>
+{
+    private readonly IUserRepository _userRepository;
+
+    public GetUsersHandler(IUserRepository userRepository)
+    {
+        _userRepository = userRepository;
+    }
+
+    public async Task<PagedResult<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
+    {
+        var users = await _userRepository.GetPagedAsync(request.Page, request.PageSize, request.SearchTerm, request.IncludeInactive);
+
+        return new PagedResult<UserDto>
+        {
+            Items = users.Items.Select(user => new UserDto
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                DateOfBirth = user.DateOfBirth,
+                IsActive = user.IsActive
+            }).ToList(),
+            TotalCount = users.TotalCount,
+            Page = request.Page,
+            PageSize = request.PageSize
+        };
+    }
+}
+
+// Handler for CreateUserCommand
+public class CreateUserHandler : IRequestHandler<CreateUserCommand, int>
+{
+    private readonly IUserRepository _userRepository;
+    private readonly IValidator<CreateUserCommand> _validator;
+
+    public CreateUserHandler(IUserRepository userRepository, IValidator<CreateUserCommand> validator)
+    {
+        _userRepository = userRepository;
+        _validator = validator;
+    }
+
+    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    {
+        // Validate request
+        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var user = new User
+        {
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            DateOfBirth = request.DateOfBirth,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _userRepository.AddAsync(user);
+        return user.Id;
+    }
+}
+
+// Handler for UpdateUserCommand
+public class UpdateUserHandler : IRequestHandler<UpdateUserCommand>
+{
+    private readonly IUserRepository _userRepository;
+    private readonly IValidator<UpdateUserCommand> _validator;
+
+    public UpdateUserHandler(IUserRepository userRepository, IValidator<UpdateUserCommand> validator)
+    {
+        _userRepository = userRepository;
+        _validator = validator;
+    }
+
+    public async Task Handle(UpdateUserCommand request, CancellationToken cancellationToken)
+    {
+        // Validate request
+        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var user = await _userRepository.GetByIdAsync(request.UserId);
+        if (user == null)
+        {
+            throw new NotFoundException($"User with ID {request.UserId} not found");
+        }
+
+        user.FirstName = request.FirstName;
+        user.LastName = request.LastName;
+        user.Email = request.Email;
+        user.DateOfBirth = request.DateOfBirth;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
+    }
+}
+
+// Handler for DeleteUserCommand
+public class DeleteUserHandler : IRequestHandler<DeleteUserCommand>
+{
+    private readonly IUserRepository _userRepository;
+
+    public DeleteUserHandler(IUserRepository userRepository)
+    {
+        _userRepository = userRepository;
+    }
+
+    public async Task Handle(DeleteUserCommand request, CancellationToken cancellationToken)
+    {
+        var user = await _userRepository.GetByIdAsync(request.UserId);
+        if (user == null)
+        {
+            throw new NotFoundException($"User with ID {request.UserId} not found");
+        }
+
+        await _userRepository.DeleteAsync(user);
+    }
+}
+```
+
+#### 5. Controller Implementation
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public UsersController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<UserDto>> GetUser(int id)
+    {
+        try
+        {
+            var query = new GetUserByIdQuery { UserId = id };
+            var user = await _mediator.Send(query);
+            return Ok(user);
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<PagedResult<UserDto>>> GetUsers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string searchTerm = null)
+    {
+        var query = new GetUsersQuery
+        {
+            Page = page,
+            PageSize = pageSize,
+            SearchTerm = searchTerm
+        };
+
+        var result = await _mediator.Send(query);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult> CreateUser([FromBody] CreateUserCommand command)
+    {
+        try
+        {
+            var userId = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetUser), new { id = userId }, null);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(ex.Errors);
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult> UpdateUser(int id, [FromBody] UpdateUserCommand command)
+    {
+        if (id != command.UserId)
+            return BadRequest("ID mismatch");
+
+        try
+        {
+            await _mediator.Send(command);
+            return NoContent();
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(ex.Errors);
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteUser(int id)
+    {
+        try
+        {
+            var command = new DeleteUserCommand { UserId = id };
+            await _mediator.Send(command);
+            return NoContent();
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+    }
+}
+```
+
 This complete example demonstrates:
 
-- ✅ **Full CRUD Operations** with proper HTTP status codes
-- ✅ **CQRS Implementation** with clear separation of commands and queries
-- ✅ **Comprehensive Validation** using FluentValidation
-- ✅ **Error Handling** with custom exceptions and proper responses
-- ✅ **Repository Pattern** with Entity Framework Core
-- ✅ **AutoMapper Integration** for object mapping
-- ✅ **Pagination Support** for efficient data retrieval
-- ✅ **Search Functionality** with filtering capabilities
-- ✅ **API Documentation** with Swagger/OpenAPI
-- ✅ **Dependency Injection** throughout the application
-- ✅ **Clean Architecture** with proper separation of concerns
+-   ✅ **Full CRUD Operations** with proper HTTP status codes
+-   ✅ **CQRS Implementation** with clear separation of commands and queries
+-   ✅ **Comprehensive Validation** using FluentValidation
+-   ✅ **Error Handling** with custom exceptions and proper responses
+-   ✅ **Repository Pattern** with Entity Framework Core
+-   ✅ **Pagination Support** for efficient data retrieval
+-   ✅ **Search Functionality** with filtering capabilities
+-   ✅ **API Documentation** with Swagger/OpenAPI
+-   ✅ **Dependency Injection** throughout the application
+-   ✅ **Clean Architecture** with proper separation of concerns
 
 You can use this example as a foundation for your own applications, adapting the patterns and structure to meet your specific requirements.
-
-
-
-

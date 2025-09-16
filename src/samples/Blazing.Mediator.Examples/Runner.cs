@@ -143,7 +143,7 @@ public static class Runner
             MultipleNotificationHandlers = contents.Contains("Got pinged async") && contents.Contains("Got pinged also async"),
             ConstrainedGenericNotificationHandler = contents.Contains("Got pinged constrained async") && !failedPong,
             CovariantNotificationHandler = contents.Contains("Got notified"),
-            
+
             // Streams
             StreamRequestHandlers = testStreams && contents.Contains("--- Handled Sing: Sing, Song") && !failedSing,
             StreamMiddlewareBehaviors = testStreams && contents.Contains("-- Handling StreamRequest"),

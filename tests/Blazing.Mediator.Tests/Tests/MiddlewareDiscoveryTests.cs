@@ -1,5 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using static Blazing.Mediator.Tests.NotificationTests.NotificationMiddlewareTests;
 
@@ -80,7 +80,7 @@ public class MiddlewareDiscoveryTests
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
         requestMiddleware.Count.ShouldBeGreaterThan(0); // Some request middleware should be auto-discovered
-        
+
         // Verify notification middleware (should be manually registered only)
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
@@ -332,9 +332,9 @@ public class MiddlewareDiscoveryTests
 
         // Act - null configureMiddleware with only discoverNotificationMiddleware=true
         services.AddMediator(
-            configureMiddleware: null, 
-            discoverMiddleware: false, 
-            discoverNotificationMiddleware: true, 
+            configureMiddleware: null,
+            discoverMiddleware: false,
+            discoverNotificationMiddleware: true,
             _testAssembly);
 
         // Assert

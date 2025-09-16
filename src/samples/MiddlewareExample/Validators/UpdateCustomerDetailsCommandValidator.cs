@@ -21,7 +21,7 @@ public class UpdateCustomerDetailsCommandValidator : AbstractValidator<UpdateCus
             .NotEmpty().WithMessage("Email is required")
             .EmailAddress().WithMessage("Email must be a valid email address")
             .MaximumLength(255).WithMessage("Email must not exceed 255 characters");
-            
+
         RuleFor(x => x.ContactMethod)
             .NotEmpty().WithMessage("Contact method is required")
             .Must(method => new[] { "Email", "Phone", "SMS" }.Contains(method))

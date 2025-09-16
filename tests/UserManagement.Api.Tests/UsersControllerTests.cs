@@ -404,4 +404,65 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
+
+    /// <summary>
+    /// Tests that the analysis health endpoint returns OK status.
+    /// </summary>
+    [Fact]
+    public async Task GetAnalysisHealth_ReturnsOkWithHealthInfo()
+    {
+        // Act
+        var response = await _client.GetAsync("/api/analysis/health");
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsStringAsync();
+        content.ShouldContain("Healthy");
+        content.ShouldContain("User Management API - Mediator Analysis");
+    }
+
+    /// <summary>
+    /// Tests that the session ID endpoint returns OK status.
+    /// </summary>
+    [Fact]
+    public async Task GetSessionId_ReturnsOkWithSessionInfo()
+    {
+        // Act
+        var response = await _client.GetAsync("/api/mediator/session");
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsStringAsync();
+        content.ShouldContain("Session");
+    }
+
+    /// <summary>
+    /// Tests that the global statistics endpoint returns OK status.
+    /// </summary>
+    [Fact]
+    public async Task GetStatistics_ReturnsOkWithGlobalStatistics()
+    {
+        // Act
+        var response = await _client.GetAsync("/api/mediator/statistics");
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsStringAsync();
+        content.ShouldContain("Real-Time Mediator Statistics");
+    }
+
+    /// <summary>
+    /// Tests that the all sessions statistics endpoint returns OK status.
+    /// </summary>
+    [Fact]
+    public async Task GetAllSessionStatistics_ReturnsOkWithSessionsList()
+    {
+        // Act
+        var response = await _client.GetAsync("/api/mediator/statistics/sessions");
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsStringAsync();
+        content.ShouldContain("Statistics for All Active Sessions");
+    }
 }

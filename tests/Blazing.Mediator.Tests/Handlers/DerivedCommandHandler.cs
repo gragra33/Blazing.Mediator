@@ -9,7 +9,7 @@ public class DerivedCommandHandler : IRequestHandler<DerivedCommand>
     /// Gets a value indicating whether the handler was executed.
     /// </summary>
     public static bool WasExecuted { get; set; }
-    
+
     /// <summary>
     /// Gets the last processed derived command.
     /// </summary>

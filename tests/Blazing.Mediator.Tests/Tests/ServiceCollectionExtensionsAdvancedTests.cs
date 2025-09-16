@@ -1,11 +1,9 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using Shouldly;
-using Xunit;
 
 namespace Blazing.Mediator.Tests.Tests
 {
@@ -27,7 +25,7 @@ namespace Blazing.Mediator.Tests.Tests
             var customRenderer = new TestStatisticsRenderer();
             services.AddSingleton<IStatisticsRenderer>(customRenderer);
             services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, typeof(TestCommand).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
             var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
@@ -49,7 +47,7 @@ namespace Blazing.Mediator.Tests.Tests
             // Arrange
             ServiceCollection services = new();
             services.AddMediator(config => { }, enableStatisticsTracking: false, typeof(TestCommand).Assembly);
-            
+
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -78,14 +76,14 @@ namespace Blazing.Mediator.Tests.Tests
         {
             // Arrange
             ServiceCollection services = new();
-            
+
             // Act - Register mediator services
             services.AddMediator();
-            
+
             // Act & Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var inspector = serviceProvider.GetService<IMiddlewarePipelineInspector>();
-            
+
             // Should work normally - the exception path is for custom implementations
             inspector.ShouldNotBeNull();
         }
@@ -98,14 +96,14 @@ namespace Blazing.Mediator.Tests.Tests
         {
             // Arrange
             ServiceCollection services = new();
-            
+
             // Act
             services.AddMediator(config => { }, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var inspector = serviceProvider.GetService<INotificationMiddlewarePipelineInspector>();
-            
+
             // Should work normally - the exception path is for custom implementations
             inspector.ShouldNotBeNull();
         }
@@ -167,7 +165,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var inspector = serviceProvider.GetService<IMiddlewarePipelineInspector>();
-            
+
             mediator.ShouldNotBeNull();
             inspector.ShouldNotBeNull();
         }
@@ -189,7 +187,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var notificationInspector = serviceProvider.GetService<INotificationMiddlewarePipelineInspector>();
-            
+
             mediator.ShouldNotBeNull();
             notificationInspector.ShouldNotBeNull();
         }
@@ -305,7 +303,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
             var customRenderer = new TestStatisticsRenderer();
             var customStatistics = new MediatorStatistics(customRenderer);
-            
+
             services.AddSingleton<IStatisticsRenderer>(customRenderer);
             services.AddSingleton(customStatistics);
 
@@ -316,7 +314,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var renderer = serviceProvider.GetService<IStatisticsRenderer>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             renderer.ShouldBeSameAs(customRenderer);
             statistics.ShouldBeSameAs(customStatistics);
         }
@@ -395,14 +393,14 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediator(config => 
+            services.AddMediator(config =>
             {
                 config.AddMiddleware<FirstQueryMiddleware>();
             }, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-            
+
             // Test all registered services can be resolved
             var mediator = serviceProvider.GetRequiredService<IMediator>();
             var pipelineBuilder = serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>();
@@ -411,7 +409,7 @@ namespace Blazing.Mediator.Tests.Tests
             var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
             var configuration = serviceProvider.GetRequiredService<MediatorConfiguration>();
             var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             pipelineBuilder.ShouldNotBeNull();
             notificationPipelineBuilder.ShouldNotBeNull();
@@ -437,7 +435,7 @@ namespace Blazing.Mediator.Tests.Tests
             services.AddSingleton<IStatisticsRenderer>(customRenderer);
 
             // Act
-            services.AddMediator(config => 
+            services.AddMediator(config =>
             {
                 config.AddMiddleware<FirstQueryMiddleware>();
             }, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, typeof(TestCommandHandler).Assembly);
@@ -454,7 +452,7 @@ namespace Blazing.Mediator.Tests.Tests
             // Assert
             var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
             statistics.ReportStatistics();
-            
+
             customRenderer.Messages.ShouldContain(msg => msg.Contains("Commands: 1"));
             customRenderer.Messages.ShouldContain(msg => msg.Contains("Queries: 1"));
             result.ShouldBe("First: Handler: test");

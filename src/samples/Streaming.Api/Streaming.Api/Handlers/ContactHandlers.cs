@@ -1,7 +1,7 @@
 using Blazing.Mediator;
-using Streaming.Api.Shared.DTOs;
 using Streaming.Api.Requests;
 using Streaming.Api.Services;
+using Streaming.Api.Shared.DTOs;
 
 namespace Streaming.Api.Handlers;
 
@@ -120,9 +120,9 @@ public class GetAllContactsHandler : IRequestHandler<GetAllContactsRequest, Cont
     public async Task<ContactDto[]> Handle(GetAllContactsRequest request, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Getting all contacts, search term: {SearchTerm}", request.SearchTerm);
-        
+
         var contacts = new List<ContactDto>();
-        
+
         if (string.IsNullOrWhiteSpace(request.SearchTerm))
         {
             await foreach (var contact in _contactService.StreamContactsAsync(cancellationToken))
@@ -137,7 +137,7 @@ public class GetAllContactsHandler : IRequestHandler<GetAllContactsRequest, Cont
                 contacts.Add(contact);
             }
         }
-        
+
         _logger.LogInformation("Retrieved {Count} contacts", contacts.Count);
         return contacts.ToArray();
     }

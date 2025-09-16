@@ -9,7 +9,7 @@ public class UpdateInventoryCommand : IRequest<int>
     /// Gets or sets the product ID to update.
     /// </summary>
     public required string ProductId { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the quantity to add or subtract from inventory.
     /// </summary>

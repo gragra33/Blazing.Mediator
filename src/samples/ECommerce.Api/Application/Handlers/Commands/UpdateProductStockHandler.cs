@@ -12,7 +12,8 @@ namespace ECommerce.Api.Application.Handlers.Commands;
 /// </summary>
 /// <param name="context">The database context for accessing product data.</param>
 /// <param name="validator">The validator for validating the update product stock command.</param>
-public class UpdateProductStockHandler(ECommerceDbContext context, IValidator<UpdateProductStockCommand> validator) : IRequestHandler<UpdateProductStockCommand>
+public class UpdateProductStockHandler(ECommerceDbContext context, IValidator<UpdateProductStockCommand> validator)
+    : IRequestHandler<UpdateProductStockCommand>
 {
     /// <summary>
     /// Handles the update product stock command by validating the request and updating the product's stock quantity.

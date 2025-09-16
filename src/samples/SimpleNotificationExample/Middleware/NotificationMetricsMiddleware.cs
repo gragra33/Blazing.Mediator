@@ -28,7 +28,7 @@ public class NotificationMetricsMiddleware(ILogger<NotificationMetricsMiddleware
             var duration = DateTime.UtcNow - startTime;
             UpdateMetrics(notificationName, duration.TotalMilliseconds, true);
 
-            logger.LogInformation("$ Metrics updated for {NotificationType}: {Duration}ms", 
+            logger.LogInformation("$ Metrics updated for {NotificationType}: {Duration}ms",
                 notificationName, duration.TotalMilliseconds);
         }
         catch (Exception ex)
@@ -36,7 +36,7 @@ public class NotificationMetricsMiddleware(ILogger<NotificationMetricsMiddleware
             var duration = DateTime.UtcNow - startTime;
             UpdateMetrics(notificationName, duration.TotalMilliseconds, false);
 
-            logger.LogWarning("$ Metrics updated for failed {NotificationType}: {Duration}ms - {Error}", 
+            logger.LogWarning("$ Metrics updated for failed {NotificationType}: {Duration}ms - {Error}",
                 notificationName, duration.TotalMilliseconds, ex.Message);
             throw;
         }
@@ -54,7 +54,7 @@ public class NotificationMetricsMiddleware(ILogger<NotificationMetricsMiddleware
 
             metrics.TotalCount++;
             metrics.TotalDurationMs += durationMs;
-            
+
             if (success)
                 metrics.SuccessCount++;
             else

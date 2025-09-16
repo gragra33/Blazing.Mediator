@@ -49,16 +49,16 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
     {
         var requestType = request.GetType().Name;
         var startTime = DateTime.UtcNow;
-        
+
         // Log the request
-        _logger.LogInformation("🛒 ORDER REQUEST: {RequestType} started at {StartTime}", 
+        _logger.LogInformation("🛒 ORDER REQUEST: {RequestType} started at {StartTime}",
             requestType, startTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
-        
+
         try
         {
             // Serialize and log request details (be careful with sensitive data in production)
-            var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions 
-            { 
+            var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions
+            {
                 WriteIndented = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
@@ -74,19 +74,19 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
         {
             // Execute the next middleware or handler
             response = await next();
-            
+
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
-            
+
             // Log successful response
-            _logger.LogInformation("🛒 ORDER RESPONSE: {RequestType} completed successfully in {Duration}ms at {EndTime}", 
+            _logger.LogInformation("🛒 ORDER RESPONSE: {RequestType} completed successfully in {Duration}ms at {EndTime}",
                 requestType, duration.TotalMilliseconds, endTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
-            
+
             try
             {
                 // Serialize and log response details
-                var responseJson = JsonSerializer.Serialize(response, new JsonSerializerOptions 
-                { 
+                var responseJson = JsonSerializer.Serialize(response, new JsonSerializerOptions
+                {
                     WriteIndented = true,
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
@@ -101,11 +101,11 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
         {
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
-            
+
             // Log error response
-            _logger.LogError("🛒 ORDER ERROR: {RequestType} failed after {Duration}ms at {EndTime} - {Error}", 
+            _logger.LogError("🛒 ORDER ERROR: {RequestType} failed after {Duration}ms at {EndTime} - {Error}",
                 requestType, duration.TotalMilliseconds, endTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), ex.Message);
-            
+
             throw;
         }
 

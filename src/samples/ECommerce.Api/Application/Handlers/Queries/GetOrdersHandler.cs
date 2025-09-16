@@ -12,7 +12,8 @@ namespace ECommerce.Api.Application.Handlers.Queries;
 /// Handler for retrieving a paginated list of orders with optional filtering.
 /// </summary>
 /// <param name="context">The database context for accessing order data.</param>
-public class GetOrdersHandler(ECommerceDbContext context) : IRequestHandler<GetOrdersQuery, PagedResult<OrderDto>>
+public class GetOrdersHandler(ECommerceDbContext context)
+    : IRequestHandler<GetOrdersQuery, PagedResult<OrderDto>>
 {
     /// <summary>
     /// Handles the get orders query by applying filters and pagination.

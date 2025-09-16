@@ -50,13 +50,13 @@ public class MediatorConfiguration
         where TMiddleware : class
     {
         PipelineBuilder.AddMiddleware<TMiddleware>();
-        
+
         // Automatically register the middleware in DI if services collection is available
         if (_services != null)
         {
             RegisterMiddlewareInDI(typeof(TMiddleware));
         }
-        
+
         return this;
     }
 
@@ -68,13 +68,13 @@ public class MediatorConfiguration
     public MediatorConfiguration AddMiddleware(Type middlewareType)
     {
         PipelineBuilder.AddMiddleware(middlewareType);
-        
+
         // Automatically register the middleware in DI if services collection is available
         if (_services != null)
         {
             RegisterMiddlewareInDI(middlewareType);
         }
-        
+
         return this;
     }
 
@@ -89,7 +89,7 @@ public class MediatorConfiguration
         {
             AddMiddleware(middlewareType);
         }
-        
+
         return this;
     }
 
@@ -102,13 +102,13 @@ public class MediatorConfiguration
         where TMiddleware : class, INotificationMiddleware
     {
         NotificationPipelineBuilder.AddMiddleware<TMiddleware>();
-        
+
         // Automatically register the middleware in DI if services collection is available
         if (_services != null)
         {
             RegisterMiddlewareInDI(typeof(TMiddleware));
         }
-        
+
         return this;
     }
 
@@ -122,13 +122,13 @@ public class MediatorConfiguration
         where TMiddleware : class, INotificationMiddleware
     {
         NotificationPipelineBuilder.AddMiddleware<TMiddleware>(configuration);
-        
+
         // Automatically register the middleware in DI if services collection is available
         if (_services != null)
         {
             RegisterMiddlewareInDI(typeof(TMiddleware));
         }
-        
+
         return this;
     }
 
@@ -140,13 +140,13 @@ public class MediatorConfiguration
     public MediatorConfiguration AddNotificationMiddleware(Type middlewareType)
     {
         NotificationPipelineBuilder.AddMiddleware(middlewareType);
-        
+
         // Automatically register the middleware in DI if services collection is available
         if (_services != null)
         {
             RegisterMiddlewareInDI(middlewareType);
         }
-        
+
         return this;
     }
 
@@ -161,7 +161,7 @@ public class MediatorConfiguration
         {
             AddNotificationMiddleware(middlewareType);
         }
-        
+
         return this;
     }
 

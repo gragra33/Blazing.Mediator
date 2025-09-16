@@ -1,43 +1,93 @@
 ###
-# User Management API - Sample HTTP Requests
-# This file demonstrates all endpoints available in the UserManagement.Api sample project
-# which showcases the Blazing.Mediator library with CQRS pattern implementation.
+# User Management API - Complete HTTP Requests Collection
+# This file demonstrates ALL endpoints available in the UserManagement.Api sample project
+# showcasing the Blazing.Mediator library with CQRS patterns, validation, and real-time statistics.
+#
+# ?? FEATURES DEMONSTRATED:
+# - Complete CQRS implementation with commands and queries
+# - Real-time mediator statistics tracking
+# - Session-based statistics monitoring  
+# - Pure minimal API implementation (no controllers)
+# - Comprehensive validation with FluentValidation
+# - Error handling and HTTP status codes
 #
 # To use these requests:
 # 1. Start the UserManagement.Api project
 # 2. Execute requests individually using your HTTP client
+# 3. Monitor real-time statistics through the statistics endpoints
 #
 ###
+
+# Set the project URL for the running API
+@projectUrl = https://localhost:54337
 
 ###
 # Health Check - Swagger UI
 GET {{$projectUrl}}/swagger/index.html
 
 ###
-# QUERY ENDPOINTS - Read operations using CQRS queries
+# ?? REAL-TIME STATISTICS ENDPOINTS - Session and Global Tracking
 
 ###
-# Get all users with pagination
-GET {{$projectUrl}}/api/users?page=1&pageSize=10&searchTerm=&includeInactive=false
+# Get current session ID for statistics tracking
+GET {{$projectUrl}}/api/mediator/session
 
 ###
-# Get all users with search filter
+# Get real-time global mediator statistics
+GET {{$projectUrl}}/api/mediator/statistics
+
+###
+# Get all active sessions with their statistics
+GET {{$projectUrl}}/api/mediator/statistics/sessions
+
+###
+# Get statistics for a specific session (replace with actual session ID from /session endpoint)
+GET {{$projectUrl}}/api/mediator/statistics/session/stats_1758006198_6cb83558
+
+###
+# ?? ANALYSIS & HEALTH ENDPOINTS
+
+###
+# Health check for analysis system
+GET {{$projectUrl}}/api/analysis/health
+
+###
+# USER QUERY ENDPOINTS - Read operations using CQRS queries
+
+###
+# Get all users with pagination (default parameters)
+GET {{$projectUrl}}/api/users?page=1&pageSize=10
+
+###
+# Get users with search filter
 GET {{$projectUrl}}/api/users?page=1&pageSize=5&searchTerm=john&includeInactive=false
+
+###
+# Get users with larger page size
+GET {{$projectUrl}}/api/users?page=1&pageSize=20&searchTerm=&includeInactive=false
 
 ###
 # Get all users including inactive ones
 GET {{$projectUrl}}/api/users?page=1&pageSize=10&searchTerm=&includeInactive=true
 
 ###
+# Get users by email search
+GET {{$projectUrl}}/api/users?page=1&pageSize=10&searchTerm=example.com&includeInactive=false
+
+###
 # Get user by ID
 GET {{$projectUrl}}/api/users/1
+
+###
+# Get user by ID (should return user details)
+GET {{$projectUrl}}/api/users/2
 
 ###
 # Get user by ID - Not found example
 GET {{$projectUrl}}/api/users/9999
 
 ###
-# Get all active users
+# Get all active users only
 GET {{$projectUrl}}/api/users/active
 
 ###
@@ -45,11 +95,15 @@ GET {{$projectUrl}}/api/users/active
 GET {{$projectUrl}}/api/users/1/statistics
 
 ###
+# Get user statistics by ID (different user)
+GET {{$projectUrl}}/api/users/2/statistics
+
+###
 # Get user statistics - Not found example
 GET {{$projectUrl}}/api/users/9999/statistics
 
 ###
-# COMMAND ENDPOINTS - Write operations using CQRS commands
+# USER COMMAND ENDPOINTS - Write operations using CQRS commands
 
 ###
 # Create new user (void response)
@@ -76,6 +130,18 @@ Content-Type: application/json
 }
 
 ###
+# Create another user with ID return
+POST {{$projectUrl}}/api/users/with-id
+Content-Type: application/json
+
+{
+  "firstName": "Alice",
+  "lastName": "Johnson",
+  "email": "alice.johnson@example.com",
+  "dateOfBirth": "1992-07-10T00:00:00"
+}
+
+###
 # Create user with validation error (empty first name)
 POST {{$projectUrl}}/api/users
 Content-Type: application/json
@@ -85,6 +151,30 @@ Content-Type: application/json
   "lastName": "Invalid",
   "email": "invalid-email",
   "dateOfBirth": "2025-01-01T00:00:00"
+}
+
+###
+# Create user with validation error (invalid email format)
+POST {{$projectUrl}}/api/users
+Content-Type: application/json
+
+{
+  "firstName": "Test",
+  "lastName": "User",
+  "email": "not-an-email",
+  "dateOfBirth": "1990-01-01T00:00:00"
+}
+
+###
+# Create user with validation error (future birth date)
+POST {{$projectUrl}}/api/users
+Content-Type: application/json
+
+{
+  "firstName": "Future",
+  "lastName": "Person",
+  "email": "future@example.com",
+  "dateOfBirth": "2030-01-01T00:00:00"
 }
 
 ###
@@ -114,29 +204,51 @@ Content-Type: application/json
 }
 
 ###
-# Update user with result return
-PUT {{$projectUrl}}/api/users/1/with-result
+# Update non-existent user (should return 404)
+PUT {{$projectUrl}}/api/users/9999
 Content-Type: application/json
 
 {
-  "userId": 1,
-  "firstName": "John Result",
-  "lastName": "Doe Result",
-  "email": "john.result@example.com",
+  "userId": 9999,
+  "firstName": "Not Found",
+  "lastName": "User",
+  "email": "notfound@example.com",
   "dateOfBirth": "1990-05-15T00:00:00"
 }
 
 ###
-# Delete user
-DELETE {{$projectUrl}}/api/users/1?reason=User requested account deletion
+# Update user with result return
+PUT {{$projectUrl}}/api/users/2/with-result
+Content-Type: application/json
+
+{
+  "userId": 2,
+  "firstName": "Jane Result",
+  "lastName": "Smith Result",
+  "email": "jane.result@example.com",
+  "dateOfBirth": "1985-03-22T00:00:00"
+}
 
 ###
-# Delete user - Not found example
-DELETE {{$projectUrl}}/api/users/9999?reason=Test deletion
+# Update user with result - validation error
+PUT {{$projectUrl}}/api/users/2/with-result
+Content-Type: application/json
+
+{
+  "userId": 2,
+  "firstName": "",
+  "lastName": "Invalid",
+  "email": "bad-email",
+  "dateOfBirth": "1985-03-22T00:00:00"
+}
 
 ###
 # Activate user account
 POST {{$projectUrl}}/api/users/1/activate
+
+###
+# Activate user account (different user)
+POST {{$projectUrl}}/api/users/2/activate
 
 ###
 # Activate user account - Not found example
@@ -147,26 +259,30 @@ POST {{$projectUrl}}/api/users/9999/activate
 POST {{$projectUrl}}/api/users/1/deactivate
 
 ###
+# Deactivate user account (different user)
+POST {{$projectUrl}}/api/users/2/deactivate
+
+###
 # Deactivate user account - Not found example
 POST {{$projectUrl}}/api/users/9999/deactivate
+
+###
+# Delete user with reason
+DELETE {{$projectUrl}}/api/users/1?reason=User requested account deletion
+
+###
+# Delete user without reason
+DELETE {{$projectUrl}}/api/users/2
+
+###
+# Delete user - Not found example
+DELETE {{$projectUrl}}/api/users/9999?reason=Test deletion
 
 ###
 # BATCH OPERATIONS - Create multiple users for testing
 
 ###
 # Create test user 1
-POST {{$projectUrl}}/api/users/with-id
-Content-Type: application/json
-
-{
-  "firstName": "Alice",
-  "lastName": "Johnson",
-  "email": "alice.johnson@example.com",
-  "dateOfBirth": "1992-07-10T00:00:00"
-}
-
-###
-# Create test user 2
 POST {{$projectUrl}}/api/users/with-id
 Content-Type: application/json
 
@@ -178,7 +294,7 @@ Content-Type: application/json
 }
 
 ###
-# Create test user 3
+# Create test user 2
 POST {{$projectUrl}}/api/users/with-id
 Content-Type: application/json
 
@@ -188,3 +304,306 @@ Content-Type: application/json
   "email": "carol.brown@example.com",
   "dateOfBirth": "1995-09-18T00:00:00"
 }
+
+###
+# Create test user 3
+POST {{$projectUrl}}/api/users/with-id
+Content-Type: application/json
+
+{
+  "firstName": "David",
+  "lastName": "Miller",
+  "email": "david.miller@example.com",
+  "dateOfBirth": "1987-04-25T00:00:00"
+}
+
+###
+# Create test user 4
+POST {{$projectUrl}}/api/users/with-id
+Content-Type: application/json
+
+{
+  "firstName": "Eve",
+  "lastName": "Davis",
+  "email": "eve.davis@example.com",
+  "dateOfBirth": "1993-11-12T00:00:00"
+}
+
+###
+# Create test user 5
+POST {{$projectUrl}}/api/users/with-id
+Content-Type: application/json
+
+{
+  "firstName": "Frank",
+  "lastName": "Taylor",
+  "email": "frank.taylor@example.com",
+  "dateOfBirth": "1991-08-30T00:00:00"
+}
+
+###
+# ERROR SCENARIOS - Testing comprehensive error handling
+
+###
+# Try to update user with invalid validation
+PUT {{$projectUrl}}/api/users/3
+Content-Type: application/json
+
+{
+  "userId": 3,
+  "firstName": "",
+  "lastName": "",
+  "email": "invalid",
+  "dateOfBirth": "2025-01-01T00:00:00"
+}
+
+###
+# Try to create user with all invalid data
+POST {{$projectUrl}}/api/users
+Content-Type: application/json
+
+{
+  "firstName": "",
+  "lastName": "",
+  "email": "",
+  "dateOfBirth": "2050-01-01T00:00:00"
+}
+
+###
+# Try to activate already active user (edge case)
+POST {{$projectUrl}}/api/users/3/activate
+
+###
+# Try to deactivate already inactive user (edge case)
+POST {{$projectUrl}}/api/users/3/deactivate
+
+###
+# ?? STATISTICS TRACKING DEMONSTRATION
+# These requests demonstrate how statistics are tracked in real-time
+
+###
+# Step 1: Get initial session ID
+GET {{$projectUrl}}/api/mediator/session
+
+###
+# Step 2: Get initial statistics (should show baseline)
+GET {{$projectUrl}}/api/mediator/statistics
+
+###
+# Step 3: Execute some queries to generate statistics
+GET {{$projectUrl}}/api/users
+GET {{$projectUrl}}/api/users/1
+GET {{$projectUrl}}/api/users/active
+GET {{$projectUrl}}/api/users/2/statistics
+
+###
+# Step 4: Execute some commands to generate statistics
+POST {{$projectUrl}}/api/users/with-id
+Content-Type: application/json
+
+{
+  "firstName": "Statistics",
+  "lastName": "Demo",
+  "email": "stats.demo@example.com",
+  "dateOfBirth": "1990-01-01T00:00:00"
+}
+
+###
+# Step 5: Check updated statistics (should show increased counts)
+GET {{$projectUrl}}/api/mediator/statistics
+
+###
+# Step 6: Check session-specific statistics (use your session ID from step 1)
+GET {{$projectUrl}}/api/mediator/statistics/session/stats_1758006198_6cb83558
+
+###
+# Step 7: Check all active sessions
+GET {{$projectUrl}}/api/mediator/statistics/sessions
+
+###
+# PAGINATION TESTING - Test different pagination scenarios
+
+###
+# Test pagination - first page
+GET {{$projectUrl}}/api/users?page=1&pageSize=3
+
+###
+# Test pagination - second page
+GET {{$projectUrl}}/api/users?page=2&pageSize=3
+
+###
+# Test pagination - large page size
+GET {{$projectUrl}}/api/users?page=1&pageSize=100
+
+###
+# Test pagination - invalid page (should handle gracefully)
+GET {{$projectUrl}}/api/users?page=0&pageSize=10
+
+###
+# Test pagination - negative page size (should handle gracefully)
+GET {{$projectUrl}}/api/users?page=1&pageSize=-5
+
+###
+# SEARCH AND FILTERING TESTING
+
+###
+# Search by first name
+GET {{$projectUrl}}/api/users?searchTerm=John&page=1&pageSize=10
+
+###
+# Search by last name
+GET {{$projectUrl}}/api/users?searchTerm=Smith&page=1&pageSize=10
+
+###
+# Search by email domain
+GET {{$projectUrl}}/api/users?searchTerm=example.com&page=1&pageSize=10
+
+###
+# Search with no results
+GET {{$projectUrl}}/api/users?searchTerm=nonexistent&page=1&pageSize=10
+
+###
+# Search including inactive users
+GET {{$projectUrl}}/api/users?searchTerm=test&includeInactive=true&page=1&pageSize=10
+
+###
+# COMPREHENSIVE WORKFLOW TESTING
+
+###
+# Complete user lifecycle workflow
+# Step 1: Create user
+POST {{$projectUrl}}/api/users/with-id
+Content-Type: application/json
+
+{
+  "firstName": "Workflow",
+  "lastName": "Test",
+  "email": "workflow.test@example.com",
+  "dateOfBirth": "1990-01-01T00:00:00"
+}
+
+###
+# Step 2: Get the created user (use returned ID)
+GET {{$projectUrl}}/api/users/6
+
+###
+# Step 3: Update the user
+PUT {{$projectUrl}}/api/users/6
+Content-Type: application/json
+
+{
+  "userId": 6,
+  "firstName": "Workflow Updated",
+  "lastName": "Test Updated",
+  "email": "workflow.updated@example.com",
+  "dateOfBirth": "1990-01-01T00:00:00"
+}
+
+###
+# Step 4: Get user statistics
+GET {{$projectUrl}}/api/users/6/statistics
+
+###
+# Step 5: Deactivate user
+POST {{$projectUrl}}/api/users/6/deactivate
+
+###
+# Step 6: Verify user is inactive (should not appear in active users)
+GET {{$projectUrl}}/api/users/active
+
+###
+# Step 7: Reactivate user
+POST {{$projectUrl}}/api/users/6/activate
+
+###
+# Step 8: Verify user is active again
+GET {{$projectUrl}}/api/users/active
+
+###
+# Step 9: Final deletion
+DELETE {{$projectUrl}}/api/users/6?reason=End of workflow test
+
+###
+# ?? RECOMMENDED TESTING SEQUENCE FOR FULL DEMONSTRATION
+
+###
+# PHASE 1: Basic CRUD Operations
+# 1. Create several users using POST /api/users/with-id
+# 2. Retrieve users using GET /api/users
+# 3. Update users using PUT /api/users/{id}
+# 4. Test user lifecycle with activate/deactivate
+
+###
+# PHASE 2: Error Handling and Validation
+# 1. Test validation errors with invalid data
+# 2. Test not found scenarios with non-existent IDs
+# 3. Test business rule violations (ID mismatches)
+
+###
+# PHASE 3: Real-Time Statistics
+# 1. Get initial session ID and statistics
+# 2. Execute various operations
+# 3. Monitor statistics changes in real-time
+# 4. Test session-specific tracking
+
+###
+# PHASE 4: Advanced Querying
+# 1. Test pagination with different parameters
+# 2. Test search functionality with various terms
+# 3. Test filtering (active/inactive users)
+
+###
+# ?? MONITORING STATISTICS DURING TESTING
+
+###
+# Before starting tests - get baseline
+GET {{$projectUrl}}/api/mediator/statistics
+
+###
+# During testing - check session tracking
+GET {{$projectUrl}}/api/mediator/session
+
+###
+# After operations - see updated statistics
+GET {{$projectUrl}}/api/mediator/statistics
+
+###
+# Session-specific view (replace with your session ID)
+GET {{$projectUrl}}/api/mediator/statistics/session/YOUR_SESSION_ID_HERE
+
+###
+# All sessions overview
+GET {{$projectUrl}}/api/mediator/statistics/sessions
+
+###
+# Health check to ensure everything is working
+GET {{$projectUrl}}/api/analysis/health
+
+###
+# ?? EXPECTED STATISTICS TRACKING
+
+# After running these requests, you should see statistics like:
+# - UniqueQueryTypes: 4 (GetUserByIdQuery, GetUsersQuery, GetActiveUsersQuery, GetUserStatisticsQuery)
+# - UniqueCommandTypes: 7 (CreateUserCommand, CreateUserWithIdCommand, UpdateUserCommand, etc.)
+# - TotalQueryExecutions: Count of all query operations performed
+# - TotalCommandExecutions: Count of all command operations performed
+# - ActiveSessions: Number of active sessions with statistics
+
+# The statistics endpoints provide real-time visibility into:
+# - Which types of operations are being performed
+# - How frequently each operation type is used
+# - Session-based usage patterns
+# - Global application usage metrics
+
+###
+# ?? SWAGGER UI EXPLORATION
+
+# Access the complete API documentation at:
+GET {{$projectUrl}}/swagger/index.html
+
+# The Swagger UI provides:
+# - Interactive testing of all endpoints
+# - Complete request/response schemas
+# - Real-time API exploration
+# - Built-in validation testing
+# - Statistics monitoring through the web interface

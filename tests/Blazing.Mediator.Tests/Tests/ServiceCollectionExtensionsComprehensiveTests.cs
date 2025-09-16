@@ -1,9 +1,7 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Statistics;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using Shouldly;
-using Xunit;
 
 namespace Blazing.Mediator.Tests.Tests
 {
@@ -40,7 +38,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
             var renderer = serviceProvider.GetService<IStatisticsRenderer>();
-            
+
             statistics.ShouldBeNull();
             renderer.ShouldBeNull();
         }
@@ -98,7 +96,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldNotBeNull(); // Explicitly enabled
         }
@@ -119,7 +117,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldNotBeNull(); // Explicitly enabled
         }
@@ -141,7 +139,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldNotBeNull(); // Explicitly enabled
         }
@@ -162,7 +160,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldNotBeNull(); // Explicitly enabled
         }
@@ -206,7 +204,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldBeNull(); // Statistics disabled by default
         }
@@ -227,7 +225,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldBeNull(); // Statistics disabled by default
         }
@@ -265,7 +263,7 @@ namespace Blazing.Mediator.Tests.Tests
             Assembly assembly = typeof(TestCommand).Assembly;
 
             // Act
-            services.AddMediator(config => 
+            services.AddMediator(config =>
             {
                 config.AddMiddleware<FirstQueryMiddleware>();
             }, assembly);
@@ -274,7 +272,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldBeNull(); // Statistics disabled by default
         }
@@ -296,7 +294,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldBeNull(); // Should be disabled
         }
@@ -317,7 +315,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldBeNull(); // Statistics disabled by default
         }
@@ -338,7 +336,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldNotBeNull();
         }
@@ -382,7 +380,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldBeNull(); // Statistics disabled by default
         }
@@ -404,7 +402,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldBeNull(); // Should be disabled
         }
@@ -445,7 +443,7 @@ namespace Blazing.Mediator.Tests.Tests
             var mediator = serviceProvider.GetService<IMediator>();
             var inspector = serviceProvider.GetService<IMiddlewarePipelineInspector>();
             var notificationInspector = serviceProvider.GetService<INotificationMiddlewarePipelineInspector>();
-            
+
             mediator.ShouldNotBeNull();
             inspector.ShouldNotBeNull();
             notificationInspector.ShouldNotBeNull();
@@ -471,7 +469,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldBeNull(); // Statistics disabled by default
         }
@@ -504,7 +502,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediatorFromCallingAssembly(config => 
+            services.AddMediatorFromCallingAssembly(config =>
             {
                 config.AddMiddleware<FirstQueryMiddleware>();
             });
@@ -549,7 +547,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldBeNull(); // Should be disabled
         }
@@ -574,7 +572,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldBeNull(); // Statistics disabled by default
         }
@@ -667,7 +665,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             var mediator = serviceProvider.GetService<IMediator>();
             var statistics = serviceProvider.GetService<MediatorStatistics>();
-            
+
             mediator.ShouldNotBeNull();
             statistics.ShouldBeNull(); // Should be disabled
         }

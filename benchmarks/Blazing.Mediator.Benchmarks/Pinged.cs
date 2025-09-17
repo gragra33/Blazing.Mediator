@@ -1,17 +1,16 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Blazing.Mediator.Benchmarks
-{
-    public class Pinged : INotification
-    {
-    }
+namespace Blazing.Mediator.Benchmarks;
 
-    public class PingedHandler : INotificationSubscriber<Pinged>
+public class Pinged : INotification
+{
+}
+
+public class PingedHandler : INotificationSubscriber<Pinged>
+{
+    public Task OnNotification(Pinged notification, CancellationToken cancellationToken)
     {
-        public Task OnNotification(Pinged notification, CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
+        return Task.CompletedTask;
     }
 }

@@ -3,40 +3,39 @@ using Microsoft.Extensions.DependencyInjection;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Blazing.Mediator.Benchmarks
+namespace Blazing.Mediator.Benchmarks;
+
+[DotTraceDiagnoser]
+[MemoryDiagnoser]
+public class Benchmarks
 {
-    [DotTraceDiagnoser]
-    [MemoryDiagnoser]
-    public class Benchmarks
+    private IMediator _mediator;
+    private readonly Ping _request = new() { Message = "Hello World" };
+    private readonly Pinged _notification = new();
+
+    [GlobalSetup]
+    public void GlobalSetup()
     {
-        private IMediator _mediator;
-        private readonly Ping _request = new Ping { Message = "Hello World" };
-        private readonly Pinged _notification = new Pinged();
+        var services = new ServiceCollection();
 
-        [GlobalSetup]
-        public void GlobalSetup()
-        {
-            var services = new ServiceCollection();
+        services.AddSingleton(TextWriter.Null);
 
-            services.AddSingleton(TextWriter.Null);
+        services.AddMediator(typeof(Ping).Assembly);
 
-            services.AddMediator(typeof(Ping).Assembly);
+        var provider = services.BuildServiceProvider();
 
-            var provider = services.BuildServiceProvider();
+        _mediator = provider.GetRequiredService<IMediator>();
+    }
 
-            _mediator = provider.GetRequiredService<IMediator>();
-        }
+    [Benchmark]
+    public Task SendingRequests()
+    {
+        return _mediator.Send(_request);
+    }
 
-        [Benchmark]
-        public Task SendingRequests()
-        {
-            return _mediator.Send(_request);
-        }
-
-        [Benchmark]
-        public Task PublishingNotifications()
-        {
-            return _mediator.Publish(_notification);
-        }
+    [Benchmark]
+    public Task PublishingNotifications()
+    {
+        return _mediator.Publish(_notification);
     }
 }

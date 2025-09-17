@@ -111,7 +111,7 @@ namespace Blazing.Mediator.Tests.Tests
             Should.NotThrow(() => services.AddMediatorFromCallingAssembly());
 
             // Test with configuration
-            Should.NotThrow(() => services.AddMediatorFromCallingAssembly(config => { }));
+            Should.NotThrow(() => services.AddMediatorFromCallingAssembly(_ => { }));
 
             // Test with middleware discovery
             Should.NotThrow(() => services.AddMediatorFromCallingAssembly(discoverMiddleware: false));
@@ -144,7 +144,7 @@ namespace Blazing.Mediator.Tests.Tests
             Should.NotThrow(() => services.AddMediatorFromLoadedAssemblies(discoverMiddleware: false));
 
             // Test with configuration and filter
-            Should.NotThrow(() => services.AddMediatorFromLoadedAssemblies(config => { }, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator")));
+            Should.NotThrow(() => services.AddMediatorFromLoadedAssemblies(_ => { }, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator")));
 
             // Test with all parameters
             Should.NotThrow(() => services.AddMediatorFromLoadedAssemblies(null, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator")));

@@ -1,0 +1,342 @@
+@page "/demo"
+@using Microsoft.AspNetCore.Components.Web
+@using OpenTelemetryExample.Client.Services
+@inject ITelemetryService TelemetryService
+@inject IUserService UserService
+
+<PageTitle>Interactive Demo - OpenTelemetry Example</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>
+                <i class="bi bi-play-circle-fill me-2"></i>Interactive OpenTelemetry Demo
+            </h2>
+            <p class="lead">
+                Generate telemetry data and observe OpenTelemetry metrics, traces, and logs in real-time.
+            </p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-lightning-charge me-2"></i>Quick Tests
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" @onclick="RunSuccessfulOperations" disabled="@_running">
+                            @if (_running)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            <i class="bi bi-check-circle me-2"></i>Run Successful Operations
+                        </button>
+                        <button class="btn btn-warning" @onclick="RunErrorOperations" disabled="@_running">
+                            @if (_running)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            <i class="bi bi-exclamation-triangle me-2"></i>Trigger Error Scenarios
+                        </button>
+                        <button class="btn btn-info" @onclick="RunLoadTest" disabled="@_running">
+                            @if (_running)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            <i class="bi bi-speedometer me-2"></i>Performance Load Test
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-gear me-2"></i>Demo Configuration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Operations Count</label>
+                        <input type="number" class="form-control" @bind="_operationCount" min="1" max="50" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Delay Between Operations (ms)</label>
+                        <input type="number" class="form-control" @bind="_delayMs" min="0" max="5000" />
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" @bind="_showProgress" id="showProgress">
+                        <label class="form-check-label" for="showProgress">
+                            Show Progress Details
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (_showProgress && _operationLogs.Any())
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-list-ul me-2"></i>Operation Log
+                        </h5>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="ClearLogs">
+                            <i class="bi bi-trash me-1"></i>Clear
+                        </button>
+                    </div>
+                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                        @foreach (var log in _operationLogs.TakeLast(20))
+                        {
+                            <div class="mb-1">
+                                <small class="text-muted">@log.Timestamp.ToString("HH:mm:ss.fff")</small>
+                                <span class="badge @GetLogBadgeClass(log.Level) ms-2">@log.Level</span>
+                                @log.Message
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle me-2"></i>What This Demo Does
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-check-circle-fill text-success me-2"></i>Successful Operations</h6>
+                            <ul class="list-unstyled">
+                                <li>• Creates test users</li>
+                                <li>• Retrieves user data</li>
+                                <li>• Updates user information</li>
+                                <li>• Tests notifications</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Error Scenarios</h6>
+                            <ul class="list-unstyled">
+                                <li>• Validation errors</li>
+                                <li>• Middleware exceptions</li>
+                                <li>• Not found errors</li>
+                                <li>• Simulated failures</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-speedometer-fill text-info me-2"></i>Performance Testing</h6>
+                            <ul class="list-unstyled">
+                                <li>• Concurrent operations</li>
+                                <li>• Load testing patterns</li>
+                                <li>• Response time measurement</li>
+                                <li>• Throughput analysis</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb me-2"></i>
+                            <strong>Tip:</strong> Check the <a href="/telemetry" class="alert-link">Telemetry Dashboard</a> 
+                            after running these demos to see the OpenTelemetry metrics and traces generated.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _running;
+    private int _operationCount = 5;
+    private int _delayMs = 100;
+    private bool _showProgress = true;
+    private readonly List<OperationLog> _operationLogs = new();
+
+    private async Task RunSuccessfulOperations()
+    {
+        _running = true;
+        await LogOperation("INFO", "Starting successful operations demo...");
+
+        try
+        {
+            for (int i = 1; i <= _operationCount; i++)
+            {
+                await LogOperation("INFO", $"Operation {i}/{_operationCount}: Creating test user");
+                
+                try
+                {
+                    var userId = await UserService.CreateUserAsync(new Models.CreateUserRequest
+                    {
+                        Name = $"Demo User {i}",
+                        Email = $"demo{i}@example.com"
+                    });
+                    
+                    await LogOperation("SUCCESS", $"Created user with ID: {userId}");
+                    
+                    if (_delayMs > 0)
+                        await Task.Delay(_delayMs);
+                }
+                catch (Exception ex)
+                {
+                    await LogOperation("ERROR", $"Failed to create user: {ex.Message}");
+                }
+            }
+
+            await LogOperation("INFO", "Testing notification system...");
+            var notificationResult = await TelemetryService.TestNotificationAsync();
+            await LogOperation(notificationResult ? "SUCCESS" : "WARNING", 
+                $"Notification test: {(notificationResult ? "Completed" : "Failed")}");
+
+            await LogOperation("SUCCESS", "Successful operations demo completed!");
+        }
+        catch (Exception ex)
+        {
+            await LogOperation("ERROR", $"Demo failed: {ex.Message}");
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    private async Task RunErrorOperations()
+    {
+        _running = true;
+        await LogOperation("INFO", "Starting error scenarios demo...");
+
+        try
+        {
+            await LogOperation("INFO", "Testing validation errors...");
+            try
+            {
+                await TelemetryService.TestMiddlewareValidationAsync();
+                await LogOperation("INFO", "Validation error test completed");
+            }
+            catch (Exception ex)
+            {
+                await LogOperation("EXPECTED", $"Validation error (expected): {ex.Message}");
+            }
+
+            if (_delayMs > 0) await Task.Delay(_delayMs);
+
+            await LogOperation("INFO", "Testing middleware errors...");
+            try
+            {
+                await TelemetryService.TestMiddlewareErrorAsync();
+                await LogOperation("INFO", "Middleware error test completed");
+            }
+            catch (Exception ex)
+            {
+                await LogOperation("EXPECTED", $"Middleware error (expected): {ex.Message}");
+            }
+
+            await LogOperation("SUCCESS", "Error scenarios demo completed!");
+        }
+        catch (Exception ex)
+        {
+            await LogOperation("ERROR", $"Demo failed: {ex.Message}");
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    private async Task RunLoadTest()
+    {
+        _running = true;
+        await LogOperation("INFO", "Starting performance load test...");
+
+        try
+        {
+            var tasks = new List<Task>();
+            
+            for (int i = 1; i <= _operationCount; i++)
+            {
+                int operationId = i;
+                tasks.Add(Task.Run(async () =>
+                {
+                    await LogOperation("INFO", $"Concurrent operation {operationId} starting...");
+                    
+                    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                    
+                    try
+                    {
+                        var users = await UserService.GetUsersAsync();
+                        stopwatch.Stop();
+                        
+                        await LogOperation("SUCCESS", 
+                            $"Operation {operationId} completed in {stopwatch.ElapsedMilliseconds}ms, got {users.Count} users");
+                    }
+                    catch (Exception ex)
+                    {
+                        stopwatch.Stop();
+                        await LogOperation("ERROR", 
+                            $"Operation {operationId} failed after {stopwatch.ElapsedMilliseconds}ms: {ex.Message}");
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+            await LogOperation("SUCCESS", "Performance load test completed!");
+        }
+        catch (Exception ex)
+        {
+            await LogOperation("ERROR", $"Load test failed: {ex.Message}");
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    private async Task LogOperation(string level, string message)
+    {
+        _operationLogs.Add(new OperationLog
+        {
+            Timestamp = DateTime.Now,
+            Level = level,
+            Message = message
+        });
+
+        if (_showProgress)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ClearLogs()
+    {
+        _operationLogs.Clear();
+    }
+
+    private string GetLogBadgeClass(string level) => level switch
+    {
+        "SUCCESS" => "bg-success",
+        "ERROR" => "bg-danger",
+        "WARNING" => "bg-warning",
+        "EXPECTED" => "bg-info",
+        _ => "bg-secondary"
+    };
+
+    private sealed class OperationLog
+    {
+        public DateTime Timestamp { get; init; }
+        public string Level { get; init; } = string.Empty;
+        public string Message { get; init; } = string.Empty;
+    }
+}

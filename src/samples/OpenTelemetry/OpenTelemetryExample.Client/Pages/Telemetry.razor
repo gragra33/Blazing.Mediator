@@ -1,0 +1,320 @@
+@page "/telemetry"
+@using Microsoft.AspNetCore.Components.Web
+@using OpenTelemetryExample.Client.Services
+@using OpenTelemetryExample.Client.Models
+@using Microsoft.JSInterop
+@inject ITelemetryService TelemetryService
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<PageTitle>Telemetry Dashboard - OpenTelemetry Example</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-bar-chart-fill me-2"></i>Telemetry Dashboard
+        </h2>
+        <button class="btn btn-outline-primary" @onclick="RefreshTelemetry">
+            <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+        </button>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card telemetry-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-heart-pulse me-2"></i>API Health Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (_apiHealthLoading)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    }
+                    else if (_apiHealthy.HasValue)
+                    {
+                        <div class="d-flex align-items-center">
+                            <i class="bi @(_apiHealthy.Value ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-3 me-3"></i>
+                            <div>
+                                <h6 class="mb-0">@(_apiHealthy.Value ? "Healthy" : "Unhealthy")</h6>
+                                <small class="text-muted">Last checked: @DateTime.Now.ToString("HH:mm:ss")</small>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">
+                            <i class="bi bi-question-circle me-2"></i>Status unknown
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card telemetry-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-activity me-2"></i>Telemetry Health
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (_telemetryHealthLoading)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    }
+                    else if (_telemetryHealth != null)
+                    {
+                        <div class="d-flex align-items-center">
+                            <i class="bi @(_telemetryHealth.IsHealthy ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-3 me-3"></i>
+                            <div>
+                                <h6 class="mb-0">@(_telemetryHealth.IsHealthy ? "Enabled" : "Disabled")</h6>
+                                <small class="text-muted">@_telemetryHealth.Message</small>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">
+                            <i class="bi bi-question-circle me-2"></i>Status unknown
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (_telemetryHealth != null)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-gear me-2"></i>Telemetry Configuration
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Enabled:</strong> 
+                                <span class="badge @(_telemetryHealth.IsEnabled ? "bg-success" : "bg-danger")">
+                                    @(_telemetryHealth.IsEnabled ? "Yes" : "No")
+                                </span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Metrics:</strong> 
+                                <span class="badge @(_telemetryHealth.CanRecordMetrics ? "bg-success" : "bg-danger")">
+                                    @(_telemetryHealth.CanRecordMetrics ? "Recording" : "Disabled")
+                                </span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Meter:</strong> @_telemetryHealth.MeterName
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <strong>Activity Source:</strong> @_telemetryHealth.ActivitySourceName
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-play-circle me-2"></i>Telemetry Testing
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Test different telemetry scenarios to generate metrics and traces:</p>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-primary w-100" @onclick="TestNotification" disabled="@_testing">
+                                @if (_testing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-bell me-2"></i>Test Notification
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-warning w-100" @onclick="TestMiddlewareError" disabled="@_testing">
+                                @if (_testing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-exclamation-triangle me-2"></i>Test Error
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-danger w-100" @onclick="TestValidationError" disabled="@_testing">
+                                @if (_testing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-shield-exclamation me-2"></i>Test Validation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle me-2"></i>About OpenTelemetry Integration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>This dashboard shows the real-time status of OpenTelemetry integration with Blazing.Mediator. The system collects:</p>
+                    <ul>
+                        <li><strong>Metrics:</strong> Request duration, success/failure rates, middleware execution times</li>
+                        <li><strong>Traces:</strong> Distributed tracing across the entire CQRS pipeline</li>
+                        <li><strong>Logs:</strong> Structured logging with correlation IDs</li>
+                        <li><strong>Health Checks:</strong> System health and telemetry status monitoring</li>
+                    </ul>
+                    <p>All telemetry data is automatically sanitized to remove sensitive information before export.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool? _apiHealthy;
+    private bool _apiHealthLoading = true;
+    private TelemetryHealthDto? _telemetryHealth;
+    private bool _telemetryHealthLoading = true;
+    private bool _testing;
+    private Timer? _refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshTelemetry();
+        
+        // Set up auto-refresh every 30 seconds
+        _refreshTimer = new Timer(async void (_) =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await RefreshTelemetry();
+                StateHasChanged();
+            });
+        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private async Task RefreshTelemetry()
+    {
+        await Task.WhenAll(RefreshApiHealth(), RefreshTelemetryHealth());
+    }
+
+    private async Task RefreshApiHealth()
+    {
+        _apiHealthLoading = true;
+        try
+        {
+            _apiHealthy = await TelemetryService.CheckApiHealthAsync();
+        }
+        catch
+        {
+            _apiHealthy = false;
+        }
+        finally
+        {
+            _apiHealthLoading = false;
+        }
+    }
+
+    private async Task RefreshTelemetryHealth()
+    {
+        _telemetryHealthLoading = true;
+        try
+        {
+            _telemetryHealth = await TelemetryService.GetTelemetryHealthAsync();
+        }
+        catch
+        {
+            _telemetryHealth = null;
+        }
+        finally
+        {
+            _telemetryHealthLoading = false;
+        }
+    }
+
+    private async Task TestNotification()
+    {
+        _testing = true;
+        try
+        {
+            var success = await TelemetryService.TestNotificationAsync();
+            await JSRuntime.InvokeVoidAsync("alert", 
+                success ? "Notification test completed successfully!" : "Notification test failed.");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error testing notification: {ex.Message}");
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private async Task TestMiddlewareError()
+    {
+        _testing = true;
+        try
+        {
+	        await TelemetryService.TestMiddlewareErrorAsync();
+	        await JSRuntime.InvokeVoidAsync("alert", 
+                "Error test completed - check telemetry for error traces!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error test completed: {ex.Message}");
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private async Task TestValidationError()
+    {
+        _testing = true;
+        try
+        {
+	        await TelemetryService.TestMiddlewareValidationAsync();
+	        await JSRuntime.InvokeVoidAsync("alert", 
+                "Validation test completed - check telemetry for validation traces!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Validation test completed: {ex.Message}");
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+    }
+}

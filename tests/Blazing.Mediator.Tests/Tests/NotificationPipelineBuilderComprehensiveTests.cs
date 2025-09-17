@@ -338,7 +338,7 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         var notification = new TestNotification { Message = "test" };
 
-        NotificationDelegate<TestNotification> finalHandler = async (notif, ct) =>
+        NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             TestNotificationExecutionTracker.ExecutionOrder.Add("FinalHandler");
             await Task.CompletedTask;
@@ -371,7 +371,7 @@ public class NotificationPipelineBuilderComprehensiveTests
         var notification = new TestNotification { Message = "test" };
         var executed = false;
 
-        NotificationDelegate<TestNotification> finalHandler = async (notif, ct) =>
+        NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             executed = true;
             await Task.CompletedTask;
@@ -402,7 +402,7 @@ public class NotificationPipelineBuilderComprehensiveTests
         var notification = new TestNotification { Message = "shouldexecute" }; // Triggers condition
         var executed = false;
 
-        NotificationDelegate<TestNotification> finalHandler = async (notif, ct) =>
+        NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             executed = true;
             await Task.CompletedTask;
@@ -433,7 +433,7 @@ public class NotificationPipelineBuilderComprehensiveTests
         var notification = new TestNotification { Message = "skip" }; // Doesn't trigger condition
         var executed = false;
 
-        NotificationDelegate<TestNotification> finalHandler = async (notif, ct) =>
+        NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             executed = true;
             await Task.CompletedTask;
@@ -465,7 +465,7 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         var notification = new TestNotification { Message = "test" };
 
-        NotificationDelegate<TestNotification> finalHandler = async (notif, ct) =>
+        NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             await Task.CompletedTask;
         };

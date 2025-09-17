@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "OpenTelemetryExample": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:64688;http://localhost:64689"
+    }
+  }
+}

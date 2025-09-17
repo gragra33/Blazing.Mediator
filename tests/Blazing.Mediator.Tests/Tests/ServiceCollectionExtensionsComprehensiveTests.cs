@@ -288,7 +288,7 @@ namespace Blazing.Mediator.Tests.Tests
             Assembly assembly = typeof(TestCommand).Assembly;
 
             // Act
-            services.AddMediator(config => { }, enableStatisticsTracking: false, assembly);
+            services.AddMediator(_ => { }, enableStatisticsTracking: false, assembly);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -309,7 +309,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediator(config => { }, typeof(TestCommand));
+            services.AddMediator(_ => { }, typeof(TestCommand));
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -330,7 +330,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediator(config => { }, enableStatisticsTracking: true, typeof(TestCommand));
+            services.AddMediator(_ => { }, enableStatisticsTracking: true, typeof(TestCommand));
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -351,7 +351,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediator(config => { }, enableStatisticsTracking: true, (Type[])null!);
+            services.AddMediator(_ => { }, enableStatisticsTracking: true, (Type[])null!);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -374,7 +374,7 @@ namespace Blazing.Mediator.Tests.Tests
             Assembly assembly = typeof(TestCommand).Assembly;
 
             // Act
-            services.AddMediator(config => { }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
+            services.AddMediator(_ => { }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -396,7 +396,7 @@ namespace Blazing.Mediator.Tests.Tests
             Assembly assembly = typeof(TestCommand).Assembly;
 
             // Act
-            services.AddMediator(config => { }, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
+            services.AddMediator(_ => { }, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -417,7 +417,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediator(config => { }, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, (Assembly[])null!);
+            services.AddMediator(_ => { }, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, (Assembly[])null!);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -436,7 +436,7 @@ namespace Blazing.Mediator.Tests.Tests
             Assembly assembly = typeof(TestCommand).Assembly;
 
             // Act
-            services.AddMediator(config => { }, enableStatisticsTracking: true, discoverMiddleware: true, discoverNotificationMiddleware: true, assembly);
+            services.AddMediator(_ => { }, enableStatisticsTracking: true, discoverMiddleware: true, discoverNotificationMiddleware: true, assembly);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -523,7 +523,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediatorFromCallingAssembly(config => { }, discoverMiddleware: false);
+            services.AddMediatorFromCallingAssembly(_ => { }, discoverMiddleware: false);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -541,7 +541,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediatorFromCallingAssembly(config => { }, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false);
+            services.AddMediatorFromCallingAssembly(_ => { }, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -623,7 +623,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediatorFromLoadedAssemblies(config => { }, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
+            services.AddMediatorFromLoadedAssemblies(_ => { }, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -641,7 +641,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediatorFromLoadedAssemblies(config => { }, discoverMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
+            services.AddMediatorFromLoadedAssemblies(_ => { }, discoverMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -659,7 +659,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediatorFromLoadedAssemblies(config => { }, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
+            services.AddMediatorFromLoadedAssemblies(_ => { }, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();

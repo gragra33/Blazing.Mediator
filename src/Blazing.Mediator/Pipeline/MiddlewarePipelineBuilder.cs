@@ -871,4 +871,68 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
     private sealed class MinimalRequest : IRequest, IRequest<object> { /* skipped */ }
 
     #endregion
+
+    /// <summary>
+    /// Returns the list of middleware types that were actually executed for a given request.
+    /// </summary>
+    /// <typeparam name="TRequest">The request type.</typeparam>
+    /// <typeparam name="TResponse">The response type.</typeparam>
+    /// <param name="request">The request instance.</param>
+    /// <param name="serviceProvider">The service provider.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>List of executed middleware types in order of execution.</returns>
+    public async Task<IReadOnlyList<Type>> GetExecutedMiddlewareAsync<TRequest, TResponse>(TRequest request, IServiceProvider serviceProvider, CancellationToken cancellationToken)
+        where TRequest : IRequest<TResponse>
+    {
+        var executed = new List<Type>();
+        RequestHandlerDelegate<TResponse> pipeline = async () => default!;
+        List<(Type Type, int Order)> applicableMiddleware = [];
+        foreach (var middlewareInfo in _middlewareInfos)
+        {
+            Type middlewareType = middlewareInfo.Type;
+            Type actualMiddlewareType;
+            if (middlewareType.IsGenericTypeDefinition)
+            {
+                var genericParams = middlewareType.GetGenericArguments();
+                switch (genericParams)
+                {
+                    case { Length: 2 }:
+                        if (!CanSatisfyGenericConstraints(middlewareType, typeof(TRequest), typeof(TResponse)))
+                            continue;
+                        try { actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest), typeof(TResponse)); }
+                        catch { continue; }
+                        break;
+                    default:
+                        continue;
+                }
+            }
+            else
+            {
+                actualMiddlewareType = middlewareType;
+            }
+            if (!actualMiddlewareType.GetInterfaces().Any(i => i.IsGenericType &&
+                i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>) &&
+                i.GetGenericArguments()[0] == typeof(TRequest) &&
+                i.GetGenericArguments()[1] == typeof(TResponse)))
+            {
+                continue;
+            }
+            applicableMiddleware.Add((actualMiddlewareType, middlewareInfo.Order));
+        }
+        applicableMiddleware.Sort((a, b) => a.Order.CompareTo(b.Order));
+        for (int i = applicableMiddleware.Count - 1; i >= 0; i--)
+        {
+            (Type middlewareType, int _) = applicableMiddleware[i];
+            RequestHandlerDelegate<TResponse> currentPipeline = pipeline;
+            pipeline = async () =>
+            {
+                var middleware = serviceProvider.GetService(middlewareType) as IRequestMiddleware<TRequest, TResponse>;
+                if (middleware == null) throw new InvalidOperationException();
+                executed.Add(middlewareType);
+                return await middleware.HandleAsync(request, currentPipeline, cancellationToken);
+            };
+        }
+        try { await pipeline(); } catch { }
+        return executed;
+    }
 }

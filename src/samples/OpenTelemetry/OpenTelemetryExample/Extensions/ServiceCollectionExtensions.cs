@@ -3,7 +3,9 @@ using OpenTelemetry.Trace;
 using Blazing.Mediator;
 using Blazing.Mediator.OpenTelemetry;
 using OpenTelemetryExample.Application.Middleware;
+using OpenTelemetryExample.Infrastructure.Data;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 
 namespace OpenTelemetryExample.Extensions;
 
@@ -28,11 +30,27 @@ public static class ServiceCollectionExtensions
         services.AddControllers();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerServices();
+        services.AddDatabaseServices();
         services.AddMediatorServices();
         services.AddValidationServices();
         services.AddHealthCheckServices();
         services.AddOpenTelemetryServices(configuration, environment);
         services.AddCorsServices();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds database services including Entity Framework Core with in-memory database.
+    /// </summary>
+    private static IServiceCollection AddDatabaseServices(this IServiceCollection services)
+    {
+        services.AddDbContext<ApplicationDbContext>(options =>
+        {
+            options.UseInMemoryDatabase("OpenTelemetryExampleDb");
+            options.EnableSensitiveDataLogging();
+            options.EnableDetailedErrors();
+        });
 
         return services;
     }
@@ -65,7 +83,7 @@ public static class ServiceCollectionExtensions
             }
 
             // Configure tags for better organization
-            options.TagActionsBy(api => new[] { api.GroupName ?? "Default" });
+            options.TagActionsBy(api => [api.GroupName ?? "Default"]);
         });
 
         return services;

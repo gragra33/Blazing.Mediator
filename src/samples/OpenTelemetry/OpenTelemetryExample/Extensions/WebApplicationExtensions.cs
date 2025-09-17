@@ -26,21 +26,23 @@ public static class WebApplicationExtensions
     /// </summary>
     private static void ConfigureDevelopmentEnvironment(this WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
+        if (!app.Environment.IsDevelopment())
         {
-            app.UseSwagger();
-            app.UseSwaggerUI(options =>
-            {
-                options.SwaggerEndpoint("/swagger/v1/swagger.json", "OpenTelemetry Example API v1");
-                options.RoutePrefix = "swagger";
-                options.DisplayRequestDuration();
-                options.EnableDeepLinking();
-                options.EnableFilter();
-                options.ShowExtensions();
-                options.EnableValidator();
-                options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
-            });
+            return;
         }
+
+        app.UseSwagger();
+        app.UseSwaggerUI(options =>
+        {
+            options.SwaggerEndpoint("/swagger/v1/swagger.json", "OpenTelemetry Example API v1");
+            options.RoutePrefix = "swagger";
+            options.DisplayRequestDuration();
+            options.EnableDeepLinking();
+            options.EnableFilter();
+            options.ShowExtensions();
+            options.EnableValidator();
+            options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+        });
     }
 
     /// <summary>

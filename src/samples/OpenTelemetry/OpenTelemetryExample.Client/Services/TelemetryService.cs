@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using OpenTelemetryExample.Client.Models;
+using OpenTelemetryExample.Shared.Models;
 
 namespace OpenTelemetryExample.Client.Services;
 
@@ -104,13 +104,124 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         }
     }
 
+    public async Task<LiveMetricsDto?> GetLiveMetricsAsync()
+    {
+        try
+        {
+            logger.LogDebug("[->] Calling GET /telemetry/live-metrics");
+            logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
+            
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var response = await httpClient.GetAsync("telemetry/live-metrics", cts.Token);
+            
+            logger.LogDebug("[<-] Live metrics response status: {StatusCode}", response.StatusCode);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                logger.LogWarning("[!] Live metrics endpoint returned {StatusCode}: {ErrorContent}", 
+                    response.StatusCode, errorContent);
+                return null;
+            }
+            
+            // Return strongly-typed LiveMetricsDto
+            var result = await response.Content.ReadFromJsonAsync<LiveMetricsDto>(cancellationToken: cts.Token);
+            logger.LogDebug("[<-] Retrieved live telemetry metrics successfully");
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("[!] Live telemetry metrics request timed out");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[!] Error calling GET /telemetry/live-metrics");
+            return null;
+        }
+    }
+
+    public async Task<RecentTracesDto?> GetRecentTracesAsync()
+    {
+        try
+        {
+            logger.LogDebug("[->] Calling GET /telemetry/traces");
+            logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
+            
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var response = await httpClient.GetAsync("telemetry/traces", cts.Token);
+            
+            logger.LogDebug("[<-] Recent traces response status: {StatusCode}", response.StatusCode);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                logger.LogWarning("[!] Recent traces endpoint returned {StatusCode}: {ErrorContent}", 
+                    response.StatusCode, errorContent);
+                return null;
+            }
+            
+            // Return strongly-typed RecentTracesDto
+            var result = await response.Content.ReadFromJsonAsync<RecentTracesDto>(cancellationToken: cts.Token);
+            logger.LogDebug("[<-] Retrieved recent traces successfully");
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("[!] Recent traces request timed out");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[!] Error calling GET /telemetry/traces");
+            return null;
+        }
+    }
+
+    public async Task<RecentActivitiesDto?> GetRecentActivitiesAsync()
+    {
+        try
+        {
+            logger.LogDebug("[->] Calling GET /telemetry/activities");
+            logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
+            
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var response = await httpClient.GetAsync("telemetry/activities", cts.Token);
+            
+            logger.LogDebug("[<-] Recent activities response status: {StatusCode}", response.StatusCode);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                logger.LogWarning("[!] Recent activities endpoint returned {StatusCode}: {ErrorContent}", 
+                    response.StatusCode, errorContent);
+                return null;
+            }
+            
+            // Return strongly-typed RecentActivitiesDto
+            var result = await response.Content.ReadFromJsonAsync<RecentActivitiesDto>(cancellationToken: cts.Token);
+            logger.LogDebug("[<-] Retrieved recent activities successfully");
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("[!] Recent activities request timed out");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[!] Error calling GET /telemetry/activities");
+            return null;
+        }
+    }
+
     public async Task<bool> TestNotificationAsync()
     {
         try
         {
-            logger.LogDebug("[->] Calling POST /notifications/test");
+            logger.LogDebug("[->] Calling POST /testing/notifications");
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            var response = await httpClient.PostAsync("notifications/test", null, cts.Token);
+            var response = await httpClient.PostAsync("testing/notifications", null, cts.Token);
             var success = response.IsSuccessStatusCode;
             logger.LogDebug("[<-] Test notification result: {Success}", success);
             return success;
@@ -122,7 +233,7 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[!] Error calling POST /notifications/test");
+            logger.LogError(ex, "[!] Error calling POST /testing/notifications");
             return false;
         }
     }
@@ -131,9 +242,9 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
     {
         try
         {
-            logger.LogDebug("[->] Calling POST /middleware/test-error");
+            logger.LogDebug("[->] Calling POST /testing/middleware/error");
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            await httpClient.PostAsync("middleware/test-error", null, cts.Token);
+            await httpClient.PostAsync("testing/middleware/error", null, cts.Token);
             logger.LogDebug("[<-] Test middleware error completed - this should generate telemetry");
             return false; // This should always fail, but that's expected
         }
@@ -153,9 +264,9 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
     {
         try
         {
-            logger.LogDebug("[->] Calling POST /middleware/test-validation");
+            logger.LogDebug("[->] Calling POST /testing/middleware/validation");
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            await httpClient.PostAsync("middleware/test-validation", null, cts.Token);
+            await httpClient.PostAsync("testing/middleware/validation", null, cts.Token);
             logger.LogDebug("[<-] Test middleware validation completed - this should generate telemetry");
             return false; // This should always fail validation, but that's expected
         }
@@ -168,6 +279,42 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         {
             logger.LogDebug(ex, "[<-] Middleware validation test threw exception (expected) - telemetry generated");
             return true; // Exception expected, telemetry should be generated
+        }
+    }
+
+    public async Task<object?> TestBasicConnectivityAsync()
+    {
+        try
+        {
+            logger.LogDebug("[->] Testing basic connectivity with GET /telemetry/test");
+            logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
+            
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var response = await httpClient.GetAsync("telemetry/test", cts.Token);
+            
+            logger.LogDebug("[<-] Basic connectivity test response status: {StatusCode}", response.StatusCode);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
+                logger.LogWarning("[!] Basic connectivity test returned {StatusCode}: {ErrorContent}", 
+                    response.StatusCode, errorContent);
+                return new { Success = false, StatusCode = response.StatusCode, Error = errorContent };
+            }
+            
+            var result = await response.Content.ReadFromJsonAsync<object>(cancellationToken: cts.Token);
+            logger.LogInformation("[+] Basic connectivity test successful!");
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("[!] Basic connectivity test timed out");
+            return new { Success = false, Error = "Request timed out" };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[!] Error in basic connectivity test");
+            return new { Success = false, Error = ex.Message };
         }
     }
 }

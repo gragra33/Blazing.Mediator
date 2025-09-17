@@ -62,23 +62,19 @@ public sealed class ApiConnectivityService(HttpClient httpClient, ILogger<ApiCon
                     
                     if (response.IsSuccessStatusCode)
                     {
-                        var content = await response.Content.ReadAsStringAsync();
+                        var content = await response.Content.ReadAsStringAsync(cts.Token);
                         return $"API is accessible and responsive. Debug info: {content}";
                     }
-                    else
-                    {
-                        return $"API is accessible but debug endpoint returned: {response.StatusCode}";
-                    }
+
+                    return $"API is accessible but debug endpoint returned: {response.StatusCode}";
                 }
                 catch
                 {
                     return "API is accessible but debug endpoint is not available";
                 }
             }
-            else
-            {
-                return $"API is not accessible at: {httpClient.BaseAddress}";
-            }
+
+            return $"API is not accessible at: {httpClient.BaseAddress}";
         }
         catch (Exception ex)
         {

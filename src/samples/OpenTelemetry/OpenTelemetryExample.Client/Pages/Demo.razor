@@ -1,6 +1,7 @@
 @page "/demo"
 @using Microsoft.AspNetCore.Components.Web
 @using OpenTelemetryExample.Client.Services
+@using OpenTelemetryExample.Shared.Models
 @inject ITelemetryService TelemetryService
 @inject IUserService UserService
 
@@ -164,7 +165,7 @@
     private int _operationCount = 5;
     private int _delayMs = 100;
     private bool _showProgress = true;
-    private readonly List<OperationLog> _operationLogs = new();
+    private readonly List<OperationLog> _operationLogs = [];
 
     private async Task RunSuccessfulOperations()
     {
@@ -179,7 +180,7 @@
                 
                 try
                 {
-                    var userId = await UserService.CreateUserAsync(new Models.CreateUserRequest
+                    var userId = await UserService.CreateUserAsync(new CreateUserRequest
                     {
                         Name = $"Demo User {i}",
                         Email = $"demo{i}@example.com"

@@ -1,25 +1,37 @@
 using Blazing.Mediator;
+using Microsoft.EntityFrameworkCore;
 using OpenTelemetryExample.Exceptions;
+using OpenTelemetryExample.Infrastructure.Data;
 
 namespace OpenTelemetryExample.Application.Commands;
 
 /// <summary>
-/// Handler for UpdateUserCommand.
+/// Handler for UpdateUserCommand using Entity Framework Core.
 /// </summary>
-public sealed class UpdateUserHandler : IRequestHandler<UpdateUserCommand>
+public sealed class UpdateUserHandler(ApplicationDbContext context)
+    : IRequestHandler<UpdateUserCommand>
 {
-    public async Task Handle(UpdateUserCommand request, CancellationToken cancellationToken)
+    public async Task Handle(UpdateUserCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate some processing delay
         await Task.Delay(Random.Shared.Next(50, 300), cancellationToken);
         
-        // Simulate user not found
-        if (request.UserId > 1000)
+        // Find the user to update
+        var user = await context.Users
+            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            
+        if (user == null)
         {
             throw new NotFoundException($"User with ID {request.UserId} not found");
         }
         
-        // In a real application, this would update the database
-        Console.WriteLine($"Updated user {request.UserId}: {request.Name} ({request.Email})");
+        // Update the user properties
+        user.Name = request.Name;
+        user.Email = request.Email;
+        
+        // Save changes to database
+        await context.SaveChangesAsync(cancellationToken);
+        
+        Console.WriteLine($"Updated user {user.Id}: {user.Name} ({user.Email})");
     }
 }

@@ -1,8 +1,9 @@
 @page "/telemetry"
 @using Microsoft.AspNetCore.Components.Web
 @using OpenTelemetryExample.Client.Services
-@using OpenTelemetryExample.Client.Models
+@using OpenTelemetryExample.Shared.Models
 @using Microsoft.JSInterop
+@using System.Text.Json
 @inject ITelemetryService TelemetryService
 @inject IJSRuntime JSRuntime
 @implements IDisposable
@@ -127,6 +128,220 @@
         </div>
     }
 
+    <!-- Live Metrics Section -->
+    @if (_liveMetrics != null)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-graph-up me-2"></i>Live Metrics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <h4 class="text-primary">@GetMetricValue("RequestCount")</h4>
+                                    <small class="text-muted">Requests</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <h4 class="text-info">@GetMetricValue("AverageResponseTime")ms</h4>
+                                    <small class="text-muted">Avg Response</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <h4 class="text-warning">@GetMetricValue("ErrorRate")%</h4>
+                                    <small class="text-muted">Error Rate</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <h4 class="text-success">@GetMetricValue("ActiveConnections")</h4>
+                                    <small class="text-muted">Active Connections</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <h4 class="text-info">@GetMetricValue("MemoryUsage")%</h4>
+                                    <small class="text-muted">Memory</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <h4 class="text-primary">@GetMetricValue("CpuUsage")%</h4>
+                                    <small class="text-muted">CPU</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-graph-up me-2"></i>Live Metrics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Live metrics data is not available. Please ensure the API server is running and try refreshing.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Commands & Queries Performance -->
+    @if (_liveMetrics != null && (GetCommands().Length > 0 || GetQueries().Length > 0))
+    {
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-lightning me-2"></i>Commands Performance
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @if (GetCommands().Length > 0)
+                        {
+                            @foreach (var command in GetCommands())
+                            {
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <strong>@command.Name</strong>
+                                        <br><small class="text-muted">Count: @command.Count</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-primary">@command.AvgDuration.ToString("F1")ms</span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-muted text-center">
+                                <i class="bi bi-info-circle me-2"></i>No command data available
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-search me-2"></i>Queries Performance
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @if (GetQueries().Length > 0)
+                        {
+                            @foreach (var query in GetQueries())
+                            {
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <strong>@query.Name</strong>
+                                        <br><small class="text-muted">Count: @query.Count</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-info">@query.AvgDuration.ToString("F1")ms</span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-muted text-center">
+                                <i class="bi bi-info-circle me-2"></i>No query data available
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Recent Traces Section -->
+    @if (_recentTraces != null && GetTraces().Length > 0)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-diagram-3 me-2"></i>Recent Traces
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Operation</th>
+                                        <th>Trace ID</th>
+                                        <th>Duration</th>
+                                        <th>Status</th>
+                                        <th>Start Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var trace in GetTraces())
+                                    {
+                                        <tr>
+                                            <td><strong>@trace.OperationName</strong></td>
+                                            <td><code>@trace.TraceId</code></td>
+                                            <td>@trace.Duration.TotalMilliseconds.ToString("F1")ms</td>
+                                            <td>
+                                                <span class="badge @(trace.Status == "Success" ? "bg-success" : "bg-danger")">
+                                                    @trace.Status
+                                                </span>
+                                            </td>
+                                            <td>@trace.StartTime.ToString("HH:mm:ss")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-diagram-3 me-2"></i>Recent Traces
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            No trace data available. Try running some tests using the buttons below to generate traces.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
@@ -166,6 +381,18 @@
                             </button>
                         </div>
                     </div>
+                    <!-- Test All API Endpoints -->
+                    <div class="row mt-3">
+                        <div class="col">
+                            <button class="btn btn-outline-info w-100" @onclick="TestApiEndpoints" disabled="@_testing">
+                                @if (_testing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-check-circle me-2"></i>Test All API Endpoints
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -188,6 +415,77 @@
                         <li><strong>Health Checks:</strong> System health and telemetry status monitoring</li>
                     </ul>
                     <p>All telemetry data is automatically sanitized to remove sensitive information before export.</p>
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        <strong>Tip:</strong> Use the test buttons above to generate telemetry data, then refresh to see the updated metrics and traces!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DEBUG: API Status Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-bug me-2"></i>Debug Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>API Connection Status</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Health Status:</strong> 
+                                    @if (_apiHealthy.HasValue)
+                                    {
+                                        <span class="badge @(_apiHealthy.Value ? "bg-success" : "bg-danger")">
+                                            @(_apiHealthy.Value ? "Connected" : "Failed")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Unknown</span>
+                                    }
+                                </li>
+                                <li><strong>Live Metrics:</strong> 
+                                    <span class="badge @(_liveMetrics != null ? "bg-success" : "bg-danger")">
+                                        @(_liveMetrics != null ? "Loaded" : "Failed")
+                                    </span>
+                                </li>
+                                <li><strong>Recent Traces:</strong> 
+                                    <span class="badge @(_recentTraces != null ? "bg-success" : "bg-danger")">
+                                        @(_recentTraces != null ? "Loaded" : "Failed")
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Data Status</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Commands Available:</strong> @GetCommands().Length</li>
+                                <li><strong>Queries Available:</strong> @GetQueries().Length</li>
+                                <li><strong>Traces Available:</strong> @GetTraces().Length</li>
+                                <li><strong>Last Refresh:</strong> @DateTime.Now.ToString("HH:mm:ss")</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-info btn-sm me-2" @onclick="ShowRawDataModal">
+                            <i class="bi bi-code me-2"></i>Show Raw Data
+                        </button>
+                        <button class="btn btn-warning btn-sm me-2" @onclick="TestApiEndpoints" disabled="@_testing">
+                            <i class="bi bi-wifi me-2"></i>Test API Endpoints
+                        </button>
+                        <button class="btn btn-success btn-sm me-2" @onclick="TestBasicConnectivity" disabled="@_testing">
+                            <i class="bi bi-check-circle me-2"></i>Test Basic Connectivity
+                        </button>
+                        <button class="btn btn-primary btn-sm" @onclick="TestDirectApiCall" disabled="@_testing">
+                            <i class="bi bi-download me-2"></i>Test Direct API Call
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -201,6 +499,11 @@
     private bool _telemetryHealthLoading = true;
     private bool _testing;
     private Timer? _refreshTimer;
+    
+    // Strongly-typed telemetry data
+    private LiveMetricsDto? _liveMetrics;
+    private RecentTracesDto? _recentTraces;
+    private RecentActivitiesDto? _recentActivities;
 
     protected override async Task OnInitializedAsync()
     {
@@ -219,7 +522,13 @@
 
     private async Task RefreshTelemetry()
     {
-        await Task.WhenAll(RefreshApiHealth(), RefreshTelemetryHealth());
+        await Task.WhenAll(
+            RefreshApiHealth(), 
+            RefreshTelemetryHealth(), 
+            RefreshLiveMetrics(),
+            RefreshRecentTraces(),
+            RefreshRecentActivities()
+        );
     }
 
     private async Task RefreshApiHealth()
@@ -256,6 +565,158 @@
         }
     }
 
+    private async Task RefreshLiveMetrics()
+    {
+        Console.WriteLine("[DEBUG] Starting RefreshLiveMetrics...");
+        try
+        {
+            var result = await TelemetryService.GetLiveMetricsAsync();
+            Console.WriteLine($"[DEBUG] GetLiveMetricsAsync returned: {(result != null ? "data" : "null")}");
+            
+            _liveMetrics = result;
+
+            Console.WriteLine(_liveMetrics != null
+	            ? $"[DEBUG] Live metrics loaded successfully: RequestCount={_liveMetrics.Metrics.RequestCount}"
+                : "[DEBUG] GetLiveMetricsAsync returned null");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to refresh live metrics: {ex.Message}");
+            Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
+            _liveMetrics = null;
+        }
+    }
+
+    private async Task RefreshRecentTraces()
+    {
+        Console.WriteLine("[DEBUG] Starting RefreshRecentTraces...");
+        try
+        {
+            var result = await TelemetryService.GetRecentTracesAsync();
+            Console.WriteLine($"[DEBUG] GetRecentTracesAsync returned: {(result != null ? "data" : "null")}");
+            
+            _recentTraces = result;
+
+            Console.WriteLine(_recentTraces != null
+	            ? $"[DEBUG] Recent traces loaded successfully: {_recentTraces.Traces.Count} traces"
+	            : "[DEBUG] GetRecentTracesAsync returned null");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to refresh recent traces: {ex.Message}");
+            Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
+            _recentTraces = null;
+        }
+    }
+
+    private async Task RefreshRecentActivities()
+    {
+        Console.WriteLine("[DEBUG] Starting RefreshRecentActivities...");
+        try
+        {
+            var result = await TelemetryService.GetRecentActivitiesAsync();
+            Console.WriteLine($"[DEBUG] GetRecentActivitiesAsync returned: {(result != null ? "data" : "null")}");
+            
+            _recentActivities = result;
+
+            Console.WriteLine(_recentActivities != null
+	            ? $"[DEBUG] Recent activities loaded successfully: {_recentActivities.Activities.Count} activities"
+	            : "[DEBUG] GetRecentActivitiesAsync returned null");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to refresh recent activities: {ex.Message}");
+            Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
+            _recentActivities = null;
+        }
+    }
+
+    private string GetMetricValue(string metricName)
+    {
+        try
+        {
+            if (_liveMetrics?.Metrics != null)
+            {
+                return metricName switch
+                {
+                    "RequestCount" => _liveMetrics.Metrics.RequestCount.ToString(),
+                    "AverageResponseTime" => _liveMetrics.Metrics.AverageResponseTime.ToString("F1"),
+                    "ErrorRate" => _liveMetrics.Metrics.ErrorRate.ToString("F1"),
+                    "ActiveConnections" => _liveMetrics.Metrics.ActiveConnections.ToString(),
+                    "MemoryUsage" => _liveMetrics.Metrics.MemoryUsage.ToString("F1"),
+                    "CpuUsage" => _liveMetrics.Metrics.CpuUsage.ToString("F1"),
+                    _ => "N/A"
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Error getting metric value for '{metricName}': {ex.Message}");
+        }
+        return "N/A";
+    }
+
+    private CommandPerformanceDto[] GetCommands()
+    {
+        try
+        {
+            return _liveMetrics?.Commands.ToArray() ?? [];
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Error getting commands: {ex.Message}");
+            return [];
+        }
+    }
+
+    private QueryPerformanceDto[] GetQueries()
+    {
+        try
+        {
+            return _liveMetrics?.Queries.ToArray() ?? [];
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Error getting queries: {ex.Message}");
+            return [];
+        }
+    }
+
+    private TraceDto[] GetTraces()
+    {
+        try
+        {
+            return _recentTraces?.Traces?.ToArray() ?? [];
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Error getting traces: {ex.Message}");
+            return [];
+        }
+    }
+
+    private async Task ShowRawDataModal()
+    {
+        try
+        {
+            var rawData = new
+            {
+                LiveMetrics = _liveMetrics,
+                RecentTraces = _recentTraces,
+                RecentActivities = _recentActivities,
+                ApiHealthy = _apiHealthy,
+                TelemetryHealth = _telemetryHealth
+            };
+
+            var jsonString = JsonSerializer.Serialize(rawData, new JsonSerializerOptions { WriteIndented = true });
+            await JSRuntime.InvokeVoidAsync("alert", $"Raw Data:\n\n{jsonString}");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error showing raw data: {ex.Message}");
+        }
+    }
+
     private async Task TestNotification()
     {
         _testing = true;
@@ -264,6 +725,9 @@
             var success = await TelemetryService.TestNotificationAsync();
             await JSRuntime.InvokeVoidAsync("alert", 
                 success ? "Notification test completed successfully!" : "Notification test failed.");
+            
+            // Refresh telemetry data after test
+            await RefreshTelemetry();
         }
         catch (Exception ex)
         {
@@ -283,6 +747,9 @@
 	        await TelemetryService.TestMiddlewareErrorAsync();
 	        await JSRuntime.InvokeVoidAsync("alert", 
                 "Error test completed - check telemetry for error traces!");
+            
+            // Refresh telemetry data after test
+            await RefreshTelemetry();
         }
         catch (Exception ex)
         {
@@ -302,10 +769,97 @@
 	        await TelemetryService.TestMiddlewareValidationAsync();
 	        await JSRuntime.InvokeVoidAsync("alert", 
                 "Validation test completed - check telemetry for validation traces!");
+            
+            // Refresh telemetry data after test
+            await RefreshTelemetry();
         }
         catch (Exception ex)
         {
             await JSRuntime.InvokeVoidAsync("alert", $"Validation test completed: {ex.Message}");
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private async Task TestApiEndpoints()
+    {
+        _testing = true;
+        var results = new List<string>();
+        
+        try
+        {
+            // Test all endpoints
+            var endpoints = new[]
+            {
+                ("Health", "/health"),
+                ("Telemetry Health", "/telemetry/health"),
+                ("Telemetry Metrics", "/telemetry/metrics"),
+                ("Live Metrics", "/telemetry/live-metrics"),
+                ("Recent Traces", "/telemetry/traces"),
+                ("Recent Activities", "/telemetry/activities")
+            };
+
+            foreach (var (name, endpoint) in endpoints)
+            {
+                try
+                {
+                    var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:64688") };
+                    var response = await httpClient.GetAsync(endpoint);
+                    results.Add($"{name}: {response.StatusCode}");
+                }
+                catch (Exception ex)
+                {
+                    results.Add($"{name}: ERROR - {ex.Message}");
+                }
+            }
+
+            await JSRuntime.InvokeVoidAsync("alert", $"API Endpoint Test Results:\n\n{string.Join("\n", results)}");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error testing endpoints: {ex.Message}");
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private async Task TestDirectApiCall()
+    {
+        _testing = true;
+        try
+        {
+            var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:64688") };
+            var response = await httpClient.GetAsync("/health");
+            var content = await response.Content.ReadAsStringAsync();
+            
+            await JSRuntime.InvokeVoidAsync("alert", $"Direct API Call Result:\n\nStatus: {response.StatusCode}\nContent: {content}");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error making direct API call: {ex.Message}");
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private async Task TestBasicConnectivity()
+    {
+        _testing = true;
+        try
+        {
+            var result = await TelemetryService.TestBasicConnectivityAsync();
+            var jsonString = JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
+            await JSRuntime.InvokeVoidAsync("alert", $"Basic Connectivity Test Result:\n\n{jsonString}");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error testing basic connectivity: {ex.Message}");
         }
         finally
         {

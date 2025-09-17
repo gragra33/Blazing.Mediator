@@ -1,7 +1,7 @@
 @page "/users"
 @using Microsoft.AspNetCore.Components.Web
 @using OpenTelemetryExample.Client.Services
-@using OpenTelemetryExample.Client.Models
+@using OpenTelemetryExample.Shared.Models
 @using Microsoft.JSInterop
 @inject IUserService UserService
 @inject IJSRuntime JSRuntime
@@ -115,7 +115,7 @@
 </div>
 
 @code {
-    private List<UserDto> _users = new();
+    private List<UserDto> _users = [];
     private bool _loading = true;
     private bool _showModal;
     private bool _saving;
@@ -133,14 +133,17 @@
         try
         {
             _users = await UserService.GetUsersAsync();
+            Console.WriteLine($"[DEBUG] Loaded {_users.Count} users from API");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[ERROR] Error loading users: {ex.Message}");
             await JSRuntime.InvokeVoidAsync("alert", $"Error loading users: {ex.Message}");
         }
         finally
         {
             _loading = false;
+            StateHasChanged(); // Ensure UI updates
         }
     }
 
@@ -149,6 +152,7 @@
         _editingUser = null;
         _userForm = new CreateUserRequest();
         _showModal = true;
+        StateHasChanged(); // Ensure modal shows
     }
 
     private void EditUser(UserDto user)
@@ -160,6 +164,7 @@
             Email = user.Email
         };
         _showModal = true;
+        StateHasChanged(); // Ensure modal shows with data
     }
 
     private void HideModal()
@@ -167,6 +172,7 @@
         _showModal = false;
         _editingUser = null;
         _userForm = new CreateUserRequest();
+        StateHasChanged(); // Ensure modal hides
     }
 
     private async Task SaveUser()
@@ -175,31 +181,40 @@
             return;
 
         _saving = true;
+        StateHasChanged(); // Show saving state
+        
         try
         {
             if (_editingUser != null)
             {
+                Console.WriteLine($"[DEBUG] Updating user {_editingUser.Id}: {_userForm.Name}, {_userForm.Email}");
                 await UserService.UpdateUserAsync(_editingUser.Id, new UpdateUserRequest
                 {
+                    UserId = _editingUser.Id,
                     Name = _userForm.Name,
                     Email = _userForm.Email
                 });
+                Console.WriteLine($"[DEBUG] User {_editingUser.Id} updated successfully");
             }
             else
             {
-                await UserService.CreateUserAsync(_userForm);
+                Console.WriteLine($"[DEBUG] Creating new user: {_userForm.Name}, {_userForm.Email}");
+                var userId = await UserService.CreateUserAsync(_userForm);
+                Console.WriteLine($"[DEBUG] User created successfully with ID: {userId}");
             }
 
             HideModal();
-            await LoadUsers();
+            await LoadUsers(); // This will call StateHasChanged() automatically
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[ERROR] Error saving user: {ex.Message}");
             await JSRuntime.InvokeVoidAsync("alert", $"Error saving user: {ex.Message}");
         }
         finally
         {
             _saving = false;
+            StateHasChanged(); // Hide saving state
         }
     }
 
@@ -212,11 +227,14 @@
         {
             try
             {
+                Console.WriteLine($"[DEBUG] Deleting user {user.Id}: {user.Name}");
                 await UserService.DeleteUserAsync(user.Id);
-                await LoadUsers();
+                Console.WriteLine($"[DEBUG] User {user.Id} deleted successfully");
+                await LoadUsers(); // This will call StateHasChanged() automatically
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[ERROR] Error deleting user: {ex.Message}");
                 await JSRuntime.InvokeVoidAsync("alert", $"Error deleting user: {ex.Message}");
             }
         }

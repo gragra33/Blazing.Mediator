@@ -1,7 +1,10 @@
+using Arshid.Aspire.ApiDocs.Extensions;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-var apiService = builder.AddProject<Projects.OpenTelemetryExample>("OpenTelemetry-api-server")
-    .WithExternalHttpEndpoints();
+IResourceBuilder<ProjectResource> apiService = builder
+    .AddProject<Projects.OpenTelemetryExample>("OpenTelemetry-api-server")
+    .WithSwagger();
 
 builder.AddProject<Projects.OpenTelemetryExample_Client>("OpenTelemetry-blazor-client")
     .WithReference(apiService)

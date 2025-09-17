@@ -1,5 +1,5 @@
 using Blazing.Mediator;
-using OpenTelemetryExample.Shared.DTOs;
+using OpenTelemetryExample.Shared.Models;
 
 namespace OpenTelemetryExample.Application.Queries;
 

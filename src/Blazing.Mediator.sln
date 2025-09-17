@@ -74,6 +74,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample.Client
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample.AppHost", "samples\OpenTelemetry\OpenTelemetryExample.AppHost\OpenTelemetryExample.AppHost.csproj", "{E739815C-6898-4B62-88EA-056998A2BCC2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample.Shared", "samples\OpenTelemetry\OpenTelemetryExample.Shared\OpenTelemetryExample.Shared.csproj", "{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -324,6 +326,18 @@ Global
 		{E739815C-6898-4B62-88EA-056998A2BCC2}.Release|x64.Build.0 = Release|Any CPU
 		{E739815C-6898-4B62-88EA-056998A2BCC2}.Release|x86.ActiveCfg = Release|Any CPU
 		{E739815C-6898-4B62-88EA-056998A2BCC2}.Release|x86.Build.0 = Release|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Debug|x64.Build.0 = Debug|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Debug|x86.Build.0 = Debug|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Release|x64.ActiveCfg = Release|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Release|x64.Build.0 = Release|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Release|x86.ActiveCfg = Release|Any CPU
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -352,6 +366,7 @@ Global
 		{719DA168-A5A3-91EE-8122-728DCE3B5BFB} = {6DE257AB-AFBC-4C6D-869F-D729F821BE02}
 		{CDCF915E-E66E-446A-9504-D1001AB750B2} = {6DE257AB-AFBC-4C6D-869F-D729F821BE02}
 		{E739815C-6898-4B62-88EA-056998A2BCC2} = {6DE257AB-AFBC-4C6D-869F-D729F821BE02}
+		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3} = {6DE257AB-AFBC-4C6D-869F-D729F821BE02}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4BAEEABB-9388-4CBE-AA53-3C144B0B199D}

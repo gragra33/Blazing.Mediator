@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Blazing.Mediator;
 using OpenTelemetryExample.Application.Commands;
 using OpenTelemetryExample.Application.Queries;
-using OpenTelemetryExample.Shared.DTOs;
+using OpenTelemetryExample.Shared.Models;
 using OpenTelemetryExample.Exceptions;
 
 namespace OpenTelemetryExample.Controllers;

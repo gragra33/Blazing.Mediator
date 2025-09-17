@@ -1,15 +1,16 @@
 using Blazing.Mediator;
+using OpenTelemetryExample.Domain.Entities;
+using OpenTelemetryExample.Infrastructure.Data;
 
 namespace OpenTelemetryExample.Application.Commands;
 
 /// <summary>
-/// Handler for CreateUserCommand.
+/// Handler for CreateUserCommand using Entity Framework Core.
 /// </summary>
-public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand, int>
+public sealed class CreateUserHandler(ApplicationDbContext context)
+    : IRequestHandler<CreateUserCommand, int>
 {
-    private static int _nextId = 6; // Start after the seed data
-    
-    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate some processing delay
         await Task.Delay(Random.Shared.Next(100, 500), cancellationToken);
@@ -20,11 +21,21 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand, int>
             throw new InvalidOperationException("Simulated error for testing telemetry");
         }
         
-        var userId = _nextId++;
+        // Create new user entity
+        var user = new User
+        {
+            Name = request.Name,
+            Email = request.Email,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        };
         
-        // In a real application, this would save to a database
-        Console.WriteLine($"Created user: {request.Name} ({request.Email}) with ID {userId}");
+        // Add to database
+        context.Users.Add(user);
+        await context.SaveChangesAsync(cancellationToken);
         
-        return userId;
+        Console.WriteLine($"Created user: {user.Name} ({user.Email}) with ID {user.Id}");
+        
+        return user.Id;
     }
 }

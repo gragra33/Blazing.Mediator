@@ -1,4 +1,4 @@
-using OpenTelemetryExample.Client.Models;
+using OpenTelemetryExample.Shared.Models;
 
 namespace OpenTelemetryExample.Client.Services;
 

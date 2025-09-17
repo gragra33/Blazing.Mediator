@@ -3,7 +3,7 @@ namespace Blazing.Mediator.Statistics;
 /// <summary>
 /// Console renderer for statistics output that uses Console.WriteLine.
 /// </summary>
-public class ConsoleStatisticsRenderer : IStatisticsRenderer
+public sealed class ConsoleStatisticsRenderer : IStatisticsRenderer
 {
     /// <summary>
     /// Renders a message to the console.

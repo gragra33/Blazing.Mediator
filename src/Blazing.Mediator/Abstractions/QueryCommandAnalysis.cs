@@ -36,7 +36,7 @@ public enum HandlerStatus
 /// <param name="HandlerStatus">The status of handlers for this request type.</param>
 /// <param name="HandlerDetails">Detailed information about the handlers.</param>
 /// <param name="Handlers">List of handler types registered for this request.</param>
-public record QueryCommandAnalysis(
+public sealed record QueryCommandAnalysis(
     Type Type,
     string ClassName,
     string TypeParameters,

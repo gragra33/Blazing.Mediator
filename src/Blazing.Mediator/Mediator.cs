@@ -12,7 +12,7 @@ namespace Blazing.Mediator;
 /// from the request handler. It uses dependency injection to resolve handlers at runtime and 
 /// supports both void and typed responses.
 /// </remarks>
-public class Mediator : IMediator
+public sealed class Mediator : IMediator
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IMiddlewarePipelineBuilder _pipelineBuilder;

@@ -5,7 +5,7 @@ namespace Blazing.Mediator.Statistics;
 /// <summary>
 /// Collects and reports statistics about mediator usage, including query and command analysis.
 /// </summary>
-public class MediatorStatistics
+public sealed class MediatorStatistics
 {
     private readonly ConcurrentDictionary<string, long> _queryCounts = new();
     private readonly ConcurrentDictionary<string, long> _commandCounts = new();

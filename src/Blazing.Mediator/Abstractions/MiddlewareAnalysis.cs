@@ -11,7 +11,7 @@ namespace Blazing.Mediator.Abstractions;
 /// <param name="TypeParameters">The generic type parameters in angle brackets (e.g., "&lt;TRequest, TResponse&gt;").</param>
 /// <param name="GenericConstraints">The generic constraints for each type parameter (e.g., "where TRequest : ICommand&lt;TResponse&gt;").</param>
 /// <param name="Configuration">Optional configuration object for the middleware.</param>
-public record MiddlewareAnalysis(
+public sealed record MiddlewareAnalysis(
     Type Type,
     int Order,
     string OrderDisplay,

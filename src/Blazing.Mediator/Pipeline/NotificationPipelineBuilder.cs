@@ -3,7 +3,7 @@ namespace Blazing.Mediator.Pipeline;
 /// <summary>
 /// This is part of the core Blazing.Mediator infrastructure and contains no business logic.
 /// </summary>
-public class NotificationPipelineBuilder : INotificationPipelineBuilder, INotificationMiddlewarePipelineInspector
+public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, INotificationMiddlewarePipelineInspector
 {
     private const string OrderPropertyName = "Order";
     private readonly List<NotificationMiddlewareInfo> _middlewareInfos = [];

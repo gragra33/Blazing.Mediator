@@ -64,6 +64,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypedSimpleNotificationExample", "samples\TypedSimpleNotificationExample\TypedSimpleNotificationExample.csproj", "{45FF4719-0E86-A047-5205-52262DBEB5D6}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Open Telemetry", "Open Telemetry", "{6DE257AB-AFBC-4C6D-869F-D729F821BE02}"
+	ProjectSection(SolutionItems) = preProject
+		samples\OpenTelemetry\OpenTelemetryExample\README.md = samples\OpenTelemetry\OpenTelemetryExample\README.md
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample", "samples\OpenTelemetry\OpenTelemetryExample\OpenTelemetryExample.csproj", "{719DA168-A5A3-91EE-8122-728DCE3B5BFB}"
 EndProject

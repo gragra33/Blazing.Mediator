@@ -21,7 +21,7 @@ public sealed class Mediator : IMediator
 
     // Thread-safe collections for notification subscribers
     private readonly ConcurrentDictionary<Type, ConcurrentBag<object>> _specificSubscribers = new();
-    private readonly ConcurrentBag<INotificationSubscriber> _genericSubscribers = new();
+    private readonly ConcurrentBag<INotificationSubscriber> _genericSubscribers = [];
 
     /// <summary>
     /// The static OpenTelemetry Meter for Mediator metrics.
@@ -81,8 +81,7 @@ public sealed class Mediator : IMediator
         var stopwatch = Stopwatch.StartNew();
         Exception? exception = null;
         var executedMiddleware = new List<string>();
-        var allMiddleware = new List<string>();
-        
+
         try
         {
             _statistics?.IncrementCommand(request.GetType().Name);
@@ -93,7 +92,7 @@ public sealed class Mediator : IMediator
             if (TelemetryEnabled && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
             {
                 var middlewareInfo = inspector.GetDetailedMiddlewareInfo(_serviceProvider);
-                allMiddleware = middlewareInfo
+                List<string> allMiddleware = middlewareInfo
                     .Where(m => IsMiddlewareApplicable(m.Type, requestType))
                     .OrderBy(m => m.Order)
                     .Select(m => SanitizeMiddlewareName(m.Type.Name))
@@ -224,8 +223,7 @@ public sealed class Mediator : IMediator
         var stopwatch = Stopwatch.StartNew();
         Exception? exception = null;
         var executedMiddleware = new List<string>();
-        var allMiddleware = new List<string>();
-        
+
         try
         {
             if (_statistics != null)
@@ -248,7 +246,7 @@ public sealed class Mediator : IMediator
             if (TelemetryEnabled && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
             {
                 var middlewareInfo = inspector.GetDetailedMiddlewareInfo(_serviceProvider);
-                allMiddleware = middlewareInfo
+                List<string> allMiddleware = middlewareInfo
                     .Where(m => IsMiddlewareApplicable(m.Type, requestType, typeof(TResponse)))
                     .OrderBy(m => m.Order)
                     .Select(m => SanitizeMiddlewareName(m.Type.Name))
@@ -452,8 +450,8 @@ public sealed class Mediator : IMediator
         
         using var activity = TelemetryEnabled ? ActivitySource.StartActivity($"Mediator.Publish.{typeof(TNotification).Name}", ActivityKind.Internal) : null;
         var stopwatch = Stopwatch.StartNew();
-        List<string> executedMiddleware = new();
-        List<string> allMiddleware = new();
+        List<string> executedMiddleware = [];
+        List<string> allMiddleware = [];
         Exception? exception = null;
         int subscriberCount = 0;
         var subscriberResults = new List<(string SubscriberType, bool Success, double DurationMs, string? ExceptionType, string? ExceptionMessage)>();
@@ -473,7 +471,7 @@ public sealed class Mediator : IMediator
             }
 
             // Execute through notification middleware pipeline
-            NotificationDelegate<TNotification> subscriberHandler = async (n, ct) =>
+            async Task SubscriberHandler(TNotification n, CancellationToken ct)
             {
                 // Find all subscribers (specific and generic)
                 var subscribers = new List<INotificationSubscriber<TNotification>>();
@@ -481,49 +479,41 @@ public sealed class Mediator : IMediator
                 {
                     subscribers.AddRange(specific.OfType<INotificationSubscriber<TNotification>>());
                 }
-                
+
                 // Add generic subscribers that can handle any notification
                 var genericSubscriberList = new List<INotificationSubscriber>();
                 foreach (var genericSubscriber in _genericSubscribers)
                 {
                     genericSubscriberList.Add(genericSubscriber);
                 }
-                
+
                 subscriberCount = subscribers.Count + genericSubscriberList.Count;
-                
+
                 // Process specific subscribers
                 foreach (var subscriber in subscribers)
                 {
                     var subType = SanitizeTypeName(subscriber.GetType().Name);
                     var subStopwatch = Stopwatch.StartNew();
-                    
+
                     try
                     {
                         await subscriber.OnNotification(n, ct);
                         if (TelemetryEnabled)
                         {
-                            var successTags = new TagList
-                            {
-                                { "notification_name", SanitizeTypeName(typeof(TNotification).Name) },
-                                { "subscriber_type", subType }
-                            };
+                            var successTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "subscriber_type", subType } };
                             PublishSubscriberSuccessCounter.Add(1, successTags);
                         }
+
                         subscriberResults.Add((subType, true, subStopwatch.Elapsed.TotalMilliseconds, null, null));
                     }
                     catch (Exception ex)
                     {
                         if (TelemetryEnabled)
                         {
-                            var failureTags = new TagList
-                            {
-                                { "notification_name", SanitizeTypeName(typeof(TNotification).Name) },
-                                { "subscriber_type", subType },
-                                { "exception.type", SanitizeTypeName(ex.GetType().Name) },
-                                { "exception.message", SanitizeExceptionMessage(ex.Message) }
-                            };
+                            var failureTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "subscriber_type", subType }, { "exception.type", SanitizeTypeName(ex.GetType().Name) }, { "exception.message", SanitizeExceptionMessage(ex.Message) } };
                             PublishSubscriberFailureCounter.Add(1, failureTags);
                         }
+
                         subscriberResults.Add((subType, false, subStopwatch.Elapsed.TotalMilliseconds, SanitizeTypeName(ex.GetType().Name), SanitizeExceptionMessage(ex.Message)));
                         throw;
                     }
@@ -532,49 +522,37 @@ public sealed class Mediator : IMediator
                         subStopwatch.Stop();
                         if (TelemetryEnabled)
                         {
-                            var durationTags = new TagList
-                            {
-                                { "notification_name", SanitizeTypeName(typeof(TNotification).Name) },
-                                { "subscriber_type", subType }
-                            };
+                            var durationTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "subscriber_type", subType } };
                             PublishSubscriberDurationHistogram.Record(subStopwatch.Elapsed.TotalMilliseconds, durationTags);
                         }
                     }
                 }
-                
+
                 // Process generic subscribers
                 foreach (var genericSubscriber in genericSubscriberList)
                 {
                     var subType = SanitizeTypeName(genericSubscriber.GetType().Name);
                     var subStopwatch = Stopwatch.StartNew();
-                    
+
                     try
                     {
                         await genericSubscriber.OnNotification(n, ct);
                         if (TelemetryEnabled)
                         {
-                            var successTags = new TagList
-                            {
-                                { "notification_name", SanitizeTypeName(typeof(TNotification).Name) },
-                                { "subscriber_type", $"{subType}(Generic)" }
-                            };
+                            var successTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "subscriber_type", $"{subType}(Generic)" } };
                             PublishSubscriberSuccessCounter.Add(1, successTags);
                         }
+
                         subscriberResults.Add(($"{subType}(Generic)", true, subStopwatch.Elapsed.TotalMilliseconds, null, null));
                     }
                     catch (Exception ex)
                     {
                         if (TelemetryEnabled)
                         {
-                            var failureTags = new TagList
-                            {
-                                { "notification_name", SanitizeTypeName(typeof(TNotification).Name) },
-                                { "subscriber_type", $"{subType}(Generic)" },
-                                { "exception.type", SanitizeTypeName(ex.GetType().Name) },
-                                { "exception.message", SanitizeExceptionMessage(ex.Message) }
-                            };
+                            var failureTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "subscriber_type", $"{subType}(Generic)" }, { "exception.type", SanitizeTypeName(ex.GetType().Name) }, { "exception.message", SanitizeExceptionMessage(ex.Message) } };
                             PublishSubscriberFailureCounter.Add(1, failureTags);
                         }
+
                         subscriberResults.Add(($"{subType}(Generic)", false, subStopwatch.Elapsed.TotalMilliseconds, SanitizeTypeName(ex.GetType().Name), SanitizeExceptionMessage(ex.Message)));
                         throw;
                     }
@@ -583,19 +561,15 @@ public sealed class Mediator : IMediator
                         subStopwatch.Stop();
                         if (TelemetryEnabled)
                         {
-                            var durationTags = new TagList
-                            {
-                                { "notification_name", SanitizeTypeName(typeof(TNotification).Name) },
-                                { "subscriber_type", $"{subType}(Generic)" }
-                            };
+                            var durationTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "subscriber_type", $"{subType}(Generic)" } };
                             PublishSubscriberDurationHistogram.Record(subStopwatch.Elapsed.TotalMilliseconds, durationTags);
                         }
                     }
                 }
-            };
-            
+            }
+
             // Execute through middleware pipeline
-            await _notificationPipelineBuilder.ExecutePipeline(notification, _serviceProvider, subscriberHandler, cancellationToken);
+            await _notificationPipelineBuilder.ExecutePipeline(notification, _serviceProvider, SubscriberHandler, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -739,9 +713,8 @@ public sealed class Mediator : IMediator
 
         // Remove from generic subscribers
         var newGenericSubscribers = new ConcurrentBag<INotificationSubscriber>();
-        foreach (var existing in from existing in _genericSubscribers
-                                 where !ReferenceEquals(existing, subscriber)
-                                 select existing)
+        foreach (var existing in _genericSubscribers
+                     .Where(existing => !ReferenceEquals(existing, subscriber)))
         {
             newGenericSubscribers.Add(existing);
         }
@@ -829,7 +802,9 @@ public sealed class Mediator : IMediator
     private static string SanitizeTypeName(string typeName)
     {
         if (string.IsNullOrEmpty(typeName))
+        {
             return "unknown";
+        }
 
         // Remove generic type suffix (e.g., "`1", "`2")
         var backtickIndex = typeName.IndexOf('`');
@@ -918,7 +893,7 @@ public sealed class Mediator : IMediator
             var line = lines[i].Trim();
             
             // Remove file paths
-            var inIndex = line.LastIndexOf(" in ");
+            var inIndex = line.LastIndexOf(" in ", StringComparison.Ordinal);
             if (inIndex > 0)
             {
                 line = line[..inIndex];
@@ -959,7 +934,8 @@ public sealed class Mediator : IMediator
                         return false;
                     }
                 }
-                else if (genericParams.Length == 2 && responseType != null)
+
+                if (genericParams.Length == 2 && responseType != null)
                 {
                     // Two parameter middleware for requests with responses
                     try
@@ -976,14 +952,9 @@ public sealed class Mediator : IMediator
             else
             {
                 // Non-generic middleware - check if it implements the correct interface
-                if (responseType == null)
-                {
-                    return typeof(IRequestMiddleware<>).MakeGenericType(requestType).IsAssignableFrom(middlewareType);
-                }
-                else
-                {
-                    return typeof(IRequestMiddleware<,>).MakeGenericType(requestType, responseType).IsAssignableFrom(middlewareType);
-                }
+                return responseType == null
+                    ? typeof(IRequestMiddleware<>).MakeGenericType(requestType).IsAssignableFrom(middlewareType)
+                    : typeof(IRequestMiddleware<,>).MakeGenericType(requestType, responseType).IsAssignableFrom(middlewareType);
             }
         }
         catch

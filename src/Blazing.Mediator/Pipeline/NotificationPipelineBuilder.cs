@@ -352,15 +352,9 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
 
             // Add type constraints (interfaces and base classes)
             var typeConstraints = parameter.GetGenericParameterConstraints();
-            foreach (var constraint in typeConstraints)
-            {
-                if (constraint.IsInterface || constraint.IsClass)
-                {
-                    // Format generic types nicely
-                    string constraintName = FormatTypeName(constraint);
-                    parameterConstraints.Add(constraintName);
-                }
-            }
+            parameterConstraints.AddRange(typeConstraints
+                .Where(constraint => constraint.IsInterface || constraint.IsClass)
+                .Select(FormatTypeName));
 
             // Check for new() constraint
             if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
@@ -369,11 +363,13 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
             }
 
             // If this parameter has constraints, add them
-            if (parameterConstraints.Count > 0)
+            if (parameterConstraints.Count <= 0)
             {
-                var constraintText = $"where {parameter.Name} : {string.Join(", ", parameterConstraints)}";
-                constraintParts.Add(constraintText);
+                continue;
             }
+
+            var constraintText = $"where {parameter.Name} : {string.Join(", ", parameterConstraints)}";
+            constraintParts.Add(constraintText);
         }
 
         return constraintParts.Count > 0 ? string.Join(" ", constraintParts) : string.Empty;

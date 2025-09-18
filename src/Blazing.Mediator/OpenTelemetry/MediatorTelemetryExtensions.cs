@@ -32,7 +32,7 @@ public static class MediatorTelemetryExtensions
     /// <returns>The service collection for method chaining.</returns>
     public static IServiceCollection AddMediatorTelemetry(this IServiceCollection services)
     {
-        return services.ConfigureMediatorTelemetry(options => { /* Use defaults */ });
+        return services.ConfigureMediatorTelemetry(_ => { /* Use defaults */ });
     }
     
     /// <summary>

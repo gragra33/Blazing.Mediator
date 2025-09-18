@@ -2,7 +2,6 @@ namespace OpenTelemetryExample.Extensions;
 
 /// <summary>
 /// Extension methods for WebApplication to configure the HTTP request pipeline.
-/// Follows single responsibility principle by separating pipeline configuration.
 /// </summary>
 public static class WebApplicationExtensions
 {

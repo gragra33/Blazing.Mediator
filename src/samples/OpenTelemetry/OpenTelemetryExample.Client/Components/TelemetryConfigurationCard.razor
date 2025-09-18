@@ -1,0 +1,38 @@
+@if (DataSource != null)
+{
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-gear me-2"></i>Telemetry Configuration
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Enabled:</strong> 
+                    <span class="badge @(DataSource.IsEnabled ? "bg-success" : "bg-danger")">
+                        @(DataSource.IsEnabled ? "Yes" : "No")
+                    </span>
+                </div>
+                <div class="col-md-4">
+                    <strong>Metrics:</strong> 
+                    <span class="badge @(DataSource.CanRecordMetrics ? "bg-success" : "bg-danger")">
+                        @(DataSource.CanRecordMetrics ? "Recording" : "Disabled")
+                    </span>
+                </div>
+                <div class="col-md-4">
+                    <strong>Meter:</strong> @DataSource.MeterName
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-6">
+                    <strong>Activity Source:</strong> @DataSource.ActivitySourceName
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public TelemetryHealthDto? DataSource { get; set; }
+}

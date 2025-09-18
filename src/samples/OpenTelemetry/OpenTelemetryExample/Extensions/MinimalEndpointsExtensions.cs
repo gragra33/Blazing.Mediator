@@ -1,9 +1,9 @@
 using Blazing.Mediator;
 using OpenTelemetryExample.Application.Commands;
+using OpenTelemetryExample.Application.Queries;
 using OpenTelemetryExample.Exceptions;
 using OpenTelemetryExample.Models;
 using OpenTelemetryExample.Shared.Models;
-using System.Diagnostics;
 
 namespace OpenTelemetryExample.Extensions;
 
@@ -56,10 +56,11 @@ public static class MinimalEndpointsExtensions
             .WithDescription("Returns current telemetry metrics data for display in the dashboard.")
             .Produces<LiveMetricsDto>();
 
-        telemetryGroup.MapGet("/traces", GetRecentTraces)
+        telemetryGroup.MapGet("/traces", async (IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, int? timeWindowMinutes) =>
+                await GetRecentTraces(mediator, maxRecords, blazingMediatorOnly, timeWindowMinutes))
             .WithName("GetRecentTraces")
             .WithSummary("Get recent trace data")
-            .WithDescription("Returns recent OpenTelemetry traces for display in the dashboard.")
+            .WithDescription("Returns recent OpenTelemetry traces for display in the dashboard. Supports filtering and pagination.")
             .Produces<RecentTracesDto>();
 
         telemetryGroup.MapGet("/activities", GetRecentActivities)
@@ -183,137 +184,102 @@ public static class MinimalEndpointsExtensions
     }
 
     /// <summary>
-    /// Handler for live metrics endpoint - now returns strongly-typed LiveMetricsDto
+    /// Handler for live metrics endpoint - now returns real data from OpenTelemetry
     /// </summary>
-    private static IResult GetLiveMetrics()
+    private static async Task<IResult> GetLiveMetrics(IMediator mediator)
     {
-        // Return strongly-typed LiveMetricsDto with mock data
-        var result = new LiveMetricsDto
+        try
         {
-            Timestamp = DateTime.UtcNow,
-            Metrics = new MetricsData
+            var query = new GetLiveMetricsQuery
             {
-                RequestCount = 42,
-                AverageResponseTime = 150.5,
-                ErrorRate = 2.1,
-                ActiveConnections = 8,
-                MemoryUsage = 65.3,
-                CpuUsage = 23.7
-            },
-            Commands =
-            [
-                new CommandPerformanceDto { Name = "CreateUserCommand", Count = 15, AvgDuration = 120.3 },
-                new CommandPerformanceDto { Name = "UpdateUserCommand", Count = 8, AvgDuration = 95.1 },
-                new CommandPerformanceDto { Name = "DeleteUserCommand", Count = 3, AvgDuration = 45.7 }
-            ],
-            Queries =
-            [
-                new QueryPerformanceDto { Name = "GetUsersQuery", Count = 25, AvgDuration = 85.2 },
-                new QueryPerformanceDto { Name = "GetUserByIdQuery", Count = 18, AvgDuration = 32.1 }
-            ],
-            Message = "Live metrics data - refresh for updates"
-        };
+                MaxRecords = 100,
+                TimeWindow = TimeSpan.FromMinutes(30)
+            };
 
-        return Results.Ok(result);
+            var result = await mediator.Send(query);
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[-] Error getting live metrics: {ex.Message}");
+            
+            // Return fallback data in case of error
+            var fallbackResult = new LiveMetricsDto
+            {
+                Timestamp = DateTime.UtcNow,
+                Metrics = new MetricsData(),
+                Commands = [],
+                Queries = [],
+                Message = $"Error retrieving live metrics: {ex.Message}"
+            };
+            
+            return Results.Ok(fallbackResult);
+        }
     }
 
     /// <summary>
-    /// Handler for recent traces endpoint - now returns strongly-typed RecentTracesDto
+    /// Handler for recent traces endpoint - now returns real data from OpenTelemetry
     /// </summary>
-    private static IResult GetRecentTraces()
+    private static async Task<IResult> GetRecentTraces(IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, int? timeWindowMinutes)
     {
-        // Return strongly-typed RecentTracesDto with mock data
-        var result = new RecentTracesDto
+        try
         {
-            Timestamp = DateTime.UtcNow,
-            Traces =
-            [
-                new TraceDto
-                {
-                    TraceId = "trace-001",
-                    SpanId = "span-001",
-                    OperationName = "CreateUserCommand",
-                    StartTime = DateTime.UtcNow.AddSeconds(-30),
-                    Duration = TimeSpan.FromMilliseconds(125),
-                    Status = "Success",
-                    Tags = new Dictionary<string, object> { ["UserId"] = 123, ["Operation"] = "Create" }
-                },
+            var query = new GetRecentTracesQuery
+            {
+                MaxRecords = maxRecords ?? 10,
+                TimeWindow = TimeSpan.FromMinutes(timeWindowMinutes ?? 30),
+                BlazingMediatorOnly = blazingMediatorOnly ?? false
+            };
 
-                new TraceDto
-                {
-                    TraceId = "trace-002",
-                    SpanId = "span-002",
-                    OperationName = "GetUsersQuery",
-                    StartTime = DateTime.UtcNow.AddSeconds(-15),
-                    Duration = TimeSpan.FromMilliseconds(85),
-                    Status = "Success",
-                    Tags = new Dictionary<string, object> { ["PageSize"] = 10, ["Page"] = 1 }
-                },
-
-                new TraceDto
-                {
-                    TraceId = "trace-003",
-                    SpanId = "span-003",
-                    OperationName = "UpdateUserCommand",
-                    StartTime = DateTime.UtcNow.AddSeconds(-5),
-                    Duration = TimeSpan.FromMilliseconds(95),
-                    Status = "Error",
-                    Tags = new Dictionary<string, object> { ["UserId"] = 456, ["Error"] = "ValidationException" }
-                }
-            ],
-            Message = "Recent traces - showing last 10 traces"
-        };
-
-        return Results.Ok(result);
+            var result = await mediator.Send(query);
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[-] Error getting recent traces: {ex.Message}");
+            
+            // Return fallback data in case of error
+            var fallbackResult = new RecentTracesDto
+            {
+                Timestamp = DateTime.UtcNow,
+                Traces = [],
+                Message = $"Error retrieving traces: {ex.Message}"
+            };
+            
+            return Results.Ok(fallbackResult);
+        }
     }
 
     /// <summary>
-    /// Handler for recent activities endpoint - now returns strongly-typed RecentActivitiesDto
+    /// Handler for recent activities endpoint - now returns real data from OpenTelemetry
     /// </summary>
-    private static IResult GetRecentActivities()
+    private static async Task<IResult> GetRecentActivities(IMediator mediator)
     {
-        // Return strongly-typed RecentActivitiesDto with mock data
-        var result = new RecentActivitiesDto
+        try
         {
-            Timestamp = DateTime.UtcNow,
-            Activities =
-            [
-                new ActivityDto
-                {
-                    Id = Activity.Current?.Id ?? "activity-001",
-                    OperationName = "Mediator.Send",
-                    StartTime = DateTime.UtcNow.AddMilliseconds(-500),
-                    Duration = TimeSpan.FromMilliseconds(125),
-                    Status = nameof(ActivityStatusCode.Ok),
-                    Kind = nameof(ActivityKind.Internal),
-                    Tags = new Dictionary<string, object>
-                    {
-                        ["mediator.request_type"] = "CreateUserCommand",
-                        ["mediator.handler"] = "CreateUserHandler",
-                        ["mediator.success"] = true
-                    }
-                },
+            var query = new GetRecentActivitiesQuery
+            {
+                MaxRecords = 50,
+                TimeWindow = TimeSpan.FromMinutes(30)
+            };
 
-                new ActivityDto
-                {
-                    Id = "activity-002",
-                    OperationName = "Mediator.Send",
-                    StartTime = DateTime.UtcNow.AddMilliseconds(-200),
-                    Duration = TimeSpan.FromMilliseconds(85),
-                    Status = nameof(ActivityStatusCode.Ok),
-                    Kind = nameof(ActivityKind.Internal),
-                    Tags = new Dictionary<string, object>
-                    {
-                        ["mediator.request_type"] = "GetUsersQuery",
-                        ["mediator.handler"] = "GetUsersHandler",
-                        ["mediator.success"] = true
-                    }
-                }
-            ],
-            Message = "Recent activities - showing OpenTelemetry activities"
-        };
-
-        return Results.Ok(result);
+            var result = await mediator.Send(query);
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[-] Error getting recent activities: {ex.Message}");
+            
+            // Return fallback data in case of error
+            var fallbackResult = new RecentActivitiesDto
+            {
+                Timestamp = DateTime.UtcNow,
+                Activities = [],
+                Message = $"Error retrieving activities: {ex.Message}"
+            };
+            
+            return Results.Ok(fallbackResult);
+        }
     }
 
     /// <summary>

@@ -362,7 +362,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
     public IReadOnlyList<Type> GetRegisteredMiddleware()
     {
         List<Type> list = [];
-        foreach (MiddlewareInfo info in _middlewareInfos) list.Add(info.Type);
+        list.AddRange(_middlewareInfos.Select(info => info.Type));
 
         return list;
     }
@@ -371,7 +371,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
     public IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration()
     {
         List<(Type Type, object? Configuration)> list = [];
-        foreach (MiddlewareInfo info in _middlewareInfos) list.Add((info.Type, info.Configuration));
+        list.AddRange(_middlewareInfos.Select(info => (info.Type, info.Configuration)));
 
         return list;
     }
@@ -383,7 +383,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         {
             // Return cached registration-time order values
             List<(Type Type, int Order, object? Configuration)> list = [];
-            foreach (MiddlewareInfo info in _middlewareInfos) list.Add((info.Type, info.Order, info.Configuration));
+            list.AddRange(_middlewareInfos.Select(info => (info.Type, info.Order, info.Configuration)));
 
             return list;
         }
@@ -815,15 +815,9 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
 
             // Add type constraints (interfaces and base classes)
             var typeConstraints = parameter.GetGenericParameterConstraints();
-            foreach (var constraint in typeConstraints)
-            {
-                if (constraint.IsInterface || constraint.IsClass)
-                {
-                    // Format generic types nicely
-                    string constraintName = FormatTypeName(constraint);
-                    parameterConstraints.Add(constraintName);
-                }
-            }
+            parameterConstraints.AddRange(typeConstraints
+                .Where(constraint => constraint.IsInterface || constraint.IsClass)
+                .Select(FormatTypeName));
 
             // Check for new() constraint
             if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))

@@ -29,10 +29,8 @@ public sealed class MediatorTelemetryOptions
     /// Gets or sets the list of sensitive data patterns to filter from telemetry.
     /// Default includes common patterns like "password", "token", "secret", etc.
     /// </summary>
-    public List<string> SensitiveDataPatterns { get; set; } = new()
-    {
-        "password", "token", "secret", "key", "auth", "credential", "connection"
-    };
+    public List<string> SensitiveDataPatterns { get; set; } =
+        ["password", "token", "secret", "key", "auth", "credential", "connection"];
     
     /// <summary>
     /// Gets or sets whether to enable health check metrics. Default is true.

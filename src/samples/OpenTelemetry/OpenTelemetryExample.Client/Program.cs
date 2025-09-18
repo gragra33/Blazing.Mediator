@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using OpenTelemetryExample.Client;
 using OpenTelemetryExample.Client.Services;
+// Add this for AddHttpClient
+
+// Add this for IHttpClientFactory
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -14,11 +17,15 @@ Console.WriteLine($"[*] Blazor Client starting...");
 Console.WriteLine($"[*] API Base URL: {apiBaseUrl}");
 Console.WriteLine($"[*] Running in: {(builder.HostEnvironment.IsDevelopment() ? "Development" : "Production")} mode");
 
-builder.Services.AddScoped(_ => new HttpClient 
-{ 
-    BaseAddress = new Uri(apiBaseUrl),
-    Timeout = TimeSpan.FromSeconds(30)
+// Use AddHttpClient for DI and configuration
+builder.Services.AddHttpClient("Api", client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
 });
+
+// Register a typed HttpClient for DI usage
+builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Api"));
 
 // Register services
 builder.Services.AddScoped<IUserService, UserService>();

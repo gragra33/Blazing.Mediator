@@ -1,0 +1,61 @@
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-bug me-2"></i>Debug Information
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>API Connection Status</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Health Status:</strong> 
+                        @if (DataSource.ApiHealthy.HasValue)
+                        {
+                            <span class="badge @(DataSource.ApiHealthy.Value ? "bg-success" : "bg-danger")">
+                                @(DataSource.ApiHealthy.Value ? "Connected" : "Failed")
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Unknown</span>
+                        }
+                    </li>
+                    <li><strong>Live Metrics:</strong> 
+                        <span class="badge @(DataSource.LiveMetrics != null ? "bg-success" : "bg-danger")">
+                            @(DataSource.LiveMetrics != null ? "Loaded" : "Failed")
+                        </span>
+                    </li>
+                    <li><strong>Recent Traces:</strong> 
+                        <span class="badge @(DataSource.RecentTraces != null ? "bg-success" : "bg-danger")">
+                            @(DataSource.RecentTraces != null ? "Loaded" : "Failed")
+                        </span>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Data Status</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Commands Available:</strong> @GetCommandsCount()</li>
+                    <li><strong>Queries Available:</strong> @GetQueriesCount()</li>
+                    <li><strong>Traces Available:</strong> @GetTracesCount()</li>
+                    <li><strong>Last Refresh:</strong> @DateTime.Now.ToString("HH:mm:ss")</li>
+                </ul>
+            </div>
+        </div>
+        <div class="mt-3">
+            <button class="btn btn-info btn-sm me-2" @onclick="ShowRawDataModal">
+                <i class="bi bi-code me-2"></i>Show Raw Data
+            </button>
+            <button class="btn btn-warning btn-sm me-2" @onclick="TestApiEndpoints" disabled="@_testing">
+                <i class="bi bi-wifi me-2"></i>Test API Endpoints
+            </button>
+            <button class="btn btn-success btn-sm me-2" @onclick="TestBasicConnectivity" disabled="@_testing">
+                <i class="bi bi-check-circle me-2"></i>Test Basic Connectivity
+            </button>
+            <button class="btn btn-primary btn-sm" @onclick="TestDirectApiCall" disabled="@_testing">
+                <i class="bi bi-download me-2"></i>Test Direct API Call
+            </button>
+        </div>
+    </div>
+</div>

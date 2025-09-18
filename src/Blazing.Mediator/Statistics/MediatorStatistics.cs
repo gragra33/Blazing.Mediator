@@ -371,7 +371,7 @@ public sealed class MediatorStatistics
                 IsResultType: isResultType,
                 HandlerStatus: handlerStatus,
                 HandlerDetails: handlerDetails,
-                Handlers: isDetailed ? handlers : new List<Type>() // Only include handler list in detailed mode
+                Handlers: isDetailed ? handlers : [] // Only include handler list in detailed mode
             ));
         }
 

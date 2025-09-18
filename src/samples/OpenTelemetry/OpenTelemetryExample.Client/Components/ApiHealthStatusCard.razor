@@ -1,0 +1,31 @@
+<div class="card telemetry-card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-heart-pulse me-2"></i>API Health Status
+        </h5>
+    </div>
+    <div class="card-body">
+        @if (_apiHealthLoading)
+        {
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else if (DataSource.HasValue)
+        {
+            <div class="d-flex align-items-center">
+                <i class="bi @(DataSource.Value ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-3 me-3"></i>
+                <div>
+                    <h6 class="mb-0">@(DataSource.Value ? "Healthy" : "Unhealthy")</h6>
+                    <small class="text-muted">Last checked: @DateTime.Now.ToString("HH:mm:ss")</small>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="text-muted">
+                <i class="bi bi-question-circle me-2"></i>Status unknown
+            </div>
+        }
+    </div>
+</div>

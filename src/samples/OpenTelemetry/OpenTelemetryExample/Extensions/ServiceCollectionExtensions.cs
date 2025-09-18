@@ -3,6 +3,7 @@ using OpenTelemetry.Trace;
 using Blazing.Mediator;
 using Blazing.Mediator.OpenTelemetry;
 using OpenTelemetryExample.Application.Middleware;
+using OpenTelemetryExample.Application.Services;
 using OpenTelemetryExample.Infrastructure.Data;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,6 @@ namespace OpenTelemetryExample.Extensions;
 
 /// <summary>
 /// Extension methods for IServiceCollection to configure dependency injection.
-/// Follows single responsibility principle by separating service registration.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
@@ -144,6 +144,10 @@ public static class ServiceCollectionExtensions
         Console.WriteLine($"[*] OpenTelemetry Configuration:");
         Console.WriteLine($"[*] OTLP Endpoint: {otlpEndpoint ?? "Not configured"}");
 
+        // Register custom OpenTelemetry services
+        services.AddSingleton<OpenTelemetryActivityProcessor>();
+        services.AddSingleton<OpenTelemetryMetricsReader>();
+
         services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
@@ -152,6 +156,9 @@ public static class ServiceCollectionExtensions
                     .AddHttpClientInstrumentation()
                     .AddMeter("Blazing.Mediator")
                     .AddMeter("OpenTelemetryExample");
+
+                // Add our custom metrics reader to capture and store metrics
+                metrics.AddReader(services.BuildServiceProvider().GetRequiredService<OpenTelemetryMetricsReader>());
 
                 // Only add console exporter in development and if no OTLP endpoint
                 if (environment.IsDevelopment() && string.IsNullOrEmpty(otlpEndpoint))
@@ -177,7 +184,7 @@ public static class ServiceCollectionExtensions
                     .AddAspNetCoreInstrumentation(options =>
                     {
                         // Exclude telemetry endpoints to prevent feedback loops
-                        options.Filter = (httpContext) =>
+                        options.Filter = httpContext =>
                         {
                             var path = httpContext.Request.Path.ToString();
                             return !path.StartsWith("/telemetry") && 
@@ -196,6 +203,9 @@ public static class ServiceCollectionExtensions
                     })
                     .AddSource("Blazing.Mediator")
                     .AddSource("OpenTelemetryExample");
+
+                // Add our custom activity processor to capture and store traces
+                tracing.AddProcessor(services.BuildServiceProvider().GetRequiredService<OpenTelemetryActivityProcessor>());
 
                 // Only add console exporter in development and if no OTLP endpoint
                 if (environment.IsDevelopment() && string.IsNullOrEmpty(otlpEndpoint))

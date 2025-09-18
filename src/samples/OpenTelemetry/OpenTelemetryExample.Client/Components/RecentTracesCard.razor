@@ -1,0 +1,201 @@
+@using OpenTelemetryExample.Client.Services
+@inject ITelemetryService TelemetryService
+@inject IJSRuntime JSRuntime
+
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-diagram-3 me-2"></i>Recent Traces
+            </h5>
+            
+            <!-- Centered Trace Count Info -->
+            <div class="flex-grow-1 text-center">
+                @if (DataSource != null)
+                {
+                    <small class="text-muted">
+                        <strong>@GetTraces().Length</strong> of <strong>@(DataSource?.TotalTracesInTimeframe ?? 0)</strong> traces in the last <strong>@GetAgeLabel()</strong>
+                    </small>
+                }
+            </div>
+            
+            <!-- Filter Controls -->
+            <div class="d-flex align-items-center gap-3">
+	            <!-- Mediator Toggle Switch -->
+	            <div class="form-check form-switch">
+		            <input class="form-check-input" type="checkbox" id="mediatorFilter" @bind="_mediatorOnly" @bind:after="OnMediatorFilterChanged">
+		            <label class="form-check-label me-2" for="mediatorFilter">
+			            <small>Mediator Only</small>
+		            </label>
+	            </div>
+
+                <!-- Time Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-clock me-1"></i>@GetAgeLabel()
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><button class="dropdown-item @(_timeWindowMinutes == 1 ? "active" : "")" type="button" @onclick="() => UpdateAge(1)">Last minute</button></li>
+                        <li><button class="dropdown-item @(_timeWindowMinutes == 5 ? "active" : "")" type="button" @onclick="() => UpdateAge(5)">5 minutes</button></li>
+                        <li><button class="dropdown-item @(_timeWindowMinutes == 10 ? "active" : "")" type="button" @onclick="() => UpdateAge(10)">10 minutes</button></li>
+                        <li><button class="dropdown-item @(_timeWindowMinutes == 30 ? "active" : "")" type="button" @onclick="() => UpdateAge(30)">30 minutes</button></li>
+                        <li><button class="dropdown-item @(_timeWindowMinutes == 60 ? "active" : "")" type="button" @onclick="() => UpdateAge(60)">Last hour</button></li>
+                    </ul>
+                </div>
+
+                <!-- Traces Count Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-list-ol me-1"></i>@_maxRecords
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><button class="dropdown-item @(_maxRecords == 10 ? "active" : "")" type="button" @onclick="() => UpdateCount(10)">10 traces</button></li>
+                        <li><button class="dropdown-item @(_maxRecords == 25 ? "active" : "")" type="button" @onclick="() => UpdateCount(25)">25 traces</button></li>
+                        <li><button class="dropdown-item @(_maxRecords == 50 ? "active" : "")" type="button" @onclick="() => UpdateCount(50)">50 traces</button></li>
+                        <li><button class="dropdown-item @(_maxRecords == 100 ? "active" : "")" type="button" @onclick="() => UpdateCount(100)">100 traces</button></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (_isLoading)
+        {
+            <!-- Loading Spinner -->
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading traces...</span>
+                    </div>
+                    <div class="mt-2 text-muted">Loading traces...</div>
+                </div>
+            </div>
+        }
+        else if (DataSource != null && GetTraces().Length > 0)
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Operation</th>
+                            <th>Trace ID</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>Start Time</th>
+                            <th>Source</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var trace in GetTraces())
+                        {
+                            <tr class="@GetRowClass(trace)">
+                                <td><strong>@trace.OperationName</strong></td>
+                                <td><code class="small">@ShortenTraceId(trace.TraceId)</code></td>
+                                <td>@trace.Duration.TotalMilliseconds.ToString("F1")ms</td>
+                                <td>
+                                    <span class="badge @GetStatusBadgeClass(trace.Status)">
+                                        @trace.Status
+                                    </span>
+                                </td>
+                                <td>@trace.StartTime.ToString("HH:mm:ss.fff")</td>
+                                <td>
+                                    <span class="badge @GetSourceBadgeClass(trace.Source)">
+                                        @GetSourceDisplayName(trace.Source)
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" @onclick="() => ViewTraceDetails(trace)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                No trace data available. Try running some tests using the buttons below to generate traces.
+                @if (DataSource != null)
+                {
+                    <br><small class="text-muted">Debug: DataSource exists but traces length is @GetTraces().Length</small>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Trace Details Modal -->
+<div class="modal fade" id="traceDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-diagram-3 me-2"></i>Trace Details
+                    @if (_selectedTrace != null)
+                    {
+                        <small class="text-muted ms-2">@_selectedTrace.OperationName</small>
+                    }
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="overflow-x: hidden;">
+                @if (_selectedTrace != null)
+                {
+                    <!-- Single Column Layout -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h6>Basic Information</h6>
+                            <table class="table table-sm">
+                                <tr><td style="width: 150px;"><strong>Operation:</strong></td><td style="word-break: break-word;">@_selectedTrace.OperationName</td></tr>
+                                <tr><td><strong>Trace ID:</strong></td><td style="word-break: break-all;"><code>@_selectedTrace.TraceId</code></td></tr>
+                                <tr><td><strong>Span ID:</strong></td><td style="word-break: break-all;"><code>@_selectedTrace.SpanId</code></td></tr>
+                                <tr><td><strong>Status:</strong></td><td><span class="badge @GetStatusBadgeClass(_selectedTrace.Status)">@_selectedTrace.Status</span></td></tr>
+                                <tr><td><strong>Duration:</strong></td><td>@_selectedTrace.Duration.TotalMilliseconds.ToString("F1")ms</td></tr>
+                                <tr><td><strong>Start Time:</strong></td><td>@_selectedTrace.StartTime.ToString("yyyy-MM-dd HH:mm:ss.fff")</td></tr>
+                                <tr><td><strong>Source:</strong></td><td><span class="badge @GetSourceBadgeClass(_selectedTrace.Source)">@GetSourceDisplayName(_selectedTrace.Source)</span></td></tr>
+                                <tr><td><strong>Mediator Trace:</strong></td><td>@(_selectedTrace.IsMediatorTrace ? "Yes" : "No")</td></tr>
+                            </table>
+                            
+                            <h6 class="mt-4">Tags & Attributes</h6>
+                            @if (_selectedTrace.Tags.Any())
+                            {
+                                <div class="table-responsive" style="max-height: 300px; overflow-y: auto; overflow-x: hidden;">
+                                    <table class="table table-sm">
+                                        @foreach (var tag in _selectedTrace.Tags)
+                                        {
+                                            <tr>
+                                                <td style="width: 200px; word-break: break-word;"><strong>@tag.Key:</strong></td>
+                                                <td style="word-break: break-word;">
+                                                    @if (tag.Key.Equals("middleware.pipeline", StringComparison.OrdinalIgnoreCase))
+                                                    {
+                                                        <code style="white-space: pre-wrap;">@FormatMiddlewarePipeline(tag.Value.ToString())</code>
+                                                    }
+                                                    else
+                                                    {
+                                                        <code style="white-space: pre-wrap;">@tag.Value</code>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted">No tags available</p>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

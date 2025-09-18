@@ -55,10 +55,10 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
                 return null;
             }
 
-            var jsonContent = await response.Content.ReadAsStringAsync();
+            var jsonContent = await response.Content.ReadAsStringAsync(cts.Token);
             logger.LogDebug("[<-] Telemetry health response: {Json}", jsonContent);
             
-            var telemetryHealth = await response.Content.ReadFromJsonAsync<TelemetryHealthDto>();
+            var telemetryHealth = await response.Content.ReadFromJsonAsync<TelemetryHealthDto>(cancellationToken: cts.Token);
             logger.LogDebug("[<-] Telemetry health: IsHealthy={IsHealthy}, IsEnabled={IsEnabled}", 
                 telemetryHealth?.IsHealthy ?? false, telemetryHealth?.IsEnabled ?? false);
             
@@ -118,7 +118,7 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
             
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
                 logger.LogWarning("[!] Live metrics endpoint returned {StatusCode}: {ErrorContent}", 
                     response.StatusCode, errorContent);
                 return null;
@@ -141,21 +141,35 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         }
     }
 
-    public async Task<RecentTracesDto?> GetRecentTracesAsync()
+    public async Task<RecentTracesDto?> GetRecentTracesAsync(int maxRecords = 10, bool filterBlazingMediatorOnly = false, int timeWindowMinutes = 30)
     {
         try
         {
-            logger.LogDebug("[->] Calling GET /telemetry/traces");
+            var queryParams = new List<string>();
+            
+            // Always include maxRecords parameter 
+            queryParams.Add($"maxRecords={Math.Max(maxRecords, 10)}");
+            
+            if (filterBlazingMediatorOnly)
+                queryParams.Add("blazingMediatorOnly=true");
+                
+            if (timeWindowMinutes != 30)
+                queryParams.Add($"timeWindowMinutes={timeWindowMinutes}");
+            
+            var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+            var endpoint = $"telemetry/traces{queryString}";
+            
+            logger.LogDebug("[->] Calling GET /{Endpoint}", endpoint);
             logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
             
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            var response = await httpClient.GetAsync("telemetry/traces", cts.Token);
+            var response = await httpClient.GetAsync(endpoint, cts.Token);
             
             logger.LogDebug("[<-] Recent traces response status: {StatusCode}", response.StatusCode);
             
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
                 logger.LogWarning("[!] Recent traces endpoint returned {StatusCode}: {ErrorContent}", 
                     response.StatusCode, errorContent);
                 return null;
@@ -163,7 +177,8 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
             
             // Return strongly-typed RecentTracesDto
             var result = await response.Content.ReadFromJsonAsync<RecentTracesDto>(cancellationToken: cts.Token);
-            logger.LogDebug("[<-] Retrieved recent traces successfully");
+            logger.LogDebug("[<-] Retrieved recent traces successfully (maxRecords: {MaxRecords}, filter: {Filter})", 
+                maxRecords, filterBlazingMediatorOnly);
             return result;
         }
         catch (OperationCanceledException)
@@ -192,7 +207,7 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
             
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
                 logger.LogWarning("[!] Recent activities endpoint returned {StatusCode}: {ErrorContent}", 
                     response.StatusCode, errorContent);
                 return null;
@@ -299,7 +314,7 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
                 var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
                 logger.LogWarning("[!] Basic connectivity test returned {StatusCode}: {ErrorContent}", 
                     response.StatusCode, errorContent);
-                return new { Success = false, StatusCode = response.StatusCode, Error = errorContent };
+                return new { Success = false, response.StatusCode, Error = errorContent };
             }
             
             var result = await response.Content.ReadFromJsonAsync<object>(cancellationToken: cts.Token);

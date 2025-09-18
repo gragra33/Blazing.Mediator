@@ -1,0 +1,171 @@
+@using OpenTelemetryExample.Client.Services
+@inject ITelemetryService TelemetryService
+@inject IJSRuntime JSRuntime
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-play-circle me-2"></i>Telemetry Testing
+        </h5>
+    </div>
+    <div class="card-body">
+        <p class="card-text">Test different telemetry scenarios to generate metrics and traces:</p>
+        <div class="row">
+            <div class="col-md-4 mb-2">
+                <button class="btn btn-outline-primary w-100" @onclick="TestNotification" disabled="@_testing">
+                    @if (_testing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <i class="bi bi-bell me-2"></i>Test Notification
+                </button>
+            </div>
+            <div class="col-md-4 mb-2">
+                <button class="btn btn-outline-warning w-100" @onclick="TestMiddlewareError" disabled="@_testing">
+                    @if (_testing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <i class="bi bi-exclamation-triangle me-2"></i>Test Error
+                </button>
+            </div>
+            <div class="col-md-4 mb-2">
+                <button class="btn btn-outline-danger w-100" @onclick="TestValidationError" disabled="@_testing">
+                    @if (_testing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <i class="bi bi-shield-exclamation me-2"></i>Test Validation
+                </button>
+            </div>
+        </div>
+        <!-- Test All API Endpoints -->
+        <div class="row mt-3">
+            <div class="col">
+                <button class="btn btn-outline-info w-100" @onclick="TestApiEndpoints" disabled="@_testing">
+                    @if (_testing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <i class="bi bi-check-circle me-2"></i>Test All API Endpoints
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnTestCompleted { get; set; }
+
+    private bool _testing;
+
+    private async Task TestNotification()
+    {
+        _testing = true;
+        try
+        {
+            var success = await TelemetryService.TestNotificationAsync();
+            await JSRuntime.InvokeVoidAsync("alert", 
+                success ? "Notification test completed successfully!" : "Notification test failed.");
+            
+            // Notify parent to refresh telemetry data
+            await OnTestCompleted.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error testing notification: {ex.Message}");
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private async Task TestMiddlewareError()
+    {
+        _testing = true;
+        try
+        {
+            await TelemetryService.TestMiddlewareErrorAsync();
+            await JSRuntime.InvokeVoidAsync("alert", 
+                "Error test completed - check telemetry for error traces!");
+            
+            // Notify parent to refresh telemetry data
+            await OnTestCompleted.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error test completed: {ex.Message}");
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private async Task TestValidationError()
+    {
+        _testing = true;
+        try
+        {
+            await TelemetryService.TestMiddlewareValidationAsync();
+            await JSRuntime.InvokeVoidAsync("alert", 
+                "Validation test completed - check telemetry for validation traces!");
+            
+            // Notify parent to refresh telemetry data
+            await OnTestCompleted.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Validation test completed: {ex.Message}");
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private async Task TestApiEndpoints()
+    {
+        _testing = true;
+        var results = new List<string>();
+        
+        try
+        {
+            // Test all endpoints
+            var endpoints = new[]
+            {
+                ("Health", "/health"),
+                ("Telemetry Health", "/telemetry/health"),
+                ("Telemetry Metrics", "/telemetry/metrics"),
+                ("Live Metrics", "/telemetry/live-metrics"),
+                ("Recent Traces", "/telemetry/traces"),
+                ("Recent Activities", "/telemetry/activities")
+            };
+
+            foreach (var (name, endpoint) in endpoints)
+            {
+                try
+                {
+                    var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:64688") };
+                    var response = await httpClient.GetAsync(endpoint);
+                    results.Add($"{name}: {response.StatusCode}");
+                }
+                catch (Exception ex)
+                {
+                    results.Add($"{name}: ERROR - {ex.Message}");
+                }
+            }
+
+            await JSRuntime.InvokeVoidAsync("alert", $"API Endpoint Test Results:\n\n{string.Join("\n", results)}");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error testing endpoints: {ex.Message}");
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+}

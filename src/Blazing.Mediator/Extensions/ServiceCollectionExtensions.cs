@@ -40,7 +40,7 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediator(this IServiceCollection services, params Type[]? assemblyMarkerTypes)
     {
-        Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? Array.Empty<Assembly>();
+        Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? [];
         return AddMediatorCore(services, null, false, false, false, assemblies, null);
     }
 
@@ -65,7 +65,7 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediator(this IServiceCollection services, bool discoverMiddleware, params Type[]? assemblyMarkerTypes)
     {
-        Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? Array.Empty<Assembly>();
+        Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? [];
         return AddMediatorCore(services, null, false, discoverMiddleware, discoverMiddleware, assemblies, null);
     }
 
@@ -90,7 +90,7 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediatorWithNotificationMiddleware(this IServiceCollection services, bool discoverNotificationMiddleware, params Type[]? assemblyMarkerTypes)
     {
-        Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? Array.Empty<Assembly>();
+        Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? [];
         return AddMediatorCore(services, null, false, false, discoverNotificationMiddleware, assemblies, null);
     }
 
@@ -128,7 +128,7 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? configureMiddleware, params Type[]? assemblyMarkerTypes)
     {
-        Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? Array.Empty<Assembly>();
+        Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? [];
         return AddMediatorCore(services, configureMiddleware, false, false, false, assemblies, null);
     }
 
@@ -142,7 +142,7 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>  
     public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? configureMiddleware, bool enableStatisticsTracking, params Type[]? assemblyMarkerTypes)
     {
-        Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? Array.Empty<Assembly>();
+        Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? [];
         return AddMediatorCore(services, configureMiddleware, enableStatisticsTracking, false, false, assemblies, null);
     }
 
@@ -215,11 +215,11 @@ public static class ServiceCollectionExtensions
         }
         else if (callingAssembly != null)
         {
-            targetAssemblies = new[] { callingAssembly };
+            targetAssemblies = [callingAssembly];
         }
         else
         {
-            targetAssemblies = Array.Empty<Assembly>();
+            targetAssemblies = [];
         }
 
         // Configure middleware if provided
@@ -550,7 +550,7 @@ public static class ServiceCollectionExtensions
             // This prevents multiple handlers for the same request type
             handlerType.GetInterfaces()
                 .Where(IsHandlerType)
-                .Where(@interface => !services.Any(s => s.ServiceType == @interface)) // Changed: check if ANY handler for this interface exists
+                .Where(@interface => services.All(s => s.ServiceType != @interface))
                 .ToList()
                 .ForEach(@interface => services.AddScoped(@interface, serviceProvider => serviceProvider.GetRequiredService(handlerType)));
         }

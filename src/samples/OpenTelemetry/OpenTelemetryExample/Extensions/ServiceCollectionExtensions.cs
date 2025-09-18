@@ -97,6 +97,9 @@ public static class ServiceCollectionExtensions
         services.AddMediatorTelemetry();
         services.AddMediator(config =>
         {
+            // Add tracing middleware first for full coverage
+            config.AddMiddleware(typeof(TracingMiddleware<,>));
+            config.AddMiddleware(typeof(TracingMiddleware<>));
             // Add middleware pipeline in order of execution
             config.AddMiddleware(typeof(ErrorHandlingMiddleware<,>));
             config.AddMiddleware(typeof(ErrorHandlingMiddleware<>));
@@ -117,6 +120,7 @@ public static class ServiceCollectionExtensions
     private static IServiceCollection AddValidationServices(this IServiceCollection services)
     {
         services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+
         return services;
     }
 
@@ -155,7 +159,10 @@ public static class ServiceCollectionExtensions
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddMeter("Blazing.Mediator")
-                    .AddMeter("OpenTelemetryExample");
+                    .AddMeter("OpenTelemetryExample")
+                    .AddMeter("OpenTelemetryExample.Controller")
+                    .AddMeter("OpenTelemetryExample.Handler")
+                    .AddMeter("OpenTelemetryExample.Mediator");
 
                 // Add our custom metrics reader to capture and store metrics
                 metrics.AddReader(services.BuildServiceProvider().GetRequiredService<OpenTelemetryMetricsReader>());
@@ -202,7 +209,10 @@ public static class ServiceCollectionExtensions
                         };
                     })
                     .AddSource("Blazing.Mediator")
-                    .AddSource("OpenTelemetryExample");
+                    .AddSource("OpenTelemetryExample")
+                    .AddSource("OpenTelemetryExample.Controller")
+                    .AddSource("OpenTelemetryExample.Handler")
+                    .AddSource("OpenTelemetryExample.Mediator");
 
                 // Add our custom activity processor to capture and store traces
                 tracing.AddProcessor(services.BuildServiceProvider().GetRequiredService<OpenTelemetryActivityProcessor>());

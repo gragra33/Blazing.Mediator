@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Blazing.Mediator;
 using OpenTelemetryExample.Application.Commands;
@@ -14,6 +15,10 @@ namespace OpenTelemetryExample.Controllers;
 [Route("api/[controller]")]
 public class UsersController(IMediator mediator, ILogger<UsersController> logger) : ControllerBase
 {
+    private const string AppSourceName = "OpenTelemetryExample";
+    private const string ActivitySourceName = $"{AppSourceName}.Handler";
+    private const string ControllerName = $"{AppSourceName}.{nameof(UsersController)}";
+
     /// <summary>
     /// Get a user by ID.
     /// </summary>
@@ -22,6 +27,10 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     [HttpGet("{id}")]
     public async Task<ActionResult<UserDto>> GetUser(int id)
     {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activity = activitySource.StartActivity($"{ControllerName}.GetUser", ActivityKind.Server);
+        activity?.SetTag("controller.method", "GetUser");
+        activity?.SetTag("user.id", id);
         try
         {
             var query = new GetUserQuery { UserId = id };
@@ -50,6 +59,11 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
         [FromQuery] bool includeInactive = false,
         [FromQuery] string? searchTerm = null)
     {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activity = activitySource.StartActivity($"{ControllerName}.GetUsers", ActivityKind.Server);
+        activity?.SetTag("controller.method", "GetUsers");
+        activity?.SetTag("includeInactive", includeInactive);
+        activity?.SetTag("searchTerm", searchTerm);
         try
         {
             var query = new GetUsersQuery 
@@ -75,6 +89,9 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     [HttpPost]
     public async Task<ActionResult<int>> CreateUser([FromBody] CreateUserCommand command)
     {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activity = activitySource.StartActivity($"{ControllerName}.CreateUser", ActivityKind.Server);
+        activity?.SetTag("controller.method", "CreateUser");
         try
         {
             var userId = await mediator.Send(command);
@@ -101,11 +118,14 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     [HttpPut("{id}")]
     public async Task<ActionResult> UpdateUser(int id, [FromBody] UpdateUserCommand command)
     {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activity = activitySource.StartActivity($"{ControllerName}.UpdateUser", ActivityKind.Server);
+        activity?.SetTag("controller.method", "UpdateUser");
+        activity?.SetTag("user.id", id);
         if (id != command.UserId)
         {
             return BadRequest("ID mismatch between route and body");
         }
-
         try
         {
             await mediator.Send(command);
@@ -135,6 +155,10 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteUser(int id)
     {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activity = activitySource.StartActivity($"{ControllerName}.DeleteUser", ActivityKind.Server);
+        activity?.SetTag("controller.method", "DeleteUser");
+        activity?.SetTag("user.id", id);
         try
         {
             var command = new DeleteUserCommand { UserId = id };
@@ -159,6 +183,9 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     [HttpPost("simulate-error")]
     public async Task<ActionResult> SimulateError()
     {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activity = activitySource.StartActivity($"{ControllerName}.SimulateError", ActivityKind.Server);
+        activity?.SetTag("controller.method", "SimulateError");
         try
         {
             // This will trigger an error in the handler for telemetry testing
@@ -180,6 +207,9 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     [HttpPost("simulate-validation-error")]
     public async Task<ActionResult> SimulateValidationError()
     {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activity = activitySource.StartActivity($"{ControllerName}.SimulateValidationError", ActivityKind.Server);
+        activity?.SetTag("controller.method", "SimulateValidationError");
         try
         {
             // This will trigger validation errors for telemetry testing

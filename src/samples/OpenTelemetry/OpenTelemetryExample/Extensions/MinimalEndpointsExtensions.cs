@@ -56,8 +56,8 @@ public static class MinimalEndpointsExtensions
             .WithDescription("Returns current telemetry metrics data for display in the dashboard.")
             .Produces<LiveMetricsDto>();
 
-        telemetryGroup.MapGet("/traces", async (IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, int? timeWindowMinutes) =>
-                await GetRecentTraces(mediator, maxRecords, blazingMediatorOnly, timeWindowMinutes))
+        telemetryGroup.MapGet("/traces", async (IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, bool? exampleAppOnly, int? timeWindowMinutes) =>
+                await GetRecentTraces(mediator, maxRecords, blazingMediatorOnly, exampleAppOnly, timeWindowMinutes))
             .WithName("GetRecentTraces")
             .WithSummary("Get recent trace data")
             .WithDescription("Returns recent OpenTelemetry traces for display in the dashboard. Supports filtering and pagination.")
@@ -220,7 +220,7 @@ public static class MinimalEndpointsExtensions
     /// <summary>
     /// Handler for recent traces endpoint - now returns real data from OpenTelemetry
     /// </summary>
-    private static async Task<IResult> GetRecentTraces(IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, int? timeWindowMinutes)
+    private static async Task<IResult> GetRecentTraces(IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, bool? exampleAppOnly, int? timeWindowMinutes)
     {
         try
         {
@@ -228,7 +228,8 @@ public static class MinimalEndpointsExtensions
             {
                 MaxRecords = maxRecords ?? 10,
                 TimeWindow = TimeSpan.FromMinutes(timeWindowMinutes ?? 30),
-                BlazingMediatorOnly = blazingMediatorOnly ?? false
+                MediatorOnly = blazingMediatorOnly ?? false,
+                ExampleAppOnly = exampleAppOnly ?? false
             };
 
             var result = await mediator.Send(query);

@@ -12,6 +12,7 @@ public partial class RecentTracesCard : ComponentBase
 
     private int _maxRecords = 10;
     private bool _mediatorOnly;
+    private bool _appOnly;
     private int _timeWindowMinutes = 30;
     private TraceDto? _selectedTrace;
     private bool _isLoading;
@@ -48,7 +49,12 @@ public partial class RecentTracesCard : ComponentBase
         }
     }
 
-    private string GetRowClass(TraceDto trace) => trace.IsMediatorTrace ? "table-info" : string.Empty;
+    private string GetRowClass(TraceDto trace) =>
+        trace.IsMediatorTrace
+            ? "table-info"
+            : trace.IsAppTrace
+                ? "table-light"
+                : string.Empty;
 
     private string GetSourceBadgeClass(string source)
     {
@@ -119,10 +125,9 @@ public partial class RecentTracesCard : ComponentBase
         await RefreshTraces();
     }
 
-    private async Task OnMediatorFilterChanged()
-    {
-        await RefreshTraces();
-    }
+    private async Task OnAppFilterChanged() =>  await RefreshTraces();
+    
+    private async Task OnMediatorFilterChanged() => await RefreshTraces();
 
     private async Task RefreshTraces()
     {
@@ -130,7 +135,7 @@ public partial class RecentTracesCard : ComponentBase
         {
             _isLoading = true;
             await InvokeAsync(StateHasChanged);
-            DataSource = await TelemetryService.GetRecentTracesAsync(_maxRecords, _mediatorOnly, _timeWindowMinutes);
+            DataSource = await TelemetryService.GetRecentTracesAsync(_maxRecords, _mediatorOnly, _appOnly, _timeWindowMinutes);
             if (OnFiltersChanged.HasDelegate)
             {
                 await InvokeAsync(async () => await OnFiltersChanged.InvokeAsync());

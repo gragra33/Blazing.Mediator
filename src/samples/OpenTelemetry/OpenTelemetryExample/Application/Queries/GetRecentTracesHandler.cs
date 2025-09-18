@@ -1,6 +1,7 @@
 using Blazing.Mediator;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetryExample.Application.Queries;
+using OpenTelemetryExample.Domain.Entities;
 using OpenTelemetryExample.Infrastructure.Data;
 using OpenTelemetryExample.Shared.Models;
 
@@ -27,68 +28,51 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
             var baseQuery = context.TelemetryTraces
                 .Where(t => t.StartTime >= cutoffTime);
 
-            // Apply server-side Blazing.Mediator filter if requested
-            IQueryable<Domain.Entities.TelemetryTrace> filteredQuery = baseQuery;
-            if (request.FilterBlazingMediatorOnly)
-            {
-                filteredQuery = baseQuery.Where(t => 
-                    t.OperationName.Contains("Mediator") ||
-                    t.RequestType.Contains("Command") ||
-                    t.RequestType.Contains("Query") ||
-                    t.HandlerName != null ||
-                    t.OperationName.EndsWith("Query") ||
-                    t.OperationName.EndsWith("Command") ||
-                    t.OperationName.Contains("Handler"));
-            }
+            // Apply combined filter logic
+            var filteredTraces = ApplyTraceFilters(baseQuery, request.MediatorOnly, request.ExampleAppOnly);
 
             // Get filtered count (total matching the filter criteria)
-            var filteredCount = await filteredQuery.CountAsync(cancellationToken);
+            var filteredCount = filteredTraces.Count();
 
             // Apply pagination and ordering - most recent first
             var effectiveMaxRecords = Math.Max(request.MaxRecords, 1);
-            var recentTraces = await filteredQuery
+            var recentTraces = filteredTraces
                 .OrderByDescending(t => t.StartTime) // Most recent first
                 .Take(effectiveMaxRecords)
-                .ToListAsync(cancellationToken);
+                .ToList();
 
             if (!recentTraces.Any())
             {
-                logger.LogInformation("No telemetry traces found in the last {TimeWindow} minutes with filter: {Filter}", 
-                    request.TimeWindow.TotalMinutes, request.FilterBlazingMediatorOnly ? "Blazing.Mediator only" : "All traces");
-                
+                logger.LogInformation("No telemetry traces found in the last {TimeWindow} minutes with filter: MediatorOnly={MediatorOnly}, ExampleAppOnly={ExampleAppOnly}", 
+                    request.TimeWindow.TotalMinutes, request.MediatorOnly, request.ExampleAppOnly);
                 return new RecentTracesDto
                 {
                     Timestamp = DateTime.UtcNow,
                     Traces = [],
-                    Message = request.FilterBlazingMediatorOnly 
-                        ? $"No Blazing.Mediator trace data available in the last {request.TimeWindow.TotalMinutes:F0} minutes. Total traces available: {totalAvailableInTimeframe}"
-                        : $"No trace data available in the last {request.TimeWindow.TotalMinutes:F0} minutes."
+                    Message = $"No trace data available in the last {request.TimeWindow.TotalMinutes:F0} minutes. Total traces available: {totalAvailableInTimeframe}",
                 };
             }
 
-            var traceDtos = recentTraces.Select(trace => new TraceDto
+            var traceDtos = recentTraces.Select(trace =>
             {
-                TraceId = trace.TraceId,
-                SpanId = trace.SpanId,
-                OperationName = trace.OperationName,
-                StartTime = trace.StartTime,
-                Duration = trace.Duration,
-                Status = NormalizeStatus(trace.Status),
-                Tags = trace.Tags,
-                Source = DetermineTraceSource(trace.OperationName, trace.Tags),
-                IsMediatorTrace = IsMediatorTrace(trace.OperationName, trace.Tags)
+                var isAppTrace = IsAppTrace(trace.OperationName, trace.Tags);
+                return new TraceDto
+                {
+                    TraceId = trace.TraceId,
+                    SpanId = trace.SpanId,
+                    OperationName = trace.OperationName,
+                    StartTime = trace.StartTime,
+                    Duration = trace.Duration,
+                    Status = NormalizeStatus(trace.Status),
+                    Tags = trace.Tags,
+                    Source = DetermineTraceSource(trace.OperationName, trace.Tags),
+                    IsMediatorTrace = !isAppTrace && IsMediatorTrace(trace.OperationName, trace.Tags),
+                    IsAppTrace = isAppTrace
+                };
             }).ToList();
 
             // Create detailed message with accurate counts
-            string filterMessage;
-            if (request.FilterBlazingMediatorOnly)
-            {
-                filterMessage = $"Blazing.Mediator traces (showing {traceDtos.Count} of {filteredCount} matching filter, total: {totalAvailableInTimeframe} available)";
-            }
-            else
-            {
-                filterMessage = $"all traces (showing {traceDtos.Count} of {totalAvailableInTimeframe})";
-            }
+            string filterMessage = $"MediatorOnly={request.MediatorOnly}, ExampleAppOnly={request.ExampleAppOnly} (showing {traceDtos.Count} of {filteredCount} matching filter, total: {totalAvailableInTimeframe} available)";
 
             var result = new RecentTracesDto
             {
@@ -98,8 +82,8 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
                 TotalTracesInTimeframe = totalAvailableInTimeframe
             };
 
-            logger.LogInformation("Retrieved {TraceCount} recent traces (filter: {Filter}, filtered count: {FilteredCount}, total available: {TotalAvailable})", 
-                traceDtos.Count, request.FilterBlazingMediatorOnly ? "Blazing.Mediator only" : "All", filteredCount, totalAvailableInTimeframe);
+            logger.LogInformation("Retrieved {TraceCount} recent traces (MediatorOnly={MediatorOnly}, ExampleAppOnly={ExampleAppOnly}, filtered count: {FilteredCount}, total available: {TotalAvailable})", 
+                traceDtos.Count, request.MediatorOnly, request.ExampleAppOnly, filteredCount, totalAvailableInTimeframe);
             
             return result;
         }
@@ -115,6 +99,34 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
                 TotalTracesInTimeframe = 0
             };
         }
+    }
+
+    /// <summary>
+    /// Applies the correct filter combination for MediatorOnly and ExampleAppOnly.
+    /// </summary>
+    private static IQueryable<TelemetryTrace> ApplyTraceFilters(
+        IQueryable<TelemetryTrace> baseQuery,
+        bool mediatorOnly,
+        bool exampleAppOnly)
+    {
+        // Apply filters based on the combination
+        if (mediatorOnly && exampleAppOnly)
+        {
+            return baseQuery.Where(trace => trace.OperationName.StartsWith("Mediator")
+                                         || trace.OperationName.StartsWith("OpenTelemetryExample"));
+        }
+        
+        if (mediatorOnly)
+        {
+            return baseQuery.Where(trace => trace.OperationName.StartsWith("Mediator"));
+        }
+        
+        if (exampleAppOnly)
+        {
+            return baseQuery.Where(trace => trace.OperationName.StartsWith("OpenTelemetryExample"));
+        }
+        
+        return baseQuery;
     }
 
     /// <summary>
@@ -143,6 +155,10 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
         }
 
         // Check operation name patterns first
+        if (operationName.Contains("OpenTelemetryExample", StringComparison.OrdinalIgnoreCase) ||
+            operationName.StartsWith("OpenTelemetryExample.", StringComparison.OrdinalIgnoreCase))
+            return "OpenTelemetryExample";
+        
         if (operationName.Contains("Mediator", StringComparison.OrdinalIgnoreCase) ||
             operationName.StartsWith("Mediator.", StringComparison.OrdinalIgnoreCase))
             return "Blazing.Mediator";
@@ -211,6 +227,18 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
         return "System";
     }
 
+    /// <summary>
+    /// Determines if a trace is from OpenTelemetryExample.
+    /// </summary>
+    private static bool IsAppTrace(string operationName, Dictionary<string, object>? tags)
+    {
+        // Check operation name patterns
+        if (operationName.Contains("Example", StringComparison.OrdinalIgnoreCase) ||
+            operationName.StartsWith("OpenTelemetryExample.", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
     /// <summary>
     /// Determines if a trace is from Blazing.Mediator.
     /// </summary>

@@ -141,7 +141,7 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         }
     }
 
-    public async Task<RecentTracesDto?> GetRecentTracesAsync(int maxRecords = 10, bool filterBlazingMediatorOnly = false, int timeWindowMinutes = 30)
+    public async Task<RecentTracesDto?> GetRecentTracesAsync(int maxRecords = 10, bool filterMediatorOnly = false, bool filterExampleAppOnly = false, int timeWindowMinutes = 30)
     {
         try
         {
@@ -150,8 +150,11 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
             // Always include maxRecords parameter 
             queryParams.Add($"maxRecords={Math.Max(maxRecords, 10)}");
             
-            if (filterBlazingMediatorOnly)
+            if (filterMediatorOnly)
                 queryParams.Add("blazingMediatorOnly=true");
+                
+            if (filterExampleAppOnly)
+                queryParams.Add("exampleAppOnly=true");
                 
             if (timeWindowMinutes != 30)
                 queryParams.Add($"timeWindowMinutes={timeWindowMinutes}");
@@ -178,7 +181,7 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
             // Return strongly-typed RecentTracesDto
             var result = await response.Content.ReadFromJsonAsync<RecentTracesDto>(cancellationToken: cts.Token);
             logger.LogDebug("[<-] Retrieved recent traces successfully (maxRecords: {MaxRecords}, filter: {Filter})", 
-                maxRecords, filterBlazingMediatorOnly);
+                maxRecords, filterMediatorOnly);
             return result;
         }
         catch (OperationCanceledException)

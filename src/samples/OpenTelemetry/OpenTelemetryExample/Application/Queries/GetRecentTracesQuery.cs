@@ -10,10 +10,6 @@ public sealed class GetRecentTracesQuery : IRequest<RecentTracesDto>
 {
     public int MaxRecords { get; set; } = 10;
     public TimeSpan TimeWindow { get; set; } = TimeSpan.FromMinutes(30);
-    public bool FilterBlazingMediatorOnly { get; set; } = false;
-    public bool BlazingMediatorOnly // alias for compatibility with new param
-    {
-        get => FilterBlazingMediatorOnly;
-        set => FilterBlazingMediatorOnly = value;
-    }
+    public bool MediatorOnly { get; set; } = false;
+    public bool ExampleAppOnly { get; set; }
 }

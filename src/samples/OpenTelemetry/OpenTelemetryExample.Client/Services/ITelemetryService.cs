@@ -8,7 +8,7 @@ public interface ITelemetryService
     Task<TelemetryHealthDto?> GetTelemetryHealthAsync();
     Task<object?> GetTelemetryMetricsAsync();
     Task<LiveMetricsDto?> GetLiveMetricsAsync();
-    Task<RecentTracesDto?> GetRecentTracesAsync(int maxRecords = 10, bool filterBlazingMediatorOnly = false, int timeWindowMinutes = 30);
+    Task<RecentTracesDto?> GetRecentTracesAsync(int maxRecords = 10, bool filterMediatorOnly = false, bool filterExampleAppOnly = false, int timeWindowMinutes = 30);
     Task<RecentActivitiesDto?> GetRecentActivitiesAsync();
     Task<bool> TestNotificationAsync();
     Task<bool> TestMiddlewareErrorAsync();

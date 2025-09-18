@@ -21,13 +21,21 @@
             
             <!-- Filter Controls -->
             <div class="d-flex align-items-center gap-3">
-	            <!-- Mediator Toggle Switch -->
+                <!-- OpenTelemetryExample Toggle Switch -->
 	            <div class="form-check form-switch">
-		            <input class="form-check-input" type="checkbox" id="mediatorFilter" @bind="_mediatorOnly" @bind:after="OnMediatorFilterChanged">
-		            <label class="form-check-label me-2" for="mediatorFilter">
-			            <small>Mediator Only</small>
+		            <input class="form-check-input" type="checkbox" id="appFilter" @bind="_appOnly" @bind:after="OnAppFilterChanged">
+                    <label class="form-check-label me-2" for="appFilter">
+			            <small>Application Only</small>
 		            </label>
 	            </div>
+
+                <!-- Mediator Toggle Switch -->
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="mediatorFilter" @bind="_mediatorOnly" @bind:after="OnMediatorFilterChanged">
+                    <label class="form-check-label me-2" for="mediatorFilter">
+                        <small>Mediator Only</small>
+                    </label>
+                </div>
 
                 <!-- Time Dropdown -->
                 <div class="dropdown">

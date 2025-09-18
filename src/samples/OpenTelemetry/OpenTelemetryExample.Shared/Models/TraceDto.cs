@@ -33,4 +33,7 @@ public sealed class TraceDto
 
     [JsonPropertyName("isMediatorTrace")]
     public bool IsMediatorTrace { get; set; }
+
+    [JsonPropertyName("isAppTrace")]
+    public bool IsAppTrace { get; set; }
 }

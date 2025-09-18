@@ -2,9 +2,6 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using OpenTelemetryExample.Client;
 using OpenTelemetryExample.Client.Services;
-// Add this for AddHttpClient
-
-// Add this for IHttpClientFactory
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");

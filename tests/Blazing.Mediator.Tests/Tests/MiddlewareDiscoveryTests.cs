@@ -61,15 +61,11 @@ public class MiddlewareDiscoveryTests
         var services = new ServiceCollection();
 
         // Act - Auto request middleware, manual notification middleware
-        services.AddMediator(
-            configureMiddleware: config =>
-            {
-                config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
-            },
-            discoverMiddleware: true,
-            discoverNotificationMiddleware: false,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.AddNotificationMiddleware<LoggingNotificationMiddleware>()
+                  .WithMiddlewareDiscovery();
+        }, _testAssembly);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -98,15 +94,11 @@ public class MiddlewareDiscoveryTests
         var services = new ServiceCollection();
 
         // Act - Manual request middleware, auto notification middleware
-        services.AddMediator(
-            configureMiddleware: config =>
-            {
-                config.AddMiddleware<FirstQueryMiddleware>();
-            },
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: true,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.AddMiddleware<FirstQueryMiddleware>()
+                  .WithNotificationMiddlewareDiscovery();
+        }, _testAssembly);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -138,9 +130,11 @@ public class MiddlewareDiscoveryTests
 
         // Act - Auto-discover both types
         services.AddMediator(
-            configureMiddleware: null,
-            discoverMiddleware: true,
-            discoverNotificationMiddleware: true,
+            config => 
+            {
+                config.WithMiddlewareDiscovery();
+                config.WithNotificationMiddlewareDiscovery();
+            },
             _testAssembly
         );
 
@@ -173,9 +167,7 @@ public class MiddlewareDiscoveryTests
 
         // Act - Manual registration only
         services.AddMediator(
-            configureMiddleware: config => config.AddMiddleware<FirstQueryMiddleware>(),
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: false,
+            config => config.AddMiddleware<FirstQueryMiddleware>(),
             _testAssembly
         );
 
@@ -206,9 +198,11 @@ public class MiddlewareDiscoveryTests
 
         // Act - Use auto-discovery with the test assembly explicitly
         services.AddMediator(
-            configureMiddleware: null,
-            discoverMiddleware: true,
-            discoverNotificationMiddleware: true,
+            config => 
+            {
+                config.WithMiddlewareDiscovery();
+                config.WithNotificationMiddlewareDiscovery();
+            },
             _testAssembly
         );
 
@@ -332,9 +326,7 @@ public class MiddlewareDiscoveryTests
 
         // Act - null configureMiddleware with only discoverNotificationMiddleware=true
         services.AddMediator(
-            configureMiddleware: null,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: true,
+            config => config.WithNotificationMiddlewareDiscovery(),
             _testAssembly);
 
         // Assert

@@ -42,10 +42,10 @@ public static class WebApplicationExtensions
     private static void ConfigureMiddleware(this WebApplication app)
     {
         app.UseHttpsRedirection();
-        
+
         // Add session middleware (required for statistics)
         app.UseSession();
-        
+
         // Add session tracking middleware to initialize session IDs
         app.UseMiddleware<SessionTrackingMiddleware>();
     }

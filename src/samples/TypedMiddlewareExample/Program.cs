@@ -3,10 +3,11 @@
     {
         // Register the request handlers and middleware with statistics tracking
         // Use auto-discovery to demonstrate type constraint support
-        services.AddMediator(
-            enableStatisticsTracking: true,
-            discoverMiddleware: true, // Enable auto-discovery with type constraint support
-            assemblies: Assembly.GetExecutingAssembly());
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking()
+                  .WithMiddlewareDiscovery(); // Enable auto-discovery with type constraint support
+        }, Assembly.GetExecutingAssembly());
 
         // Register FluentValidation services
         services.AddValidatorsFromAssemblyContaining<Program>();

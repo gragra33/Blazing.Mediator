@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
+using System.Diagnostics;
 
 namespace OpenTelemetryExample.Application.Middleware;
 
@@ -19,15 +19,15 @@ public sealed class PerformanceMiddleware<TRequest>(ILogger<PerformanceMiddlewar
     {
         var requestType = typeof(TRequest).Name;
         var stopwatch = Stopwatch.StartNew();
-        
+
         try
         {
             await next();
             stopwatch.Stop();
-            
+
             var duration = stopwatch.ElapsedMilliseconds;
             _logger.LogInformation("Request {RequestType} completed in {Duration}ms", requestType, duration);
-            
+
             // Add performance details to current activity
             Activity.Current?.SetTag("performance.duration_ms", duration);
             Activity.Current?.SetTag("performance.measured", true);
@@ -37,11 +37,11 @@ public sealed class PerformanceMiddleware<TRequest>(ILogger<PerformanceMiddlewar
             stopwatch.Stop();
             var duration = stopwatch.ElapsedMilliseconds;
             _logger.LogWarning("Request {RequestType} failed after {Duration}ms", requestType, duration);
-            
+
             Activity.Current?.SetTag("performance.duration_ms", duration);
             Activity.Current?.SetTag("performance.measured", true);
             Activity.Current?.SetTag("performance.failed", true);
-            
+
             throw;
         }
     }

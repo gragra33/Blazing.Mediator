@@ -1,7 +1,7 @@
-using System.Diagnostics;
 using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
 using FluentValidation;
+using System.Diagnostics;
 
 namespace OpenTelemetryExample.Application.Middleware;
 
@@ -24,20 +24,20 @@ public sealed class ValidationMiddleware<TRequest>(
         if (validator != null)
         {
             _logger.LogDebug("Validating request {RequestType}", typeof(TRequest).Name);
-            
+
             var validationResult = await validator.ValidateAsync(request, cancellationToken);
             if (!validationResult.IsValid)
             {
                 var errors = string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage));
                 _logger.LogWarning("Validation failed for {RequestType}: {Errors}", typeof(TRequest).Name, errors);
-                
+
                 // Add validation details to current activity
                 Activity.Current?.SetTag("validation.failed", true);
                 Activity.Current?.SetTag("validation.errors", errors);
-                
+
                 throw new ValidationException(validationResult.Errors);
             }
-            
+
             Activity.Current?.SetTag("validation.passed", true);
         }
 

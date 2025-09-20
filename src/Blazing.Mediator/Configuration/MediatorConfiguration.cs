@@ -19,8 +19,26 @@ public sealed class MediatorConfiguration
 
     /// <summary>
     /// Gets or sets whether statistics tracking is enabled for Send commands.
+    /// This property is deprecated. Use StatisticsOptions for granular control.
     /// </summary>
+    [Obsolete("Use StatisticsOptions for granular control over statistics tracking. This property will be removed in a future version.")]
     public bool EnableStatisticsTracking { get; set; }
+
+    /// <summary>
+    /// Gets the statistics tracking options.
+    /// Provides granular control over what statistics are collected and how they are managed.
+    /// </summary>
+    public StatisticsOptions? StatisticsOptions { get; private set; }
+
+    /// <summary>
+    /// Gets or sets whether to automatically discover and register request middleware from assemblies.
+    /// </summary>
+    public bool DiscoverMiddleware { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to automatically discover and register notification middleware from assemblies.
+    /// </summary>
+    public bool DiscoverNotificationMiddleware { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the MediatorConfiguration class.
@@ -38,6 +56,66 @@ public sealed class MediatorConfiguration
     public MediatorConfiguration WithStatisticsTracking()
     {
         EnableStatisticsTracking = true;
+        StatisticsOptions = new StatisticsOptions();
+        return this;
+    }
+
+    /// <summary>
+    /// Enables statistics tracking with granular configuration options.
+    /// </summary>
+    /// <param name="configure">Action to configure the statistics options.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when configure is null.</exception>
+    public MediatorConfiguration WithStatisticsTracking(Action<StatisticsOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var options = new StatisticsOptions();
+        configure(options);
+        options.ValidateAndThrow(); // Validate the configuration
+
+        StatisticsOptions = options;
+#pragma warning disable CS0618 // For backwards compatibility
+        EnableStatisticsTracking = options.IsEnabled;
+#pragma warning restore CS0618
+        return this;
+    }
+
+    /// <summary>
+    /// Enables statistics tracking with pre-configured options.
+    /// </summary>
+    /// <param name="options">The statistics options to use.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
+    public MediatorConfiguration WithStatisticsTracking(StatisticsOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        options.ValidateAndThrow(); // Validate the configuration
+        StatisticsOptions = options.Clone();
+#pragma warning disable CS0618 // For backwards compatibility
+        EnableStatisticsTracking = options.IsEnabled;
+#pragma warning restore CS0618
+        return this;
+    }
+
+    /// <summary>
+    /// Enables automatic discovery and registration of request middleware from assemblies.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithMiddlewareDiscovery()
+    {
+        DiscoverMiddleware = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables automatic discovery and registration of notification middleware from assemblies.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithNotificationMiddlewareDiscovery()
+    {
+        DiscoverNotificationMiddleware = true;
         return this;
     }
 

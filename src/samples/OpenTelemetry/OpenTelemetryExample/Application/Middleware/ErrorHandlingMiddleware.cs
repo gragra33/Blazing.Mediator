@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
+using System.Diagnostics;
 
 namespace OpenTelemetryExample.Application.Middleware;
 
@@ -24,12 +24,12 @@ public sealed class ErrorHandlingMiddleware<TRequest>(ILogger<ErrorHandlingMiddl
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling request {RequestType}", typeof(TRequest).Name);
-            
+
             // Add exception details to current activity
             Activity.Current?.SetTag("error", true);
             Activity.Current?.SetTag("error.type", ex.GetType().Name);
             Activity.Current?.SetTag("error.message", ex.Message);
-            
+
             throw;
         }
     }
@@ -55,12 +55,12 @@ public sealed class ErrorHandlingMiddleware<TRequest, TResponse>(ILogger<ErrorHa
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling request {RequestType}", typeof(TRequest).Name);
-            
+
             // Add exception details to current activity
             Activity.Current?.SetTag("error", true);
             Activity.Current?.SetTag("error.type", ex.GetType().Name);
             Activity.Current?.SetTag("error.message", ex.Message);
-            
+
             throw;
         }
     }

@@ -224,7 +224,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         string content = await response.Content.ReadAsStringAsync();
-        
+
         // Verify the response contains stock reduction information
         content.ShouldNotBeNull();
         content.ShouldContain("Stock reduced by");
@@ -247,7 +247,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         string content = await response.Content.ReadAsStringAsync();
-        
+
         // Verify the response contains the custom quantity reduction
         content.ShouldNotBeNull();
         content.ShouldContain("Stock reduced by 10 units");
@@ -282,7 +282,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         string content = await response.Content.ReadAsStringAsync();
-        
+
         // Verify the response contains bulk order simulation information
         content.ShouldNotBeNull();
         content.ShouldContain("Bulk order simulation completed");
@@ -306,10 +306,10 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         // This endpoint may return OK or BadRequest depending on validation and business rules
         (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest).ShouldBeTrue();
-        
+
         string content = await response.Content.ReadAsStringAsync();
         content.ShouldNotBeNull();
-        
+
         if (response.StatusCode == HttpStatusCode.OK)
         {
             // If successful, verify the response contains the custom order quantity

@@ -53,7 +53,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, (Assembly[])null!);
+            services.AddMediator(config => { config.WithStatisticsTracking(); }, (Assembly[])null!);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -90,7 +90,7 @@ namespace Blazing.Mediator.Tests.Tests
             Assembly assembly = typeof(TestCommand).Assembly;
 
             // Act
-            services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, assembly);
+            services.AddMediator(config => { config.WithStatisticsTracking(); }, assembly);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -111,7 +111,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, typeof(TestCommand), typeof(TestQuery));
+            services.AddMediator(config => { config.WithStatisticsTracking(); }, typeof(TestCommand), typeof(TestQuery));
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -133,7 +133,7 @@ namespace Blazing.Mediator.Tests.Tests
             Assembly assembly = typeof(TestCommand).Assembly;
 
             // Act
-            services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
+            services.AddMediator(config => { config.WithStatisticsTracking(); }, assembly);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -154,7 +154,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, typeof(TestCommand));
+            services.AddMediator(config => { config.WithStatisticsTracking(); }, typeof(TestCommand));
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();

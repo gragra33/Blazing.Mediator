@@ -87,12 +87,21 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, UserDto>
 ### 3. Register Services
 
 ```csharp
-// Program.cs - Basic registration
-builder.Services.AddMediator(typeof(Program).Assembly);
+// Program.cs - Basic registration using fluent configuration
+builder.Services.AddMediator(config =>
+{
+    config.AddAssembly(typeof(Program).Assembly);
+});
 
-// With auto-discovery for middleware
-builder.Services.AddMediator(typeof(Program).Assembly, discoverMiddleware: true);
+// With auto-discovery for middleware using fluent configuration
+builder.Services.AddMediator(config =>
+{
+    config.WithMiddlewareDiscovery()
+          .AddAssembly(typeof(Program).Assembly);
+});
 ```
+
+> **Note**: The older `AddMediator()` and `AddMediatorFromLoadedAssemblies()` methods with boolean parameters have been marked as obsolete and are being phased out. While they remain supported for backward compatibility, we recommend migrating to the new fluent configuration approach using `builder.Services.AddMediator(config => { ... })` for better type safety and enhanced functionality.
 
 ### 4. Use in Controller
 
@@ -264,11 +273,14 @@ The Mediator pattern provides several key architectural benefits:
 
 ### Basic Registration
 
-The simplest way to register Blazing.Mediator is to scan a single assembly:
+The simplest way to register Blazing.Mediator is using the new fluent configuration:
 
 ```csharp
-// Program.cs
-builder.Services.AddMediator(typeof(Program).Assembly);
+// Program.cs - Modern fluent configuration approach
+builder.Services.AddMediator(config =>
+{
+    config.AddAssembly(typeof(Program).Assembly);
+});
 ```
 
 ### Multi-Assembly Registration
@@ -276,74 +288,81 @@ builder.Services.AddMediator(typeof(Program).Assembly);
 For larger applications with multiple projects, register handlers from all relevant assemblies:
 
 ```csharp
-// Register handlers from multiple assemblies
-builder.Services.AddMediator(
-    typeof(Program).Assembly,                    // Current assembly (API)
-    typeof(GetUserHandler).Assembly,             // Application layer
-    typeof(User).Assembly                        // Domain layer (if needed)
-);
+// Register handlers from multiple assemblies using fluent configuration
+builder.Services.AddMediator(config =>
+{
+    config.AddAssembly(typeof(Program).Assembly)                    // Current assembly (API)
+          .AddAssembly(typeof(GetUserHandler).Assembly)             // Application layer
+          .AddAssembly(typeof(User).Assembly);                      // Domain layer (if needed)
+});
 
-// With auto-discovery for middleware
-builder.Services.AddMediator(
-    discoverMiddleware: true,
-    typeof(Program).Assembly,                    // Current assembly (API)
-    typeof(GetUserHandler).Assembly,             // Application layer
-    typeof(LoggingMiddleware<,>).Assembly        // Infrastructure layer
-);
+// With auto-discovery for middleware using fluent configuration
+builder.Services.AddMediator(config =>
+{
+    config.WithMiddlewareDiscovery()
+          .AddAssembly(typeof(Program).Assembly)                    // Current assembly (API)
+          .AddAssembly(typeof(GetUserHandler).Assembly)             // Application layer
+          .AddAssembly(typeof(LoggingMiddleware<,>).Assembly);      // Infrastructure layer
+});
 ```
 
 ### Alternative Registration Methods
 
 ```csharp
-// Method 1: Using assembly marker types
-services.AddMediator(
-    typeof(GetUserHandler),
-    typeof(CreateOrderHandler),
-    typeof(UpdateProductHandler)
-);
+// Method 1: Using assembly marker types with fluent configuration
+builder.Services.AddMediator(config =>
+{
+    config.AddAssembly(typeof(GetUserHandler).Assembly)
+          .AddAssembly(typeof(CreateOrderHandler).Assembly)
+          .AddAssembly(typeof(UpdateProductHandler).Assembly);
+});
 
-// Method 1a: With auto-discovery
-services.AddMediator(
-    discoverMiddleware: true,
-    typeof(GetUserHandler),
-    typeof(CreateOrderHandler),
-    typeof(UpdateProductHandler)
-);
+// Method 1a: With auto-discovery using fluent configuration
+builder.Services.AddMediator(config =>
+{
+    config.WithMiddlewareDiscovery()
+          .AddAssembly(typeof(GetUserHandler).Assembly)
+          .AddAssembly(typeof(CreateOrderHandler).Assembly)
+          .AddAssembly(typeof(UpdateProductHandler).Assembly);
+});
 
-// Method 2: Using assembly references
-services.AddMediator(
-    Assembly.GetExecutingAssembly(),
-    typeof(ExternalHandler).Assembly
-);
+// Method 2: Using assembly references with fluent configuration
+builder.Services.AddMediator(config =>
+{
+    config.AddAssembly(Assembly.GetExecutingAssembly())
+          .AddAssembly(typeof(ExternalHandler).Assembly);
+});
 
-// Method 2a: With auto-discovery
-services.AddMediator(
-    discoverMiddleware: true,
-    Assembly.GetExecutingAssembly(),
-    typeof(ExternalHandler).Assembly
-);
+// Method 2a: With auto-discovery using fluent configuration
+builder.Services.AddMediator(config =>
+{
+    config.WithMiddlewareDiscovery()
+          .AddAssembly(Assembly.GetExecutingAssembly())
+          .AddAssembly(typeof(ExternalHandler).Assembly);
+});
 
-// Method 3: Scan calling assembly automatically
+// Legacy methods (marked as obsolete but still supported for backward compatibility)
+// We recommend migrating to the fluent configuration approach above
+
+// Method 3: Scan calling assembly automatically (OBSOLETE)
 services.AddMediatorFromCallingAssembly();
 
-// Method 3a: Scan calling assembly with auto-discovery
+// Method 3a: Scan calling assembly with auto-discovery (OBSOLETE)
 services.AddMediatorFromCallingAssembly(discoverMiddleware: true);
 
-// Method 4: Scan with filter
+// Method 4: Scan with filter (OBSOLETE)
 services.AddMediatorFromLoadedAssemblies(assembly =>
     assembly.FullName.StartsWith("MyCompany.") &&
     assembly.FullName.Contains(".Application"));
 
-// Method 4a: Scan with filter and auto-discovery
+// Method 4a: Scan with filter and auto-discovery (OBSOLETE)
 services.AddMediatorFromLoadedAssemblies(
     discoverMiddleware: true,
     assembly => assembly.FullName.StartsWith("MyCompany.") &&
                assembly.FullName.Contains(".Application"));
-
-// Simple overload methods for convenience - add auto-discovery to existing methods
-services.AddMediatorFromCallingAssembly(discoverMiddleware: true);
-services.AddMediatorFromLoadedAssemblies(discoverMiddleware: true);
 ```
+
+> **Migration Note**: The methods marked as obsolete above (`AddMediatorFromCallingAssembly`, `AddMediatorFromLoadedAssemblies`, and `AddMediator` with boolean parameters) are being phased out in favor of the new fluent configuration approach. While they remain supported for backward compatibility, we strongly recommend migrating to `builder.Services.AddMediator(config => { ... })` for better type safety, enhanced functionality, and future-proofing your applications.
 
 ### Complete Application Setup
 
@@ -359,11 +378,12 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register Mediator with multiple assemblies
-builder.Services.AddMediator(
-    typeof(Program).Assembly,                    // Current assembly
-    typeof(GetUserHandler).Assembly             // Application layer assembly
-);
+// Register Mediator with multiple assemblies using fluent configuration
+builder.Services.AddMediator(config =>
+{
+    config.AddAssembly(typeof(Program).Assembly)                    // Current assembly
+          .AddAssembly(typeof(GetUserHandler).Assembly);            // Application layer assembly
+});
 
 // Add your other services (DbContext, repositories, etc.)
 // builder.Services.AddDbContext<AppDbContext>(...);
@@ -396,8 +416,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register Mediator (same registration regardless of API style)
-builder.Services.AddMediator(typeof(Program).Assembly);
+// Register Mediator using fluent configuration (same registration regardless of API style)
+builder.Services.AddMediator(config =>
+{
+    config.AddAssembly(typeof(Program).Assembly);
+});
 
 var app = builder.Build();
 
@@ -825,7 +848,10 @@ MediatorStatistics offers three main capabilities:
 The `MediatorStatistics` service is automatically registered when you call `AddMediator()`:
 
 ```csharp
-services.AddMediator(typeof(MyQuery).Assembly);
+builder.Services.AddMediator(config =>
+{
+    config.AddAssembly(typeof(MyQuery).Assembly);
+});
 // MediatorStatistics is automatically registered with ConsoleStatisticsRenderer
 ```
 
@@ -833,7 +859,10 @@ You can provide a custom statistics renderer:
 
 ```csharp
 services.AddSingleton<IStatisticsRenderer, MyCustomRenderer>();
-services.AddMediator(typeof(MyQuery).Assembly);
+builder.Services.AddMediator(config =>
+{
+    config.AddAssembly(typeof(MyQuery).Assembly);
+});
 ```
 
 ### Monitoring Runtime Statistics
@@ -1324,8 +1353,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register Mediator (same registration regardless of API style)
-builder.Services.AddMediator(typeof(Program).Assembly);
+// Register Mediator using fluent configuration (same registration regardless of API style)
+builder.Services.AddMediator(config =>
+{
+    config.AddAssembly(typeof(Program).Assembly);
+});
 
 var app = builder.Build();
 
@@ -1932,7 +1964,10 @@ For a basic understanding, the middleware pipeline follows this pattern:
 
 ```csharp
 // Program.cs - No middleware
-builder.Services.AddMediator(typeof(Program).Assembly);
+builder.Services.AddMediator(config =>
+{
+    config.AddAssembly(typeof(Program).Assembly);
+});
 ```
 
 #### Standard Middleware Configuration
@@ -1984,12 +2019,18 @@ Blazing.Mediator supports automatic middleware discovery to simplify configurati
 ##### Basic Auto-Discovery (All Middleware)
 
 ```csharp
-// Program.cs - Auto-discover all middleware in the current assembly
-builder.Services.AddMediator(typeof(Program).Assembly, discoverMiddleware: true);
+// Program.cs - Auto-discover all middleware in the current assembly using fluent configuration
+builder.Services.AddMediator(config =>
+{
+    config.WithMiddlewareDiscovery()
+          .AddAssembly(typeof(Program).Assembly);
+});
 
-// Even simpler - auto-discover from calling assembly
-builder.Services.AddMediatorFromCallingAssembly(discoverMiddleware: true);
+// Legacy methods (marked as obsolete but still supported)
+// builder.Services.AddMediatorFromCallingAssembly(discoverMiddleware: true);
 ```
+
+> **Migration Note**: The legacy `AddMediatorFromCallingAssembly` method with boolean parameters is marked as obsolete. Please migrate to the fluent configuration approach shown above.
 
 ##### Granular Auto-Discovery (New in v1.6.0)
 
@@ -2482,7 +2523,7 @@ public class DebugService
 
 ## Sample Projects
 
-The library includes eight comprehensive sample projects demonstrating different approaches:
+The library includes nine comprehensive sample projects demonstrating different approaches:
 
 1. **Blazing.Mediator.Examples** - Complete feature showcase and migration guide from MediatR
 
@@ -2550,12 +2591,22 @@ The library includes eight comprehensive sample projects demonstrating different
     - Error handling examples
 
 8. **Streaming.Api** - Demonstrates real-time data streaming with multiple implementation patterns
+
     - Memory-efficient `IAsyncEnumerable<T>` streaming with large datasets
     - JSON streaming and Server-Sent Events (SSE) endpoints
     - Multiple Blazor render modes (SSR, Auto, Static, WebAssembly)
     - Stream middleware pipeline with logging and performance monitoring
     - Interactive streaming controls and real-time data visualization
     - 6 different streaming examples from minimal APIs to interactive WebAssembly clients
+
+9. **OpenTelemetryExample** _**(NEW!)**_ - Comprehensive OpenTelemetry integration demonstration with modern cloud-native architecture
+
+    - Full distributed tracing and metrics collection across web API server and Blazor client components
+    - .NET Aspire support for local development with integrated observability dashboard and service discovery
+    - OpenTelemetry middleware integration with automatic request/response tracing and performance metrics
+    - Jaeger tracing visualization and Prometheus metrics collection with comprehensive telemetry data
+    - Real-time performance monitoring and debugging capabilities with distributed correlation IDs
+    - Production-ready observability patterns for microservices and cloud-native applications
 
 ## Complete Examples
 

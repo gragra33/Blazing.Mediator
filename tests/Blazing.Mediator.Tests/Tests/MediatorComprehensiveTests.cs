@@ -469,7 +469,10 @@ public class MediatorComprehensiveTests
         var services = new ServiceCollection();
         services.AddSingleton(statistics);
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, Array.Empty<Assembly>());
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking();
+        }, Array.Empty<Assembly>());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

@@ -23,12 +23,12 @@ public class MediatorTelemetryPerformanceBenchmarks
     private ServiceProvider _serviceProviderWithoutTelemetry = null!;
     private IMediator _mediatorWithTelemetry = null!;
     private IMediator _mediatorWithoutTelemetry = null!;
-    
+
     private BenchmarkTestCommand _command = null!;
     private BenchmarkTestQuery _query = null!;
     private BenchmarkTestNotification _notification = null!;
     private BenchmarkTestStreamRequest _streamRequest = null!;
-    
+
     private ActivityListener? _activityListener;
 
     [GlobalSetup]
@@ -44,13 +44,13 @@ public class MediatorTelemetryPerformanceBenchmarks
         var servicesWithTelemetry = new ServiceCollection();
         servicesWithTelemetry.AddLogging();
         servicesWithTelemetry.AddMediator(); // Don't scan assemblies
-        
+
         // Register handlers manually to avoid conflicts
         servicesWithTelemetry.AddScoped<IRequestHandler<BenchmarkTestCommand>, BenchmarkTestCommandHandler>();
         servicesWithTelemetry.AddScoped<IRequestHandler<BenchmarkTestQuery, string>, BenchmarkTestQueryHandler>();
         servicesWithTelemetry.AddScoped<INotificationSubscriber<BenchmarkTestNotification>, BenchmarkTestNotificationSubscriber>();
         servicesWithTelemetry.AddScoped<IStreamRequestHandler<BenchmarkTestStreamRequest, string>, BenchmarkTestStreamHandler>();
-        
+
         _serviceProviderWithTelemetry = servicesWithTelemetry.BuildServiceProvider();
         _mediatorWithTelemetry = _serviceProviderWithTelemetry.GetRequiredService<IMediator>();
 
@@ -58,13 +58,13 @@ public class MediatorTelemetryPerformanceBenchmarks
         var servicesWithoutTelemetry = new ServiceCollection();
         servicesWithoutTelemetry.AddLogging();
         servicesWithoutTelemetry.AddMediator(); // Don't scan assemblies
-        
+
         // Register handlers manually to avoid conflicts
         servicesWithoutTelemetry.AddScoped<IRequestHandler<BenchmarkTestCommand>, BenchmarkTestCommandHandler>();
         servicesWithoutTelemetry.AddScoped<IRequestHandler<BenchmarkTestQuery, string>, BenchmarkTestQueryHandler>();
         servicesWithoutTelemetry.AddScoped<INotificationSubscriber<BenchmarkTestNotification>, BenchmarkTestNotificationSubscriber>();
         servicesWithoutTelemetry.AddScoped<IStreamRequestHandler<BenchmarkTestStreamRequest, string>, BenchmarkTestStreamHandler>();
-        
+
         _serviceProviderWithoutTelemetry = servicesWithoutTelemetry.BuildServiceProvider();
         _mediatorWithoutTelemetry = _serviceProviderWithoutTelemetry.GetRequiredService<IMediator>();
 
@@ -301,7 +301,7 @@ public class MediatorTelemetryPerformanceBenchmarks
 
     public class BenchmarkTestStreamHandler : IStreamRequestHandler<BenchmarkTestStreamRequest, string>
     {
-        public async IAsyncEnumerable<string> Handle(BenchmarkTestStreamRequest request, 
+        public async IAsyncEnumerable<string> Handle(BenchmarkTestStreamRequest request,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             for (int i = 0; i < request.Count; i++)

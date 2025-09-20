@@ -43,7 +43,7 @@ public sealed class GetRecentActivitiesHandler(ApplicationDbContext context, ILo
                 Duration = activity.Duration,
                 Status = activity.Status,
                 Kind = activity.Kind,
-                Tags = activity.Tags ?? new Dictionary<string, object>()
+                Tags = activity.Tags
             }).ToList();
 
             var result = new RecentActivitiesDto
@@ -59,7 +59,7 @@ public sealed class GetRecentActivitiesHandler(ApplicationDbContext context, ILo
         catch (Exception ex)
         {
             logger.LogError(ex, "Error retrieving recent activities");
-            
+
             return new RecentActivitiesDto
             {
                 Timestamp = DateTime.UtcNow,

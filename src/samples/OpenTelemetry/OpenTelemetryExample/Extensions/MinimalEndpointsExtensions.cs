@@ -137,7 +137,7 @@ public static class MinimalEndpointsExtensions
         {
             var health = Blazing.Mediator.OpenTelemetry.MediatorTelemetryHealthCheck.CheckHealth();
             Console.WriteLine($"[+] Telemetry health check: IsHealthy={health.IsHealthy}, IsEnabled={health.IsEnabled}");
-            
+
             // Return strongly-typed TelemetryHealthDto
             var result = new TelemetryHealthDto
             {
@@ -148,7 +148,7 @@ public static class MinimalEndpointsExtensions
                 ActivitySourceName = health.ActivitySourceName ?? "unknown",
                 Message = health.Message
             };
-            
+
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -163,7 +163,7 @@ public static class MinimalEndpointsExtensions
                 ActivitySourceName = "error",
                 Message = $"Health check failed: {ex.Message}"
             };
-            
+
             return Results.Ok(errorResult);
         }
     }
@@ -202,7 +202,7 @@ public static class MinimalEndpointsExtensions
         catch (Exception ex)
         {
             Console.WriteLine($"[-] Error getting live metrics: {ex.Message}");
-            
+
             // Return fallback data in case of error
             var fallbackResult = new LiveMetricsDto
             {
@@ -212,7 +212,7 @@ public static class MinimalEndpointsExtensions
                 Queries = [],
                 Message = $"Error retrieving live metrics: {ex.Message}"
             };
-            
+
             return Results.Ok(fallbackResult);
         }
     }
@@ -238,7 +238,7 @@ public static class MinimalEndpointsExtensions
         catch (Exception ex)
         {
             Console.WriteLine($"[-] Error getting recent traces: {ex.Message}");
-            
+
             // Return fallback data in case of error
             var fallbackResult = new RecentTracesDto
             {
@@ -246,7 +246,7 @@ public static class MinimalEndpointsExtensions
                 Traces = [],
                 Message = $"Error retrieving traces: {ex.Message}"
             };
-            
+
             return Results.Ok(fallbackResult);
         }
     }
@@ -270,7 +270,7 @@ public static class MinimalEndpointsExtensions
         catch (Exception ex)
         {
             Console.WriteLine($"[-] Error getting recent activities: {ex.Message}");
-            
+
             // Return fallback data in case of error
             var fallbackResult = new RecentActivitiesDto
             {
@@ -278,7 +278,7 @@ public static class MinimalEndpointsExtensions
                 Activities = [],
                 Message = $"Error retrieving activities: {ex.Message}"
             };
-            
+
             return Results.Ok(fallbackResult);
         }
     }

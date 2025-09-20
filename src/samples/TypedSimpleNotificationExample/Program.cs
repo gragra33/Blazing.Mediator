@@ -3,13 +3,11 @@ var host = Host.CreateDefaultBuilder(args)
     {
         // Register Blazing.Mediator with automatic notification middleware discovery
         // and type constraint support
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: true,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: true, // Enable auto-discovery with type constraints
-            Assembly.GetExecutingAssembly()
-        );
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking()
+                  .WithNotificationMiddlewareDiscovery(); // Enable auto-discovery with type constraints
+        }, Assembly.GetExecutingAssembly());
 
         // Register notification subscribers as scoped services
         services.AddScoped<EmailNotificationHandler>();

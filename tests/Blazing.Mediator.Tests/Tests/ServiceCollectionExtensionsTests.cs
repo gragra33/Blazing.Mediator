@@ -600,7 +600,7 @@ public class ServiceCollectionExtensionsTests
         Assembly assembly = typeof(AutoDiscoveryStaticOrderMiddleware).Assembly;
 
         // Act - Use the simple overload
-        services.AddMediator(configureMiddleware: null, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
+        services.AddMediator(config => { }, assembly);
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();

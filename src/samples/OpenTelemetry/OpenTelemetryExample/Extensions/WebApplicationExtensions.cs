@@ -56,12 +56,13 @@ public static class WebApplicationExtensions
     }
 
     /// <summary>
-    /// Configures routing.
+    /// Configures routing including controllers and SignalR hubs.
     /// </summary>
     private static void ConfigureRouting(this WebApplication app)
     {
         app.MapHealthChecks("/health");
         app.MapControllers();
+        app.MapHub<OpenTelemetryExample.Hubs.StreamingHub>("/streaming-hub");
     }
 
     /// <summary>

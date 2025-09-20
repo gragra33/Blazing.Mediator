@@ -43,7 +43,7 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
 
             if (!recentTraces.Any())
             {
-                logger.LogInformation("No telemetry traces found in the last {TimeWindow} minutes with filter: MediatorOnly={MediatorOnly}, ExampleAppOnly={ExampleAppOnly}", 
+                logger.LogInformation("No telemetry traces found in the last {TimeWindow} minutes with filter: MediatorOnly={MediatorOnly}, ExampleAppOnly={ExampleAppOnly}",
                     request.TimeWindow.TotalMinutes, request.MediatorOnly, request.ExampleAppOnly);
                 return new RecentTracesDto
                 {
@@ -55,7 +55,7 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
 
             var traceDtos = recentTraces.Select(trace =>
             {
-                var isAppTrace = IsAppTrace(trace.OperationName, trace.Tags);
+                var isAppTrace = IsAppTrace(trace.OperationName);
                 return new TraceDto
                 {
                     TraceId = trace.TraceId,
@@ -82,15 +82,15 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
                 TotalTracesInTimeframe = totalAvailableInTimeframe
             };
 
-            logger.LogInformation("Retrieved {TraceCount} recent traces (MediatorOnly={MediatorOnly}, ExampleAppOnly={ExampleAppOnly}, filtered count: {FilteredCount}, total available: {TotalAvailable})", 
+            logger.LogInformation("Retrieved {TraceCount} recent traces (MediatorOnly={MediatorOnly}, ExampleAppOnly={ExampleAppOnly}, filtered count: {FilteredCount}, total available: {TotalAvailable})",
                 traceDtos.Count, request.MediatorOnly, request.ExampleAppOnly, filteredCount, totalAvailableInTimeframe);
-            
+
             return result;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error retrieving recent traces");
-            
+
             return new RecentTracesDto
             {
                 Timestamp = DateTime.UtcNow,
@@ -115,17 +115,17 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
             return baseQuery.Where(trace => trace.OperationName.StartsWith("Mediator")
                                          || trace.OperationName.StartsWith("OpenTelemetryExample"));
         }
-        
+
         if (mediatorOnly)
         {
             return baseQuery.Where(trace => trace.OperationName.StartsWith("Mediator"));
         }
-        
+
         if (exampleAppOnly)
         {
             return baseQuery.Where(trace => trace.OperationName.StartsWith("OpenTelemetryExample"));
         }
-        
+
         return baseQuery;
     }
 
@@ -158,21 +158,21 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
         if (operationName.Contains("OpenTelemetryExample", StringComparison.OrdinalIgnoreCase) ||
             operationName.StartsWith("OpenTelemetryExample.", StringComparison.OrdinalIgnoreCase))
             return "OpenTelemetryExample";
-        
+
         if (operationName.Contains("Mediator", StringComparison.OrdinalIgnoreCase) ||
             operationName.StartsWith("Mediator.", StringComparison.OrdinalIgnoreCase))
             return "Blazing.Mediator";
-        
+
         if (operationName.StartsWith("Microsoft.AspNetCore", StringComparison.OrdinalIgnoreCase) ||
             operationName.Contains("HttpRequestIn", StringComparison.OrdinalIgnoreCase) ||
             operationName.Contains("AspNetCore", StringComparison.OrdinalIgnoreCase))
             return "ASP.NET Core";
-        
+
         if (operationName.Contains("EntityFramework", StringComparison.OrdinalIgnoreCase) ||
             operationName.Contains("Entity Framework", StringComparison.OrdinalIgnoreCase) ||
             operationName.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.OrdinalIgnoreCase))
             return "Entity Framework";
-        
+
         if (operationName.Contains("HttpClient", StringComparison.OrdinalIgnoreCase) ||
             operationName.StartsWith("HTTP", StringComparison.OrdinalIgnoreCase) ||
             operationName.Contains("System.Net.Http", StringComparison.OrdinalIgnoreCase))
@@ -189,18 +189,18 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
         {
             foreach (var tag in tags)
             {
-                var key = tag.Key?.ToLower() ?? "";
-                var value = tag.Value?.ToString()?.ToLower() ?? "";
-                
+                var key = tag.Key.ToLower();
+                var value = tag.Value.ToString()?.ToLower() ?? "";
+
                 if (key.Contains("mediator") || value.Contains("blazing.mediator") || value.Contains("mediator"))
                     return "Blazing.Mediator";
-                
+
                 if (key.Contains("aspnetcore") || value.Contains("aspnetcore") || value.Contains("microsoft.aspnetcore"))
                     return "ASP.NET Core";
-                
+
                 if (key.Contains("entityframework") || value.Contains("entityframework") || value.Contains("ef.core"))
                     return "Entity Framework";
-                    
+
                 if (key.Contains("httpclient") || value.Contains("httpclient") || value.Contains("system.net.http"))
                     return "HTTP Client";
 
@@ -230,7 +230,7 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
     /// <summary>
     /// Determines if a trace is from OpenTelemetryExample.
     /// </summary>
-    private static bool IsAppTrace(string operationName, Dictionary<string, object>? tags)
+    private static bool IsAppTrace(string operationName)
     {
         // Check operation name patterns
         if (operationName.Contains("Example", StringComparison.OrdinalIgnoreCase) ||
@@ -260,12 +260,12 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
         {
             foreach (var tag in tags)
             {
-                var key = tag.Key?.ToLower() ?? "";
-                var value = tag.Value?.ToString()?.ToLower() ?? "";
-                
+                var key = tag.Key.ToLower();
+                var value = tag.Value.ToString()?.ToLower() ?? "";
+
                 if (key.Contains("mediator") || value.Contains("blazing.mediator") || value.Contains("mediator"))
                     return true;
-                
+
                 if (key == "request_type" && (value == "command" || value == "query"))
                     return true;
 

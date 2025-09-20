@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
+using System.Diagnostics;
 
 namespace OpenTelemetryExample.Application.Middleware;
 
@@ -18,15 +18,15 @@ public sealed class LoggingMiddleware<TRequest>(ILogger<LoggingMiddleware<TReque
     {
         var requestType = typeof(TRequest).Name;
         _logger.LogInformation("Handling request {RequestType}", requestType);
-        
+
         // Add request details to current activity
         Activity.Current?.SetTag("request.type", requestType);
         Activity.Current?.SetTag("request.logged", true);
-        
+
         try
         {
             await next();
-            
+
             _logger.LogInformation("Successfully handled request {RequestType}", requestType);
             Activity.Current?.SetTag("request.success", true);
         }

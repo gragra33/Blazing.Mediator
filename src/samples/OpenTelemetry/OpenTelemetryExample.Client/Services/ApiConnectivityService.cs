@@ -14,16 +14,16 @@ public sealed class ApiConnectivityService(HttpClient httpClient, ILogger<ApiCon
         try
         {
             logger.LogInformation("[->] Testing API connectivity to: {BaseAddress}", httpClient.BaseAddress);
-            
+
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            
+
             // Try a simple GET request to the health endpoint
             var response = await httpClient.GetAsync("health", cts.Token);
-            
+
             var isConnected = response.IsSuccessStatusCode;
-            logger.LogInformation("[<-] API connectivity test result: {IsConnected} (Status: {StatusCode})", 
+            logger.LogInformation("[<-] API connectivity test result: {IsConnected} (Status: {StatusCode})",
                 isConnected, response.StatusCode);
-            
+
             return isConnected;
         }
         catch (OperationCanceledException)
@@ -51,7 +51,7 @@ public sealed class ApiConnectivityService(HttpClient httpClient, ILogger<ApiCon
         try
         {
             var isConnected = await TestApiConnectivityAsync();
-            
+
             if (isConnected)
             {
                 // Try to get more detailed status
@@ -59,7 +59,7 @@ public sealed class ApiConnectivityService(HttpClient httpClient, ILogger<ApiCon
                 {
                     using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                     var response = await httpClient.GetAsync("debug/mediator", cts.Token);
-                    
+
                     if (response.IsSuccessStatusCode)
                     {
                         var content = await response.Content.ReadAsStringAsync(cts.Token);
@@ -110,7 +110,7 @@ public sealed class ApiConnectivityService(HttpClient httpClient, ILogger<ApiCon
                 {
                     using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                     var response = await httpClient.GetAsync(endpoint, cts.Token);
-                    
+
                     endpointResults[endpoint] = new
                     {
                         StatusCode = (int)response.StatusCode,
@@ -122,7 +122,8 @@ public sealed class ApiConnectivityService(HttpClient httpClient, ILogger<ApiCon
                 {
                     endpointResults[endpoint] = new
                     {
-                        Error = ex.GetType().Name, ex.Message
+                        Error = ex.GetType().Name,
+                        ex.Message
                     };
                 }
             }

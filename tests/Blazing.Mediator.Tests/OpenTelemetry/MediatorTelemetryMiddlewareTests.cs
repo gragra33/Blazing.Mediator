@@ -1,14 +1,16 @@
-using System.Diagnostics;
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics;
 
 namespace Blazing.Mediator.Tests.OpenTelemetry;
 
 /// <summary>
 /// Tests for OpenTelemetry instrumentation of middleware pipeline execution.
 /// Validates that only executed middleware are tracked in telemetry.
+/// Uses Collection attribute to ensure tests run sequentially to avoid static state conflicts.
 /// </summary>
+[Collection("OpenTelemetry")]
 public class MediatorTelemetryMiddlewareTests : IDisposable
 {
     private ServiceProvider _serviceProvider = null!;
@@ -22,22 +24,22 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
     public MediatorTelemetryMiddlewareTests()
     {
         var services = new ServiceCollection();
-        
+
         // Add logging
         services.AddLogging();
-        
+
         // Add mediator with telemetry enabled
         services.AddMediatorTelemetry();
-        
+
         // Create middleware instances to track execution
         _testMiddleware = new TestMiddleware();
         _exceptionMiddleware = new TestMiddlewareWithException();
         _conditionalMiddleware = new TestConditionalMiddleware();
-        
+
         services.AddSingleton(_testMiddleware);
         services.AddSingleton(_exceptionMiddleware);
         services.AddSingleton(_conditionalMiddleware);
-        
+
         services.AddMediator(config =>
         {
             // Add middleware in specific order
@@ -45,24 +47,20 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
             config.AddMiddleware<TestMiddlewareWithException>();
             config.AddMiddleware<TestConditionalMiddleware>();
         }, typeof(MediatorTelemetryMiddlewareTests).Assembly);
-        
-        // Register test handlers
-        services.AddScoped<IRequestHandler<MiddlewareTestCommand>, MiddlewareTestCommandHandler>();
-        services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
-        
+
         _serviceProvider = services.BuildServiceProvider();
         _mediator = _serviceProvider.GetRequiredService<IMediator>();
-        
+
         // Initialize collections for capturing telemetry
         _recordedActivities = new List<Activity>();
-        
+
         // Set up activity listener to capture activities
         _activityListener = new ActivityListener
         {
             ShouldListenTo = source => source.Name == "Blazing.Mediator",
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-            ActivityStarted = activity => _recordedActivities?.Add(activity),
-            ActivityStopped = _ => { /* Activity completed */ }
+            ActivityStarted = _ => { /* Activity started */ },
+            ActivityStopped = activity => _recordedActivities?.Add(activity)
         };
         ActivitySource.AddActivityListener(_activityListener);
     }
@@ -73,7 +71,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         _serviceProvider.Dispose();
     }
 
-    [Fact(Skip = "OpenTelemetry tests require isolation due to static state conflicts with Mediator.TelemetryEnabled. Run individually.")]
+    [Fact]
     public async Task Send_AllMiddlewareExecuted_TracksAllMiddleware()
     {
         // Arrange
@@ -82,7 +80,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         _exceptionMiddleware.Reset();
         _conditionalMiddleware.Reset();
         _recordedActivities?.Clear();
-        
+
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = false; // Don't throw exception
         _conditionalMiddleware.ShouldExecute = true; // Execute conditional middleware
@@ -99,17 +97,17 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Verify activity contains all executed middleware
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
         activity.ShouldNotBeNull("Activity should be created");
-        
+
         var middlewarePipeline = activity.GetTagItem("middleware.pipeline")?.ToString();
         var middlewareExecuted = activity.GetTagItem("middleware.executed")?.ToString();
-        
+
         if (middlewarePipeline != null)
         {
             middlewarePipeline.ShouldContain("TestMiddleware");
             middlewarePipeline.ShouldContain("TestMiddlewareWithException");
             middlewarePipeline.ShouldContain("TestConditionalMiddleware");
         }
-        
+
         if (middlewareExecuted != null)
         {
             middlewareExecuted.ShouldContain("TestMiddleware");
@@ -118,7 +116,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         }
     }
 
-    [Fact(Skip = "OpenTelemetry tests require isolation due to static state conflicts with Mediator.TelemetryEnabled. Run individually.")]
+    [Fact]
     public async Task Send_MiddlewareThrowsException_OnlyExecutedMiddlewareTracked()
     {
         // Arrange
@@ -127,7 +125,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         _exceptionMiddleware.Reset();
         _conditionalMiddleware.Reset();
         _recordedActivities?.Clear();
-        
+
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = true; // Throw exception to short-circuit pipeline
         _conditionalMiddleware.ShouldExecute = true; // Would execute if reached
@@ -145,16 +143,16 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
         activity.ShouldNotBeNull("Activity should be created");
         activity.Status.ShouldBe(ActivityStatusCode.Error, "Activity should have error status");
-        
+
         var middlewareExecuted = activity.GetTagItem("middleware.executed")?.ToString();
-        
+
         if (middlewareExecuted != null)
         {
             middlewareExecuted.ShouldContain("TestMiddleware");
             middlewareExecuted.ShouldContain("TestMiddlewareWithException");
             middlewareExecuted.ShouldNotContain("TestConditionalMiddleware");
         }
-        
+
         // Verify exception details
         activity.GetTagItem("exception.type").ShouldBe("InvalidOperationException");
         var exceptionMessage = activity.GetTagItem("exception.message")?.ToString();
@@ -162,7 +160,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         exceptionMessage.ShouldContain("Test middleware exception");
     }
 
-    [Fact(Skip = "OpenTelemetry tests require isolation due to static state conflicts with Mediator.TelemetryEnabled. Run individually.")]
+    [Fact]
     public async Task Send_ConditionalMiddlewareSkipped_OnlyExecutedMiddlewareTracked()
     {
         // Arrange
@@ -171,7 +169,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         _exceptionMiddleware.Reset();
         _conditionalMiddleware.Reset();
         _recordedActivities?.Clear();
-        
+
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = false; // Don't throw exception
         _conditionalMiddleware.ShouldExecute = false; // Skip conditional middleware
@@ -188,10 +186,10 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Verify activity contains only executed middleware
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
         activity.ShouldNotBeNull("Activity should be created");
-        activity.Status.ShouldBe(ActivityStatusCode.Unset, "Activity should complete successfully");
-        
+        activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
+
         var middlewareExecuted = activity.GetTagItem("middleware.executed")?.ToString();
-        
+
         if (middlewareExecuted != null)
         {
             middlewareExecuted.ShouldContain("TestMiddleware");
@@ -200,7 +198,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         }
     }
 
-    [Fact(Skip = "OpenTelemetry tests require isolation due to static state conflicts with Mediator.TelemetryEnabled. Run individually.")]
+    [Fact]
     public async Task Send_Query_MiddlewareExecutionTrackedCorrectly()
     {
         // Arrange
@@ -209,7 +207,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         _exceptionMiddleware.Reset();
         _conditionalMiddleware.Reset();
         _recordedActivities?.Clear();
-        
+
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = false;
         _conditionalMiddleware.ShouldExecute = true;
@@ -219,7 +217,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
 
         // Assert
         result.ShouldBe("Handled: test query");
-        
+
         // Verify all middleware executed
         _testMiddleware.ExecutionCount.ShouldBe(1);
         _exceptionMiddleware.ExecutionCount.ShouldBe(1);
@@ -228,7 +226,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Verify activity contains middleware information
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestQuery"));
         activity.ShouldNotBeNull("Activity should be created for query");
-        
+
         var middlewareExecuted = activity.GetTagItem("middleware.executed")?.ToString();
         if (middlewareExecuted != null)
         {
@@ -236,13 +234,13 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
             middlewareExecuted.ShouldContain("TestMiddlewareWithException");
             middlewareExecuted.ShouldContain("TestConditionalMiddleware");
         }
-        
+
         // Verify query-specific tags
         activity.GetTagItem("request_type").ShouldBe("query");
         activity.GetTagItem("response_type").ShouldBe("String");
     }
 
-    [Fact(Skip = "OpenTelemetry tests require isolation due to static state conflicts with Mediator.TelemetryEnabled. Run individually.")]
+    [Fact]
     public async Task Send_MiddlewarePipelineShortCircuit_TracksCorrectExecution()
     {
         // Arrange  
@@ -366,8 +364,8 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         public void Reset() => ExecutionCount = 0;
     }
 
-    public class TestConditionalMiddleware : 
-        IConditionalMiddleware<MiddlewareTestCommand>, 
+    public class TestConditionalMiddleware :
+        IConditionalMiddleware<MiddlewareTestCommand>,
         IConditionalMiddleware<MiddlewareTestQuery, string>
     {
         public int Order => 3;

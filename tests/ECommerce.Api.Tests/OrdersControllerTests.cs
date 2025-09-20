@@ -333,7 +333,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         string content = await response.Content.ReadAsStringAsync();
-        
+
         // Verify the response contains completion information
         content.ShouldNotBeNull();
         content.ShouldContain("Order completed successfully");
@@ -368,7 +368,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         string content = await response.Content.ReadAsStringAsync();
-        
+
         // Verify the response contains workflow completion information
         content.ShouldNotBeNull();
         content.ShouldContain("Order workflow completed successfully");

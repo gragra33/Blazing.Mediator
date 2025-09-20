@@ -116,7 +116,7 @@ public class AnalyzeMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(configureMiddleware: null, discoverMiddleware: false, discoverNotificationMiddleware: false, _testAssembly); // No middleware registered
+        services.AddMediator(config => { }, _testAssembly); // No middleware registered
 
         var serviceProvider = services.BuildServiceProvider();
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
@@ -142,12 +142,11 @@ public class AnalyzeMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(
-            configureMiddleware: null,
-            discoverMiddleware: true,
-            discoverNotificationMiddleware: true,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.WithMiddlewareDiscovery()
+                  .WithNotificationMiddlewareDiscovery();
+        }, _testAssembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
@@ -303,16 +302,13 @@ public class AnalyzeMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(
-            configureMiddleware: config =>
-            {
-                config.AddMiddleware<FirstQueryMiddleware>(); // Manual
-                config.AddNotificationMiddleware<LoggingNotificationMiddleware>(); // Manual
-            },
-            discoverMiddleware: true, // Auto request middleware
-            discoverNotificationMiddleware: true, // Auto notification middleware
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.AddMiddleware<FirstQueryMiddleware>() // Manual
+                  .AddNotificationMiddleware<LoggingNotificationMiddleware>() // Manual
+                  .WithMiddlewareDiscovery() // Auto request middleware
+                  .WithNotificationMiddlewareDiscovery(); // Auto notification middleware
+        }, _testAssembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();

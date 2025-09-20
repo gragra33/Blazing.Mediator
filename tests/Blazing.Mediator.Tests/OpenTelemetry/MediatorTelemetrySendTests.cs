@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics;
 
 namespace Blazing.Mediator.Tests.OpenTelemetry;
 
@@ -21,35 +21,35 @@ public class MediatorTelemetrySendTests : IDisposable
     public MediatorTelemetrySendTests()
     {
         var services = new ServiceCollection();
-        
+
         // Add logging
         services.AddLogging();
-        
+
         // Add mediator with telemetry enabled - use unique assembly to avoid conflicts
         services.AddMediatorTelemetry();
         services.AddMediator(); // Don't scan assemblies to avoid conflicts
-        
+
         // Register test handlers manually to avoid conflicts
         services.AddScoped<IRequestHandler<SendTestCommand>, SendTestCommandHandler>();
         services.AddScoped<IRequestHandler<SendTestQuery, string>, SendTestQueryHandler>();
         services.AddScoped<IRequestHandler<SendTestCommandWithException>, SendTestCommandWithExceptionHandler>();
         services.AddScoped<IRequestHandler<SendTestQueryWithException, string>, SendTestQueryWithExceptionHandler>();
         services.AddScoped<IRequestHandler<SendTestCommandWithSensitiveData>, SendTestCommandWithSensitiveDataHandler>();
-        
+
         _serviceProvider = services.BuildServiceProvider();
         _mediator = _serviceProvider.GetRequiredService<IMediator>();
-        
+
         // Initialize collections for capturing telemetry
         _recordedMetrics = new List<KeyValuePair<string, object?>>();
         _recordedActivities = new List<Activity>();
-        
+
         // Set up activity listener to capture activities
         _activityListener = new ActivityListener
         {
             ShouldListenTo = source => source.Name == "Blazing.Mediator",
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-            ActivityStarted = activity => _recordedActivities?.Add(activity),
-            ActivityStopped = _ => { /* Activity completed */ }
+            ActivityStarted = _ => { /* Activity started */ },
+            ActivityStopped = activity => _recordedActivities?.Add(activity)
         };
         ActivitySource.AddActivityListener(_activityListener);
     }
@@ -74,13 +74,13 @@ public class MediatorTelemetrySendTests : IDisposable
         // Verify activity was created
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommand"));
         activity.ShouldNotBeNull("Activity should be created for command");
-        activity.Status.ShouldBe(ActivityStatusCode.Unset, "Activity should complete successfully");
-        
+    activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
+
         // Verify activity tags
         activity.GetTagItem("request_name").ShouldBe("SendTestCommand");
         activity.GetTagItem("request_type").ShouldBe("command");
         activity.GetTagItem("handler.type").ShouldBe("SendTestCommandHandler");
-        
+
         // Verify duration is recorded
         var durationTag = activity.GetTagItem("duration_ms");
         durationTag.ShouldNotBeNull();
@@ -99,12 +99,12 @@ public class MediatorTelemetrySendTests : IDisposable
 
         // Assert
         result.ShouldBe("Handled: test query");
-        
+
         // Verify activity was created
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestQuery"));
         activity.ShouldNotBeNull("Activity should be created for query");
-        activity.Status.ShouldBe(ActivityStatusCode.Unset, "Activity should complete successfully");
-        
+    activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
+
         // Verify activity tags include response type
         activity.GetTagItem("request_name").ShouldBe("SendTestQuery");
         activity.GetTagItem("request_type").ShouldBe("query");
@@ -127,7 +127,7 @@ public class MediatorTelemetrySendTests : IDisposable
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommandWithException"));
         activity.ShouldNotBeNull("Activity should be created for failed command");
         activity.Status.ShouldBe(ActivityStatusCode.Error, "Activity should have error status");
-        
+
         // Verify exception details in activity
         activity.GetTagItem("exception.type").ShouldBe("InvalidOperationException");
         var exceptionMessage = activity.GetTagItem("exception.message")?.ToString();
@@ -150,7 +150,7 @@ public class MediatorTelemetrySendTests : IDisposable
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestQueryWithException"));
         activity.ShouldNotBeNull("Activity should be created for failed query");
         activity.Status.ShouldBe(ActivityStatusCode.Error, "Activity should have error status");
-        
+
         // Verify exception details in activity
         activity.GetTagItem("exception.type").ShouldBe("InvalidOperationException");
         var exceptionMessage = activity.GetTagItem("exception.message")?.ToString();
@@ -233,7 +233,7 @@ public class MediatorTelemetrySendTests : IDisposable
         // Assert
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommandWithSensitiveData"));
         activity.ShouldNotBeNull();
-        
+
         // Verify sensitive data is sanitized
         var requestName = activity.GetTagItem("request_name")?.ToString();
         if (requestName != null)
@@ -260,7 +260,7 @@ public class MediatorTelemetrySendTests : IDisposable
         // Assert
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommand"));
         activity.ShouldNotBeNull();
-        
+
         // Verify metrics tags are present
         activity.GetTagItem("request_name").ShouldBe("SendTestCommand");
         activity.GetTagItem("handler.type").ShouldBe("SendTestCommandHandler");
@@ -280,7 +280,7 @@ public class MediatorTelemetrySendTests : IDisposable
         // Assert
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommand"));
         activity.ShouldNotBeNull();
-        
+
         // Verify middleware tracking (if middleware is configured)
         activity.GetTagItem("request_name").ShouldBe("SendTestCommand");
         activity.GetTagItem("handler.type").ShouldBe("SendTestCommandHandler");

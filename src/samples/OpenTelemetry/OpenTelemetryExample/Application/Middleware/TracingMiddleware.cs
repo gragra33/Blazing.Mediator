@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
+using System.Diagnostics;
 
 namespace OpenTelemetryExample.Application.Middleware;
 

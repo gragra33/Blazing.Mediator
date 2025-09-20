@@ -1,6 +1,6 @@
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Tests.TestMiddleware;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 namespace Blazing.Mediator.Tests.ConstraintTests;
@@ -330,13 +330,13 @@ public class MiddlewareConstraintTests
 
         // Assert
         var middleware = analysis.First();
-        
+
         // Verify constraint format follows expected pattern: "where ParameterName : constraint1, constraint2"
         middleware.GenericConstraints.ShouldStartWith("where TRequest :");
         middleware.GenericConstraints.ShouldContain("class");
         middleware.GenericConstraints.ShouldContain("IQuery<TResponse>");
         middleware.GenericConstraints.ShouldContain("new()");
-        
+
         // Verify constraints are comma-separated
         var constraintPart = middleware.GenericConstraints.Substring("where TRequest : ".Length);
         var constraints = constraintPart.Split(',').Select(c => c.Trim()).ToArray();

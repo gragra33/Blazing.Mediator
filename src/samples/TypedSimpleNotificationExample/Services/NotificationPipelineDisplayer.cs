@@ -7,7 +7,7 @@ public class NotificationPipelineDisplayer(
     public void DisplayPipelineInfo()
     {
         const string separator = "==============================================";
-        
+
         Console.WriteLine(separator);
         Console.WriteLine("Blazing.Mediator - Typed Simple Notification Example");
         Console.WriteLine(separator);
@@ -30,8 +30,8 @@ public class NotificationPipelineDisplayer(
 
         var assembly = Assembly.GetExecutingAssembly();
         var notificationInterfaces = assembly.GetTypes()
-            .Where(t => t.IsInterface && 
-                       !t.IsAssignableFrom(typeof(INotification)) && 
+            .Where(t => t.IsInterface &&
+                       !t.IsAssignableFrom(typeof(INotification)) &&
                        typeof(INotification).IsAssignableFrom(t) &&
                        t != typeof(INotification))
             .OrderBy(t => t.Name)
@@ -40,7 +40,7 @@ public class NotificationPipelineDisplayer(
         if (notificationInterfaces.Count == 0)
         {
             Console.WriteLine("  (No marker interfaces found - using concrete notification types)");
-            
+
             // Fall back to concrete notification types
             var concreteNotifications = assembly.GetTypes()
                 .Where(t => t.IsClass && !t.IsAbstract && typeof(INotification).IsAssignableFrom(t))
@@ -80,7 +80,7 @@ public class NotificationPipelineDisplayer(
                 {
                     Console.WriteLine($"    - {implementation.Name}");
                 }
-                
+
                 if (implementations.Count == 0)
                 {
                     Console.WriteLine("    (No implementations found)");
@@ -121,9 +121,9 @@ public class NotificationPipelineDisplayer(
 
         var assembly = Assembly.GetExecutingAssembly();
         var handlerTypes = assembly.GetTypes()
-            .Where(t => t.IsClass && 
-                       !t.IsAbstract && 
-                       t.GetInterfaces().Any(i => i.IsGenericType && 
+            .Where(t => t.IsClass &&
+                       !t.IsAbstract &&
+                       t.GetInterfaces().Any(i => i.IsGenericType &&
                                                   i.GetGenericTypeDefinition() == typeof(INotificationSubscriber<>)))
             .OrderBy(t => t.Name)
             .ToList();
@@ -152,45 +152,45 @@ public class NotificationPipelineDisplayer(
     private void DisplayKeyFeatures()
     {
         Console.WriteLine("KEY FEATURES DEMONSTRATED:");
-        
+
         // Dynamically determine features based on what's actually registered
         var features = new List<string>();
-        
+
         var middlewareAnalysis = pipelineInspector.AnalyzeMiddleware(serviceProvider);
         if (middlewareAnalysis.Any(m => !string.IsNullOrEmpty(m.GenericConstraints)))
         {
             features.Add("Type constraints for selective middleware execution");
         }
-        
+
         var assembly = Assembly.GetExecutingAssembly();
         var notificationInterfaces = assembly.GetTypes()
-            .Where(t => t.IsInterface && 
+            .Where(t => t.IsInterface &&
                        typeof(INotification).IsAssignableFrom(t) &&
                        t != typeof(INotification))
             .ToList();
-        
+
         if (notificationInterfaces.Count > 0)
         {
             features.Add("Interface-based notification categorization");
         }
-        
+
         var handlerTypes = assembly.GetTypes()
-            .Where(t => t.IsClass && 
-                       !t.IsAbstract && 
-                       t.GetInterfaces().Any(i => i.IsGenericType && 
+            .Where(t => t.IsClass &&
+                       !t.IsAbstract &&
+                       t.GetInterfaces().Any(i => i.IsGenericType &&
                                                   i.GetGenericTypeDefinition() == typeof(INotificationSubscriber<>)))
             .ToList();
-        
+
         if (handlerTypes.Count > 0)
         {
             features.Add("Multiple subscribers per notification type");
         }
-        
+
         if (middlewareAnalysis.Count > 0)
         {
             features.Add("Notification pipeline inspection and analysis");
         }
-        
+
         // Always add these as they're core features of the example
         features.Add("Performance metrics tracking");
         features.Add("Complex workflow with multiple notification types");

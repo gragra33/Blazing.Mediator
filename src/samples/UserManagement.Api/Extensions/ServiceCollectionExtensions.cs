@@ -1,11 +1,11 @@
 using Blazing.Mediator;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 using UserManagement.Api.Application.Middleware;
 using UserManagement.Api.Infrastructure.Data;
-using UserManagement.Api.Services;
 using UserManagement.Api.Middleware;
-using System.Reflection;
+using UserManagement.Api.Services;
 
 namespace UserManagement.Api.Extensions;
 
@@ -44,7 +44,7 @@ public static class ServiceCollectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
         services.AddHttpContextAccessor();
-        
+
         // Add session services for statistics tracking
         services.AddDistributedMemoryCache();
         services.AddSession(options =>
@@ -82,7 +82,7 @@ public static class ServiceCollectionExtensions
             // Keep existing middleware that was working - use typeof for generic middleware
             config.AddMiddleware(typeof(GeneralLoggingMiddleware<,>));
             config.AddMiddleware(typeof(GeneralCommandLoggingMiddleware<>));
-            
+
             // Add statistics tracking middleware for both typed and void requests
             config.AddMiddleware(typeof(StatisticsTrackingMiddleware<,>));
             config.AddMiddleware(typeof(StatisticsTrackingVoidMiddleware<>));
@@ -104,7 +104,7 @@ public static class ServiceCollectionExtensions
     {
         // Register statistics tracking services
         services.AddSingleton<MediatorStatisticsTracker>();
-        
+
         // Register background cleanup service
         services.AddHostedService<StatisticsCleanupService>();
     }

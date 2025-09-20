@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using OpenTelemetryExample.Shared.Models;
 using OpenTelemetryExample.Client.Services;
+using OpenTelemetryExample.Shared.Models;
 
 namespace OpenTelemetryExample.Client.Components;
 

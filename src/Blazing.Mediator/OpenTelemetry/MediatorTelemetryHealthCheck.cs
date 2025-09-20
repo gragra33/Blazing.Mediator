@@ -15,7 +15,7 @@ public sealed class MediatorTelemetryHealthCheck
         {
             var isEnabled = Mediator.TelemetryEnabled;
             var isWorking = Mediator.GetTelemetryHealth();
-            
+
             return new MediatorTelemetryHealthResult
             {
                 IsHealthy = isEnabled && isWorking,
@@ -23,9 +23,9 @@ public sealed class MediatorTelemetryHealthCheck
                 CanRecordMetrics = isWorking,
                 MeterName = Mediator.Meter.Name,
                 ActivitySourceName = Mediator.ActivitySource.Name,
-                Message = isEnabled && isWorking 
-                    ? "Telemetry is enabled and working correctly" 
-                    : isEnabled 
+                Message = isEnabled && isWorking
+                    ? "Telemetry is enabled and working correctly"
+                    : isEnabled
                         ? "Telemetry is enabled but not working correctly"
                         : "Telemetry is disabled"
             };

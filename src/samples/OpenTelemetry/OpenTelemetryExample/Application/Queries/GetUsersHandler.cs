@@ -1,8 +1,8 @@
-using System.Diagnostics;
 using Blazing.Mediator;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetryExample.Infrastructure.Data;
 using OpenTelemetryExample.Shared.Models;
+using System.Diagnostics;
 
 namespace OpenTelemetryExample.Application.Queries;
 
@@ -19,11 +19,11 @@ public sealed class GetUsersHandler(ApplicationDbContext context) : IRequestHand
     {
         var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{HandlerName}.Handle");
-        
+
         activity?.SetTag("handler.method", $"{HandlerName}.Handle");
         activity?.SetTag("includeInactive", request.IncludeInactive);
         activity?.SetTag("searchTerm", request.SearchTerm);
-        
+
         // Simulate some processing delay
         await Task.Delay(Random.Shared.Next(50, 200), cancellationToken);
         var query = context.Users.AsQueryable();
@@ -37,7 +37,10 @@ public sealed class GetUsersHandler(ApplicationDbContext context) : IRequestHand
                                      || u.Email.Contains(request.SearchTerm));
         }
         var users = await query.ToListAsync(cancellationToken);
+
+        activity?.SetStatus(ActivityStatusCode.Ok);
         activity?.SetTag("handler.user_count", users.Count);
+
         return users.Select(u => u.ToDto()).ToList();
     }
 }

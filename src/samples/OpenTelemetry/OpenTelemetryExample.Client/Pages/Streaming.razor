@@ -1,0 +1,93 @@
+﻿@page "/streaming"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<PageTitle>Streaming with OpenTelemetry</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-broadcast text-primary me-2"></i>
+                Streaming with OpenTelemetry
+            </h1>
+            <p class="lead">
+                This page demonstrates <strong>Blazing.Mediator</strong> streaming capabilities with comprehensive OpenTelemetry telemetry integration.
+                Both API streaming and SignalR streaming flow through the mediator (Controller/Hub → Mediator → Handler) to show complete telemetry traces.
+            </p>
+        </div>
+    </div>
+
+    <!-- API Streaming Component - Fully Self-Contained -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <ApiStreamingDemo 
+                Http="Http"
+                JSRuntimeService="JSRuntime" />
+        </div>
+    </div>
+
+    <!-- SignalR Streaming Component - Fully Self-Contained -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <SignalRStreamingDemo 
+                Navigation="Navigation"
+                Http="Http"
+                JSRuntimeService="JSRuntime" />
+        </div>
+    </div>
+
+    <!-- OpenTelemetry Information -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-2">
+                        <i class="bi bi-bar-chart-fill text-warning me-2"></i>
+                        OpenTelemetry Integration
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info border-0">
+                        <h6>
+                            <i class="bi bi-info-circle me-2"></i>
+                            What's Being Traced
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul class="mb-0">
+                                    <li><i class="bi bi-gear me-1 text-primary"></i> <strong>Mediator Streaming:</strong> Complete pipeline telemetry</li>
+                                    <li><i class="bi bi-speedometer2 me-1 text-success"></i> <strong>Handler Execution:</strong> Per-user performance tracking</li>
+                                    <li><i class="bi bi-stopwatch me-1 text-warning"></i> <strong>Item-Level Metrics:</strong> Processing time and throughput</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="mb-0">
+                                    <li><i class="bi bi-diagram-3 me-1 text-info"></i> <strong>Pipeline Tracing:</strong> Controller → Mediator → Handler</li>
+                                    <li><i class="bi bi-broadcast me-1 text-danger"></i> <strong>SignalR Integration:</strong> Connection lifecycle telemetry</li>
+                                    <li><i class="bi bi-exclamation-triangle me-1 text-warning"></i> <strong>Error Tracking:</strong> Comprehensive error reporting</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning border-0">
+                        <h6>
+                            <i class="bi bi-eye me-2"></i>
+                            Viewing Telemetry
+                        </h6>
+                        <p class="mb-2">
+                            <i class="bi bi-display me-1"></i>
+                            Check your browser's developer console and server console output to see detailed OpenTelemetry traces and metrics.
+                        </p>
+                        <p class="mb-0">
+                            <i class="bi bi-cloud me-1"></i>
+                            In production, telemetry exports to observability platforms like Jaeger, Zipkin, or Application Insights.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

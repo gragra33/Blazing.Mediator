@@ -59,7 +59,6 @@ public sealed class GetLiveMetricsHandler(ApplicationDbContext context, ILogger<
                     AvgDuration = Math.Round(g.Average(m => m.Duration), 1)
                 })
                 .OrderByDescending(c => c.Count)
-                .Take(10)
                 .ToList();
 
             var queryMetrics = recentMetrics
@@ -72,7 +71,6 @@ public sealed class GetLiveMetricsHandler(ApplicationDbContext context, ILogger<
                     AvgDuration = Math.Round(g.Average(m => m.Duration), 1)
                 })
                 .OrderByDescending(q => q.Count)
-                .Take(10)
                 .ToList();
 
             var result = new LiveMetricsDto
@@ -92,7 +90,7 @@ public sealed class GetLiveMetricsHandler(ApplicationDbContext context, ILogger<
                 Message = $"Live metrics from the last {request.TimeWindow.TotalMinutes:F0} minutes - {totalRequests} total requests, {successfulRequests} successful"
             };
 
-            logger.LogInformation("Retrieved live metrics: {TotalRequests} requests, {SuccessRate:F1}% success rate", 
+            logger.LogInformation("Retrieved live metrics: {TotalRequests} requests, {SuccessRate:F1}% success rate",
                 totalRequests, successfulRequests * 100.0 / totalRequests);
 
             return result;
@@ -100,7 +98,7 @@ public sealed class GetLiveMetricsHandler(ApplicationDbContext context, ILogger<
         catch (Exception ex)
         {
             logger.LogError(ex, "Error retrieving live metrics");
-            
+
             // Return fallback data in case of error
             return new LiveMetricsDto
             {

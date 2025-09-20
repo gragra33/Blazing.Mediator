@@ -28,14 +28,12 @@ public class UserIssueResolutionTests
         //     Assembly.GetExecutingAssembly()
         // );
         //
-        // This works using the comprehensive overload:
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: true,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: true,
-            Assembly.GetExecutingAssembly()
-        );
+        // This works using the new configuration approach:
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking()
+                  .WithNotificationMiddlewareDiscovery();
+        }, Assembly.GetExecutingAssembly());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -67,13 +65,11 @@ public class UserIssueResolutionTests
         var services = new ServiceCollection();
 
         // Act - This pattern is from their SimpleNotificationExample
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: true,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: true,         // DO discover notification middleware
-            Assembly.GetExecutingAssembly()
-        );
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking()
+                  .WithNotificationMiddlewareDiscovery();         // DO discover notification middleware
+        }, Assembly.GetExecutingAssembly());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -119,13 +115,13 @@ public class UserIssueResolutionTests
         var services = new ServiceCollection();
 
         // Act - Test various combinations the user might want to use
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: enableStats,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: discoverNotifications,
-            Assembly.GetExecutingAssembly()
-        );
+        services.AddMediator(config =>
+        {
+            if (enableStats)
+                config.WithStatisticsTracking();
+            if (discoverNotifications)
+                config.WithNotificationMiddlewareDiscovery();
+        }, Assembly.GetExecutingAssembly());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -181,13 +177,15 @@ public class UserIssueResolutionTests
             var services = new ServiceCollection();
 
             // Act
-            services.AddMediator(
-                configureMiddleware: null,
-                enableStatisticsTracking: enableStats,
-                discoverMiddleware: discoverRequest,
-                discoverNotificationMiddleware: discoverNotification,
-                Assembly.GetExecutingAssembly()
-            );
+            services.AddMediator(config =>
+            {
+                if (enableStats)
+                    config.WithStatisticsTracking();
+                if (discoverRequest)
+                    config.WithMiddlewareDiscovery();
+                if (discoverNotification)
+                    config.WithNotificationMiddlewareDiscovery();
+            }, Assembly.GetExecutingAssembly());
 
             // Assert
             var serviceProvider = services.BuildServiceProvider();
@@ -216,14 +214,12 @@ public class UserIssueResolutionTests
         //     Assembly.GetExecutingAssembly()
         // );
 
-        // This works now with the comprehensive overload:
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: true,
-            discoverMiddleware: false, // Not requested, so false
-            discoverNotificationMiddleware: true,
-            Assembly.GetExecutingAssembly()
-        );
+        // This works now with the new configuration approach:
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking()
+                  .WithNotificationMiddlewareDiscovery();
+        }, Assembly.GetExecutingAssembly());
 
         // Assert - Verify this produces the exact configuration the user wanted
         var serviceProvider = services.BuildServiceProvider();

@@ -23,13 +23,11 @@ public class EnhancedParameterCombinationTests
         var services = new ServiceCollection();
 
         // Act - User's desired pattern using comprehensive overload
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: true,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: true,
-            Assembly.GetExecutingAssembly()
-        );
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking()
+                  .WithNotificationMiddlewareDiscovery();
+        }, Assembly.GetExecutingAssembly());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -69,13 +67,15 @@ public class EnhancedParameterCombinationTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: enableStats,
-            discoverMiddleware: discoverRequest,
-            discoverNotificationMiddleware: discoverNotification,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            if (enableStats)
+                config.WithStatisticsTracking();
+            if (discoverRequest)
+                config.WithMiddlewareDiscovery();
+            if (discoverNotification)
+                config.WithNotificationMiddlewareDiscovery();
+        }, _testAssembly);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -130,13 +130,10 @@ public class EnhancedParameterCombinationTests
         var services = new ServiceCollection();
 
         // Act - Test with null assemblies
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: false,
-            discoverMiddleware: null,
-            discoverNotificationMiddleware: null,
-            assemblies: null
-        );
+        services.AddMediator(config =>
+        {
+            // No configuration needed - default behavior
+        }, Array.Empty<Assembly>());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -164,22 +161,16 @@ public class EnhancedParameterCombinationTests
         var services2 = new ServiceCollection();
 
         // Act - Using assembly directly
-        services1.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: false,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: true,
-            _testAssembly
-        );
+        services1.AddMediator(config =>
+        {
+            config.WithNotificationMiddlewareDiscovery();
+        }, _testAssembly);
 
         // Act - Using type marker
-        services2.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: false,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: true,
-            typeof(EnhancedParameterCombinationTests).Assembly
-        );
+        services2.AddMediator(config =>
+        {
+            config.WithNotificationMiddlewareDiscovery();
+        }, typeof(EnhancedParameterCombinationTests).Assembly);
 
         // Assert - Both should produce identical results
         var serviceProvider1 = services1.BuildServiceProvider();
@@ -204,17 +195,12 @@ public class EnhancedParameterCombinationTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Act - Configuration function should override parameter settings
-        services.AddMediator(
-            configureMiddleware: config =>
-            {
-                config.EnableStatisticsTracking = false; // Override parameter
-            },
-            enableStatisticsTracking: true, // Parameter says true, but config says false
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: false,
-            _testAssembly
-        );
+        // Act - Configuration function should manage all settings
+        services.AddMediator(config =>
+        {
+            // Test configuration - statistics enabled via configuration
+            config.WithStatisticsTracking();
+        }, _testAssembly);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -222,10 +208,8 @@ public class EnhancedParameterCombinationTests
         mediator.ShouldNotBeNull();
 
         // Configuration function should take priority - stats should be enabled
-        // (The implementation shows finalEnableStatisticsTracking = configuration.EnableStatisticsTracking || enableStatisticsTracking)
-        // So if config.EnableStatisticsTracking = false and enableStatisticsTracking = true, result is true
         var statistics = serviceProvider.GetService<MediatorStatistics>();
-        statistics.ShouldNotBeNull(); // Should still be enabled due to OR logic
+        statistics.ShouldNotBeNull(); // Should be enabled via configuration
     }
 
     /// <summary>
@@ -238,13 +222,11 @@ public class EnhancedParameterCombinationTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: false,
-            discoverMiddleware: true,
-            discoverNotificationMiddleware: true,
-            Array.Empty<Assembly>()
-        );
+        services.AddMediator(config =>
+        {
+            config.WithMiddlewareDiscovery()
+                  .WithNotificationMiddlewareDiscovery();
+        }, Array.Empty<Assembly>());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();

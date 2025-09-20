@@ -5,20 +5,47 @@ namespace Blazing.Mediator.Statistics;
 /// <summary>
 /// Collects and reports statistics about mediator usage, including query and command analysis.
 /// </summary>
-public sealed class MediatorStatistics
+public sealed class MediatorStatistics : IDisposable
 {
     private readonly ConcurrentDictionary<string, long> _queryCounts = new();
     private readonly ConcurrentDictionary<string, long> _commandCounts = new();
     private readonly ConcurrentDictionary<string, long> _notificationCounts = new();
     private readonly IStatisticsRenderer _renderer;
+    private readonly StatisticsOptions _options;
+
+    // Performance counters (only used when EnablePerformanceCounters is true)
+    private readonly ConcurrentDictionary<string, List<long>> _executionTimes = new();
+    private readonly ConcurrentDictionary<string, long> _totalExecutions = new();
+    private readonly ConcurrentDictionary<string, long> _totalExecutionTime = new();
+    private readonly ConcurrentDictionary<string, long> _failedExecutions = new();
+    private readonly ConcurrentDictionary<string, DateTime> _lastExecutionTimes = new();
+
+    // Memory usage tracking (when performance counters enabled)
+    private long _totalMemoryAllocated;
+    private readonly object _memoryLock = new();
+
+    // Metrics retention and cleanup
+    private readonly ConcurrentDictionary<string, DateTime> _metricTimestamps = new();
+    private readonly Timer? _cleanupTimer;
+    private readonly object _cleanupLock = new();
+    private bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of the MediatorStatistics class.
     /// </summary>
     /// <param name="renderer">The renderer to use for statistics output.</param>
-    public MediatorStatistics(IStatisticsRenderer renderer)
+    /// <param name="options">The statistics tracking options. If null, uses default options.</param>
+    public MediatorStatistics(IStatisticsRenderer renderer, StatisticsOptions? options = null)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
+        _options = options ?? new StatisticsOptions();
+
+        // Initialize cleanup timer if retention period is configured
+        if (_options.MetricsRetentionPeriod > TimeSpan.Zero)
+        {
+            var cleanupIntervalMs = (int)_options.CleanupInterval.TotalMilliseconds;
+            _cleanupTimer = new Timer(PerformCleanup, null, cleanupIntervalMs, cleanupIntervalMs);
+        }
     }
 
     /// <summary>
@@ -27,10 +54,13 @@ public sealed class MediatorStatistics
     /// <param name="queryType">The name of the query type.</param>
     public void IncrementQuery(string queryType)
     {
-        if (!string.IsNullOrEmpty(queryType))
+        if (!_options.EnableRequestMetrics || string.IsNullOrEmpty(queryType))
         {
-            _queryCounts.AddOrUpdate(queryType, 1, (_, count) => count + 1);
+            return;
         }
+
+        _queryCounts.AddOrUpdate(queryType, 1, (_, count) => count + 1);
+        UpdateMetricTimestamp(queryType);
     }
 
     /// <summary>
@@ -39,10 +69,13 @@ public sealed class MediatorStatistics
     /// <param name="commandType">The name of the command type.</param>
     public void IncrementCommand(string commandType)
     {
-        if (!string.IsNullOrEmpty(commandType))
+        if (!_options.EnableRequestMetrics || string.IsNullOrEmpty(commandType))
         {
-            _commandCounts.AddOrUpdate(commandType, 1, (_, count) => count + 1);
+            return;
         }
+
+        _commandCounts.AddOrUpdate(commandType, 1, (_, count) => count + 1);
+        UpdateMetricTimestamp(commandType);
     }
 
     /// <summary>
@@ -51,10 +84,179 @@ public sealed class MediatorStatistics
     /// <param name="notificationType">The name of the notification type.</param>
     public void IncrementNotification(string notificationType)
     {
-        if (!string.IsNullOrEmpty(notificationType))
+        if (!_options.EnableNotificationMetrics || string.IsNullOrEmpty(notificationType))
         {
-            _notificationCounts.AddOrUpdate(notificationType, 1, (_, count) => count + 1);
+            return;
         }
+
+        _notificationCounts.AddOrUpdate(notificationType, 1, (_, count) => count + 1);
+        UpdateMetricTimestamp(notificationType);
+    }
+
+    /// <summary>
+    /// Records the execution time for a specific request type when performance counters are enabled.
+    /// </summary>
+    /// <param name="requestType">The name of the request type.</param>
+    /// <param name="executionTimeMs">The execution time in milliseconds.</param>
+    /// <param name="successful">Whether the execution was successful.</param>
+    public void RecordExecutionTime(string requestType, long executionTimeMs, bool successful = true)
+    {
+        if (!_options.EnablePerformanceCounters || string.IsNullOrEmpty(requestType))
+        {
+            return;
+        }
+
+        // Update execution times for percentile calculations
+        _executionTimes.AddOrUpdate(requestType, [executionTimeMs], (_, times) =>
+        {
+            lock (times)
+            {
+                times.Add(executionTimeMs);
+
+                // Keep only the last N entries to prevent unbounded growth
+                if (times.Count > 1000)
+                {
+                    times.RemoveAt(0);
+                }
+
+                return times;
+            }
+        });
+
+        // Update aggregated metrics
+        _totalExecutions.AddOrUpdate(requestType, 1, (_, count) => count + 1);
+        _totalExecutionTime.AddOrUpdate(requestType, executionTimeMs, (_, total) => total + executionTimeMs);
+        _lastExecutionTimes[requestType] = DateTime.UtcNow;
+
+        if (!successful)
+        {
+            _failedExecutions.AddOrUpdate(requestType, 1, (_, count) => count + 1);
+        }
+    }
+
+    /// <summary>
+    /// Records memory allocation for performance tracking when performance counters are enabled.
+    /// </summary>
+    /// <param name="bytesAllocated">The number of bytes allocated.</param>
+    public void RecordMemoryAllocation(long bytesAllocated)
+    {
+        if (!_options.EnablePerformanceCounters)
+        {
+            return;
+        }
+
+        lock (_memoryLock)
+        {
+            _totalMemoryAllocated += bytesAllocated;
+        }
+    }
+
+    /// <summary>
+    /// Gets performance metrics for a specific request type.
+    /// </summary>
+    /// <param name="requestType">The name of the request type.</param>
+    /// <returns>Performance metrics if available, null otherwise.</returns>
+    public PerformanceMetrics? GetPerformanceMetrics(string requestType)
+    {
+        if (!_options.EnablePerformanceCounters || string.IsNullOrEmpty(requestType))
+        {
+            return null;
+        }
+
+        if (!_totalExecutions.TryGetValue(requestType, out var totalExecutions) || totalExecutions == 0)
+        {
+            return null;
+        }
+
+        _totalExecutionTime.TryGetValue(requestType, out var totalTime);
+        _failedExecutions.TryGetValue(requestType, out var failures);
+        _lastExecutionTimes.TryGetValue(requestType, out var lastExecution);
+
+        var averageTime = totalExecutions > 0 ? (double)totalTime / totalExecutions : 0;
+        var successRate = totalExecutions > 0 ? (double)(totalExecutions - failures) / totalExecutions * 100 : 0;
+
+        // Calculate percentiles if we have execution time data
+        double p50 = 0, p95 = 0, p99 = 0;
+        if (_executionTimes.TryGetValue(requestType, out var times) && times.Count > 0)
+        {
+            lock (times)
+            {
+                var sortedTimes = times.OrderBy(t => t).ToArray();
+                p50 = GetPercentile(sortedTimes, 0.5);
+                p95 = GetPercentile(sortedTimes, 0.95);
+                p99 = GetPercentile(sortedTimes, 0.99);
+            }
+        }
+
+        return new PerformanceMetrics(
+            requestType,
+            totalExecutions,
+            failures,
+            averageTime,
+            successRate,
+            lastExecution,
+            p50,
+            p95,
+            p99
+        );
+    }
+
+    /// <summary>
+    /// Gets overall performance summary when performance counters are enabled.
+    /// </summary>
+    /// <returns>Performance summary with overall metrics.</returns>
+    public PerformanceSummary? GetPerformanceSummary()
+    {
+        if (!_options.EnablePerformanceCounters)
+        {
+            return null;
+        }
+
+        var totalRequests = _totalExecutions.Values.Sum();
+        var totalFailures = _failedExecutions.Values.Sum();
+        var totalTime = _totalExecutionTime.Values.Sum();
+
+        long totalMemory;
+        lock (_memoryLock)
+        {
+            totalMemory = _totalMemoryAllocated;
+        }
+
+        var averageTime = totalRequests > 0 ? (double)totalTime / totalRequests : 0;
+        var overallSuccessRate = totalRequests > 0 ? (double)(totalRequests - totalFailures) / totalRequests * 100 : 0;
+
+        return new PerformanceSummary(
+            totalRequests,
+            totalFailures,
+            averageTime,
+            overallSuccessRate,
+            totalMemory,
+            _totalExecutions.Count
+        );
+    }
+
+    /// <summary>
+    /// Calculates the specified percentile from a sorted array of values.
+    /// </summary>
+    /// <param name="sortedValues">Array of sorted values.</param>
+    /// <param name="percentile">Percentile to calculate (0.0 to 1.0).</param>
+    /// <returns>The percentile value.</returns>
+    private static double GetPercentile(long[] sortedValues, double percentile)
+    {
+        if (sortedValues.Length == 0) return 0;
+        if (sortedValues.Length == 1) return sortedValues[0];
+
+        var index = percentile * (sortedValues.Length - 1);
+        var lower = (int)Math.Floor(index);
+        var upper = (int)Math.Ceiling(index);
+
+        if (lower == upper)
+        {
+            return sortedValues[lower];
+        }
+
+        var weight = index - lower;
+        return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
     }
 
     /// <summary>
@@ -66,16 +268,160 @@ public sealed class MediatorStatistics
         _renderer.Render($"Queries: {_queryCounts.Count}");
         _renderer.Render($"Commands: {_commandCounts.Count}");
         _renderer.Render($"Notifications: {_notificationCounts.Count}");
+
+        // Include performance metrics if enabled
+        if (_options.EnablePerformanceCounters)
+        {
+            var summary = GetPerformanceSummary();
+            if (summary.HasValue)
+            {
+                var summaryValue = summary.Value;
+                _renderer.Render("");
+                _renderer.Render("Performance Summary:");
+                _renderer.Render($"Total Requests: {summaryValue.TotalRequests:N0}");
+                _renderer.Render($"Failed Requests: {summaryValue.TotalFailures:N0}");
+                _renderer.Render($"Success Rate: {summaryValue.OverallSuccessRate:F1}%");
+                _renderer.Render($"Average Execution Time: {summaryValue.AverageExecutionTimeMs:F1}ms");
+                _renderer.Render($"Total Memory Allocated: {summaryValue.TotalMemoryAllocatedBytes:N0} bytes");
+                _renderer.Render($"Unique Request Types: {summaryValue.UniqueRequestTypes}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Performs cleanup of expired metrics data based on the retention period.
+    /// </summary>
+    /// <param name="state">Timer callback state (unused).</param>
+    private void PerformCleanup(object? state)
+    {
+        if (_disposed || _options.MetricsRetentionPeriod <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        lock (_cleanupLock)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            var cutoffTime = DateTime.UtcNow - _options.MetricsRetentionPeriod;
+            var keysToRemove = new List<string>();
+
+            // Find expired metric entries
+            foreach (var kvp in _metricTimestamps)
+            {
+                if (kvp.Value < cutoffTime)
+                {
+                    keysToRemove.Add(kvp.Key);
+                }
+            }
+
+            // Remove expired metrics
+            foreach (var key in keysToRemove)
+            {
+                RemoveMetricEntry(key);
+            }
+
+            // Also limit the number of entries if configured
+            if (_options.MaxTrackedRequestTypes > 0)
+            {
+                LimitMetricEntries();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Removes a metric entry from all tracking dictionaries.
+    /// </summary>
+    /// <param name="key">The metric key to remove.</param>
+    private void RemoveMetricEntry(string key)
+    {
+        _queryCounts.TryRemove(key, out _);
+        _commandCounts.TryRemove(key, out _);
+        _notificationCounts.TryRemove(key, out _);
+        _metricTimestamps.TryRemove(key, out _);
+
+        if (_options.EnablePerformanceCounters)
+        {
+            _executionTimes.TryRemove(key, out _);
+            _totalExecutions.TryRemove(key, out _);
+            _totalExecutionTime.TryRemove(key, out _);
+            _failedExecutions.TryRemove(key, out _);
+            _lastExecutionTimes.TryRemove(key, out _);
+        }
+    }
+
+    /// <summary>
+    /// Limits the number of metric entries to prevent unbounded growth.
+    /// </summary>
+    private void LimitMetricEntries()
+    {
+        if (_metricTimestamps.Count <= _options.MaxTrackedRequestTypes)
+        {
+            return;
+        }
+
+        // Remove oldest entries
+        var sortedEntries = _metricTimestamps
+            .OrderBy(kvp => kvp.Value)
+            .Take(_metricTimestamps.Count - _options.MaxTrackedRequestTypes)
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var key in sortedEntries)
+        {
+            RemoveMetricEntry(key);
+        }
+    }
+
+    /// <summary>
+    /// Updates the timestamp for a metric entry to track when it was last accessed.
+    /// </summary>
+    /// <param name="key">The metric key.</param>
+    private void UpdateMetricTimestamp(string key)
+    {
+        if (_options.MetricsRetentionPeriod > TimeSpan.Zero)
+        {
+            _metricTimestamps[key] = DateTime.UtcNow;
+        }
+    }
+
+    /// <summary>
+    /// Disposes of the resources used by the MediatorStatistics instance.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        lock (_cleanupLock)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _cleanupTimer?.Dispose();
+        }
     }
 
     /// <summary>
     /// Analyzes all registered queries in the application and returns detailed information grouped by assembly and namespace.
+    /// The level of detail depends on the EnableDetailedAnalysis option in StatisticsOptions.
     /// </summary>
     /// <param name="serviceProvider">Service provider to scan for registered query types.</param>
-    /// <param name="isDetailed">If true, returns comprehensive analysis with all properties. If false, returns compact analysis with basic information only.</param>
+    /// <param name="isDetailed">If specified, overrides the EnableDetailedAnalysis option. If true, returns comprehensive analysis with all properties. If false, returns compact analysis with basic information only.</param>
     /// <returns>Read-only list of query analysis information grouped by assembly with namespace.</returns>
-    public IReadOnlyList<QueryCommandAnalysis> AnalyzeQueries(IServiceProvider serviceProvider, bool isDetailed = true)
+    public IReadOnlyList<QueryCommandAnalysis> AnalyzeQueries(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
+        // Use the parameter if provided, otherwise use the options setting
+        bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
+
         // Look for IQuery<T> implementations first
         var queryTypes = FindTypesImplementingInterface(typeof(IQuery<>));
 
@@ -84,17 +430,21 @@ public sealed class MediatorStatistics
             .Where(t => t.Name.Contains("Query", StringComparison.OrdinalIgnoreCase));
 
         var allQueryTypes = queryTypes.Concat(requestWithResponseTypes).Distinct().ToList();
-        return CreateAnalysisResults(allQueryTypes, serviceProvider, true, isDetailed);
+        return CreateAnalysisResults(allQueryTypes, serviceProvider, true, useDetailedAnalysis);
     }
 
     /// <summary>
     /// Analyzes all registered commands in the application and returns detailed information grouped by assembly and namespace.
+    /// The level of detail depends on the EnableDetailedAnalysis option in StatisticsOptions.
     /// </summary>
     /// <param name="serviceProvider">Service provider to scan for registered command types.</param>
-    /// <param name="isDetailed">If true, returns comprehensive analysis with all properties. If false, returns compact analysis with basic information only.</param>
+    /// <param name="isDetailed">If specified, overrides the EnableDetailedAnalysis option. If true, returns comprehensive analysis with all properties. If false, returns compact analysis with basic information only.</param>
     /// <returns>Read-only list of command analysis information grouped by assembly with namespace.</returns>
-    public IReadOnlyList<QueryCommandAnalysis> AnalyzeCommands(IServiceProvider serviceProvider, bool isDetailed = true)
+    public IReadOnlyList<QueryCommandAnalysis> AnalyzeCommands(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
+        // Use the parameter if provided, otherwise use the options setting
+        bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
+
         // Look for ICommand and ICommand<T> implementations first
         var commandTypes = FindTypesImplementingInterface(typeof(ICommand))
             .Concat(FindTypesImplementingInterface(typeof(ICommand<>)))
@@ -111,7 +461,7 @@ public sealed class MediatorStatistics
             .Where(t => t.Name.Contains("Command", StringComparison.OrdinalIgnoreCase));
 
         var allCommandTypes = commandTypes.Concat(voidRequestTypes).Concat(requestWithResponseTypes).Distinct().ToList();
-        return CreateAnalysisResults(allCommandTypes, serviceProvider, false, isDetailed);
+        return CreateAnalysisResults(allCommandTypes, serviceProvider, false, useDetailedAnalysis);
     }
 
     /// <summary>

@@ -1,5 +1,14 @@
 ﻿# Version History
 
+### V1.8.0 - 19 September, 2025
+
+-   **OpenTelemetry Integration**: Full observability support with distributed tracing, metrics collection, and performance monitoring for enhanced debugging and monitoring capabilities
+-   **Fluent Configuration API**: New modern fluent configuration approach using `builder.Services.AddMediator(config => { ... })` for improved type safety and enhanced functionality
+-   **Legacy Method Deprecation**: Marked older `AddMediator()` and `AddMediatorFromLoadedAssemblies()` methods with boolean parameters as obsolete while maintaining backward compatibility during transition period
+-   **OpenTelemetryExample Sample**: New comprehensive sample project demonstrating OpenTelemetry integration with web API server, Blazor client, and .NET Aspire support for modern cloud-native applications
+-   **Enhanced Documentation**: Updated all documentation with new fluent configuration examples and comprehensive migration guidance from legacy registration methods
+-   **Improved Developer Experience**: Streamlined configuration process with better IntelliSense support and compile-time validation through fluent API design
+
 ### V1.7.0 - 19 September, 2025
 
 -   **Type-Constrained Middleware Support**: Enhanced middleware pipeline with generic type constraint validation for selective middleware execution based on interface types
@@ -11,7 +20,7 @@
 -   **Enhanced Type Safety**: Compile-time enforcement of middleware applicability through generic type constraints reducing runtime errors and improving performance
 -   **Comprehensive Test Coverage**: Extensive test suite for type constraint validation covering edge cases, constraint inheritance, and complex generic scenarios
 -   **Enhanced Sample Projects**: Updated ECommerce.Api and UserManagement.Api with comprehensive mediator statistics endpoints for runtime monitoring and analysis
- 
+
 ### V1.6.2 - 18 September, 2025
 
 -   **Enhanced Handler Analysis**: Updated `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` with comprehensive handler detection and status reporting

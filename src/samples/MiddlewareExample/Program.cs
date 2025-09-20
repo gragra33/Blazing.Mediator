@@ -2,10 +2,11 @@ var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((_, services) =>
     {
         // Register the request handlers and middleware
-        services.AddMediator(
-            enableStatisticsTracking: true,
-            discoverMiddleware: true,
-            assemblies: Assembly.GetExecutingAssembly());
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking()
+                  .WithMiddlewareDiscovery();
+        }, Assembly.GetExecutingAssembly());
 
         // Register FluentValidation services
         services.AddValidatorsFromAssemblyContaining<Program>();

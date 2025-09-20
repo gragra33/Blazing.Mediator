@@ -61,8 +61,8 @@ public static class MediatorAnalysisEndpoints
                 }
 
                 // Also check HttpContext.Items as backup
-                if (string.IsNullOrEmpty(sessionId) && 
-                    httpContext.Items.TryGetValue("StatisticsSessionId", out var sessionIdObj) && 
+                if (string.IsNullOrEmpty(sessionId) &&
+                    httpContext.Items.TryGetValue("StatisticsSessionId", out var sessionIdObj) &&
                     sessionIdObj is string itemsSessionId)
                 {
                     sessionId = itemsSessionId;
@@ -73,7 +73,7 @@ public static class MediatorAnalysisEndpoints
                 {
                     Message = string.IsNullOrEmpty(sessionId) ? "Session ID Not Yet Assigned" : "Current Session ID",
                     SessionId = sessionId,
-                    Note = string.IsNullOrEmpty(sessionId) 
+                    Note = string.IsNullOrEmpty(sessionId)
                         ? "No session ID has been assigned yet. Make a request that triggers mediator operations to initialize session tracking."
                         : "This session ID is used for tracking your mediator statistics across requests",
                     Usage = string.IsNullOrEmpty(sessionId) ? null : new
@@ -156,7 +156,7 @@ public static class MediatorAnalysisEndpoints
         group.MapGet("/statistics/session/{sessionId}", (string sessionId, MediatorStatisticsTracker statisticsTracker) =>
             {
                 var sessionStats = statisticsTracker.GetSessionStatistics(sessionId);
-                
+
                 if (sessionStats == null)
                 {
                     return Results.NotFound(new { Error = $"Session '{sessionId}' not found or has no activity" });

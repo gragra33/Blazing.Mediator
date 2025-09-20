@@ -17,14 +17,14 @@ public static class MediatorTelemetryExtensions
     {
         var options = new MediatorTelemetryOptions();
         configure(options);
-        
+
         // Apply configuration to static properties
         Mediator.TelemetryEnabled = options.Enabled;
-        
+
         services.AddSingleton(options);
         return services;
     }
-    
+
     /// <summary>
     /// Enables Blazing.Mediator telemetry with default configuration.
     /// </summary>
@@ -34,7 +34,7 @@ public static class MediatorTelemetryExtensions
     {
         return services.ConfigureMediatorTelemetry(_ => { /* Use defaults */ });
     }
-    
+
     /// <summary>
     /// Disables Blazing.Mediator telemetry.
     /// </summary>

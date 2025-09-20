@@ -1,7 +1,7 @@
-using System.Diagnostics;
 using OpenTelemetry;
-using OpenTelemetryExample.Infrastructure.Data;
 using OpenTelemetryExample.Domain.Entities;
+using OpenTelemetryExample.Infrastructure.Data;
+using System.Diagnostics;
 
 namespace OpenTelemetryExample.Application.Services;
 
@@ -77,7 +77,7 @@ public sealed class OpenTelemetryActivityProcessor(
 
             context.SaveChanges();
 
-            logger.LogDebug("Captured telemetry for activity: {OperationName} ({Duration}ms)", 
+            logger.LogDebug("Captured telemetry for activity: {OperationName} ({Duration}ms)",
                 activity.OperationName, activity.Duration.TotalMilliseconds);
         }
         catch (Exception ex)
@@ -89,9 +89,9 @@ public sealed class OpenTelemetryActivityProcessor(
     private static bool ShouldSkipActivity(Activity activity)
     {
         var operationName = activity.OperationName?.ToLowerInvariant() ?? "";
-        
+
         // Skip telemetry endpoints to prevent feedback loops
-        if (operationName.Contains("/telemetry") || 
+        if (operationName.Contains("/telemetry") ||
             operationName.Contains("/debug") ||
             operationName.Contains("otlp") ||
             operationName.Contains("healthcheck"))
@@ -135,27 +135,27 @@ public sealed class OpenTelemetryActivityProcessor(
     private static string? GetExceptionType(Activity activity)
     {
         // Look for exception information in tags
-        var exceptionType = activity.Tags.FirstOrDefault(t => 
+        var exceptionType = activity.Tags.FirstOrDefault(t =>
             t.Key.Equals("exception.type", StringComparison.OrdinalIgnoreCase)).Value;
-        
+
         return exceptionType;
     }
 
     private static string? GetExceptionMessage(Activity activity)
     {
         // Look for exception message in tags
-        var exceptionMessage = activity.Tags.FirstOrDefault(t => 
+        var exceptionMessage = activity.Tags.FirstOrDefault(t =>
             t.Key.Equals("exception.message", StringComparison.OrdinalIgnoreCase)).Value;
-        
+
         return exceptionMessage;
     }
 
     private static string GetRequestType(Activity activity)
     {
         // Look for mediator-specific tags first
-        var requestType = activity.Tags.FirstOrDefault(t => 
+        var requestType = activity.Tags.FirstOrDefault(t =>
             t.Key.Equals("mediator.request_type", StringComparison.OrdinalIgnoreCase)).Value;
-        
+
         if (!string.IsNullOrEmpty(requestType))
         {
             return requestType;
@@ -168,9 +168,9 @@ public sealed class OpenTelemetryActivityProcessor(
     private static string? GetHandlerName(Activity activity)
     {
         // Look for mediator handler information
-        var handlerName = activity.Tags.FirstOrDefault(t => 
+        var handlerName = activity.Tags.FirstOrDefault(t =>
             t.Key.Equals("mediator.handler", StringComparison.OrdinalIgnoreCase)).Value;
-        
+
         if (!string.IsNullOrEmpty(handlerName))
         {
             return handlerName;
@@ -193,28 +193,28 @@ public sealed class OpenTelemetryActivityProcessor(
     private static string ExtractRequestName(Activity activity)
     {
         var requestType = GetRequestType(activity);
-        
+
         // Extract just the class name without namespace
         var lastDot = requestType.LastIndexOf('.');
         if (lastDot >= 0 && lastDot < requestType.Length - 1)
         {
-            return requestType.Substring(lastDot + 1);
+            return requestType[(lastDot + 1)..];
         }
-        
+
         return requestType;
     }
 
     private static string DetermineCategory(Activity activity)
     {
         var requestType = GetRequestType(activity);
-        
+
         if (requestType.EndsWith("Query", StringComparison.OrdinalIgnoreCase))
             return "Query";
         if (requestType.EndsWith("Command", StringComparison.OrdinalIgnoreCase))
             return "Command";
         if (activity.OperationName.Contains("HTTP", StringComparison.OrdinalIgnoreCase))
             return "HTTP";
-        
+
         return "Activity";
     }
 }

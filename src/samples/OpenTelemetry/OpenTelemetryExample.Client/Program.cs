@@ -44,10 +44,10 @@ if (builder.HostEnvironment.IsDevelopment())
     {
         using var scope = app.Services.CreateScope();
         var connectivityService = scope.ServiceProvider.GetRequiredService<IApiConnectivityService>();
-        
+
         Console.WriteLine("[*] Testing API connectivity...");
         var isConnected = await connectivityService.TestApiConnectivityAsync();
-        
+
         if (isConnected)
         {
             Console.WriteLine("[+] API connectivity test: SUCCESS");
@@ -71,7 +71,7 @@ await app.RunAsync();
 static string GetApiBaseUrl(IConfiguration configuration, IWebAssemblyHostEnvironment environment)
 {
     Console.WriteLine("[*] API URL Resolution Process:");
-    
+
     // 1. Aspire service discovery (highest priority when running through Aspire)
     var aspireHttpsUrl = configuration.GetValue<string>("services:OpenTelemetry-api-server:https:0");
     if (!string.IsNullOrEmpty(aspireHttpsUrl))

@@ -133,7 +133,7 @@ public class NotificationErrorHandlingMiddleware(ILogger<NotificationErrorHandli
             var notificationName = typeof(TNotification).Name;
             logger.LogError(ex, "! Error in notification pipeline for {NotificationName}: {Message}",
                 notificationName, ex.Message);
-            
+
             // Don't rethrow - we want notifications to be resilient
             // In a real system, you might want to store failed notifications for retry
         }

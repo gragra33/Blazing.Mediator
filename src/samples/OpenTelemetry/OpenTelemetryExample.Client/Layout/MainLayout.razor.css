@@ -1,0 +1,50 @@
+.page-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content {
+    flex: 1;
+    padding-top: 1rem;
+}
+
+.footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    margin-top: auto;
+}
+
+/* Ensure sticky navbar doesn't cover content */
+.sticky-top {
+    z-index: 1020;
+}
+
+/* Improve navbar appearance */
+.navbar {
+    border-bottom: 1px solid rgba(0,0,0,.125);
+    backdrop-filter: blur(10px);
+    background-color: rgba(248, 249, 250, 0.95) !important;
+}
+
+/* Smooth scrolling for better UX */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Feature icon styling */
+.feature-icon {
+    font-size: 3rem;
+    color: #0d6efd;
+    margin-bottom: 1rem;
+}
+
+/* Telemetry card hover effects */
+.telemetry-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.telemetry-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}

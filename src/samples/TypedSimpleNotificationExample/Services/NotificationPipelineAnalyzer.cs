@@ -14,7 +14,7 @@ public static class NotificationPipelineAnalyzer
         IServiceProvider serviceProvider)
     {
         var middlewareInfo = pipelineInspector.GetDetailedMiddlewareInfo(serviceProvider);
-        
+
         return middlewareInfo
             .Select(m => ExtractNotificationMiddlewareInfo(m.Type, m.Order))
             .OrderBy(m => m.Order)
@@ -45,7 +45,7 @@ public static class NotificationPipelineAnalyzer
     private static (string ClassName, string TypeParameters) ExtractClassNameAndTypeParameters(Type type)
     {
         var typeName = type.Name;
-        
+
         if (type.IsGenericType)
         {
             // Remove the generic suffix (e.g., `1, `2)

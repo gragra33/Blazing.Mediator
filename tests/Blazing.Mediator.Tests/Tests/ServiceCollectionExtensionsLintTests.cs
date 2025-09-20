@@ -193,10 +193,10 @@ namespace Blazing.Mediator.Tests.Tests
             // Act & Assert - Test multiple registrations
             Should.NotThrow(() =>
             {
-                services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, (Assembly[])null!);
-                services.AddMediator(configureMiddleware: null, enableStatisticsTracking: false, (Assembly[])null!); // Should not override
-                services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, typeof(ServiceCollectionExtensionsLintTests).Assembly);
-                services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, typeof(ServiceCollectionExtensionsLintTests).Assembly); // Duplicate
+                services.AddMediator(config => config.WithStatisticsTracking(), (Assembly[])null!);
+                services.AddMediator(config => { }, (Assembly[])null!); // Should not override
+                services.AddMediator(config => config.WithStatisticsTracking(), typeof(ServiceCollectionExtensionsLintTests).Assembly);
+                services.AddMediator(config => config.WithStatisticsTracking(), typeof(ServiceCollectionExtensionsLintTests).Assembly); // Duplicate
                 services.AddMediatorFromCallingAssembly();
             });
 

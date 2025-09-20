@@ -23,12 +23,10 @@ public class NotificationMiddlewareDiscoveryTests
         var services = new ServiceCollection();
 
         // Act - Enable notification middleware discovery only
-        services.AddMediator(
-            configureMiddleware: null,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: true,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.WithNotificationMiddlewareDiscovery();
+        }, _testAssembly);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -55,12 +53,10 @@ public class NotificationMiddlewareDiscoveryTests
         var services = new ServiceCollection();
 
         // Act - Disable notification middleware discovery
-        services.AddMediator(
-            configureMiddleware: null,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: false,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            // Default configuration - no middleware discovery
+        }, _testAssembly);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -145,16 +141,12 @@ public class NotificationMiddlewareDiscoveryTests
         var services = new ServiceCollection();
 
         // Act - Only discover notification middleware
-        services.AddMediator(
-            configureMiddleware: config =>
-            {
-                // Manually add some request middleware
-                config.AddMiddleware<FirstQueryMiddleware>();
-            },
-            discoverMiddleware: false, // Don't auto-discover request middleware
-            discoverNotificationMiddleware: true, // Do auto-discover notification middleware
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            // Manually add some request middleware
+            config.AddMiddleware<FirstQueryMiddleware>()
+                  .WithNotificationMiddlewareDiscovery(); // Do auto-discover notification middleware
+        }, _testAssembly);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -224,12 +216,10 @@ public class NotificationMiddlewareDiscoveryTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(
-            configureMiddleware: null,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: true,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.WithNotificationMiddlewareDiscovery();
+        }, _testAssembly);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();

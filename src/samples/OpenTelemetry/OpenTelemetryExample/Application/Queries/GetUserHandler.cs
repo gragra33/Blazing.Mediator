@@ -20,20 +20,26 @@ public sealed class GetUserHandler(ApplicationDbContext context) : IRequestHandl
     {
         var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{HandlerName}.Handle");
-        
+
         activity?.SetTag("handler.method", "GetUserHandler.Handle");
         activity?.SetTag("user.id", request.UserId);
-        
+
         // Simulate some processing delay
         await Task.Delay(Random.Shared.Next(10, 100), cancellationToken);
         var user = await context.Users
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
         if (user == null)
         {
+            var message = $"User with ID {request.UserId} not found";
             activity?.SetTag("handler.not_found", true);
-            throw new NotFoundException($"User with ID {request.UserId} not found");
+            activity?.SetStatus(ActivityStatusCode.Error, message);
+
+            throw new NotFoundException(message);
         }
+
+        activity?.SetStatus(ActivityStatusCode.Ok, $"User with ID {request.UserId} found");
         activity?.SetTag("handler.found", true);
+
         return user.ToDto();
     }
 }

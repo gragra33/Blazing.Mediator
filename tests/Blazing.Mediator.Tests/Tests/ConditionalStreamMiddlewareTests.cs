@@ -705,11 +705,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(
-            configureMiddleware: null,
-            discoverMiddleware: true,
-            discoverNotificationMiddleware: false,
-            typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator(config =>
+        {
+            config.WithMiddlewareDiscovery();
+        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

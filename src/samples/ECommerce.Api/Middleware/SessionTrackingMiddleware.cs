@@ -28,7 +28,7 @@ public class SessionTrackingMiddleware(RequestDelegate next, ILogger<SessionTrac
         context.Items["StatisticsSessionId"] = sessionId;
 
         // Log session activity for debugging
-        logger.LogDebug("Session tracking initialized: {SessionId} for request {RequestPath}", 
+        logger.LogDebug("Session tracking initialized: {SessionId} for request {RequestPath}",
             sessionId, context.Request.Path);
 
         await next(context);
@@ -50,7 +50,7 @@ public class SessionTrackingMiddleware(RequestDelegate next, ILogger<SessionTrac
 
         // Create new session ID if none exists
         var newSessionId = GenerateSessionId();
-        
+
         // Store the session ID in session storage for persistence across requests
         var sessionIdBytes = System.Text.Encoding.UTF8.GetBytes(newSessionId);
         context.Session.Set(sessionKey, sessionIdBytes);

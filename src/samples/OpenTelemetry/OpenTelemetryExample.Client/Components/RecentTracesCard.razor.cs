@@ -4,10 +4,25 @@ using OpenTelemetryExample.Shared.Models;
 
 namespace OpenTelemetryExample.Client.Components;
 
+/// <summary>
+/// Component for displaying recent OpenTelemetry traces with filtering and detailed view capabilities.
+/// Provides real-time trace monitoring and analysis functionality.
+/// </summary>
 public partial class RecentTracesCard : ComponentBase
 {
+    /// <summary>
+    /// Gets or sets the data source for recent traces.
+    /// </summary>
     [Parameter] public RecentTracesDto? DataSource { get; set; }
+
+    /// <summary>
+    /// Callback invoked when the filter parameters are changed.
+    /// </summary>
     [Parameter] public EventCallback OnFiltersChanged { get; set; }
+
+    /// <summary>
+    /// Gets or sets the refresh trigger identifier.
+    /// </summary>
     [Parameter] public int RefreshTrigger { get; set; }
 
     private int _maxRecords = 10;
@@ -18,11 +33,17 @@ public partial class RecentTracesCard : ComponentBase
     private bool _isLoading;
     private int _lastRefreshTrigger;
 
+    /// <summary>
+    /// Initializes the component and loads initial trace data.
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         await RefreshTraces();
     }
 
+    /// <summary>
+    /// Handles parameter changes and refreshes traces when triggered.
+    /// </summary>
     protected override async Task OnParametersSetAsync()
     {
         if (_lastRefreshTrigger != RefreshTrigger)
@@ -32,6 +53,10 @@ public partial class RecentTracesCard : ComponentBase
         }
     }
 
+    /// <summary>
+    /// Retrieves the current traces from the data source.
+    /// </summary>
+    /// <returns>Array of trace DTOs.</returns>
     private TraceDto[] GetTraces()
     {
         try
@@ -43,19 +68,29 @@ public partial class RecentTracesCard : ComponentBase
             }
             return [];
         }
-        catch (Exception ex)
+        catch
         {
             return [];
         }
     }
 
+    /// <summary>
+    /// Gets the CSS row class based on trace type.
+    /// </summary>
+    /// <param name="trace">The trace to get the row class for.</param>
+    /// <returns>CSS class name for the table row.</returns>
     private string GetRowClass(TraceDto trace) =>
         trace.IsMediatorTrace
             ? "table-info"
             : trace.IsAppTrace
-                ? "table-light"
+                ? "table-success"
                 : string.Empty;
 
+    /// <summary>
+    /// Gets the CSS badge class for the trace source.
+    /// </summary>
+    /// <param name="source">The trace source name.</param>
+    /// <returns>CSS class for the source badge.</returns>
     private string GetSourceBadgeClass(string source)
     {
         return source.ToLower() switch
@@ -72,6 +107,11 @@ public partial class RecentTracesCard : ComponentBase
         };
     }
 
+    /// <summary>
+    /// Gets the CSS badge class for the trace status.
+    /// </summary>
+    /// <param name="status">The trace status.</param>
+    /// <returns>CSS class for the status badge.</returns>
     private string GetStatusBadgeClass(string status)
     {
         return status.ToLower() switch
@@ -84,6 +124,11 @@ public partial class RecentTracesCard : ComponentBase
         };
     }
 
+    /// <summary>
+    /// Gets a user-friendly display name for the trace source.
+    /// </summary>
+    /// <param name="source">The original source name.</param>
+    /// <returns>Display-friendly source name.</returns>
     private string GetSourceDisplayName(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -98,8 +143,17 @@ public partial class RecentTracesCard : ComponentBase
         };
     }
 
+    /// <summary>
+    /// Shortens a trace ID for display purposes.
+    /// </summary>
+    /// <param name="traceId">The full trace ID.</param>
+    /// <returns>Shortened trace ID with ellipsis if needed.</returns>
     private string ShortenTraceId(string traceId) => traceId.Length > 8 ? traceId[..8] + "..." : traceId;
 
+    /// <summary>
+    /// Gets a human-readable label for the current time window.
+    /// </summary>
+    /// <returns>Time window description.</returns>
     private string GetAgeLabel()
     {
         return _timeWindowMinutes switch
@@ -113,22 +167,39 @@ public partial class RecentTracesCard : ComponentBase
         };
     }
 
+    /// <summary>
+    /// Updates the time window filter and refreshes traces.
+    /// </summary>
+    /// <param name="minutes">The new time window in minutes.</param>
     private async Task UpdateAge(int minutes)
     {
         _timeWindowMinutes = minutes;
         await RefreshTraces();
     }
 
+    /// <summary>
+    /// Updates the maximum record count filter and refreshes traces.
+    /// </summary>
+    /// <param name="count">The new maximum record count.</param>
     private async Task UpdateCount(int count)
     {
         _maxRecords = count;
         await RefreshTraces();
     }
 
-    private async Task OnAppFilterChanged() =>  await RefreshTraces();
-    
+    /// <summary>
+    /// Handles changes to the application filter.
+    /// </summary>
+    private async Task OnAppFilterChanged() => await RefreshTraces();
+
+    /// <summary>
+    /// Handles changes to the mediator filter.
+    /// </summary>
     private async Task OnMediatorFilterChanged() => await RefreshTraces();
 
+    /// <summary>
+    /// Refreshes the trace data from the telemetry service.
+    /// </summary>
     private async Task RefreshTraces()
     {
         try
@@ -141,8 +212,9 @@ public partial class RecentTracesCard : ComponentBase
                 await InvokeAsync(async () => await OnFiltersChanged.InvokeAsync());
             }
         }
-        catch (Exception ex)
+        catch
         {
+            // Error handling - data source remains unchanged
         }
         finally
         {
@@ -151,12 +223,21 @@ public partial class RecentTracesCard : ComponentBase
         }
     }
 
+    /// <summary>
+    /// Opens the trace details modal for the specified trace.
+    /// </summary>
+    /// <param name="trace">The trace to display details for.</param>
     private async Task ViewTraceDetails(TraceDto trace)
     {
         _selectedTrace = trace;
         await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('traceDetailsModal')).show()");
     }
 
+    /// <summary>
+    /// Formats the middleware pipeline string for display.
+    /// </summary>
+    /// <param name="pipeline">The raw pipeline string.</param>
+    /// <returns>Formatted middleware pipeline string.</returns>
     private string FormatMiddlewarePipeline(string? pipeline)
     {
         if (string.IsNullOrEmpty(pipeline))

@@ -23,7 +23,7 @@ public sealed class DeleteUserHandler(ApplicationDbContext context)
 
         activity?.SetTag("handler.method", "DeleteUserHandler.Handle");
         activity?.SetTag("user.id", request.UserId);
-       
+
         // Simulate some processing delay
         await Task.Delay(Random.Shared.Next(25, 150), cancellationToken);
         // Find the user to delete
@@ -31,12 +31,17 @@ public sealed class DeleteUserHandler(ApplicationDbContext context)
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
         if (user == null)
         {
+            var message = $"User with ID {request.UserId} not found";
+            activity?.SetStatus(ActivityStatusCode.Error, message);
             activity?.SetTag("handler.not_found", true);
-            throw new NotFoundException($"User with ID {request.UserId} not found");
+
+            throw new NotFoundException(message);
         }
         // Remove the user from database
         context.Users.Remove(user);
         await context.SaveChangesAsync(cancellationToken);
+
+        activity?.SetStatus(ActivityStatusCode.Ok);
         activity?.SetTag("handler.deleted", true);
         Console.WriteLine($"Deleted user {user.Id}: {user.Name} ({user.Email})");
     }

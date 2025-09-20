@@ -1,5 +1,5 @@
-using System.Net.Http.Json;
 using OpenTelemetryExample.Shared.Models;
+using System.Net.Http.Json;
 
 namespace OpenTelemetryExample.Client.Services;
 
@@ -11,14 +11,14 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         {
             logger.LogDebug("[->] Calling GET /health");
             logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
-            
+
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var response = await httpClient.GetAsync("health", cts.Token);
             var isHealthy = response.IsSuccessStatusCode;
-            
-            logger.LogDebug("[<-] Health check result: {IsHealthy} (Status: {StatusCode})", 
+
+            logger.LogDebug("[<-] Health check result: {IsHealthy} (Status: {StatusCode})",
                 isHealthy, response.StatusCode);
-            
+
             return isHealthy;
         }
         catch (OperationCanceledException)
@@ -28,7 +28,7 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         }
         catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "[!] HTTP error calling GET /health - API server may not be running at {BaseAddress}", 
+            logger.LogError(ex, "[!] HTTP error calling GET /health - API server may not be running at {BaseAddress}",
                 httpClient.BaseAddress);
             return false;
         }
@@ -45,10 +45,10 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         {
             logger.LogDebug("[->] Calling GET /telemetry/health");
             logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
-            
+
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var response = await httpClient.GetAsync("telemetry/health", cts.Token);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning("[!] Telemetry health endpoint returned {StatusCode}", response.StatusCode);
@@ -57,11 +57,11 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
 
             var jsonContent = await response.Content.ReadAsStringAsync(cts.Token);
             logger.LogDebug("[<-] Telemetry health response: {Json}", jsonContent);
-            
+
             var telemetryHealth = await response.Content.ReadFromJsonAsync<TelemetryHealthDto>(cancellationToken: cts.Token);
-            logger.LogDebug("[<-] Telemetry health: IsHealthy={IsHealthy}, IsEnabled={IsEnabled}", 
+            logger.LogDebug("[<-] Telemetry health: IsHealthy={IsHealthy}, IsEnabled={IsEnabled}",
                 telemetryHealth?.IsHealthy ?? false, telemetryHealth?.IsEnabled ?? false);
-            
+
             return telemetryHealth;
         }
         catch (OperationCanceledException)
@@ -71,7 +71,7 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         }
         catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "[!] HTTP error calling GET /telemetry/health - API server may not be running at {BaseAddress}", 
+            logger.LogError(ex, "[!] HTTP error calling GET /telemetry/health - API server may not be running at {BaseAddress}",
                 httpClient.BaseAddress);
             return null;
         }
@@ -110,20 +110,20 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         {
             logger.LogDebug("[->] Calling GET /telemetry/live-metrics");
             logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
-            
+
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var response = await httpClient.GetAsync("telemetry/live-metrics", cts.Token);
-            
+
             logger.LogDebug("[<-] Live metrics response status: {StatusCode}", response.StatusCode);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
-                logger.LogWarning("[!] Live metrics endpoint returned {StatusCode}: {ErrorContent}", 
+                logger.LogWarning("[!] Live metrics endpoint returned {StatusCode}: {ErrorContent}",
                     response.StatusCode, errorContent);
                 return null;
             }
-            
+
             // Return strongly-typed LiveMetricsDto
             var result = await response.Content.ReadFromJsonAsync<LiveMetricsDto>(cancellationToken: cts.Token);
             logger.LogDebug("[<-] Retrieved live telemetry metrics successfully");
@@ -146,41 +146,41 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         try
         {
             var queryParams = new List<string>();
-            
+
             // Always include maxRecords parameter 
             queryParams.Add($"maxRecords={Math.Max(maxRecords, 10)}");
-            
+
             if (filterMediatorOnly)
                 queryParams.Add("blazingMediatorOnly=true");
-                
+
             if (filterExampleAppOnly)
                 queryParams.Add("exampleAppOnly=true");
-                
+
             if (timeWindowMinutes != 30)
                 queryParams.Add($"timeWindowMinutes={timeWindowMinutes}");
-            
+
             var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
             var endpoint = $"telemetry/traces{queryString}";
-            
+
             logger.LogDebug("[->] Calling GET /{Endpoint}", endpoint);
             logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
-            
+
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var response = await httpClient.GetAsync(endpoint, cts.Token);
-            
+
             logger.LogDebug("[<-] Recent traces response status: {StatusCode}", response.StatusCode);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
-                logger.LogWarning("[!] Recent traces endpoint returned {StatusCode}: {ErrorContent}", 
+                logger.LogWarning("[!] Recent traces endpoint returned {StatusCode}: {ErrorContent}",
                     response.StatusCode, errorContent);
                 return null;
             }
-            
+
             // Return strongly-typed RecentTracesDto
             var result = await response.Content.ReadFromJsonAsync<RecentTracesDto>(cancellationToken: cts.Token);
-            logger.LogDebug("[<-] Retrieved recent traces successfully (maxRecords: {MaxRecords}, filter: {Filter})", 
+            logger.LogDebug("[<-] Retrieved recent traces successfully (maxRecords: {MaxRecords}, filter: {Filter})",
                 maxRecords, filterMediatorOnly);
             return result;
         }
@@ -202,20 +202,20 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         {
             logger.LogDebug("[->] Calling GET /telemetry/activities");
             logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
-            
+
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var response = await httpClient.GetAsync("telemetry/activities", cts.Token);
-            
+
             logger.LogDebug("[<-] Recent activities response status: {StatusCode}", response.StatusCode);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
-                logger.LogWarning("[!] Recent activities endpoint returned {StatusCode}: {ErrorContent}", 
+                logger.LogWarning("[!] Recent activities endpoint returned {StatusCode}: {ErrorContent}",
                     response.StatusCode, errorContent);
                 return null;
             }
-            
+
             // Return strongly-typed RecentActivitiesDto
             var result = await response.Content.ReadFromJsonAsync<RecentActivitiesDto>(cancellationToken: cts.Token);
             logger.LogDebug("[<-] Retrieved recent activities successfully");
@@ -306,20 +306,20 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         {
             logger.LogDebug("[->] Testing basic connectivity with GET /telemetry/test");
             logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
-            
+
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var response = await httpClient.GetAsync("telemetry/test", cts.Token);
-            
+
             logger.LogDebug("[<-] Basic connectivity test response status: {StatusCode}", response.StatusCode);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
-                logger.LogWarning("[!] Basic connectivity test returned {StatusCode}: {ErrorContent}", 
+                logger.LogWarning("[!] Basic connectivity test returned {StatusCode}: {ErrorContent}",
                     response.StatusCode, errorContent);
                 return new { Success = false, response.StatusCode, Error = errorContent };
             }
-            
+
             var result = await response.Content.ReadFromJsonAsync<object>(cancellationToken: cts.Token);
             logger.LogInformation("[+] Basic connectivity test successful!");
             return result;

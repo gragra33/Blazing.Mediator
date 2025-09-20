@@ -23,14 +23,17 @@ public sealed class CreateUserHandler(ApplicationDbContext context)
         activity?.SetTag("handler.method", "CreateUserHandler.Handle");
         activity?.SetTag("user.name", request.Name);
         activity?.SetTag("user.email", request.Email);
-     
+
         // Simulate some processing delay
         await Task.Delay(Random.Shared.Next(100, 500), cancellationToken);
         // Simulate potential failures for testing
         if (request.Name.Contains("error", StringComparison.OrdinalIgnoreCase))
         {
+            var message = "Simulated CreateUser error for testing telemetry";
+            activity?.SetStatus(ActivityStatusCode.Error, message);
             activity?.SetTag("handler.simulated_error", true);
-            throw new InvalidOperationException("Simulated error for testing telemetry");
+
+            throw new InvalidOperationException(message);
         }
         // Create new user entity
         var user = new User
@@ -43,9 +46,12 @@ public sealed class CreateUserHandler(ApplicationDbContext context)
         // Add to database
         context.Users.Add(user);
         await context.SaveChangesAsync(cancellationToken);
+
+        activity?.SetStatus(ActivityStatusCode.Ok);
         activity?.SetTag("handler.created", true);
         activity?.SetTag("user.id", user.Id);
         Console.WriteLine($"Created user: {user.Name} ({user.Email}) with ID {user.Id}");
+
         return user.Id;
     }
 }

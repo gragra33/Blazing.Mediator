@@ -228,12 +228,10 @@ public class StreamingMiddlewareIntegrationTests
         var services = new ServiceCollection();
 
         // Enable auto-discovery for request middleware (should include streaming middleware)
-        services.AddMediator(
-            configureMiddleware: null,
-            discoverMiddleware: true,
-            discoverNotificationMiddleware: false,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.WithMiddlewareDiscovery();
+        }, _testAssembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

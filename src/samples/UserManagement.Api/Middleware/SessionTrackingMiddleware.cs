@@ -5,7 +5,7 @@ namespace UserManagement.Api.Middleware;
 /// This middleware runs early in the pipeline to ensure session state is available.
 /// </summary>
 public class SessionTrackingMiddleware(
-    RequestDelegate next, 
+    RequestDelegate next,
     ILogger<SessionTrackingMiddleware> logger)
 {
 
@@ -20,7 +20,7 @@ public class SessionTrackingMiddleware(
         {
             // Create a fallback session ID that always works
             var fallbackSessionId = $"fallback_{context.TraceIdentifier}_{DateTime.UtcNow.Ticks}";
-            
+
             // Always set a fallback session ID first
             context.Items["StatisticsSessionId"] = fallbackSessionId;
 
@@ -32,8 +32,8 @@ public class SessionTrackingMiddleware(
                     await context.Session.LoadAsync();
                     var sessionId = GetOrCreateSessionId(context);
                     context.Items["StatisticsSessionId"] = sessionId;
-                    
-                    logger.LogDebug("Session tracking initialized: {SessionId} for request {RequestPath}", 
+
+                    logger.LogDebug("Session tracking initialized: {SessionId} for request {RequestPath}",
                         sessionId, context.Request.Path);
                 }
                 catch (Exception ex)
@@ -44,7 +44,7 @@ public class SessionTrackingMiddleware(
             }
             else
             {
-                logger.LogDebug("Session not available, using fallback: {SessionId} for request {RequestPath}", 
+                logger.LogDebug("Session not available, using fallback: {SessionId} for request {RequestPath}",
                     fallbackSessionId, context.Request.Path);
             }
         }
@@ -53,7 +53,7 @@ public class SessionTrackingMiddleware(
             // Last resort fallback
             var lastResortSessionId = $"emergency_{context.TraceIdentifier}";
             context.Items["StatisticsSessionId"] = lastResortSessionId;
-            
+
             logger.LogError(ex, "Session tracking completely failed, using emergency fallback: {SessionId}", lastResortSessionId);
         }
 
@@ -76,7 +76,7 @@ public class SessionTrackingMiddleware(
 
         // Create new session ID if none exists
         var newSessionId = GenerateSessionId(context);
-        
+
         // Store the session ID in session storage for persistence across requests
         var sessionIdBytes = System.Text.Encoding.UTF8.GetBytes(newSessionId);
         context.Session.Set(sessionKey, sessionIdBytes);

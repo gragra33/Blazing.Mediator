@@ -7,13 +7,11 @@ var host = Host.CreateDefaultBuilder(args)
         //   - NotificationValidationMiddleware  
         //   - NotificationMetricsMiddleware
         //   - NotificationAuditMiddleware
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: true,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: true,
-            Assembly.GetExecutingAssembly()
-        );
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking()
+                  .WithNotificationMiddlewareDiscovery();
+        }, Assembly.GetExecutingAssembly());
 
         // Register notification subscribers as scoped services
         // These are simple classes that handle notifications when subscribed

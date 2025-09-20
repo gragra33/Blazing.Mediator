@@ -12,7 +12,7 @@ public sealed class MediatorTelemetryHealthCheck : IHealthCheck
         try
         {
             var health = Blazing.Mediator.OpenTelemetry.MediatorTelemetryHealthCheck.CheckHealth();
-            
+
             var data = new Dictionary<string, object>
             {
                 ["is_enabled"] = health.IsEnabled,
@@ -21,7 +21,7 @@ public sealed class MediatorTelemetryHealthCheck : IHealthCheck
                 ["activity_source_name"] = health.ActivitySourceName ?? "unknown"
             };
 
-            return Task.FromResult(health.IsHealthy 
+            return Task.FromResult(health.IsHealthy
                 ? HealthCheckResult.Healthy(health.Message, data)
                 : HealthCheckResult.Unhealthy(health.Message, data: data));
         }

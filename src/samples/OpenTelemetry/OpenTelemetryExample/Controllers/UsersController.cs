@@ -1,10 +1,10 @@
-using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 using Blazing.Mediator;
+using Microsoft.AspNetCore.Mvc;
 using OpenTelemetryExample.Application.Commands;
 using OpenTelemetryExample.Application.Queries;
-using OpenTelemetryExample.Shared.Models;
 using OpenTelemetryExample.Exceptions;
+using OpenTelemetryExample.Shared.Models;
+using System.Diagnostics;
 
 namespace OpenTelemetryExample.Controllers;
 
@@ -66,10 +66,10 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
         activity?.SetTag("searchTerm", searchTerm);
         try
         {
-            var query = new GetUsersQuery 
-            { 
-                IncludeInactive = includeInactive, 
-                SearchTerm = searchTerm 
+            var query = new GetUsersQuery
+            {
+                IncludeInactive = includeInactive,
+                SearchTerm = searchTerm
             };
             var users = await mediator.Send(query);
             return Ok(users);

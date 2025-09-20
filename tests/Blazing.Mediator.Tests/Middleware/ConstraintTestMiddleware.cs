@@ -90,7 +90,7 @@ public class NotificationConstraintMiddleware<TNotification> : INotificationMidd
 {
     public int Order => 600;
 
-    public async Task InvokeAsync<TNotificationInner>(TNotificationInner notification, NotificationDelegate<TNotificationInner> next, CancellationToken cancellationToken) 
+    public async Task InvokeAsync<TNotificationInner>(TNotificationInner notification, NotificationDelegate<TNotificationInner> next, CancellationToken cancellationToken)
         where TNotificationInner : INotification
     {
         await next(notification, cancellationToken);
@@ -104,7 +104,7 @@ public class DomainEventNotificationMiddleware : INotificationMiddleware
 {
     public int Order => 700;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) 
+    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {
         await next(notification, cancellationToken);

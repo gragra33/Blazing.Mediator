@@ -54,13 +54,13 @@ public class InventoryNotificationHandler(ILogger<InventoryNotificationHandler> 
 
         logger.LogInformation("* INVENTORY TRACKING UPDATE");
         logger.LogInformation("   Product: {ProductName} ({ProductId})", notification.ProductName, notification.ProductId);
-        logger.LogInformation("   Change: {OldQuantity} ? {NewQuantity} (?{ChangeAmount:+#;-#;0})", 
+        logger.LogInformation("   Change: {OldQuantity} ? {NewQuantity} (?{ChangeAmount:+#;-#;0})",
             notification.OldQuantity, notification.NewQuantity, notification.ChangeAmount);
 
         // Check for low stock alerts
         if (notification.NewQuantity <= 10 && notification.NewQuantity > 0)
         {
-            logger.LogWarning("*  LOW STOCK ALERT: {ProductName} has only {NewQuantity} units remaining", 
+            logger.LogWarning("*  LOW STOCK ALERT: {ProductName} has only {NewQuantity} units remaining",
                 notification.ProductName, notification.NewQuantity);
         }
         else if (notification.NewQuantity <= 0)
@@ -85,7 +85,7 @@ public class BusinessOperationsHandler(ILogger<BusinessOperationsHandler> logger
         logger.LogInformation("* BUSINESS OPERATIONS UPDATE");
         logger.LogInformation("   Order #{OrderId} processed for business metrics", notification.OrderId);
         logger.LogInformation("   Revenue: ${TotalAmount:F2} recorded", notification.TotalAmount);
-        
+
         // Calculate some business metrics
         var averageItemValue = notification.TotalAmount / notification.Items.Count;
         logger.LogInformation("   Average item value: ${AverageValue:F2}", averageItemValue);
@@ -96,7 +96,7 @@ public class BusinessOperationsHandler(ILogger<BusinessOperationsHandler> logger
         await Task.Delay(30, cancellationToken); // Simulate business processing
 
         logger.LogInformation("* NEW CUSTOMER ONBOARDING");
-        logger.LogInformation("   Customer: {CustomerName} ({CustomerEmail})", 
+        logger.LogInformation("   Customer: {CustomerName} ({CustomerEmail})",
             notification.CustomerName, notification.CustomerEmail);
         logger.LogInformation("   Customer database updated for analytics");
     }

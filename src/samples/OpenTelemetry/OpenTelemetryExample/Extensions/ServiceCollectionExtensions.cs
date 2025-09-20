@@ -1,12 +1,12 @@
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
 using Blazing.Mediator;
 using Blazing.Mediator.OpenTelemetry;
+using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using OpenTelemetryExample.Application.Middleware;
 using OpenTelemetryExample.Application.Services;
 using OpenTelemetryExample.Infrastructure.Data;
-using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 
 namespace OpenTelemetryExample.Extensions;
 
@@ -23,12 +23,16 @@ public static class ServiceCollectionExtensions
     /// <param name="environment">The hosting environment.</param>
     /// <returns>The service collection for method chaining.</returns>
     public static IServiceCollection AddApplicationServices(
-        this IServiceCollection services, 
-        IConfiguration configuration, 
+        this IServiceCollection services,
+        IConfiguration configuration,
         IWebHostEnvironment environment)
     {
         services.AddControllers();
         services.AddEndpointsApiExplorer();
+        services.AddSignalR(options =>
+        {
+            options.EnableDetailedErrors = true;
+        });
         services.AddSwaggerServices();
         services.AddDatabaseServices();
         services.AddMediatorServices();
@@ -100,6 +104,12 @@ public static class ServiceCollectionExtensions
             // Add tracing middleware first for full coverage
             config.AddMiddleware(typeof(TracingMiddleware<,>));
             config.AddMiddleware(typeof(TracingMiddleware<>));
+            
+            // Add streaming-specific middleware
+            config.AddMiddleware(typeof(StreamingTracingMiddleware<,>));
+            config.AddMiddleware(typeof(StreamingPerformanceMiddleware<,>));
+            config.AddMiddleware(typeof(StreamingLoggingMiddleware<,>));
+            
             // Add middleware pipeline in order of execution
             config.AddMiddleware(typeof(ErrorHandlingMiddleware<,>));
             config.AddMiddleware(typeof(ErrorHandlingMiddleware<>));
@@ -139,13 +149,13 @@ public static class ServiceCollectionExtensions
     /// Adds OpenTelemetry services with metrics and tracing.
     /// </summary>
     private static IServiceCollection AddOpenTelemetryServices(
-        this IServiceCollection services, 
-        IConfiguration configuration, 
+        this IServiceCollection services,
+        IConfiguration configuration,
         IWebHostEnvironment environment)
     {
         var otlpEndpoint = configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-        
-        Console.WriteLine($"[*] OpenTelemetry Configuration:");
+
+        Console.WriteLine("[*] OpenTelemetry Configuration:");
         Console.WriteLine($"[*] OTLP Endpoint: {otlpEndpoint ?? "Not configured"}");
 
         // Register custom OpenTelemetry services
@@ -194,7 +204,7 @@ public static class ServiceCollectionExtensions
                         options.Filter = httpContext =>
                         {
                             var path = httpContext.Request.Path.ToString();
-                            return !path.StartsWith("/telemetry") && 
+                            return !path.StartsWith("/telemetry") &&
                                    !path.StartsWith("/debug") &&
                                    !path.Contains("otlp");
                         };

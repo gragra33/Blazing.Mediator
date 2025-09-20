@@ -57,6 +57,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             entity.HasKey(e => e.Id);
             entity.Property(e => e.TraceId).IsRequired().HasMaxLength(100);
             entity.Property(e => e.SpanId).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.ParentId).HasMaxLength(100);
             entity.Property(e => e.OperationName).IsRequired().HasMaxLength(200);
             entity.Property(e => e.StartTime).IsRequired();
             entity.Property(e => e.Duration).IsRequired();
@@ -76,6 +77,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.ActivityId).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.ParentId).HasMaxLength(100);
             entity.Property(e => e.OperationName).IsRequired().HasMaxLength(200);
             entity.Property(e => e.StartTime).IsRequired();
             entity.Property(e => e.Duration).IsRequired();

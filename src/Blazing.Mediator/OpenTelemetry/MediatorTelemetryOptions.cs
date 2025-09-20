@@ -46,4 +46,57 @@ public sealed class MediatorTelemetryOptions
     /// Gets or sets the maximum number of stack trace lines to include. Default is 3.
     /// </summary>
     public int MaxStackTraceLines { get; set; } = 3;
+
+    /// <summary>
+    /// Gets or sets whether to enable packet-level telemetry for streaming operations.
+    /// When enabled, creates child spans for each packet which provides detailed visibility but may impact performance.
+    /// Default is false for performance reasons.
+    /// </summary>
+    public bool PacketLevelTelemetryEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets the packet telemetry batching interval.
+    /// Packets will be batched into events every N packets to reduce telemetry overhead.
+    /// Set to 1 to disable batching (create event for every packet).
+    /// Default is 10 for optimal performance/visibility balance.
+    /// </summary>
+    public int PacketTelemetryBatchSize { get; set; } = 10;
+
+    /// <summary>
+    /// Gets or sets whether to enable enhanced streaming metrics including jitter, throughput analysis, and performance classification.
+    /// Default is true.
+    /// </summary>
+    public bool EnableStreamingMetrics { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets whether to capture packet size information when possible.
+    /// This may have performance implications for high-frequency streams.
+    /// Default is false.
+    /// </summary>
+    public bool CapturePacketSize { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets whether to enable detailed streaming performance classification (excellent/good/fair/poor).
+    /// Default is true.
+    /// </summary>
+    public bool EnableStreamingPerformanceClassification { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the threshold for considering streaming performance as "excellent" (jitter as percentage of average inter-packet time).
+    /// Default is 0.1 (10%).
+    /// </summary>
+    public double ExcellentPerformanceThreshold { get; set; } = 0.1;
+
+    /// <summary>
+    /// Gets or sets the threshold for considering streaming performance as "good" (jitter as percentage of average inter-packet time).
+    /// Default is 0.3 (30%).
+    /// </summary>
+    public double GoodPerformanceThreshold { get; set; } = 0.3;
+
+    /// <summary>
+    /// Gets or sets the threshold for considering streaming performance as "fair" (jitter as percentage of average inter-packet time).
+    /// Values above this threshold are considered "poor".
+    /// Default is 0.5 (50%).
+    /// </summary>
+    public double FairPerformanceThreshold { get; set; } = 0.5;
 }

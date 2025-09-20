@@ -10,6 +10,9 @@ public sealed class ActivityDto
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
 
+    [JsonPropertyName("parentId")]
+    public string? ParentId { get; set; }
+
     [JsonPropertyName("operationName")]
     public string OperationName { get; set; } = string.Empty;
 

@@ -13,6 +13,9 @@ public sealed class TraceDto
     [JsonPropertyName("spanId")]
     public string SpanId { get; set; } = string.Empty;
 
+    [JsonPropertyName("parentId")]
+    public string? ParentId { get; set; }
+
     [JsonPropertyName("operationName")]
     public string OperationName { get; set; } = string.Empty;
 

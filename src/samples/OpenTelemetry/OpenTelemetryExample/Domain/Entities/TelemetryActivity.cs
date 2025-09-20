@@ -16,6 +16,11 @@ public sealed class TelemetryActivity
     public string ActivityId { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the parent activity identifier, if this is a child activity.
+    /// </summary>
+    public string? ParentId { get; set; }
+
+    /// <summary>
     /// Gets or sets the name of the operation associated with the activity.
     /// </summary>
     public string OperationName { get; set; } = string.Empty;

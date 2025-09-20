@@ -60,6 +60,7 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
                 {
                     TraceId = trace.TraceId,
                     SpanId = trace.SpanId,
+                    ParentId = trace.ParentId,
                     OperationName = trace.OperationName,
                     StartTime = trace.StartTime,
                     Duration = trace.Duration,

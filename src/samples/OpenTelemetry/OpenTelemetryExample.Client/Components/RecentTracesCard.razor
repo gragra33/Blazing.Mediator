@@ -162,6 +162,10 @@
                                 <tr><td style="width: 150px;"><strong>Operation:</strong></td><td style="word-break: break-word;">@_selectedTrace.OperationName</td></tr>
                                 <tr><td><strong>Trace ID:</strong></td><td style="word-break: break-all;"><code>@_selectedTrace.TraceId</code></td></tr>
                                 <tr><td><strong>Span ID:</strong></td><td style="word-break: break-all;"><code>@_selectedTrace.SpanId</code></td></tr>
+                                @if (!string.IsNullOrEmpty(_selectedTrace.ParentId))
+                                {
+                                    <tr><td><strong>Parent ID:</strong></td><td style="word-break: break-all;"><code>@_selectedTrace.ParentId</code></td></tr>
+                                }
                                 <tr><td><strong>Status:</strong></td><td><span class="badge @GetStatusBadgeClass(_selectedTrace.Status)">@_selectedTrace.Status</span></td></tr>
                                 <tr><td><strong>Duration:</strong></td><td>@_selectedTrace.Duration.TotalMilliseconds.ToString("#,##0")ms</td></tr>
                                 <tr><td><strong>Start Time:</strong></td><td>@_selectedTrace.StartTime.ToString("yyyy-MM-dd HH:mm:ss.fff")</td></tr>

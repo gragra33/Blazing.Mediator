@@ -40,6 +40,19 @@ public sealed class Mediator : IMediator
     /// </summary>
     public static bool TelemetryEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Configuration for enabling/disabling packet-level telemetry for streaming operations.
+    /// When enabled, creates child spans for each packet which provides detailed visibility but may impact performance.
+    /// </summary>
+    public static bool PacketLevelTelemetryEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Configuration for packet telemetry batching interval.
+    /// Packets will be batched into events every N packets to reduce telemetry overhead.
+    /// Set to 1 to disable batching (create event for every packet).
+    /// </summary>
+    public static int PacketTelemetryBatchSize { get; set; } = 10;
+
     // Pre-create metrics for performance and thread safety
     private static readonly Histogram<double> SendDurationHistogram = Meter.CreateHistogram<double>("mediator.send.duration", unit: "ms", description: "Duration of mediator send operations");
     private static readonly Counter<long> SendSuccessCounter = Meter.CreateCounter<long>("mediator.send.success", description: "Number of successful mediator send operations");
@@ -57,6 +70,12 @@ public sealed class Mediator : IMediator
     internal static readonly Counter<long> StreamFailureCounter = Meter.CreateCounter<long>("mediator.stream.failure", description: "Number of failed mediator stream operations");
     internal static readonly Histogram<double> StreamThroughputHistogram = Meter.CreateHistogram<double>("mediator.stream.throughput", unit: "items/sec", description: "Throughput of mediator stream operations");
     internal static readonly Histogram<double> StreamTtfbHistogram = Meter.CreateHistogram<double>("mediator.stream.ttfb", unit: "ms", description: "Time to first byte for mediator stream operations");
+
+    // Enhanced packet-level streaming metrics
+    internal static readonly Counter<long> StreamPacketCounter = Meter.CreateCounter<long>("mediator.stream.packet.count", description: "Number of packets processed in stream operations");
+    internal static readonly Histogram<double> StreamPacketProcessingTimeHistogram = Meter.CreateHistogram<double>("mediator.stream.packet.processing_time", unit: "ms", description: "Processing time for individual stream packets");
+    internal static readonly Histogram<double> StreamInterPacketTimeHistogram = Meter.CreateHistogram<double>("mediator.stream.inter_packet_time", unit: "ms", description: "Time between consecutive stream packets");
+    internal static readonly Histogram<double> StreamPacketJitterHistogram = Meter.CreateHistogram<double>("mediator.stream.packet.jitter", unit: "ms", description: "Jitter in stream packet timing");
 
     // Health check metrics (internal for StreamTelemetryContext access)
     internal static readonly Counter<long> TelemetryHealthCounter = Meter.CreateCounter<long>("mediator.telemetry.health", description: "Health check counter for telemetry system");
@@ -506,6 +525,11 @@ public sealed class Mediator : IMediator
             activity.SetTag("mediator.operation", "SendStream");
             activity.SetTag("otel.library.name", "Blazing.Mediator");
             activity.SetTag("otel.library.version", typeof(Mediator).Assembly.GetName().Version?.ToString() ?? "1.0.0");
+            
+            // Add streaming-specific semantic convention tags
+            activity.SetTag("stream.type", "response");
+            activity.SetTag("stream.packet_level_telemetry", PacketLevelTelemetryEnabled);
+            activity.SetTag("stream.batch_size", PacketTelemetryBatchSize);
         }
         
         var streamStopwatch = Stopwatch.StartNew();
@@ -527,7 +551,8 @@ public sealed class Mediator : IMediator
                 {
                     ["request_name"] = context.RequestTypeName,
                     ["response_type"] = context.ResponseTypeName,
-                    ["activity_id"] = activity.Id ?? "unknown"
+                    ["activity_id"] = activity.Id ?? "unknown",
+                    ["stream.operation"] = "start"
                 }));
             }
             
@@ -535,6 +560,8 @@ public sealed class Mediator : IMediator
             while (true)
             {
                 bool hasNext;
+                var packetStopwatch = Stopwatch.StartNew();
+                
                 try
                 {
                     hasNext = await enumerator.MoveNextAsync();
@@ -548,11 +575,12 @@ public sealed class Mediator : IMediator
                 
                 if (!hasNext) break;
                 
+                packetStopwatch.Stop();
                 var currentTime = streamStopwatch.ElapsedMilliseconds;
                 var item = enumerator.Current;
                 
-                // Record packet-level metrics
-                context.RecordPacket(currentTime, lastItemTime, item);
+                // Record packet-level metrics with enhanced telemetry
+                context.RecordPacket(currentTime, lastItemTime, item, packetStopwatch.Elapsed.TotalMilliseconds, cancellationToken);
                 lastItemTime = currentTime;
                 
                 yield return item;
@@ -561,14 +589,17 @@ public sealed class Mediator : IMediator
             // Stream completed successfully
             context.RecordSuccess(activity);
             
-            // Add completion event
+            // Add completion event with comprehensive summary
             if (activity != null)
             {
                 activity.AddEvent(new ActivityEvent("stream_completed", DateTimeOffset.UtcNow, new ActivityTagsCollection
                 {
                     ["items_processed"] = context.ItemCount,
                     ["duration_ms"] = streamStopwatch.ElapsedMilliseconds,
-                    ["activity_id"] = activity.Id ?? "unknown"
+                    ["activity_id"] = activity.Id ?? "unknown",
+                    ["stream.operation"] = "complete",
+                    ["stream.throughput_items_per_sec"] = context.ItemCount / Math.Max(streamStopwatch.Elapsed.TotalSeconds, 0.001),
+                    ["stream.average_inter_packet_time_ms"] = context.AverageInterPacketTime
                 }));
             }
         }
@@ -1162,14 +1193,17 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
 {
     private readonly IStreamRequest<TResponse> _request = request ?? throw new ArgumentNullException(nameof(request));
     private readonly List<double> _interPacketTimes = new();
+    private readonly List<double> _packetProcessingTimes = new();
     private int _itemCount;
     private TimeSpan _timeToFirstByte;
     private bool _firstItemReceived;
     private Activity? _activity; // Store reference to the activity
+    private long _totalPacketProcessingTime;
 
     public string RequestTypeName { get; } = SanitizeTypeName(request.GetType().Name);
     public string ResponseTypeName { get; } = SanitizeTypeName(typeof(TResponse).Name);
     public int ItemCount => _itemCount; // Expose item count for telemetry
+    public double AverageInterPacketTime => _interPacketTimes.Count > 0 ? _interPacketTimes.Average() : 0;
 
     /// <summary>
     /// Initializes the telemetry context with activity and service information.
@@ -1212,9 +1246,9 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
     }
 
     /// <summary>
-    /// Records packet-level metrics for each item in the stream.
+    /// Records packet-level metrics for each item in the stream with enhanced telemetry support.
     /// </summary>
-    public void RecordPacket(long currentTime, long lastItemTime, TResponse item)
+    public void RecordPacket(long currentTime, long lastItemTime, TResponse item, double packetProcessingTimeMs, CancellationToken cancellationToken = default)
     {
         if (!Mediator.TelemetryEnabled) return;
 
@@ -1234,16 +1268,106 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
             _interPacketTimes.Add(interPacketTime);
         }
 
-        // Add per-packet activity events for better telemetry visibility
-        if (_activity != null)
+        // Track packet processing time
+        _packetProcessingTimes.Add(packetProcessingTimeMs);
+        _totalPacketProcessingTime += (long)packetProcessingTimeMs;
+
+        // Record packet-level metrics
+        var packetTags = new TagList
         {
-            _activity.AddEvent(new ActivityEvent($"stream_packet_{_itemCount}", DateTimeOffset.UtcNow, new ActivityTagsCollection
+            { "request_name", RequestTypeName },
+            { "response_type", ResponseTypeName },
+            { "packet_number", _itemCount }
+        };
+
+        Mediator.StreamPacketCounter.Add(1, packetTags);
+        Mediator.StreamPacketProcessingTimeHistogram.Record(packetProcessingTimeMs, packetTags);
+        
+        if (interPacketTime > 0)
+        {
+            Mediator.StreamInterPacketTimeHistogram.Record(interPacketTime, packetTags);
+        }
+
+        // Create child span for packet if packet-level telemetry is enabled
+        if (Mediator.PacketLevelTelemetryEnabled && _activity != null)
+        {
+            using var packetActivity = Mediator.ActivitySource.StartActivity($"Mediator.SendStream:{RequestTypeName}.packet_{_itemCount}");
+            if (packetActivity != null)
             {
-                ["packet_number"] = _itemCount,
-                ["timestamp_ms"] = currentTime,
-                ["inter_packet_time_ms"] = interPacketTime,
-                ["is_first_packet"] = _itemCount == 1
-            }));
+                packetActivity.SetTag("packet.number", _itemCount);
+                packetActivity.SetTag("packet.timestamp_ms", currentTime);
+                packetActivity.SetTag("packet.processing_time_ms", packetProcessingTimeMs);
+                packetActivity.SetTag("packet.inter_packet_time_ms", interPacketTime);
+                packetActivity.SetTag("packet.is_first", _itemCount == 1);
+                packetActivity.SetTag("stream.total_packets", _itemCount);
+                packetActivity.SetTag("request_name", RequestTypeName);
+                packetActivity.SetTag("request_type", "stream_packet");
+                packetActivity.SetTag("mediator.operation", "SendStreamPacket");
+                packetActivity.SetTag("mediator.request_type", "stream_packet");
+                packetActivity.SetTag("otel.library.name", "Blazing.Mediator");
+                packetActivity.SetTag("otel.library.version", typeof(Mediator).Assembly.GetName().Version?.ToString() ?? "1.0.0");
+                
+                // Add packet size if available (attempt to serialize for size estimation)
+                try
+                {
+                    if (item is string str)
+                    {
+                        packetActivity.SetTag("packet.size_bytes", System.Text.Encoding.UTF8.GetByteCount(str));
+                    }
+                    else if (item != null)
+                    {
+                        // Rough estimation based on type
+                        var typeName = item.GetType().Name;
+                        packetActivity.SetTag("packet.type", SanitizeTypeName(typeName));
+                    }
+                }
+                catch
+                {
+                    // Ignore errors in size calculation
+                }
+                
+                // Ensure the packet span has a minimum duration to avoid being filtered out
+                Task.Delay(1, cancellationToken).Wait(cancellationToken);
+                packetActivity.SetStatus(ActivityStatusCode.Ok);
+            }
+        }
+        
+        // Add batched activity events for better performance
+        var shouldCreateEvent = Mediator.PacketTelemetryBatchSize <= 1 || 
+                               (_itemCount % Mediator.PacketTelemetryBatchSize == 0) || 
+                               _itemCount == 1;
+        
+        if (shouldCreateEvent && _activity != null)
+        {
+            if (Mediator.PacketTelemetryBatchSize > 1 && _itemCount > 1)
+            {
+                // Batched event
+                var batchStart = Math.Max(1, _itemCount - Mediator.PacketTelemetryBatchSize + 1);
+                var recentInterPacketTimes = _interPacketTimes.TakeLast(Mediator.PacketTelemetryBatchSize - 1);
+                
+                _activity.AddEvent(new ActivityEvent($"stream_packet_batch_{_itemCount}", DateTimeOffset.UtcNow, new ActivityTagsCollection
+                {
+                    ["batch_start"] = batchStart,
+                    ["batch_end"] = _itemCount,
+                    ["batch_size"] = Math.Min(Mediator.PacketTelemetryBatchSize, _itemCount),
+                    ["avg_inter_packet_time_ms"] = recentInterPacketTimes.Any() ? recentInterPacketTimes.Average() : 0,
+                    ["avg_processing_time_ms"] = _packetProcessingTimes.TakeLast(Mediator.PacketTelemetryBatchSize).Average(),
+                    ["stream.operation"] = "packet_batch"
+                }));
+            }
+            else
+            {
+                // Individual packet event
+                _activity.AddEvent(new ActivityEvent($"stream_packet_{_itemCount}", DateTimeOffset.UtcNow, new ActivityTagsCollection
+                {
+                    ["packet_number"] = _itemCount,
+                    ["timestamp_ms"] = currentTime,
+                    ["processing_time_ms"] = packetProcessingTimeMs,
+                    ["inter_packet_time_ms"] = interPacketTime,
+                    ["is_first_packet"] = _itemCount == 1,
+                    ["stream.operation"] = "packet"
+                }));
+            }
         }
     }
 
@@ -1280,6 +1404,15 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
         var avgInterPacketTime = _interPacketTimes.Count > 0 ? _interPacketTimes.Average() : 0;
         var minInterPacketTime = _interPacketTimes.Count > 0 ? _interPacketTimes.Min() : 0;
         var maxInterPacketTime = _interPacketTimes.Count > 0 ? _interPacketTimes.Max() : 0;
+        var avgPacketProcessingTime = _packetProcessingTimes.Count > 0 ? _packetProcessingTimes.Average() : 0;
+
+        // Calculate jitter (standard deviation of inter-packet times)
+        double jitter = 0;
+        if (_interPacketTimes.Count > 1)
+        {
+            var variance = _interPacketTimes.Select(x => Math.Pow(x - avgInterPacketTime, 2)).Average();
+            jitter = Math.Sqrt(variance);
+        }
 
         // Set comprehensive activity tags
         if (activity != null)
@@ -1291,21 +1424,27 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
             activity.SetTag("stream.avg_inter_packet_time_ms", avgInterPacketTime);
             activity.SetTag("stream.min_inter_packet_time_ms", minInterPacketTime);
             activity.SetTag("stream.max_inter_packet_time_ms", maxInterPacketTime);
+            activity.SetTag("stream.avg_packet_processing_time_ms", avgPacketProcessingTime);
+            activity.SetTag("stream.total_processing_time_ms", _totalPacketProcessingTime);
             
-            // Stream performance indicators
+            // Advanced streaming metrics
             if (_itemCount > 1)
             {
                 var isConsistentThroughput = (maxInterPacketTime - minInterPacketTime) < (avgInterPacketTime * 0.5);
                 activity.SetTag("stream.consistent_throughput", isConsistentThroughput);
+                activity.SetTag("stream.jitter_ms", jitter);
                 
-                // Calculate jitter (variation in inter-packet timing)
-                if (_interPacketTimes.Count > 1)
-                {
-                    var variance = _interPacketTimes.Select(x => Math.Pow(x - avgInterPacketTime, 2)).Average();
-                    var jitter = Math.Sqrt(variance);
-                    activity.SetTag("stream.jitter_ms", jitter);
-                }
+                // Performance classification
+                var performance = jitter < avgInterPacketTime * 0.1 ? "excellent" :
+                                jitter < avgInterPacketTime * 0.3 ? "good" :
+                                jitter < avgInterPacketTime * 0.5 ? "fair" : "poor";
+                activity.SetTag("stream.performance_class", performance);
             }
+            
+            // OpenTelemetry semantic conventions
+            activity.SetTag("stream.packet.count", _itemCount);
+            activity.SetTag("stream.packet_level_telemetry_enabled", Mediator.PacketLevelTelemetryEnabled);
+            activity.SetTag("stream.batch_size", Mediator.PacketTelemetryBatchSize);
         }
 
         // Record OpenTelemetry metrics
@@ -1320,9 +1459,15 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
         // Enhanced streaming metrics
         Mediator.StreamDurationHistogram.Record(totalDuration.TotalMilliseconds, tags);
         Mediator.StreamThroughputHistogram.Record(throughputItemsPerSec, tags);
+        
         if (_timeToFirstByte.TotalMilliseconds > 0)
         {
             Mediator.StreamTtfbHistogram.Record(_timeToFirstByte.TotalMilliseconds, tags);
+        }
+        
+        if (jitter > 0)
+        {
+            Mediator.StreamPacketJitterHistogram.Record(jitter, tags);
         }
 
         if (exception == null)

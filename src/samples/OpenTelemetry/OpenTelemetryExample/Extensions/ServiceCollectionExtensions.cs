@@ -35,7 +35,7 @@ public static class ServiceCollectionExtensions
         });
         services.AddSwaggerServices();
         services.AddDatabaseServices();
-        services.AddMediatorServices();
+        services.AddMediatorServices(environment);
         services.AddValidationServices();
         services.AddHealthCheckServices();
         services.AddOpenTelemetryServices(configuration, environment);
@@ -94,11 +94,28 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds Blazing.Mediator services with middleware pipeline.
+    /// Adds Blazing.Mediator services with middleware pipeline and enhanced telemetry.
     /// </summary>
-    private static IServiceCollection AddMediatorServices(this IServiceCollection services)
+    private static IServiceCollection AddMediatorServices(this IServiceCollection services, IWebHostEnvironment environment)
     {
-        services.AddMediatorTelemetry();
+        // Configure telemetry based on environment
+        if (environment.IsDevelopment())
+        {
+            Console.WriteLine("[*] Configuring Mediator with FULL VISIBILITY telemetry for development");
+            services.AddMediatorTelemetryWithFullVisibility();
+        }
+        else
+        {
+            Console.WriteLine("[*] Configuring Mediator with PRODUCTION telemetry");
+            services.AddMediatorTelemetryForProduction();
+        }
+
+        // Alternative: Use custom streaming telemetry configuration
+        // services.AddMediatorStreamingTelemetry(
+        //     enablePacketLevelTelemetry: true,
+        //     batchSize: environment.IsDevelopment() ? 1 : 10
+        // );
+
         services.AddMediator(config =>
         {
             // Add tracing middleware first for full coverage
@@ -146,7 +163,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds OpenTelemetry services with metrics and tracing.
+    /// Adds OpenTelemetry services with metrics and tracing, including enhanced Blazing.Mediator instrumentation.
     /// </summary>
     private static IServiceCollection AddOpenTelemetryServices(
         this IServiceCollection services,
@@ -157,8 +174,31 @@ public static class ServiceCollectionExtensions
 
         Console.WriteLine("[*] OpenTelemetry Configuration:");
         Console.WriteLine($"[*] OTLP Endpoint: {otlpEndpoint ?? "Not configured"}");
+        Console.WriteLine($"[*] Environment: {environment.EnvironmentName}");
 
-        // Register custom OpenTelemetry services
+        // Configure telemetry batching options based on environment
+        var batchingOptions = environment.IsDevelopment() 
+            ? TelemetryBatchingOptions.ForDevelopment()
+            : TelemetryBatchingOptions.ForProduction();
+
+        // Allow override from configuration
+        configuration.GetSection("TelemetryBatching").Bind(batchingOptions);
+        
+        // Validate and register the options
+        var validationErrors = batchingOptions.Validate();
+        if (validationErrors.Count > 0)
+        {
+            throw new InvalidOperationException($"Invalid telemetry batching configuration: {string.Join(", ", validationErrors)}");
+        }
+        
+        services.AddSingleton(batchingOptions);
+
+        Console.WriteLine($"[*] Telemetry Batching Configuration:");
+        Console.WriteLine($"[*]   Streaming: {batchingOptions.StreamingBatchSize} items or {batchingOptions.StreamingBatchTimeoutMs}ms");
+        Console.WriteLine($"[*]   Regular: {batchingOptions.RegularBatchSize} items or {batchingOptions.RegularBatchTimeoutMs}ms");
+        Console.WriteLine($"[*]   Processing Interval: {batchingOptions.ProcessingIntervalMs}ms");
+
+        // Register custom OpenTelemetry services as singletons for proper disposal
         services.AddSingleton<OpenTelemetryActivityProcessor>();
         services.AddSingleton<OpenTelemetryMetricsReader>();
 
@@ -168,11 +208,14 @@ public static class ServiceCollectionExtensions
                 metrics
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddMeter("Blazing.Mediator")
+                    .AddMeter("Blazing.Mediator") // Core mediator metrics
                     .AddMeter("OpenTelemetryExample")
                     .AddMeter("OpenTelemetryExample.Controller")
                     .AddMeter("OpenTelemetryExample.Handler")
                     .AddMeter("OpenTelemetryExample.Mediator");
+
+                Console.WriteLine("[*] Added Blazing.Mediator metrics instrumentation");
+                Console.WriteLine("[*] Enhanced streaming metrics enabled for packet-level visibility");
 
                 // Add our custom metrics reader to capture and store metrics
                 metrics.AddReader(services.BuildServiceProvider().GetRequiredService<OpenTelemetryMetricsReader>());
@@ -218,11 +261,18 @@ public static class ServiceCollectionExtensions
                             return !uri.Contains("otlp") && !uri.Contains("21270");
                         };
                     })
-                    .AddSource("Blazing.Mediator")
+                    .AddSource("Blazing.Mediator") // Core mediator tracing with packet-level spans
                     .AddSource("OpenTelemetryExample")
                     .AddSource("OpenTelemetryExample.Controller")
                     .AddSource("OpenTelemetryExample.Handler")
                     .AddSource("OpenTelemetryExample.Mediator");
+
+                Console.WriteLine("[*] Added Blazing.Mediator tracing instrumentation");
+                if (environment.IsDevelopment())
+                {
+                    Console.WriteLine("[*] Packet-level tracing enabled for streaming operations");
+                    Console.WriteLine("[*] Individual packet spans will be visible in traces");
+                }
 
                 // Add our custom activity processor to capture and store traces
                 tracing.AddProcessor(services.BuildServiceProvider().GetRequiredService<OpenTelemetryActivityProcessor>());

@@ -21,6 +21,11 @@ public sealed class TelemetryTrace
     public string SpanId { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the parent span identifier, if this is a child span.
+    /// </summary>
+    public string? ParentId { get; set; }
+
+    /// <summary>
     /// Gets or sets the name of the operation being traced.
     /// </summary>
     public string OperationName { get; set; } = string.Empty;

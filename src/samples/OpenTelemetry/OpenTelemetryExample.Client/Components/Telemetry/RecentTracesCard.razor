@@ -1,0 +1,251 @@
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-diagram-3 me-2"></i>Recent Traces
+            </h5>
+            
+            <!-- Trace Count Info - Moved to right side -->
+            <div class="text-end">
+                @if (DataSource != null && _displayMode == DisplayMode.Raw)
+                {
+                    <small class="text-muted">
+                        @if (CurrentPagination != null)
+                        {
+                            <span><strong>@CurrentPagination.StartIndex-@CurrentPagination.EndIndex</strong> of <strong>@CurrentPagination.TotalFilteredCount</strong> filtered traces</span>
+                            <br/>
+                            <span>(<strong>@(DataSource?.TotalTracesInTimeframe ?? 0)</strong> total in the last <strong>@GetAgeLabel()</strong>)</span>
+                        }
+                        else
+                        {
+                            <span><strong>@GetTraces().Length</strong> of <strong>@(DataSource?.TotalTracesInTimeframe ?? 0)</strong> traces in the last <strong>@GetAgeLabel()</strong></span>
+                        }
+                    </small>
+                }
+                else if (GroupedDataSource != null && _displayMode == DisplayMode.Grouped)
+                {
+                    <small class="text-muted">
+                        @if (CurrentPagination != null)
+                        {
+                            <span><strong>@CurrentPagination.StartIndex-@CurrentPagination.EndIndex</strong> of <strong>@CurrentPagination.TotalFilteredCount</strong> trace groups</span>
+                            <br/>
+                            <span>(<strong>@GroupedDataSource.TotalTracesInTimeframe</strong> total traces in the last <strong>@GetAgeLabel()</strong>)</span>
+                        }
+                        else
+                        {
+                            <span><strong>@GroupedDataSource.TraceGroups.Count</strong> trace groups (<strong>@GroupedDataSource.TotalTracesInTimeframe</strong> total traces) in the last <strong>@GetAgeLabel()</strong></span>
+                        }
+                    </small>
+                }
+            </div>
+        </div>
+        
+        <!-- Controls Section - Moved inside card -->
+        <div class="mt-3 border-top pt-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <!-- Left Side - Display Mode Toggle -->
+                <div class="d-flex align-items-center gap-2">
+                    <label class="form-label mb-0 me-2"><small><strong>Display Mode:</strong></small></label>
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="displayMode" id="rawMode" checked="@(_displayMode == DisplayMode.Raw)" @onchange="() => SetDisplayMode(DisplayMode.Raw)">
+                        <label class="btn btn-outline-primary btn-sm" for="rawMode" title="Raw Log Display - Shows individual traces in chronological order">
+                            <i class="bi bi-list-ul me-1"></i>Raw Log
+                        </label>
+                        
+                        <input type="radio" class="btn-check" name="displayMode" id="groupedMode" checked="@(_displayMode == DisplayMode.Grouped)" @onchange="() => SetDisplayMode(DisplayMode.Grouped)">
+                        <label class="btn btn-outline-primary btn-sm" for="groupedMode" title="Grouped Display - Shows traces organized by TraceId in hierarchical structure">
+                            <i class="bi bi-diagram-3 me-1"></i>Grouped
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Right Side - Filter Controls -->
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    @if (_displayMode == DisplayMode.Raw)
+                    {
+                        <!-- Hide Packets Toggle Switch -->
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="hidePacketsFilter" @bind="_hidePackets" @bind:after="OnHidePacketsFilterChanged">
+                            <label class="form-check-label me-2" for="hidePacketsFilter">
+                                <small>Hide Packets</small>
+                            </label>
+                        </div>
+
+                        <!-- Application Only Toggle Switch -->
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="appFilter" @bind="_appOnly" @bind:after="OnAppFilterChanged">
+                            <label class="form-check-label me-2" for="appFilter">
+                                <small>Application Only</small>
+                            </label>
+                        </div>
+
+                        <!-- Mediator Only Toggle Switch -->
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="mediatorFilter" @bind="_mediatorOnly" @bind:after="OnMediatorFilterChanged">
+                            <label class="form-check-label me-2" for="mediatorFilter">
+                                <small>Mediator Only</small>
+                            </label>
+                        </div>
+                    }
+                    else if (_displayMode == DisplayMode.Grouped)
+                    {
+                        <!-- Hide Packets Toggle Switch -->
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="hidePacketsFilterGrouped" @bind="_hidePackets" @bind:after="OnHidePacketsFilterChanged">
+                            <label class="form-check-label me-2" for="hidePacketsFilterGrouped">
+                                <small>Hide Packets</small>
+                            </label>
+                        </div>
+
+                        <!-- Expand/Collapse All Buttons -->
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="ExpandAllGroups" title="Expand all trace groups">
+                                <i class="bi bi-arrows-expand me-1"></i>Expand All
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="CollapseAllGroups" title="Collapse all trace groups">
+                                <i class="bi bi-arrows-collapse me-1"></i>Collapse All
+                            </button>
+                        </div>
+                    }
+
+                    <!-- Time Window Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-clock me-1"></i>@GetAgeLabel()
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><button class="dropdown-item @(_timeWindowMinutes == 1 ? "active" : "")" type="button" @onclick="() => UpdateAge(1)">Last minute</button></li>
+                            <li><button class="dropdown-item @(_timeWindowMinutes == 5 ? "active" : "")" type="button" @onclick="() => UpdateAge(5)">5 minutes</button></li>
+                            <li><button class="dropdown-item @(_timeWindowMinutes == 10 ? "active" : "")" type="button" @onclick="() => UpdateAge(10)">10 minutes</button></li>
+                            <li><button class="dropdown-item @(_timeWindowMinutes == 30 ? "active" : "")" type="button" @onclick="() => UpdateAge(30)">30 minutes</button></li>
+                            <li><button class="dropdown-item @(_timeWindowMinutes == 60 ? "active" : "")" type="button" @onclick="() => UpdateAge(60)">Last hour</button></li>
+                        </ul>
+                    </div>
+
+                    <!-- Page Size Dropdown (repurposed from original Traces Count) -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-grid me-1"></i>@_pageSize per page
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><button class="dropdown-item @(_pageSize == 10 ? "active" : "")" type="button" @onclick="() => OnPageSizeChanged(10)">10 per page</button></li>
+                            <li><button class="dropdown-item @(_pageSize == 25 ? "active" : "")" type="button" @onclick="() => OnPageSizeChanged(25)">25 per page</button></li>
+                            <li><button class="dropdown-item @(_pageSize == 50 ? "active" : "")" type="button" @onclick="() => OnPageSizeChanged(50)">50 per page</button></li>
+                            <li><button class="dropdown-item @(_pageSize == 100 ? "active" : "")" type="button" @onclick="() => OnPageSizeChanged(100)">100 per page</button></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (_displayMode == DisplayMode.Raw)
+        {
+            <RawTracesTable Traces="GetTraces()" 
+                          IsLoading="_isLoading" 
+                          HidePackets="_hidePackets"
+                          OnViewTraceDetails="ViewTraceDetails" />
+        }
+        else if (_displayMode == DisplayMode.Grouped)
+        {
+            <GroupedTracesTable TraceGroups="GetTraceGroups()" 
+                              IsLoading="_isLoading" 
+                              HidePackets="_hidePackets"
+                              OnViewTraceDetails="ViewTraceDetails" />
+        }
+        
+        <!-- Pagination Controls -->
+        @if (CurrentPagination != null && CurrentPagination.TotalPages > 1)
+        {
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                <div class="text-muted small">
+                    Page @CurrentPagination.Page of @CurrentPagination.TotalPages 
+                    (@CurrentPagination.TotalFilteredCount total @(_displayMode == DisplayMode.Raw ? "traces" : "groups"))
+                </div>
+                
+                <nav aria-label="Traces pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        <!-- First Page -->
+                        <li class="page-item @(CurrentPagination.HasPreviousPage ? "" : "disabled")">
+                            <button class="page-link" @onclick="FirstPage" disabled="@(!CurrentPagination.HasPreviousPage)" 
+                                    title="Go to first page">
+                                <i class="bi bi-chevron-double-left"></i>
+                            </button>
+                        </li>
+                        
+                        <!-- Previous Page -->
+                        <li class="page-item @(CurrentPagination.HasPreviousPage ? "" : "disabled")">
+                            <button class="page-link" @onclick="PreviousPage" disabled="@(!CurrentPagination.HasPreviousPage)"
+                                    title="Go to previous page">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                        </li>
+                        
+                        <!-- Page Numbers -->
+                        @{
+                            int startPage = Math.Max(1, CurrentPagination.Page - 2);
+                            int endPage = Math.Min(CurrentPagination.TotalPages, CurrentPagination.Page + 2);
+                        }
+                        
+                        @if (startPage > 1)
+                        {
+                            <li class="page-item">
+                                <button class="page-link" @onclick="() => GoToPage(1)">1</button>
+                            </li>
+                            @if (startPage > 2)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                        }
+                        
+                        @for (int pageNumber = startPage; pageNumber <= endPage; pageNumber++)
+                        {
+                            int currentPageLoop = pageNumber; // Capture for lambda
+                            <li class="page-item @(pageNumber == CurrentPagination.Page ? "active" : "")">
+                                <button class="page-link" @onclick="() => GoToPage(currentPageLoop)">
+                                    @pageNumber
+                                </button>
+                            </li>
+                        }
+                        
+                        @if (endPage < CurrentPagination.TotalPages)
+                        {
+                            @if (endPage < CurrentPagination.TotalPages - 1)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                            <li class="page-item">
+                                <button class="page-link" @onclick="() => GoToPage(CurrentPagination.TotalPages)">
+                                    @CurrentPagination.TotalPages
+                                </button>
+                            </li>
+                        }
+                        
+                        <!-- Next Page -->
+                        <li class="page-item @(CurrentPagination.HasNextPage ? "" : "disabled")">
+                            <button class="page-link" @onclick="NextPage" disabled="@(!CurrentPagination.HasNextPage)"
+                                    title="Go to next page">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </li>
+                        
+                        <!-- Last Page -->
+                        <li class="page-item @(CurrentPagination.HasNextPage ? "" : "disabled")">
+                            <button class="page-link" @onclick="LastPage" disabled="@(!CurrentPagination.HasNextPage)"
+                                    title="Go to last page">
+                                <i class="bi bi-chevron-double-right"></i>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Shared Trace Details Modal -->
+<TraceDetailsModal @ref="_traceDetailsModal" ModalId="recentTracesModal" />

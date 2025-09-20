@@ -56,12 +56,19 @@ public static class MinimalEndpointsExtensions
             .WithDescription("Returns current telemetry metrics data for display in the dashboard.")
             .Produces<LiveMetricsDto>();
 
-        telemetryGroup.MapGet("/traces", async (IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, bool? exampleAppOnly, int? timeWindowMinutes) =>
-                await GetRecentTraces(mediator, maxRecords, blazingMediatorOnly, exampleAppOnly, timeWindowMinutes))
+        telemetryGroup.MapGet("/traces", async (IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, bool? exampleAppOnly, int? timeWindowMinutes, int? page, int? pageSize) =>
+                await GetRecentTraces(mediator, maxRecords, blazingMediatorOnly, exampleAppOnly, timeWindowMinutes, page, pageSize))
             .WithName("GetRecentTraces")
             .WithSummary("Get recent trace data")
             .WithDescription("Returns recent OpenTelemetry traces for display in the dashboard. Supports filtering and pagination.")
             .Produces<RecentTracesDto>();
+
+        telemetryGroup.MapGet("/traces/grouped", async (IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, bool? exampleAppOnly, int? timeWindowMinutes, bool? hidePackets, int? page, int? pageSize) =>
+                await GetGroupedTraces(mediator, maxRecords, blazingMediatorOnly, exampleAppOnly, timeWindowMinutes, hidePackets, page, pageSize))
+            .WithName("GetGroupedTraces")
+            .WithSummary("Get grouped trace data")
+            .WithDescription("Returns recent OpenTelemetry traces organized in hierarchical groups by TraceId and ParentId. Supports filtering and pagination.")
+            .Produces<GroupedTracesDto>();
 
         telemetryGroup.MapGet("/activities", GetRecentActivities)
             .WithName("GetRecentActivities")
@@ -218,9 +225,9 @@ public static class MinimalEndpointsExtensions
     }
 
     /// <summary>
-    /// Handler for recent traces endpoint - now returns real data from OpenTelemetry
+    /// Handler for recent traces endpoint - now returns real data from OpenTelemetry with pagination support
     /// </summary>
-    private static async Task<IResult> GetRecentTraces(IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, bool? exampleAppOnly, int? timeWindowMinutes)
+    private static async Task<IResult> GetRecentTraces(IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, bool? exampleAppOnly, int? timeWindowMinutes, int? page, int? pageSize)
     {
         try
         {
@@ -229,7 +236,9 @@ public static class MinimalEndpointsExtensions
                 MaxRecords = maxRecords ?? 10,
                 TimeWindow = TimeSpan.FromMinutes(timeWindowMinutes ?? 30),
                 MediatorOnly = blazingMediatorOnly ?? false,
-                ExampleAppOnly = exampleAppOnly ?? false
+                ExampleAppOnly = exampleAppOnly ?? false,
+                Page = page ?? 1,
+                PageSize = pageSize ?? 10
             };
 
             var result = await mediator.Send(query);
@@ -244,7 +253,60 @@ public static class MinimalEndpointsExtensions
             {
                 Timestamp = DateTime.UtcNow,
                 Traces = [],
-                Message = $"Error retrieving traces: {ex.Message}"
+                Message = $"Error retrieving traces: {ex.Message}",
+                Pagination = new PaginationInfo
+                {
+                    Page = page ?? 1,
+                    PageSize = pageSize ?? 10,
+                    TotalFilteredCount = 0,
+                    ItemCount = 0
+                }
+            };
+
+            return Results.Ok(fallbackResult);
+        }
+    }
+
+    /// <summary>
+    /// Handler for grouped traces endpoint - returns hierarchically organized trace data with pagination support
+    /// </summary>
+    private static async Task<IResult> GetGroupedTraces(IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, bool? exampleAppOnly, int? timeWindowMinutes, bool? hidePackets, int? page, int? pageSize)
+    {
+        try
+        {
+            var query = new GetGroupedTracesQuery
+            {
+                MaxRecords = maxRecords ?? 10,
+                TimeWindow = TimeSpan.FromMinutes(timeWindowMinutes ?? 30),
+                MediatorOnly = blazingMediatorOnly ?? false,
+                ExampleAppOnly = exampleAppOnly ?? false,
+                HidePackets = hidePackets ?? false,
+                Page = page ?? 1,
+                PageSize = pageSize ?? 10
+            };
+
+            var result = await mediator.Send(query);
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[-] Error getting grouped traces: {ex.Message}");
+
+            // Return fallback data in case of error
+            var fallbackResult = new GroupedTracesDto
+            {
+                Timestamp = DateTime.UtcNow,
+                TraceGroups = [],
+                Message = $"Error retrieving grouped traces: {ex.Message}",
+                TotalTracesInTimeframe = 0,
+                TotalTraceGroups = 0,
+                Pagination = new PaginationInfo
+                {
+                    Page = page ?? 1,
+                    PageSize = pageSize ?? 10,
+                    TotalFilteredCount = 0,
+                    ItemCount = 0
+                }
             };
 
             return Results.Ok(fallbackResult);

@@ -1,15 +1,29 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using OpenTelemetryExample.Client.Components.Shared;
+using OpenTelemetryExample.Client.Services;
 using OpenTelemetryExample.Shared.Models;
 
-namespace OpenTelemetryExample.Client.Components;
+namespace OpenTelemetryExample.Client.Components.Telemetry;
 
 /// <summary>
-/// Component for displaying recent OpenTelemetry traces with filtering and detailed view capabilities.
+/// Display mode for the traces card
+/// </summary>
+public enum DisplayMode
+{
+    Raw,
+    Grouped
+}
+
+/// <summary>
+/// Component for displaying recent OpenTelemetry traces with filtering, pagination, and detailed view capabilities.
 /// Provides real-time trace monitoring and analysis functionality.
 /// </summary>
 public partial class RecentTracesCard : ComponentBase
 {
+    [Inject] public ITelemetryService TelemetryService { get; set; } = null!;
+    [Inject] public IJSRuntime JSRuntime { get; set; } = null!;
+
     /// <summary>
     /// Gets or sets the data source for recent traces.
     /// </summary>
@@ -25,13 +39,29 @@ public partial class RecentTracesCard : ComponentBase
     /// </summary>
     [Parameter] public int RefreshTrigger { get; set; }
 
-    private int _maxRecords = 10;
     private bool _mediatorOnly;
     private bool _appOnly;
+    private bool _hidePackets;
     private int _timeWindowMinutes = 30;
     private TraceDto? _selectedTrace;
     private bool _isLoading;
     private int _lastRefreshTrigger;
+    private DisplayMode _displayMode = DisplayMode.Raw;
+    private TraceDetailsModal? _traceDetailsModal;
+    
+    // Pagination state
+    private int _currentPage = 1;
+    private int _pageSize = 10;
+    
+    // Grouped mode data source
+    private GroupedTracesDto? GroupedDataSource { get; set; }
+
+    /// <summary>
+    /// Gets the current pagination info based on display mode.
+    /// </summary>
+    private PaginationInfo? CurrentPagination => _displayMode == DisplayMode.Raw 
+        ? DataSource?.Pagination 
+        : GroupedDataSource?.Pagination;
 
     /// <summary>
     /// Initializes the component and loads initial trace data.
@@ -71,6 +101,135 @@ public partial class RecentTracesCard : ComponentBase
         catch
         {
             return [];
+        }
+    }
+
+    /// <summary>
+    /// Gets the trace groups for grouped display mode.
+    /// </summary>
+    /// <returns>Array of trace group DTOs.</returns>
+    private TraceGroupDto[] GetTraceGroups()
+    {
+        return GroupedDataSource?.TraceGroups?.ToArray() ?? [];
+    }
+
+    /// <summary>
+    /// Sets the display mode and refreshes the traces.
+    /// </summary>
+    /// <param name="mode">The display mode to set.</param>
+    private async Task SetDisplayMode(DisplayMode mode)
+    {
+        if (_displayMode != mode)
+        {
+            _displayMode = mode;
+            _currentPage = 1; // Reset to first page when changing display mode
+            await RefreshTraces();
+        }
+    }
+
+    /// <summary>
+    /// Handles the hide packets filter change event.
+    /// </summary>
+    private async Task OnHidePacketsFilterChanged()
+    {
+        _currentPage = 1; // Reset to first page when changing filters
+        await RefreshTraces();
+        await OnFiltersChanged.InvokeAsync();
+    }
+
+    /// <summary>
+    /// Handles page size changes.
+    /// </summary>
+    /// <param name="newPageSize">The new page size.</param>
+    private async Task OnPageSizeChanged(int newPageSize)
+    {
+        // Validate page size range: minimum 10, maximum 100
+        _pageSize = Math.Max(10, Math.Min(newPageSize, 100));
+        _currentPage = 1; // Reset to first page when changing page size
+        await RefreshTraces();
+    }
+
+    /// <summary>
+    /// Navigates to the specified page.
+    /// </summary>
+    /// <param name="page">The page number to navigate to.</param>
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || (CurrentPagination != null && page > CurrentPagination.TotalPages))
+            return;
+
+        _currentPage = page;
+        await RefreshTraces();
+    }
+
+    /// <summary>
+    /// Navigates to the previous page.
+    /// </summary>
+    private async Task PreviousPage()
+    {
+        if (CurrentPagination?.HasPreviousPage == true)
+        {
+            await GoToPage(_currentPage - 1);
+        }
+    }
+
+    /// <summary>
+    /// Navigates to the next page.
+    /// </summary>
+    private async Task NextPage()
+    {
+        if (CurrentPagination?.HasNextPage == true)
+        {
+            await GoToPage(_currentPage + 1);
+        }
+    }
+
+    /// <summary>
+    /// Navigates to the first page.
+    /// </summary>
+    private async Task FirstPage()
+    {
+        await GoToPage(1);
+    }
+
+    /// <summary>
+    /// Navigates to the last page.
+    /// </summary>
+    private async Task LastPage()
+    {
+        if (CurrentPagination != null)
+        {
+            await GoToPage(CurrentPagination.TotalPages);
+        }
+    }
+
+    /// <summary>
+    /// Expands all trace groups in grouped display mode.
+    /// </summary>
+    private void ExpandAllGroups()
+    {
+        if (GroupedDataSource?.TraceGroups != null)
+        {
+            foreach (var group in GroupedDataSource.TraceGroups)
+            {
+                group.IsExpanded = true;
+            }
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Collapses all trace groups in grouped display mode.
+    /// </summary>
+    private void CollapseAllGroups()
+    {
+        if (GroupedDataSource?.TraceGroups != null)
+        {
+            foreach (var group in GroupedDataSource.TraceGroups)
+            {
+                group.IsExpanded = false;
+            }
+            StateHasChanged();
         }
     }
 
@@ -174,28 +333,27 @@ public partial class RecentTracesCard : ComponentBase
     private async Task UpdateAge(int minutes)
     {
         _timeWindowMinutes = minutes;
-        await RefreshTraces();
-    }
-
-    /// <summary>
-    /// Updates the maximum record count filter and refreshes traces.
-    /// </summary>
-    /// <param name="count">The new maximum record count.</param>
-    private async Task UpdateCount(int count)
-    {
-        _maxRecords = count;
+        _currentPage = 1; // Reset to first page when changing filters
         await RefreshTraces();
     }
 
     /// <summary>
     /// Handles changes to the application filter.
     /// </summary>
-    private async Task OnAppFilterChanged() => await RefreshTraces();
+    private async Task OnAppFilterChanged() 
+    {
+        _currentPage = 1; // Reset to first page when changing filters
+        await RefreshTraces();
+    }
 
     /// <summary>
     /// Handles changes to the mediator filter.
     /// </summary>
-    private async Task OnMediatorFilterChanged() => await RefreshTraces();
+    private async Task OnMediatorFilterChanged() 
+    {
+        _currentPage = 1; // Reset to first page when changing filters
+        await RefreshTraces();
+    }
 
     /// <summary>
     /// Refreshes the trace data from the telemetry service.
@@ -206,7 +364,18 @@ public partial class RecentTracesCard : ComponentBase
         {
             _isLoading = true;
             await InvokeAsync(StateHasChanged);
-            DataSource = await TelemetryService.GetRecentTracesAsync(_maxRecords, _mediatorOnly, _appOnly, _timeWindowMinutes);
+            
+            if (_displayMode == DisplayMode.Raw)
+            {
+                DataSource = await TelemetryService.GetRecentTracesAsync(_pageSize, _mediatorOnly, _appOnly, _timeWindowMinutes, _currentPage, _pageSize);
+                GroupedDataSource = null;
+            }
+            else
+            {
+                GroupedDataSource = await TelemetryService.GetGroupedTracesAsync(_pageSize, _mediatorOnly, _appOnly, _timeWindowMinutes, _hidePackets, _currentPage, _pageSize);
+                DataSource = null;
+            }
+            
             if (OnFiltersChanged.HasDelegate)
             {
                 await InvokeAsync(async () => await OnFiltersChanged.InvokeAsync());
@@ -229,8 +398,10 @@ public partial class RecentTracesCard : ComponentBase
     /// <param name="trace">The trace to display details for.</param>
     private async Task ViewTraceDetails(TraceDto trace)
     {
-        _selectedTrace = trace;
-        await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('traceDetailsModal')).show()");
+        if (_traceDetailsModal != null)
+        {
+            await _traceDetailsModal.ShowTraceDetailsAsync(trace);
+        }
     }
 
     /// <summary>

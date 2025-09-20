@@ -26,9 +26,12 @@ public sealed class UpdateUserHandler(ApplicationDbContext context)
 
         // Simulate some processing delay
         await Task.Delay(Random.Shared.Next(50, 300), cancellationToken);
-        // Find the user to update
+        
+        // Find the user to update - EXPLICITLY ENABLE TRACKING for updates
         var user = await context.Users
+            .AsTracking() // Override the default NoTracking behavior for updates
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            
         if (user == null)
         {
             var message = $"User with ID {request.UserId} not found";
@@ -37,15 +40,18 @@ public sealed class UpdateUserHandler(ApplicationDbContext context)
 
             throw new NotFoundException(message);
         }
+
         // Update the user properties
         user.Name = request.Name;
         user.Email = request.Email;
 
         // Save changes to database
-        await context.SaveChangesAsync(cancellationToken);
+        var changesSaved = await context.SaveChangesAsync(cancellationToken);
 
         activity?.SetStatus(ActivityStatusCode.Ok);
         activity?.SetTag("handler.updated", true);
-        Console.WriteLine($"Updated user {user.Id}: {user.Name} ({user.Email})");
+        activity?.SetTag("handler.changes_saved", changesSaved);
+        
+        Console.WriteLine($"Updated user {user.Id}: {user.Name} ({user.Email}) - {changesSaved} changes saved");
     }
 }

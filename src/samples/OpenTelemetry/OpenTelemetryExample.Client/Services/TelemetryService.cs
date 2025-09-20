@@ -141,13 +141,17 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         }
     }
 
-    public async Task<RecentTracesDto?> GetRecentTracesAsync(int maxRecords = 10, bool filterMediatorOnly = false, bool filterExampleAppOnly = false, int timeWindowMinutes = 30)
+    public async Task<RecentTracesDto?> GetRecentTracesAsync(int maxRecords = 10, bool filterMediatorOnly = false, bool filterExampleAppOnly = false, int timeWindowMinutes = 30, int page = 1, int pageSize = 10)
     {
         try
         {
             var queryParams = new List<string>();
 
-            // Always include maxRecords parameter 
+            // Add pagination parameters
+            queryParams.Add($"page={Math.Max(page, 1)}");
+            queryParams.Add($"pageSize={Math.Max(pageSize, 1)}");
+
+            // Always include maxRecords parameter for backward compatibility
             queryParams.Add($"maxRecords={Math.Max(maxRecords, 10)}");
 
             if (filterMediatorOnly)
@@ -180,8 +184,8 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
 
             // Return strongly-typed RecentTracesDto
             var result = await response.Content.ReadFromJsonAsync<RecentTracesDto>(cancellationToken: cts.Token);
-            logger.LogDebug("[<-] Retrieved recent traces successfully (maxRecords: {MaxRecords}, filter: {Filter})",
-                maxRecords, filterMediatorOnly);
+            logger.LogDebug("[<-] Retrieved recent traces successfully (page: {Page}, pageSize: {PageSize}, filter: MediatorOnly={MediatorOnly}, ExampleAppOnly={ExampleAppOnly})",
+                page, pageSize, filterMediatorOnly, filterExampleAppOnly);
             return result;
         }
         catch (OperationCanceledException)
@@ -192,6 +196,68 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
         catch (Exception ex)
         {
             logger.LogError(ex, "[!] Error calling GET /telemetry/traces");
+            return null;
+        }
+    }
+
+    public async Task<GroupedTracesDto?> GetGroupedTracesAsync(int maxRecords = 10, bool filterMediatorOnly = false, bool filterExampleAppOnly = false, int timeWindowMinutes = 30, bool hidePackets = false, int page = 1, int pageSize = 10)
+    {
+        try
+        {
+            var queryParams = new List<string>();
+
+            // Add pagination parameters
+            queryParams.Add($"page={Math.Max(page, 1)}");
+            queryParams.Add($"pageSize={Math.Max(pageSize, 1)}");
+
+            // Always include maxRecords parameter for backward compatibility
+            queryParams.Add($"maxRecords={Math.Max(maxRecords, 10)}");
+
+            if (filterMediatorOnly)
+                queryParams.Add("blazingMediatorOnly=true");
+
+            if (filterExampleAppOnly)
+                queryParams.Add("exampleAppOnly=true");
+
+            if (timeWindowMinutes != 30)
+                queryParams.Add($"timeWindowMinutes={timeWindowMinutes}");
+
+            if (hidePackets)
+                queryParams.Add("hidePackets=true");
+
+            var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+            var endpoint = $"telemetry/traces/grouped{queryString}";
+
+            logger.LogDebug("[->] Calling GET /{Endpoint}", endpoint);
+            logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var response = await httpClient.GetAsync(endpoint, cts.Token);
+
+            logger.LogDebug("[<-] Grouped traces response status: {StatusCode}", response.StatusCode);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
+                logger.LogWarning("[!] Grouped traces endpoint returned {StatusCode}: {ErrorContent}",
+                    response.StatusCode, errorContent);
+                return null;
+            }
+
+            // Return strongly-typed GroupedTracesDto
+            var result = await response.Content.ReadFromJsonAsync<GroupedTracesDto>(cancellationToken: cts.Token);
+            logger.LogDebug("[<-] Retrieved grouped traces successfully (page: {Page}, pageSize: {PageSize}, filter: MediatorOnly={MediatorOnly}, ExampleAppOnly={ExampleAppOnly}, HidePackets={HidePackets})",
+                page, pageSize, filterMediatorOnly, filterExampleAppOnly, hidePackets);
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("[!] Grouped traces request timed out");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[!] Error calling GET /telemetry/traces/grouped");
             return null;
         }
     }

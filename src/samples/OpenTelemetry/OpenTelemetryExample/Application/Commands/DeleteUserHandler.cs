@@ -26,9 +26,12 @@ public sealed class DeleteUserHandler(ApplicationDbContext context)
 
         // Simulate some processing delay
         await Task.Delay(Random.Shared.Next(25, 150), cancellationToken);
-        // Find the user to delete
+        
+        // Find the user to delete - EXPLICITLY ENABLE TRACKING for deletes
         var user = await context.Users
+            .AsTracking() // Override the default NoTracking behavior for deletes
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            
         if (user == null)
         {
             var message = $"User with ID {request.UserId} not found";
@@ -37,12 +40,15 @@ public sealed class DeleteUserHandler(ApplicationDbContext context)
 
             throw new NotFoundException(message);
         }
+        
         // Remove the user from database
         context.Users.Remove(user);
-        await context.SaveChangesAsync(cancellationToken);
+        var changesSaved = await context.SaveChangesAsync(cancellationToken);
 
         activity?.SetStatus(ActivityStatusCode.Ok);
         activity?.SetTag("handler.deleted", true);
-        Console.WriteLine($"Deleted user {user.Id}: {user.Name} ({user.Email})");
+        activity?.SetTag("handler.changes_saved", changesSaved);
+        
+        Console.WriteLine($"Deleted user {user.Id}: {user.Name} ({user.Email}) - {changesSaved} changes saved");
     }
 }

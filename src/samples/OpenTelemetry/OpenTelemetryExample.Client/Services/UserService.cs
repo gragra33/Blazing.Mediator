@@ -77,7 +77,7 @@ public sealed class UserService(HttpClient httpClient, ILogger<UserService> logg
     {
         try
         {
-            logger.LogDebug("[->] Calling PUT /api/users/{Id}", id);
+            logger.LogDebug("[->] Calling PUT /api/users/{Id} with Name: {Name}, Email: {Email}", id, request.Name, request.Email);
 
             // Convert UpdateUserRequest to the format the API expects (UpdateUserCommand)
             var command = new

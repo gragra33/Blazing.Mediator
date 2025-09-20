@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.JSInterop;
 using OpenTelemetryExample.Shared.Models;
 
-namespace OpenTelemetryExample.Client.Components;
+namespace OpenTelemetryExample.Client.Components.Streaming;
 
 /// <summary>
 /// Component for demonstrating SignalR streaming functionality with real-time metrics and telemetry.

@@ -1,3 +1,5 @@
+using Blazing.Mediator.OpenTelemetry;
+
 namespace Blazing.Mediator.Configuration;
 
 /// <summary>
@@ -31,6 +33,12 @@ public sealed class MediatorConfiguration
     public StatisticsOptions? StatisticsOptions { get; private set; }
 
     /// <summary>
+    /// Gets the telemetry options for OpenTelemetry integration.
+    /// Provides granular control over what telemetry data is collected and how it is configured.
+    /// </summary>
+    public MediatorTelemetryOptions? TelemetryOptions { get; private set; }
+
+    /// <summary>
     /// Gets or sets whether to automatically discover and register request middleware from assemblies.
     /// </summary>
     public bool DiscoverMiddleware { get; set; }
@@ -55,7 +63,9 @@ public sealed class MediatorConfiguration
     /// <returns>The configuration for chaining</returns>
     public MediatorConfiguration WithStatisticsTracking()
     {
+#pragma warning disable CS0618 // For backwards compatibility
         EnableStatisticsTracking = true;
+#pragma warning restore CS0618
         StatisticsOptions = new StatisticsOptions();
         return this;
     }
@@ -96,6 +106,47 @@ public sealed class MediatorConfiguration
 #pragma warning disable CS0618 // For backwards compatibility
         EnableStatisticsTracking = options.IsEnabled;
 #pragma warning restore CS0618
+        return this;
+    }
+
+    /// <summary>
+    /// Enables telemetry tracking with default options.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithTelemetry()
+    {
+        TelemetryOptions = new MediatorTelemetryOptions();
+        return this;
+    }
+
+    /// <summary>
+    /// Enables telemetry tracking with granular configuration options.
+    /// </summary>
+    /// <param name="configure">Action to configure the telemetry options.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when configure is null.</exception>
+    public MediatorConfiguration WithTelemetry(Action<MediatorTelemetryOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var options = new MediatorTelemetryOptions();
+        configure(options);
+
+        TelemetryOptions = options;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables telemetry tracking with pre-configured options.
+    /// </summary>
+    /// <param name="options">The telemetry options to use.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
+    public MediatorConfiguration WithTelemetry(MediatorTelemetryOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        TelemetryOptions = options;
         return this;
     }
 

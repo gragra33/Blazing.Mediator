@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 
-namespace OpenTelemetryExample.Client.Components;
+namespace OpenTelemetryExample.Client.Components.Shared;
 
 public partial class AboutOpenTelemetryCard : ComponentBase
 {

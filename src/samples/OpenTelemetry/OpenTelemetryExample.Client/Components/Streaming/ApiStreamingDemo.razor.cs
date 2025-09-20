@@ -3,7 +3,7 @@ using Microsoft.JSInterop;
 using OpenTelemetryExample.Shared.Models;
 using System.Net.Http.Json;
 
-namespace OpenTelemetryExample.Client.Components;
+namespace OpenTelemetryExample.Client.Components.Streaming;
 
 /// <summary>
 /// Component for demonstrating API streaming functionality with real-time metrics and telemetry.

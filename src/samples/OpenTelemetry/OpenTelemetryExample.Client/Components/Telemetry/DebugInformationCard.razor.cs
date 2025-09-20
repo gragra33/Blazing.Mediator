@@ -3,7 +3,7 @@ using Microsoft.JSInterop;
 using OpenTelemetryExample.Client.Services;
 using OpenTelemetryExample.Shared.Models;
 
-namespace OpenTelemetryExample.Client.Components;
+namespace OpenTelemetryExample.Client.Components.Telemetry;
 
 public partial class DebugInformationCard : ComponentBase
 {

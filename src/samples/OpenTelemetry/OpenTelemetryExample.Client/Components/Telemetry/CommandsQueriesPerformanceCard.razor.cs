@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using OpenTelemetryExample.Shared.Models;
 
-namespace OpenTelemetryExample.Client.Components;
+namespace OpenTelemetryExample.Client.Components.Telemetry;
 
 public partial class CommandsQueriesPerformanceCard : ComponentBase
 {

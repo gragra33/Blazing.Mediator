@@ -161,26 +161,41 @@ public class MediatorTelemetrySendTests : IDisposable
     [Fact]
     public async Task Send_DisabledTelemetry_DoesNotGenerateTelemetry()
     {
-        // Arrange
-        var originalTelemetryState = Mediator.TelemetryEnabled;
-        Mediator.TelemetryEnabled = false;
+        // Arrange - Create a separate mediator with telemetry explicitly disabled
+        var services = new ServiceCollection();
+        services.AddLogging();
+        
+        // Configure mediator with telemetry disabled
+        services.AddMediator(config =>
+        {
+            config.WithTelemetry(options =>
+            {
+                options.Enabled = false;
+            });
+        }, typeof(SendTestCommand).Assembly);
+
+        using var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+        
         var command = new SendTestCommand { Value = "test" };
-        _recordedActivities?.Clear();
+        var recordedActivities = new List<Activity>();
 
-        try
+        // Set up activity listener specifically for this test
+        using var activityListener = new ActivityListener
         {
-            // Act
-            await _mediator.Send(command);
+            ShouldListenTo = source => source.Name == "Blazing.Mediator",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStarted = _ => { /* Activity started */ },
+            ActivityStopped = activity => recordedActivities.Add(activity)
+        };
+        ActivitySource.AddActivityListener(activityListener);
 
-            // Assert
-            var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommand"));
-            activity.ShouldBeNull("No activity should be created when telemetry is disabled");
-        }
-        finally
-        {
-            // Restore original state
-            Mediator.TelemetryEnabled = originalTelemetryState;
-        }
+        // Act
+        await mediator.Send(command);
+
+        // Assert
+        var activity = recordedActivities.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommand"));
+        activity.ShouldBeNull("No activity should be created when telemetry is disabled");
     }
 
     [Fact]

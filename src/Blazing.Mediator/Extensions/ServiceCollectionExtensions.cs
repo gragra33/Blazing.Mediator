@@ -1,4 +1,5 @@
 using Blazing.Mediator.Statistics;
+using Blazing.Mediator.OpenTelemetry;
 using System.Runtime.CompilerServices;
 
 namespace Blazing.Mediator;
@@ -260,6 +261,15 @@ public static class ServiceCollectionExtensions
         bool hasStatisticsOptions = configuration.StatisticsOptions != null;
         bool shouldRegisterStatistics = finalEnableStatisticsTracking || hasStatisticsOptions;
 
+        // Check if TelemetryOptions is configured
+        bool hasTelemetryOptions = configuration.TelemetryOptions != null;
+
+        // Register telemetry options if configured and not already registered
+        if (hasTelemetryOptions && services.All(s => s.ServiceType != typeof(MediatorTelemetryOptions)))
+        {
+            services.AddSingleton(configuration.TelemetryOptions!);
+        }
+
         // Register MediatorStatistics with default console renderer if not already registered and statistics tracking is enabled
         if (shouldRegisterStatistics && services.All(s => s.ServiceType != typeof(IStatisticsRenderer)))
         {
@@ -282,7 +292,8 @@ public static class ServiceCollectionExtensions
             var pipelineBuilder = provider.GetRequiredService<IMiddlewarePipelineBuilder>();
             var notificationPipelineBuilder = provider.GetRequiredService<INotificationPipelineBuilder>();
             var statistics = shouldRegisterStatistics ? provider.GetRequiredService<MediatorStatistics>() : null;
-            return new Mediator(provider, pipelineBuilder, notificationPipelineBuilder, statistics);
+            var telemetryOptions = provider.GetService<MediatorTelemetryOptions>();
+            return new Mediator(provider, pipelineBuilder, notificationPipelineBuilder, statistics, telemetryOptions);
         });
 
         if (finalDiscoverMiddleware || finalDiscoverNotificationMiddleware)

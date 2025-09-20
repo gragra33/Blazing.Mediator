@@ -24,6 +24,15 @@ public sealed class MediatorStatistics : IDisposable
     private long _totalMemoryAllocated;
     private readonly object _memoryLock = new();
 
+    // Middleware metrics (only used when EnableMiddlewareMetrics is true)
+    private readonly ConcurrentDictionary<string, long> _middlewareExecutionCounts = new();
+    private readonly ConcurrentDictionary<string, long> _middlewareExecutionTimes = new();
+    private readonly ConcurrentDictionary<string, long> _middlewareFailures = new();
+
+    // Detailed analysis data (only used when EnableDetailedAnalysis is true)
+    private readonly ConcurrentDictionary<string, List<DateTime>> _executionPatterns = new();
+    private readonly ConcurrentDictionary<string, long> _hourlyExecutionCounts = new();
+    
     // Metrics retention and cleanup
     private readonly ConcurrentDictionary<string, DateTime> _metricTimestamps = new();
     private readonly Timer? _cleanupTimer;
@@ -149,6 +158,72 @@ public sealed class MediatorStatistics : IDisposable
         {
             _totalMemoryAllocated += bytesAllocated;
         }
+    }
+
+    /// <summary>
+    /// Records middleware execution metrics when middleware metrics are enabled.
+    /// </summary>
+    /// <param name="middlewareType">The middleware type name.</param>
+    /// <param name="executionTimeMs">The execution time in milliseconds.</param>
+    /// <param name="successful">Whether the middleware executed successfully.</param>
+    public void RecordMiddlewareExecution(string middlewareType, long executionTimeMs, bool successful = true)
+    {
+        if (!_options.EnableMiddlewareMetrics || string.IsNullOrEmpty(middlewareType))
+        {
+            return;
+        }
+
+        _middlewareExecutionCounts.AddOrUpdate(middlewareType, 1, (_, count) => count + 1);
+        _middlewareExecutionTimes.AddOrUpdate(middlewareType, executionTimeMs, (_, total) => total + executionTimeMs);
+        
+        if (!successful)
+        {
+            _middlewareFailures.AddOrUpdate(middlewareType, 1, (_, count) => count + 1);
+        }
+
+        UpdateMetricTimestamp($"middleware_{middlewareType}");
+    }
+
+    /// <summary>
+    /// Records detailed execution pattern when detailed analysis is enabled.
+    /// </summary>
+    /// <param name="requestType">The request type name.</param>
+    /// <param name="executionTime">The execution timestamp.</param>
+    public void RecordExecutionPattern(string requestType, DateTime executionTime)
+    {
+        if (!_options.EnableDetailedAnalysis || string.IsNullOrEmpty(requestType))
+        {
+            return;
+        }
+
+        // Check max tracked request types limit
+        if (_executionPatterns.Count >= _options.MaxTrackedRequestTypes && 
+            !_executionPatterns.ContainsKey(requestType))
+        {
+            return; // Don't track new request types if we've hit the limit
+        }
+
+        _executionPatterns.AddOrUpdate(requestType, [executionTime], (_, patterns) =>
+        {
+            lock (patterns)
+            {
+                patterns.Add(executionTime);
+                
+                // Keep only recent patterns to prevent unbounded growth
+                if (patterns.Count > 10000)
+                {
+                    patterns.RemoveAt(0);
+                }
+                
+                return patterns;
+            }
+        });
+
+        // Track hourly patterns
+        var hourKey = $"{requestType}_{executionTime:yyyy-MM-dd-HH}";
+        _hourlyExecutionCounts.AddOrUpdate(hourKey, 1, (_, count) => count + 1);
+
+        UpdateMetricTimestamp($"pattern_{requestType}");
     }
 
     /// <summary>

@@ -26,16 +26,20 @@ public sealed class GetUsersHandler(ApplicationDbContext context) : IRequestHand
 
         // Simulate some processing delay
         await Task.Delay(Random.Shared.Next(50, 200), cancellationToken);
-        var query = context.Users.AsQueryable();
+        
+        var query = context.Users.AsNoTracking(); // Use AsNoTracking for read-only queries
+        
         if (!request.IncludeInactive)
         {
             query = query.Where(u => u.IsActive);
         }
+        
         if (!string.IsNullOrEmpty(request.SearchTerm))
         {
             query = query.Where(u => u.Name.Contains(request.SearchTerm)
                                      || u.Email.Contains(request.SearchTerm));
         }
+        
         var users = await query.ToListAsync(cancellationToken);
 
         activity?.SetStatus(ActivityStatusCode.Ok);

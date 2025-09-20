@@ -127,6 +127,8 @@
     private async Task LoadUsers()
     {
         _loading = true;
+        StateHasChanged();
+        
         try
         {
             _users = await UserService.GetUsersAsync();
@@ -140,7 +142,7 @@
         finally
         {
             _loading = false;
-            StateHasChanged(); // Ensure UI updates
+            StateHasChanged();
         }
     }
 
@@ -149,7 +151,7 @@
         _editingUser = null;
         _userForm = new CreateUserRequest();
         _showModal = true;
-        StateHasChanged(); // Ensure modal shows
+        StateHasChanged();
     }
 
     private void EditUser(UserDto user)
@@ -161,7 +163,7 @@
             Email = user.Email
         };
         _showModal = true;
-        StateHasChanged(); // Ensure modal shows with data
+        StateHasChanged();
     }
 
     private void HideModal()
@@ -169,7 +171,7 @@
         _showModal = false;
         _editingUser = null;
         _userForm = new CreateUserRequest();
-        StateHasChanged(); // Ensure modal hides
+        StateHasChanged();
     }
 
     private async Task SaveUser()
@@ -178,7 +180,7 @@
             return;
 
         _saving = true;
-        StateHasChanged(); // Show saving state
+        StateHasChanged();
         
         try
         {
@@ -201,7 +203,7 @@
             }
 
             HideModal();
-            await LoadUsers(); // This will call StateHasChanged() automatically
+            await LoadUsers();
         }
         catch (Exception ex)
         {
@@ -211,7 +213,7 @@
         finally
         {
             _saving = false;
-            StateHasChanged(); // Hide saving state
+            StateHasChanged();
         }
     }
 
@@ -227,7 +229,7 @@
                 Console.WriteLine($"[DEBUG] Deleting user {user.Id}: {user.Name}");
                 await UserService.DeleteUserAsync(user.Id);
                 Console.WriteLine($"[DEBUG] User {user.Id} deleted successfully");
-                await LoadUsers(); // This will call StateHasChanged() automatically
+                await LoadUsers();
             }
             catch (Exception ex)
             {

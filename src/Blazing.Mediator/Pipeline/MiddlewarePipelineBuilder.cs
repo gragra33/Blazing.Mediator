@@ -879,7 +879,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         where TRequest : IRequest<TResponse>
     {
         var executed = new List<Type>();
-        RequestHandlerDelegate<TResponse> pipeline = async () => default!;
+        RequestHandlerDelegate<TResponse> pipeline = () => Task.FromResult(default(TResponse)!);
         List<(Type Type, int Order)> applicableMiddleware = [];
         foreach (var middlewareInfo in _middlewareInfos)
         {

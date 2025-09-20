@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Suppress XML documentation warnings for test code -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Suppress XML documentation warnings and obsolete method warnings for test code -->
+    <NoWarn>$(NoWarn);CS1591;CS0618</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

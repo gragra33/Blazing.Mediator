@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Components;
-using OpenTelemetryExample.Client.Components;
+using OpenTelemetryExample.Client.Components.Telemetry;
 using OpenTelemetryExample.Shared.Models;
 
 namespace OpenTelemetryExample.Client.Pages;

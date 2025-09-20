@@ -1,8 +1,7 @@
 using Blazing.Mediator.Statistics;
-using System.Collections.Concurrent;
+using Blazing.Mediator.OpenTelemetry;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using System.Reflection;
 
 namespace Blazing.Mediator;
 
@@ -20,6 +19,7 @@ public sealed class Mediator : IMediator
     private readonly IMiddlewarePipelineBuilder _pipelineBuilder;
     private readonly INotificationPipelineBuilder _notificationPipelineBuilder;
     private readonly MediatorStatistics? _statistics;
+    private readonly MediatorTelemetryOptions? _telemetryOptions;
 
     // Thread-safe collections for notification subscribers
     private readonly ConcurrentDictionary<Type, ConcurrentBag<object>> _specificSubscribers = new();
@@ -87,14 +87,31 @@ public sealed class Mediator : IMediator
     /// <param name="pipelineBuilder">The middleware pipeline builder.</param>
     /// <param name="notificationPipelineBuilder">The notification middleware pipeline builder.</param>
     /// <param name="statistics">The statistics service for tracking mediator usage. Can be null if statistics tracking is disabled.</param>
+    /// <param name="telemetryOptions">The telemetry options for configuring OpenTelemetry integration. Can be null if telemetry is disabled.</param>
     /// <exception cref="ArgumentNullException">Thrown when serviceProvider, pipelineBuilder, or notificationPipelineBuilder is null.</exception>
-    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, INotificationPipelineBuilder notificationPipelineBuilder, MediatorStatistics? statistics)
+    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, INotificationPipelineBuilder notificationPipelineBuilder, MediatorStatistics? statistics, MediatorTelemetryOptions? telemetryOptions = null)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _pipelineBuilder = pipelineBuilder ?? throw new ArgumentNullException(nameof(pipelineBuilder));
         _notificationPipelineBuilder = notificationPipelineBuilder ?? throw new ArgumentNullException(nameof(notificationPipelineBuilder));
         _statistics = statistics; // Statistics can be null if tracking is disabled
+        _telemetryOptions = telemetryOptions; // Telemetry options can be null if telemetry is disabled
     }
+
+    /// <summary>
+    /// Gets whether telemetry is enabled based on options or static property fallback.
+    /// </summary>
+    private bool IsTelemetryEnabled => _telemetryOptions?.Enabled ?? TelemetryEnabled;
+
+    /// <summary>
+    /// Gets whether packet-level telemetry is enabled based on options or static property fallback.
+    /// </summary>
+    private bool IsPacketLevelTelemetryEnabled => _telemetryOptions?.PacketLevelTelemetryEnabled ?? PacketLevelTelemetryEnabled;
+
+    /// <summary>
+    /// Gets the packet telemetry batch size based on options or static property fallback.
+    /// </summary>
+    private int GetPacketTelemetryBatchSize => _telemetryOptions?.PacketTelemetryBatchSize ?? PacketTelemetryBatchSize;
 
     /// <summary>
     /// Sends a command request through the middleware pipeline to its corresponding handler.
@@ -105,7 +122,7 @@ public sealed class Mediator : IMediator
     /// <exception cref="InvalidOperationException">Thrown when no handler is found for the request type</exception>
     public async Task Send(IRequest request, CancellationToken cancellationToken = default)
     {
-        using var activity = TelemetryEnabled ? ActivitySource.StartActivity($"Mediator.Send:{request.GetType().Name}") : null;
+        using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"Mediator.Send:{request.GetType().Name}") : null;
         activity?.SetStatus(ActivityStatusCode.Ok);
 
         var stopwatch = Stopwatch.StartNew();
@@ -119,7 +136,7 @@ public sealed class Mediator : IMediator
             Type handlerType = typeof(IRequestHandler<>).MakeGenericType(requestType);
 
             // Get middleware pipeline information for telemetry
-            if (TelemetryEnabled && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
+            if (IsTelemetryEnabled && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
             {
                 var middlewareInfo = inspector.GetDetailedMiddlewareInfo(_serviceProvider);
                 List<string> allMiddleware = middlewareInfo
@@ -147,7 +164,7 @@ public sealed class Mediator : IMediator
                 MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
                 try
                 {
-                    if (TelemetryEnabled)
+                    if (IsTelemetryEnabled)
                     {
                         activity?.SetTag("handler.type", SanitizeTypeName(handler.GetType().Name));
                     }
@@ -193,7 +210,7 @@ public sealed class Mediator : IMediator
         finally
         {
             stopwatch.Stop();
-            if (TelemetryEnabled)
+            if (IsTelemetryEnabled)
             {
                 // Record metrics with appropriate tags
                 var tags = new TagList
@@ -252,7 +269,7 @@ public sealed class Mediator : IMediator
     /// <exception cref="InvalidOperationException">Thrown when no handler is found for the request type or the handler returns null</exception>
     public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
-        using var activity = TelemetryEnabled ? ActivitySource.StartActivity($"Mediator.Send:{request.GetType().Name}") : null;
+        using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"Mediator.Send:{request.GetType().Name}") : null;
         activity?.SetStatus(ActivityStatusCode.Ok);
 
         var stopwatch = Stopwatch.StartNew();
@@ -278,7 +295,7 @@ public sealed class Mediator : IMediator
             Type handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
 
             // Get middleware pipeline information for telemetry
-            if (TelemetryEnabled && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
+            if (IsTelemetryEnabled && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
             {
                 var middlewareInfo = inspector.GetDetailedMiddlewareInfo(_serviceProvider);
                 List<string> allMiddleware = middlewareInfo
@@ -305,7 +322,7 @@ public sealed class Mediator : IMediator
                 MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
                 try
                 {
-                    if (TelemetryEnabled)
+                    if (IsTelemetryEnabled)
                     {
                         activity?.SetTag("handler.type", SanitizeTypeName(handler.GetType().Name));
                         activity?.SetTag("response.type", SanitizeTypeName(typeof(TResponse).Name));
@@ -353,7 +370,7 @@ public sealed class Mediator : IMediator
         finally
         {
             stopwatch.Stop();
-            if (TelemetryEnabled)
+            if (IsTelemetryEnabled)
             {
                 // Determine request type for telemetry
                 bool isQuery = DetermineIfQuery(request);
@@ -495,7 +512,7 @@ public sealed class Mediator : IMediator
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         // Create the stream context outside try-catch to avoid yield restrictions
-        var streamContext = new StreamTelemetryContext<TResponse>(request);
+        var streamContext = new StreamTelemetryContext<TResponse>(request, _telemetryOptions);
         
         await foreach (var item in InstrumentedStreamEnumeration(baseStream, streamContext, cancellationToken))
         {
@@ -512,7 +529,7 @@ public sealed class Mediator : IMediator
         StreamTelemetryContext<TResponse> context,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using var activity = TelemetryEnabled ? ActivitySource.StartActivity($"Mediator.SendStream:{context.RequestTypeName}") : null;
+        using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"Mediator.SendStream:{context.RequestTypeName}") : null;
         
         // Ensure the activity is started and marked as active for proper telemetry propagation
         if (activity != null)
@@ -528,8 +545,8 @@ public sealed class Mediator : IMediator
             
             // Add streaming-specific semantic convention tags
             activity.SetTag("stream.type", "response");
-            activity.SetTag("stream.packet_level_telemetry", PacketLevelTelemetryEnabled);
-            activity.SetTag("stream.batch_size", PacketTelemetryBatchSize);
+            activity.SetTag("stream.packet_level_telemetry", IsPacketLevelTelemetryEnabled);
+            activity.SetTag("stream.batch_size", GetPacketTelemetryBatchSize);
         }
         
         var streamStopwatch = Stopwatch.StartNew();
@@ -664,11 +681,7 @@ public sealed class Mediator : IMediator
                 }
 
                 // Add generic subscribers that can handle any notification
-                var genericSubscriberList = new List<INotificationSubscriber>();
-                foreach (var genericSubscriber in _genericSubscribers)
-                {
-                    genericSubscriberList.Add(genericSubscriber);
-                }
+                var genericSubscriberList = _genericSubscribers.ToList();
 
                 subscriberCount = subscribers.Count + genericSubscriberList.Count;
                 var subscriberExceptions = new List<Exception>();
@@ -766,22 +779,24 @@ public sealed class Mediator : IMediator
         catch (Exception ex)
         {
             exception = ex;
-            if (TelemetryEnabled)
+            if (!TelemetryEnabled)
             {
-                activity?.SetStatus(ActivityStatusCode.Error);
-
-                var failureTags = new TagList
-                {
-                    { "notification_name", SanitizeTypeName(typeof(TNotification).Name) },
-                    { "exception.type", SanitizeTypeName(ex.GetType().Name) },
-                    { "exception.message", SanitizeExceptionMessage(ex.Message) }
-                };
-                PublishFailureCounter.Add(1, failureTags);
-
-                activity?.SetTag("exception.type", SanitizeTypeName(ex.GetType().Name));
-                activity?.SetTag("exception.message", SanitizeExceptionMessage(ex.Message));
-                activity?.SetStatus(ActivityStatusCode.Error, SanitizeExceptionMessage(ex.Message));
+                throw;
             }
+
+            activity?.SetStatus(ActivityStatusCode.Error);
+
+            var failureTags = new TagList
+            {
+                { "notification_name", SanitizeTypeName(typeof(TNotification).Name) },
+                { "exception.type", SanitizeTypeName(ex.GetType().Name) },
+                { "exception.message", SanitizeExceptionMessage(ex.Message) }
+            };
+            PublishFailureCounter.Add(1, failureTags);
+
+            activity?.SetTag("exception.type", SanitizeTypeName(ex.GetType().Name));
+            activity?.SetTag("exception.message", SanitizeExceptionMessage(ex.Message));
+            activity?.SetStatus(ActivityStatusCode.Error, SanitizeExceptionMessage(ex.Message));
             throw;
         }
         finally
@@ -923,25 +938,6 @@ public sealed class Mediator : IMediator
         }
     }
 
-    /// <summary>
-    /// Safely invokes a subscriber method, catching and logging any exceptions.
-    /// Ensures that exceptions in one subscriber don't affect other subscribers.
-    /// </summary>
-    /// <param name="subscriberAction">The subscriber action to invoke</param>
-    /// <returns>A task representing the operation</returns>
-    private static async Task SafeInvokeSubscriber(Func<Task> subscriberAction)
-    {
-        try
-        {
-            await subscriberAction();
-        }
-        catch (Exception ex)
-        {
-            // Log the exception but don't let it propagate to other subscribers
-            Console.WriteLine($"Exception in notification subscriber: {ex.Message}");
-        }
-    }
-
     #endregion
 
     #region Telemetry Helper Methods
@@ -1057,13 +1053,9 @@ public sealed class Mediator : IMediator
 
         // Remove tokens, passwords, keys
         var sensitivePatterns = new[] { "password", "token", "secret", "key", "auth" };
-        foreach (var pattern in sensitivePatterns)
+        if (sensitivePatterns.Any(pattern => sanitized.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
         {
-            if (sanitized.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-            {
-                sanitized = "sensitive_data_error";
-                break;
-            }
+            sanitized = "sensitive_data_error";
         }
 
         // Limit length to prevent log flooding
@@ -1189,9 +1181,10 @@ public sealed class Mediator : IMediator
 /// Telemetry context for streaming operations that tracks comprehensive packet-level metrics.
 /// </summary>
 /// <typeparam name="TResponse">The type of response items in the stream</typeparam>
-internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse> request)
+internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse> request, MediatorTelemetryOptions? telemetryOptions)
 {
     private readonly IStreamRequest<TResponse> _request = request ?? throw new ArgumentNullException(nameof(request));
+    private readonly MediatorTelemetryOptions? _telemetryOptions = telemetryOptions;
     private readonly List<double> _interPacketTimes = new();
     private readonly List<double> _packetProcessingTimes = new();
     private int _itemCount;
@@ -1205,43 +1198,48 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
     public int ItemCount => _itemCount; // Expose item count for telemetry
     public double AverageInterPacketTime => _interPacketTimes.Count > 0 ? _interPacketTimes.Average() : 0;
 
+    private bool IsTelemetryEnabled => _telemetryOptions?.Enabled ?? true;
+    private bool IsPacketLevelTelemetryEnabled => _telemetryOptions?.PacketLevelTelemetryEnabled ?? false;
+
     /// <summary>
     /// Initializes the telemetry context with activity and service information.
     /// </summary>
     public void Initialize(Activity? activity, IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, MediatorStatistics? statistics)
     {
-        if (!Mediator.TelemetryEnabled) return;
+        if (!IsTelemetryEnabled) return;
 
         _activity = activity; // Store the activity reference
         statistics?.IncrementQuery(_request.GetType().Name);
 
-        if (activity != null)
+        if (activity == null)
         {
-            activity.SetTag("request_name", RequestTypeName);
-            activity.SetTag("request_type", "stream");
-            activity.SetTag("response_type", ResponseTypeName);
+            return;
+        }
 
-            // Get middleware pipeline information
-            if (pipelineBuilder is IMiddlewarePipelineInspector inspector)
-            {
-                var middlewareInfo = inspector.GetDetailedMiddlewareInfo(serviceProvider);
-                var allMiddleware = middlewareInfo
-                    .Where(m => IsMiddlewareApplicable(m.Type, _request.GetType(), typeof(TResponse)))
-                    .OrderBy(m => m.Order)
-                    .Select(m => SanitizeMiddlewareName(m.Type.Name))
-                    .ToList();
+        activity.SetTag("request_name", RequestTypeName);
+        activity.SetTag("request_type", "stream");
+        activity.SetTag("response_type", ResponseTypeName);
 
-                activity.SetTag("middleware.pipeline", string.Join(",", allMiddleware));
-            }
+        // Get middleware pipeline information
+        if (pipelineBuilder is IMiddlewarePipelineInspector inspector)
+        {
+            var middlewareInfo = inspector.GetDetailedMiddlewareInfo(serviceProvider);
+            var allMiddleware = middlewareInfo
+                .Where(m => IsMiddlewareApplicable(m.Type, _request.GetType(), typeof(TResponse)))
+                .OrderBy(m => m.Order)
+                .Select(m => SanitizeMiddlewareName(m.Type.Name))
+                .ToList();
 
-            // Get handler information
-            var handlerType = typeof(IStreamRequestHandler<,>).MakeGenericType(_request.GetType(), typeof(TResponse));
-            var handlers = serviceProvider.GetServices(handlerType);
-            var handler = handlers.FirstOrDefault();
-            if (handler != null)
-            {
-                activity.SetTag("handler.type", SanitizeTypeName(handler.GetType().Name));
-            }
+            activity.SetTag("middleware.pipeline", string.Join(",", allMiddleware));
+        }
+
+        // Get handler information
+        var handlerType = typeof(IStreamRequestHandler<,>).MakeGenericType(_request.GetType(), typeof(TResponse));
+        var handlers = serviceProvider.GetServices(handlerType);
+        var handler = handlers.FirstOrDefault();
+        if (handler != null)
+        {
+            activity.SetTag("handler.type", SanitizeTypeName(handler.GetType().Name));
         }
     }
 
@@ -1250,7 +1248,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
     /// </summary>
     public void RecordPacket(long currentTime, long lastItemTime, TResponse item, double packetProcessingTimeMs, CancellationToken cancellationToken = default)
     {
-        if (!Mediator.TelemetryEnabled) return;
+        if (!IsTelemetryEnabled) return;
 
         _itemCount++;
         double interPacketTime = 0;
@@ -1289,9 +1287,9 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
         }
 
         // Create child span for packet if packet-level telemetry is enabled
-        if (Mediator.PacketLevelTelemetryEnabled && _activity != null)
+        if (IsPacketLevelTelemetryEnabled && _activity != null)
         {
-            using var packetActivity = Mediator.ActivitySource.StartActivity($"Mediator.SendStream:{RequestTypeName}.packet_{_itemCount}");
+            using var packetActivity = Mediator.ActivitySource.StartActivity($"Mediator.SendStream:{RequestTypeName}.packet_{_itemCount}", ActivityKind.Internal, _activity.Context);
             if (packetActivity != null)
             {
                 packetActivity.SetTag("packet.number", _itemCount);
@@ -1344,13 +1342,14 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
                 // Batched event
                 var batchStart = Math.Max(1, _itemCount - Mediator.PacketTelemetryBatchSize + 1);
                 var recentInterPacketTimes = _interPacketTimes.TakeLast(Mediator.PacketTelemetryBatchSize - 1);
-                
+
+                var interPacketTimes = recentInterPacketTimes as double[] ?? recentInterPacketTimes.ToArray();
                 _activity.AddEvent(new ActivityEvent($"stream_packet_batch_{_itemCount}", DateTimeOffset.UtcNow, new ActivityTagsCollection
                 {
                     ["batch_start"] = batchStart,
                     ["batch_end"] = _itemCount,
                     ["batch_size"] = Math.Min(Mediator.PacketTelemetryBatchSize, _itemCount),
-                    ["avg_inter_packet_time_ms"] = recentInterPacketTimes.Any() ? recentInterPacketTimes.Average() : 0,
+                    ["avg_inter_packet_time_ms"] = interPacketTimes.Any() ? interPacketTimes.Average() : 0,
                     ["avg_processing_time_ms"] = _packetProcessingTimes.TakeLast(Mediator.PacketTelemetryBatchSize).Average(),
                     ["stream.operation"] = "packet_batch"
                 }));
@@ -1384,7 +1383,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
     /// </summary>
     public void RecordError(Activity? activity, Exception ex)
     {
-        if (!Mediator.TelemetryEnabled) return;
+        if (!IsTelemetryEnabled) return;
 
         activity?.SetStatus(ActivityStatusCode.Error, SanitizeExceptionMessage(ex.Message));
         activity?.SetTag("exception.type", SanitizeTypeName(ex.GetType().Name));
@@ -1396,7 +1395,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
     /// </summary>
     public void RecordFinalMetrics(Activity? activity, TimeSpan totalDuration, Exception? exception)
     {
-        if (!Mediator.TelemetryEnabled) return;
+        if (!IsTelemetryEnabled) return;
 
         // Calculate streaming performance metrics
         var totalSeconds = totalDuration.TotalSeconds;
@@ -1434,17 +1433,32 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
                 activity.SetTag("stream.consistent_throughput", isConsistentThroughput);
                 activity.SetTag("stream.jitter_ms", jitter);
                 
-                // Performance classification
-                var performance = jitter < avgInterPacketTime * 0.1 ? "excellent" :
-                                jitter < avgInterPacketTime * 0.3 ? "good" :
-                                jitter < avgInterPacketTime * 0.5 ? "fair" : "poor";
-                activity.SetTag("stream.performance_class", performance);
+                // Performance classification using configurable thresholds
+                if (_telemetryOptions?.EnableStreamingPerformanceClassification == true)
+                {
+                    var excellentThreshold = _telemetryOptions.ExcellentPerformanceThreshold;
+                    var goodThreshold = _telemetryOptions.GoodPerformanceThreshold;
+                    var fairThreshold = _telemetryOptions.FairPerformanceThreshold;
+                    
+                    var performance = jitter < avgInterPacketTime * excellentThreshold ? "excellent" :
+                                    jitter < avgInterPacketTime * goodThreshold ? "good" :
+                                    jitter < avgInterPacketTime * fairThreshold ? "fair" : "poor";
+                    activity.SetTag("stream.performance_class", performance);
+                }
+                else
+                {
+                    // Fallback to default thresholds when classification is disabled
+                    var performance = jitter < avgInterPacketTime * 0.1 ? "excellent" :
+                                    jitter < avgInterPacketTime * 0.3 ? "good" :
+                                    jitter < avgInterPacketTime * 0.5 ? "fair" : "poor";
+                    activity.SetTag("stream.performance_class", performance);
+                }
             }
             
             // OpenTelemetry semantic conventions
             activity.SetTag("stream.packet.count", _itemCount);
-            activity.SetTag("stream.packet_level_telemetry_enabled", Mediator.PacketLevelTelemetryEnabled);
-            activity.SetTag("stream.batch_size", Mediator.PacketTelemetryBatchSize);
+            activity.SetTag("stream.packet_level_telemetry_enabled", IsPacketLevelTelemetryEnabled);
+            activity.SetTag("stream.batch_size", _telemetryOptions?.PacketTelemetryBatchSize ?? 10);
         }
 
         // Record OpenTelemetry metrics

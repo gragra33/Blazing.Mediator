@@ -13,10 +13,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<TelemetryMetric> TelemetryMetrics { get; set; } = null!;
     public DbSet<TelemetryTrace> TelemetryTraces { get; set; } = null!;
     public DbSet<TelemetryActivity> TelemetryActivities { get; set; } = null!;
+    public DbSet<TelemetryLog> TelemetryLogs { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+        // Don't use NoTracking by default as it can interfere with Add operations
+        // optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -90,6 +92,32 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasConversion(
                     v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
                     v => JsonSerializer.Deserialize<Dictionary<string, object>>(v, (JsonSerializerOptions?)null) ?? new());
+        });
+
+        // Configure TelemetryLog entity
+        modelBuilder.Entity<TelemetryLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Timestamp).IsRequired();
+            entity.Property(e => e.LogLevel).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Category).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Message).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.Exception).HasMaxLength(5000);
+            entity.Property(e => e.TraceId).HasMaxLength(100);
+            entity.Property(e => e.SpanId).HasMaxLength(100);
+            entity.Property(e => e.Source).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.MachineName).HasMaxLength(200);
+            entity.Property(e => e.ProcessId);
+            entity.Property(e => e.ThreadId);
+            entity.Property(e => e.EventId);
+            entity.Property(e => e.Tags)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<Dictionary<string, object>>(v, (JsonSerializerOptions?)null) ?? new());
+            entity.Property(e => e.Scopes)
+                .HasConversion(
+                    v => v != null ? JsonSerializer.Serialize(v, (JsonSerializerOptions?)null) : null,
+                    v => v != null ? JsonSerializer.Deserialize<Dictionary<string, object>>(v, (JsonSerializerOptions?)null) : null);
         });
 
         // Seed initial data - Generate 100 sample users for comprehensive streaming tests

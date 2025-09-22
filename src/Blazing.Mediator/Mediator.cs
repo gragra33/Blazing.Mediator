@@ -20,6 +20,7 @@ public sealed class Mediator : IMediator
     private readonly INotificationPipelineBuilder _notificationPipelineBuilder;
     private readonly MediatorStatistics? _statistics;
     private readonly MediatorTelemetryOptions? _telemetryOptions;
+    private readonly MediatorLogger? _logger;
 
     // Thread-safe collections for notification subscribers
     private readonly ConcurrentDictionary<Type, ConcurrentBag<object>> _specificSubscribers = new();
@@ -88,14 +89,16 @@ public sealed class Mediator : IMediator
     /// <param name="notificationPipelineBuilder">The notification middleware pipeline builder.</param>
     /// <param name="statistics">The statistics service for tracking mediator usage. Can be null if statistics tracking is disabled.</param>
     /// <param name="telemetryOptions">The telemetry options for configuring OpenTelemetry integration. Can be null if telemetry is disabled.</param>
+    /// <param name="logger">Optional granular logger for debug-level logging of mediator operations. Can be null if debug logging is disabled.</param>
     /// <exception cref="ArgumentNullException">Thrown when serviceProvider, pipelineBuilder, or notificationPipelineBuilder is null.</exception>
-    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, INotificationPipelineBuilder notificationPipelineBuilder, MediatorStatistics? statistics, MediatorTelemetryOptions? telemetryOptions = null)
+    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, INotificationPipelineBuilder notificationPipelineBuilder, MediatorStatistics? statistics, MediatorTelemetryOptions? telemetryOptions = null, MediatorLogger? logger = null)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _pipelineBuilder = pipelineBuilder ?? throw new ArgumentNullException(nameof(pipelineBuilder));
         _notificationPipelineBuilder = notificationPipelineBuilder ?? throw new ArgumentNullException(nameof(notificationPipelineBuilder));
         _statistics = statistics; // Statistics can be null if tracking is disabled
         _telemetryOptions = telemetryOptions; // Telemetry options can be null if telemetry is disabled
+        _logger = logger; // Logger can be null if debug logging is disabled
     }
 
     /// <summary>
@@ -176,6 +179,9 @@ public sealed class Mediator : IMediator
         var executedMiddleware = new List<string>();
         long startMemory = 0;
 
+        // Debug logging: Send operation started
+        _logger?.SendOperationStarted(request.GetType().Name, IsTelemetryEnabled);
+
         // Record initial memory if performance counters are enabled
         if (_statistics != null && HasPerformanceCountersEnabled())
         {
@@ -187,6 +193,12 @@ public sealed class Mediator : IMediator
             _statistics?.IncrementCommand(request.GetType().Name);
             Type requestType = request.GetType();
             Type handlerType = typeof(IRequestHandler<>).MakeGenericType(requestType);
+
+            // Debug logging: Request type classification
+            _logger?.SendRequestTypeClassification(requestType.Name, "command");
+
+            // Debug logging: Handler resolution
+            _logger?.SendHandlerResolution(handlerType.Name, requestType.Name);
 
             // Get middleware pipeline information for telemetry
             if (IsTelemetryEnabled && ShouldCaptureMiddlewareDetails && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
@@ -209,11 +221,17 @@ public sealed class Mediator : IMediator
                 switch (handlerArray)
                 {
                     case { Length: 0 }:
+                        _logger?.NoHandlerFoundWarning(requestType.Name);
                         throw new InvalidOperationException($"No handler found for request type {requestType.Name}");
                     case { Length: > 1 }:
+                        _logger?.MultipleHandlersFoundWarning(requestType.Name, string.Join(", ", handlerArray.Select(h => h.GetType().Name)));
                         throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
                 }
                 object handler = handlerArray[0];
+                
+                // Debug logging: Handler found
+                _logger?.SendHandlerFound(handler.GetType().Name, requestType.Name);
+                
                 MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
                 try
                 {
@@ -246,6 +264,9 @@ public sealed class Mediator : IMediator
         finally
         {
             stopwatch.Stop();
+            
+            // Debug logging: Send operation completed
+            _logger?.SendOperationCompleted(request.GetType().Name, stopwatch.Elapsed.TotalMilliseconds, exception == null);
             
             // Enhanced statistics recording
             if (_statistics != null)
@@ -366,6 +387,9 @@ public sealed class Mediator : IMediator
         var executedMiddleware = new List<string>();
         long startMemory = 0;
 
+        // Debug logging: Send operation started
+        _logger?.SendOperationStarted(request.GetType().Name, IsTelemetryEnabled);
+
         // Record initial memory if performance counters are enabled
         if (_statistics != null && HasPerformanceCountersEnabled())
         {
@@ -380,15 +404,22 @@ public sealed class Mediator : IMediator
                 if (isQuery)
                 {
                     _statistics.IncrementQuery(request.GetType().Name);
+                    // Debug logging: Request type classification
+                    _logger?.SendRequestTypeClassification(request.GetType().Name, "query");
                 }
                 else
                 {
                     _statistics.IncrementCommand(request.GetType().Name);
+                    // Debug logging: Request type classification
+                    _logger?.SendRequestTypeClassification(request.GetType().Name, "command");
                 }
             }
 
             Type requestType = request.GetType();
             Type handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
+
+            // Debug logging: Handler resolution
+            _logger?.SendHandlerResolution(handlerType.Name, requestType.Name);
 
             // Get middleware pipeline information for telemetry
             if (IsTelemetryEnabled && ShouldCaptureMiddlewareDetails && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
@@ -410,11 +441,17 @@ public sealed class Mediator : IMediator
                 switch (handlerArray)
                 {
                     case { Length: 0 }:
+                        _logger?.NoHandlerFoundWarning(requestType.Name);
                         throw new InvalidOperationException($"No handler found for request type {requestType.Name}");
                     case { Length: > 1 }:
+                        _logger?.MultipleHandlersFoundWarning(requestType.Name, string.Join(", ", handlerArray.Select(h => h.GetType().Name)));
                         throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
                 }
                 object handler = handlerArray[0];
+                
+                // Debug logging: Handler found
+                _logger?.SendHandlerFound(handler.GetType().Name, requestType.Name);
+                
                 MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
                 try
                 {
@@ -449,6 +486,9 @@ public sealed class Mediator : IMediator
         finally
         {
             stopwatch.Stop();
+            
+            // Debug logging: Send operation completed
+            _logger?.SendOperationCompleted(request.GetType().Name, stopwatch.Elapsed.TotalMilliseconds, exception == null);
             
             // Enhanced statistics recording
             if (_statistics != null)
@@ -554,10 +594,16 @@ public sealed class Mediator : IMediator
     {
         ArgumentNullException.ThrowIfNull(request);
         
+        // Debug logging: SendStream operation started
+        _logger?.SendStreamOperationStarted(request.GetType().Name);
+        
         _statistics?.IncrementQuery(request.GetType().Name);
         
         Type requestType = request.GetType();
         Type handlerType = typeof(IStreamRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
+
+        // Debug logging: Stream handler resolution
+        _logger?.SendStreamHandlerResolution(handlerType.Name, requestType.Name);
 
         // Create final handler delegate that executes the actual stream handler
         IAsyncEnumerable<TResponse> FinalHandler()
@@ -569,12 +615,18 @@ public sealed class Mediator : IMediator
             switch (handlerArray)
             {
                 case { Length: 0 }:
+                    _logger?.NoHandlerFoundWarning(requestType.Name);
                     throw new InvalidOperationException($"No handler found for stream request type {requestType.Name}");
                 case { Length: > 1 }:
+                    _logger?.MultipleHandlersFoundWarning(requestType.Name, string.Join(", ", handlerArray.Select(h => h.GetType().Name)));
                     throw new InvalidOperationException($"Multiple handlers found for stream request type {requestType.Name}. Only one handler per request type is allowed.");
             }
 
             object handler = handlerArray[0];
+            
+            // Debug logging: Stream handler found
+            _logger?.SendStreamHandlerFound(handler.GetType().Name, requestType.Name);
+            
             MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
 
             try
@@ -764,6 +816,8 @@ public sealed class Mediator : IMediator
     {
         ArgumentNullException.ThrowIfNull(notification);
 
+        _logger?.PublishOperationStarted(typeof(TNotification).Name, IsTelemetryEnabled);
+
         using var activity = TelemetryEnabled ? ActivitySource.StartActivity($"Mediator.Publish.{typeof(TNotification).Name}") : null;
         activity?.SetStatus(ActivityStatusCode.Ok);
 
@@ -802,12 +856,14 @@ public sealed class Mediator : IMediator
                 var genericSubscriberList = _genericSubscribers.ToList();
 
                 subscriberCount = subscribers.Count + genericSubscriberList.Count;
+                _logger?.PublishSubscriberResolution(subscriberCount, typeof(TNotification).Name);
                 var subscriberExceptions = new List<Exception>();
 
                 // Process specific subscribers
                 foreach (var subscriber in subscribers)
                 {
                     var subType = SanitizeTypeName(subscriber.GetType().Name);
+                    _logger?.PublishSubscriberProcessing(subType, typeof(TNotification).Name);
                     var subStopwatch = Stopwatch.StartNew();
 
                     try
@@ -820,6 +876,7 @@ public sealed class Mediator : IMediator
                         }
 
                         subscriberResults.Add((subType, true, subStopwatch.Elapsed.TotalMilliseconds, null, null));
+                        _logger?.PublishSubscriberCompleted(subType, typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, true);
                     }
                     catch (Exception ex)
                     {
@@ -831,6 +888,7 @@ public sealed class Mediator : IMediator
                         }
 
                         subscriberResults.Add((subType, false, subStopwatch.Elapsed.TotalMilliseconds, SanitizeTypeName(ex.GetType().Name), SanitizeExceptionMessage(ex.Message)));
+                        _logger?.PublishSubscriberCompleted(subType, typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, false);
                         // Don't throw immediately - continue with other subscribers
                     }
                     finally
@@ -848,6 +906,7 @@ public sealed class Mediator : IMediator
                 foreach (var genericSubscriber in genericSubscriberList)
                 {
                     var subType = SanitizeTypeName(genericSubscriber.GetType().Name);
+                    _logger?.PublishSubscriberProcessing($"{subType}(Generic)", typeof(TNotification).Name);
                     var subStopwatch = Stopwatch.StartNew();
 
                     try
@@ -860,6 +919,7 @@ public sealed class Mediator : IMediator
                         }
 
                         subscriberResults.Add(($"{subType}(Generic)", true, subStopwatch.Elapsed.TotalMilliseconds, null, null));
+                        _logger?.PublishSubscriberCompleted($"{subType}(Generic)", typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, true);
                     }
                     catch (Exception ex)
                     {
@@ -871,6 +931,7 @@ public sealed class Mediator : IMediator
                         }
 
                         subscriberResults.Add(($"{subType}(Generic)", false, subStopwatch.Elapsed.TotalMilliseconds, SanitizeTypeName(ex.GetType().Name), SanitizeExceptionMessage(ex.Message)));
+                        _logger?.PublishSubscriberCompleted($"{subType}(Generic)", typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, false);
                         // Don't throw immediately - continue with other subscribers
                     }
                     finally
@@ -961,6 +1022,9 @@ public sealed class Mediator : IMediator
                         ["exception_message"] = result.ExceptionMessage
                     }));
                 }
+
+                // Log completion
+                _logger?.PublishOperationCompleted(typeof(TNotification).Name, stopwatch.Elapsed.TotalMilliseconds, exception == null, subscriberCount);
 
                 // Increment health check counter
                 TelemetryHealthCounter.Add(1, new TagList { { "operation", "publish" } });

@@ -7,6 +7,16 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
 {
     private const string OrderPropertyName = "Order";
     private readonly List<NotificationMiddlewareInfo> _middlewareInfos = [];
+    private readonly ILogger<NotificationPipelineBuilder>? _logger;
+
+    /// <summary>
+    /// Initializes a new instance of the NotificationPipelineBuilder with optional logging.
+    /// </summary>
+    /// <param name="logger">Optional logger for debug-level logging of pipeline operations.</param>
+    public NotificationPipelineBuilder(ILogger<NotificationPipelineBuilder>? logger = null)
+    {
+        _logger = logger;
+    }
 
     private sealed record NotificationMiddlewareInfo(Type Type, int Order, object? Configuration = null);
 
@@ -284,8 +294,16 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
         CancellationToken cancellationToken)
         where TNotification : INotification
     {
+        // Debug logging: Notification pipeline execution started
+        _logger?.NotificationMiddlewarePipelineStarted(typeof(TNotification).Name, _middlewareInfos.Count);
+        
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var pipeline = Build(serviceProvider, finalHandler);
         await pipeline(notification, cancellationToken);
+        stopwatch.Stop();
+        
+        // Debug logging: Notification pipeline execution completed
+        _logger?.NotificationMiddlewarePipelineCompleted(typeof(TNotification).Name, stopwatch.Elapsed.TotalMilliseconds);
     }
 
     /// <inheritdoc />

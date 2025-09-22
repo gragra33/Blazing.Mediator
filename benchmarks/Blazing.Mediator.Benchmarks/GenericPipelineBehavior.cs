@@ -1,7 +1,4 @@
 using Blazing.Mediator.Abstractions;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Blazing.Mediator.Benchmarks;
 

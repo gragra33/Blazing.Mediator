@@ -1,7 +1,5 @@
 using BenchmarkDotNet.Attributes;
 using Microsoft.Extensions.DependencyInjection;
-using System.IO;
-using System.Threading.Tasks;
 
 namespace Blazing.Mediator.Benchmarks;
 

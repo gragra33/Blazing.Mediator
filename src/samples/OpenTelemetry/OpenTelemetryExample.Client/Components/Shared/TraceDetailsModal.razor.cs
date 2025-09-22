@@ -112,4 +112,74 @@ public partial class TraceDetailsModal : ComponentBase
             .Where(name => !string.IsNullOrEmpty(name));
         return string.Join(", ", middlewareNames);
     }
+
+    /// <summary>
+    /// Copies the specified text to the clipboard.
+    /// </summary>
+    /// <param name="text">The text to copy to the clipboard.</param>
+    private async Task CopyToClipboard(string text)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(text))
+            {
+                await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            }
+        }
+        catch
+        {
+            // Silently handle any errors (e.g., clipboard not available)
+        }
+    }
+
+    /// <summary>
+    /// Copies a summary of the trace details to the clipboard.
+    /// </summary>
+    private async Task CopyTraceSummary()
+    {
+        if (SelectedTrace == null) return;
+
+        var summary = $"""
+            Trace Summary
+            =============
+            Operation: {SelectedTrace.OperationName}
+            Trace ID: {SelectedTrace.TraceId}
+            Span ID: {SelectedTrace.SpanId}
+            Parent ID: {SelectedTrace.ParentId ?? "N/A"}
+            Status: {SelectedTrace.Status}
+            Duration: {SelectedTrace.Duration.TotalMilliseconds:#,##0}ms
+            Start Time: {SelectedTrace.StartTime:yyyy-MM-dd HH:mm:ss.fff}
+            Source: {GetSourceDisplayName(SelectedTrace.Source)}
+            Mediator Trace: {(SelectedTrace.IsMediatorTrace ? "Yes" : "No")}
+            
+            Tags & Attributes:
+            """;
+
+        if (SelectedTrace.Tags.Any())
+        {
+            foreach (var tag in SelectedTrace.Tags)
+            {
+                summary += $"- {tag.Key}: {tag.Value}\n";
+            }
+        }
+        else
+        {
+            summary += "- No tags available\n";
+        }
+
+        await CopyToClipboard(summary);
+    }
+
+    /// <summary>
+    /// Formats dictionary data for display.
+    /// </summary>
+    /// <param name="dictionary">The dictionary to format.</param>
+    /// <returns>Formatted string representation of the dictionary.</returns>
+    private string FormatDictionary(IDictionary<string, object> dictionary)
+    {
+        if (dictionary == null || !dictionary.Any())
+            return "No data available";
+
+        return string.Join("\n", dictionary.Select(kvp => $"{kvp.Key}: {kvp.Value}"));
+    }
 }

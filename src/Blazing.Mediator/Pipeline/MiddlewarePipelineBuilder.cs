@@ -6,8 +6,18 @@ namespace Blazing.Mediator.Pipeline;
 public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddlewarePipelineInspector
 {
     private readonly List<MiddlewareInfo> _middlewareInfos = [];
+    private readonly ILogger<MiddlewarePipelineBuilder>? _logger;
 
     private sealed record MiddlewareInfo(Type Type, int Order, object? Configuration = null);
+
+    /// <summary>
+    /// Initializes a new instance of the MiddlewarePipelineBuilder class.
+    /// </summary>
+    /// <param name="logger">Optional logger for debug-level logging of pipeline operations.</param>
+    public MiddlewarePipelineBuilder(ILogger<MiddlewarePipelineBuilder>? logger = null)
+    {
+        _logger = logger;
+    }
 
     #region AddMiddleware overloads
 
@@ -99,8 +109,8 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         // Use the actual runtime type of the request instead of the generic parameter type
         Type actualRequestType = request.GetType();
         
-        // Console.WriteLine($"[DEBUG] ExecutePipeline for {actualRequestType.Name} -> {typeof(TResponse).Name}");
-        // Console.WriteLine($"[DEBUG] Total middleware registered: {_middlewareInfos.Count}");
+        // Debug logging: Pipeline started
+        _logger?.RequestMiddlewarePipelineStarted(actualRequestType.Name, _middlewareInfos.Count);
         
         _ = Guid.NewGuid().ToString("N")[..8];
 
@@ -111,7 +121,8 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
 
         foreach (MiddlewareInfo middlewareInfo in _middlewareInfos)
         {
-            // Console.WriteLine($"[DEBUG] Checking middleware: {middlewareInfo.Type.Name}");
+            // Debug logging: Checking middleware compatibility
+            _logger?.RequestMiddlewareCompatibilityCheck(middlewareInfo.Type.Name, actualRequestType.Name);
             
             Type middlewareType = middlewareInfo.Type;
 
@@ -157,36 +168,18 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
 
             // Check if this middleware type implements IRequestMiddleware<TRequest, TResponse>
             var interfaces = actualMiddlewareType.GetInterfaces();
-            // Console.WriteLine($"[DEBUG] {actualMiddlewareType.Name} implements {interfaces.Length} interfaces");
             
             bool isCompatible = interfaces.Any(i => i.IsGenericType &&
                 i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>) &&
                 i.GetGenericArguments()[0] == actualRequestType &&
                 i.GetGenericArguments()[1] == typeof(TResponse));
                 
-            // Console.WriteLine($"[DEBUG] {actualMiddlewareType.Name} is compatible: {isCompatible}");
-            
             if (!isCompatible)
             {
-                // Console.WriteLine($"[DEBUG] {actualMiddlewareType.Name} compatibility check:");
-                foreach (var iface in interfaces)
-                {
-                    // Console.WriteLine($"[DEBUG]   Interface: {iface.Name}, IsGeneric: {iface.IsGenericType}");
-                    if (iface.IsGenericType)
-                    {
-                        // Console.WriteLine($"[DEBUG]     Generic def: {iface.GetGenericTypeDefinition()}");
-                        // Console.WriteLine($"[DEBUG]     Expected def: {typeof(IRequestMiddleware<,>)}");
-                        // Console.WriteLine($"[DEBUG]     Def match: {iface.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>)}");
-                        if (iface.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>))
-                        {
-                            var args = iface.GetGenericArguments();
-                            // Console.WriteLine($"[DEBUG]     Arg[0]: {args[0]} vs {actualRequestType} = {args[0] == actualRequestType}");
-                            // Console.WriteLine($"[DEBUG]     Arg[1]: {args[1]} vs {typeof(TResponse)} = {args[1] == typeof(TResponse)}");
-                        }
-                    }
-                }
+                // Debug logging: Middleware not compatible
+                _logger?.RequestMiddlewareCompatibilityResult(actualMiddlewareType.Name, "not compatible", actualRequestType.Name, middlewareInfo.Order);
+                
                 // This middleware doesn't handle this request type, skip it
-                // Console.WriteLine($"[DEBUG] Skipping {actualMiddlewareType.Name} - not compatible");
                 continue;
             }
 
@@ -212,10 +205,13 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             }
 
             applicableMiddleware.Add((actualMiddlewareType, actualOrder));
-            // Console.WriteLine($"[DEBUG] Added {actualMiddlewareType.Name} to pipeline with order {actualOrder}");
+            
+            // Debug logging: Middleware successfully added
+            _logger?.RequestMiddlewareCompatibilityResult(actualMiddlewareType.Name, "compatible", actualRequestType.Name, actualOrder);
         }
 
-        // Console.WriteLine($"[DEBUG] Total applicable middleware: {applicableMiddleware.Count}");
+        // Debug logging: Pipeline execution info
+        _logger?.RequestMiddlewarePipelineExecution(applicableMiddleware.Count);
 
         // Sort middleware by order (lower numbers execute first), then by registration order
         applicableMiddleware.Sort((a, b) =>

@@ -401,4 +401,144 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
             return new { Success = false, Error = ex.Message };
         }
     }
+
+    public async Task<RecentLogsDto?> GetRecentLogsAsync(int timeWindowMinutes = 30, bool appOnly = false, bool mediatorOnly = false, bool errorsOnly = false, string? minLogLevel = null, string? searchText = null, int page = 1, int pageSize = 20)
+    {
+        try
+        {
+            var queryParams = new List<string>
+            {
+                $"page={Math.Max(page, 1)}",
+                $"pageSize={Math.Max(pageSize, 1)}",
+                $"timeWindowMinutes={timeWindowMinutes}"
+            };
+
+            if (appOnly)
+                queryParams.Add("appOnly=true");
+
+            if (mediatorOnly)
+                queryParams.Add("mediatorOnly=true");
+
+            if (errorsOnly)
+                queryParams.Add("errorsOnly=true");
+
+            if (!string.IsNullOrEmpty(minLogLevel))
+                queryParams.Add($"minLogLevel={Uri.EscapeDataString(minLogLevel)}");
+
+            if (!string.IsNullOrEmpty(searchText))
+                queryParams.Add($"searchText={Uri.EscapeDataString(searchText)}");
+
+            var queryString = "?" + string.Join("&", queryParams);
+            var endpoint = $"api/logs/recent{queryString}";
+
+            logger.LogDebug("[->] Calling GET /{Endpoint}", endpoint);
+            logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var response = await httpClient.GetAsync(endpoint, cts.Token);
+
+            logger.LogDebug("[<-] Recent logs response status: {StatusCode}", response.StatusCode);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
+                logger.LogWarning("[!] Recent logs endpoint returned {StatusCode}: {ErrorContent}",
+                    response.StatusCode, errorContent);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<RecentLogsDto>(cancellationToken: cts.Token);
+            logger.LogDebug("[<-] Retrieved recent logs successfully (page: {Page}, pageSize: {PageSize})",
+                page, pageSize);
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("[!] Recent logs request timed out");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[!] Error calling GET /api/logs/recent");
+            return null;
+        }
+    }
+
+    public async Task<LogDto?> GetLogByIdAsync(int id)
+    {
+        try
+        {
+            logger.LogDebug("[->] Calling GET /api/logs/{Id}", id);
+            logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var response = await httpClient.GetAsync($"api/logs/{id}", cts.Token);
+
+            logger.LogDebug("[<-] Log details response status: {StatusCode}", response.StatusCode);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    logger.LogWarning("[!] Log with ID {Id} not found", id);
+                    return null;
+                }
+
+                var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
+                logger.LogWarning("[!] Log details endpoint returned {StatusCode}: {ErrorContent}",
+                    response.StatusCode, errorContent);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<LogDto>(cancellationToken: cts.Token);
+            logger.LogDebug("[<-] Retrieved log details successfully for ID: {Id}", id);
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("[!] Log details request timed out");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[!] Error calling GET /api/logs/{Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<LogSummary?> GetLogsSummaryAsync(int timeWindowMinutes = 30)
+    {
+        try
+        {
+            logger.LogDebug("[->] Calling GET /api/logs/summary?timeWindowMinutes={TimeWindow}", timeWindowMinutes);
+            logger.LogDebug("[->] Using base address: {BaseAddress}", httpClient.BaseAddress);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var response = await httpClient.GetAsync($"api/logs/summary?timeWindowMinutes={timeWindowMinutes}", cts.Token);
+
+            logger.LogDebug("[<-] Logs summary response status: {StatusCode}", response.StatusCode);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cts.Token);
+                logger.LogWarning("[!] Logs summary endpoint returned {StatusCode}: {ErrorContent}",
+                    response.StatusCode, errorContent);
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<LogSummary>(cancellationToken: cts.Token);
+            logger.LogDebug("[<-] Retrieved logs summary successfully");
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("[!] Logs summary request timed out");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[!] Error calling GET /api/logs/summary");
+            return null;
+        }
+    }
 }

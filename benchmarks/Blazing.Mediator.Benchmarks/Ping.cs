@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Blazing.Mediator.Benchmarks;
 
 public class Ping : IRequest

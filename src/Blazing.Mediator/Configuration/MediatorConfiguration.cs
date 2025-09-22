@@ -39,6 +39,12 @@ public sealed class MediatorConfiguration
     public MediatorTelemetryOptions? TelemetryOptions { get; private set; }
 
     /// <summary>
+    /// Gets the logging options for debug logging.
+    /// Provides granular control over what debug information is logged.
+    /// </summary>
+    public LoggingOptions? LoggingOptions { get; private set; }
+
+    /// <summary>
     /// Gets or sets whether to automatically discover and register request middleware from assemblies.
     /// </summary>
     public bool DiscoverMiddleware { get; set; }
@@ -147,6 +153,59 @@ public sealed class MediatorConfiguration
         ArgumentNullException.ThrowIfNull(options);
 
         TelemetryOptions = options;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables debug logging with default configuration.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithLogging()
+    {
+        LoggingOptions = new LoggingOptions();
+        return this;
+    }
+
+    /// <summary>
+    /// Enables debug logging with granular configuration options.
+    /// </summary>
+    /// <param name="configure">Action to configure the logging options.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when configure is null.</exception>
+    public MediatorConfiguration WithLogging(Action<LoggingOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var options = new LoggingOptions();
+        configure(options);
+
+        var validationErrors = options.Validate();
+        if (validationErrors.Count > 0)
+        {
+            throw new InvalidOperationException($"Logging configuration validation failed: {string.Join(", ", validationErrors)}");
+        }
+
+        LoggingOptions = options;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables debug logging with pre-configured options.
+    /// </summary>
+    /// <param name="options">The logging options to use.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
+    public MediatorConfiguration WithLogging(LoggingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        var validationErrors = options.Validate();
+        if (validationErrors.Count > 0)
+        {
+            throw new InvalidOperationException($"Logging configuration validation failed: {string.Join(", ", validationErrors)}");
+        }
+
+        LoggingOptions = options;
         return this;
     }
 

@@ -1,0 +1,302 @@
+<!-- Log Details Modal -->
+<div class="modal fade" id="@_modalId" tabindex="-1" aria-labelledby="@(_modalId)Label" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="@(_modalId)Label">
+                    <i class="bi bi-journal-text me-2"></i>Log Details
+                    @if (_currentLog != null)
+                    {
+                        <span class="badge @GetLogLevelBadgeClass(_currentLog.LogLevel) ms-2">
+                            <i class="@GetLogLevelIcon(_currentLog.LogLevel) me-1"></i>@_currentLog.LogLevel
+                        </span>
+                        <span class="badge @GetSourceBadgeClass(_currentLog.Source) ms-1">
+                            @_currentLog.Source
+                        </span>
+                    }
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @if (_currentLog != null)
+                {
+                    <div class="row">
+                        <!-- Basic Information -->
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-info-circle me-2"></i>Basic Information
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4">ID:</dt>
+                                        <dd class="col-sm-8">
+                                            <code>@_currentLog.Id</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                                    @onclick="() => CopyToClipboard(_currentLog.Id.ToString())"
+                                                    title="Copy ID">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">Timestamp:</dt>
+                                        <dd class="col-sm-8">
+                                            <code>@_currentLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")</code>
+                                            <div class="text-muted small">@_currentLog.RelativeTime</div>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">Category:</dt>
+                                        <dd class="col-sm-8">
+                                            <code>@_currentLog.Category</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                                    @onclick="() => CopyToClipboard(_currentLog.Category)"
+                                                    title="Copy Category">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">Event ID:</dt>
+                                        <dd class="col-sm-8">
+                                            @if (_currentLog.EventId.HasValue)
+                                            {
+                                                <code>@_currentLog.EventId.Value</code>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">N/A</span>
+                                            }
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Information -->
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-pc-display me-2"></i>System Information
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4">Machine:</dt>
+                                        <dd class="col-sm-8">
+                                            @if (!string.IsNullOrEmpty(_currentLog.MachineName))
+                                            {
+                                                <code>@_currentLog.MachineName</code>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">N/A</span>
+                                            }
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">Process ID:</dt>
+                                        <dd class="col-sm-8">
+                                            @if (_currentLog.ProcessId.HasValue)
+                                            {
+                                                <code>@_currentLog.ProcessId.Value</code>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">N/A</span>
+                                            }
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">Thread ID:</dt>
+                                        <dd class="col-sm-8">
+                                            @if (_currentLog.ThreadId.HasValue)
+                                            {
+                                                <code>@_currentLog.ThreadId.Value</code>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">N/A</span>
+                                            }
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Message -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="card-title mb-0">
+                                <i class="bi bi-chat-text me-2"></i>Log Message
+                                <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                        @onclick="() => CopyToClipboard(_currentLog.Message)"
+                                        title="Copy Message">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <pre class="bg-light p-3 rounded"><code>@_currentLog.Message</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Exception Details (if present) -->
+                    @if (_currentLog.HasException)
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header bg-danger text-white">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>Exception Details
+                                    <button class="btn btn-sm btn-outline-light ms-2" 
+                                            @onclick="() => CopyToClipboard(_currentLog.Exception ?? string.Empty)"
+                                            title="Copy Exception">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <pre class="bg-light p-3 rounded text-danger" style="max-height: 300px; overflow-y: auto;"><code>@_currentLog.Exception</code></pre>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Trace Correlation -->
+                    @if (!string.IsNullOrEmpty(_currentLog.TraceId) || !string.IsNullOrEmpty(_currentLog.SpanId))
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-diagram-3 me-2"></i>Trace Correlation
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-2">Trace ID:</dt>
+                                    <dd class="col-sm-10">
+                                        @if (!string.IsNullOrEmpty(_currentLog.TraceId))
+                                        {
+                                            <code class="font-monospace">@_currentLog.TraceId</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                                    @onclick="() => CopyToClipboard(_currentLog.TraceId)"
+                                                    title="Copy Trace ID">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">N/A</span>
+                                        }
+                                    </dd>
+                                    
+                                    <dt class="col-sm-2">Span ID:</dt>
+                                    <dd class="col-sm-10">
+                                        @if (!string.IsNullOrEmpty(_currentLog.SpanId))
+                                        {
+                                            <code class="font-monospace">@_currentLog.SpanId</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                                    @onclick="() => CopyToClipboard(_currentLog.SpanId)"
+                                                    title="Copy Span ID">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">N/A</span>
+                                        }
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Tags/Properties -->
+                    @if (_currentLog.Tags?.Any() == true)
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-tags me-2"></i>Tags/Properties
+                                    <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                            @onclick="() => CopyToClipboard(FormatDictionary(_currentLog.Tags))"
+                                            title="Copy Tags">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Key</th>
+                                                <th>Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var tag in _currentLog.Tags)
+                                            {
+                                                <tr>
+                                                    <td><code>@tag.Key</code></td>
+                                                    <td><code>@tag.Value</code></td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Scopes (if present) -->
+                    @if (_currentLog.Scopes?.Any() == true)
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-layers me-2"></i>Scopes
+                                    <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                            @onclick="() => CopyToClipboard(FormatDictionary(_currentLog.Scopes))"
+                                            title="Copy Scopes">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Scope</th>
+                                                <th>Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var scope in _currentLog.Scopes)
+                                            {
+                                                <tr>
+                                                    <td><code>@scope.Key</code></td>
+                                                    <td><code>@scope.Value</code></td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                @if (_currentLog != null)
+                {
+                    <button type="button" class="btn btn-primary" 
+                            @onclick="() => CopyLogSummary()">
+                        <i class="bi bi-clipboard me-2"></i>Copy Summary
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>

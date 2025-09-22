@@ -1,4 +1,4 @@
-namespace OpenTelemetryExample.Application.Services;
+namespace OpenTelemetryExample.Models;
 
 /// <summary>
 /// Configuration options for telemetry batching in the OpenTelemetryActivityProcessor.

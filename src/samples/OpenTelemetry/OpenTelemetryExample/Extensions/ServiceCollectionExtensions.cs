@@ -7,6 +7,9 @@ using OpenTelemetry.Trace;
 using OpenTelemetryExample.Application.Middleware;
 using OpenTelemetryExample.Application.Services;
 using OpenTelemetryExample.Infrastructure.Data;
+using OpenTelemetryExample.Models;
+using Serilog;
+using Serilog.Events;
 
 namespace OpenTelemetryExample.Extensions;
 
@@ -35,6 +38,8 @@ public static class ServiceCollectionExtensions
         });
         services.AddSwaggerServices();
         services.AddDatabaseServices();
+        services.AddSerilogServices(configuration, environment);
+        services.AddDatabaseLoggingServices(); // Add database logging AFTER Serilog to ensure it's not cleared
         services.AddMediatorServices(environment);
         services.AddValidationServices();
         services.AddHealthCheckServices();
@@ -60,6 +65,84 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Adds Serilog logging services with OpenTelemetry integration.
+    /// </summary>
+    private static IServiceCollection AddSerilogServices(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IWebHostEnvironment environment)
+    {
+        var otlpEndpoint = configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+            .MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning)
+            .Enrich.FromLogContext()
+            .Enrich.WithProperty("Application", "OpenTelemetryExample")
+            .Enrich.WithProperty("Environment", environment.EnvironmentName)
+            .WriteTo.Console(
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties}{NewLine}{Exception}")
+            .WriteTo.Conditional(
+                condition => !string.IsNullOrEmpty(otlpEndpoint),
+                configureSink => configureSink.OpenTelemetry(options =>
+                {
+                    options.Endpoint = otlpEndpoint ?? "";
+                    options.IncludedData = Serilog.Sinks.OpenTelemetry.IncludedData.TraceIdField |
+                                          Serilog.Sinks.OpenTelemetry.IncludedData.SpanIdField |
+                                          Serilog.Sinks.OpenTelemetry.IncludedData.SourceContextAttribute;
+                    options.ResourceAttributes = new Dictionary<string, object>
+                    {
+                        ["service.name"] = "OpenTelemetryExample",
+                        ["service.version"] = "1.0.0"
+                    };
+                }))
+            .CreateLogger();
+
+        // Use AddSerilog with dispose: false to allow other providers to coexist
+        // Don't use AddSerilog() as it replaces the entire logging factory
+        // Instead, add Serilog as a provider alongside others
+        services.AddLogging(builder =>
+        {
+            builder.AddSerilog(Log.Logger, dispose: false);
+        });
+
+        Console.WriteLine("[*] Serilog Configuration:");
+        Console.WriteLine($"[*] OTLP Endpoint: {otlpEndpoint ?? "Not configured - using console only"}");
+        Console.WriteLine($"[*] Environment: {environment.EnvironmentName}");
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds database logging services for telemetry capture.
+    /// </summary>
+    private static IServiceCollection AddDatabaseLoggingServices(this IServiceCollection services)
+    {
+        // Register the provider as a singleton for manual registration
+        services.AddSingleton<TelemetryDatabaseLoggingProvider>();
+        
+        // Add logging with our custom database provider using the proper Microsoft pattern
+        // This must be done AFTER Serilog to ensure it doesn't get cleared
+        services.AddLogging(builder =>
+        {
+            // DO NOT clear providers - we want to keep Serilog AND add our provider
+            // Add our custom database logging provider
+            builder.AddDatabaseLogging();
+            
+            // Configure minimum log levels
+            builder.SetMinimumLevel(LogLevel.Debug);
+        });
+
+        // Register the initialization service to ensure proper startup
+        services.AddHostedService<TelemetryLoggingInitializationService>();
+
+        Console.WriteLine("[*] Database logging provider registered AFTER Serilog using Microsoft recommended pattern");
+        return services;
+    }
+
+    /// <summary>
     /// Adds Swagger/OpenAPI services.
     /// </summary>
     private static IServiceCollection AddSwaggerServices(this IServiceCollection services)
@@ -74,7 +157,7 @@ public static class ServiceCollectionExtensions
                 Contact = new Microsoft.OpenApi.Models.OpenApiContact
                 {
                     Name = "OpenTelemetry Example",
-                    Url = new Uri("https://github.com/example/opentelemetry-example")
+                    Url = new Uri("https://github.com/gragra33/Blazing.Mediator/tree/master/src/samples/OpenTelemetry")
                 }
             });
 
@@ -118,15 +201,61 @@ public static class ServiceCollectionExtensions
 
         services.AddMediator(config =>
         {
+            // Configure granular logging based on environment
+            if (environment.IsDevelopment())
+            {
+                // Full verbose logging for development
+                config.WithLogging(logging =>
+                {
+                    logging.EnableRequestMiddleware = true;
+                    logging.EnableNotificationMiddleware = true;
+                    logging.EnableSend = true;
+                    logging.EnableSendStream = true;
+                    logging.EnablePublish = true;
+                    logging.EnableRequestPipelineResolution = true;
+                    logging.EnableNotificationPipelineResolution = true;
+                    logging.EnableWarnings = true;
+                    logging.EnableQueryAnalyzer = true;
+                    logging.EnableCommandAnalyzer = true;
+                    logging.EnableDetailedTypeClassification = true;
+                    logging.EnableDetailedHandlerInfo = true;
+                    logging.EnableMiddlewareExecutionOrder = true;
+                    logging.EnablePerformanceTiming = true;
+                    logging.EnableSubscriberDetails = true;
+                });
+            }
+            else
+            {
+                // Minimal logging for production (only errors and warnings)
+                config.WithLogging(logging =>
+                {
+                    logging.EnableRequestMiddleware = false;
+                    logging.EnableNotificationMiddleware = false;
+                    logging.EnableSend = false;
+                    logging.EnableSendStream = false;
+                    logging.EnablePublish = false;
+                    logging.EnableRequestPipelineResolution = false;
+                    logging.EnableNotificationPipelineResolution = false;
+                    logging.EnableWarnings = true; // Keep warnings even in production
+                    logging.EnableQueryAnalyzer = false;
+                    logging.EnableCommandAnalyzer = false;
+                    logging.EnableDetailedTypeClassification = false;
+                    logging.EnableDetailedHandlerInfo = false;
+                    logging.EnableMiddlewareExecutionOrder = false;
+                    logging.EnablePerformanceTiming = false;
+                    logging.EnableSubscriberDetails = false;
+                });
+            }
+
             // Add tracing middleware first for full coverage
             config.AddMiddleware(typeof(TracingMiddleware<,>));
             config.AddMiddleware(typeof(TracingMiddleware<>));
-            
+
             // Add streaming-specific middleware
             config.AddMiddleware(typeof(StreamingTracingMiddleware<,>));
             config.AddMiddleware(typeof(StreamingPerformanceMiddleware<,>));
             config.AddMiddleware(typeof(StreamingLoggingMiddleware<,>));
-            
+
             // Add middleware pipeline in order of execution
             config.AddMiddleware(typeof(ErrorHandlingMiddleware<,>));
             config.AddMiddleware(typeof(ErrorHandlingMiddleware<>));
@@ -177,20 +306,20 @@ public static class ServiceCollectionExtensions
         Console.WriteLine($"[*] Environment: {environment.EnvironmentName}");
 
         // Configure telemetry batching options based on environment
-        var batchingOptions = environment.IsDevelopment() 
+        var batchingOptions = environment.IsDevelopment()
             ? TelemetryBatchingOptions.ForDevelopment()
             : TelemetryBatchingOptions.ForProduction();
 
         // Allow override from configuration
         configuration.GetSection("TelemetryBatching").Bind(batchingOptions);
-        
+
         // Validate and register the options
         var validationErrors = batchingOptions.Validate();
         if (validationErrors.Count > 0)
         {
             throw new InvalidOperationException($"Invalid telemetry batching configuration: {string.Join(", ", validationErrors)}");
         }
-        
+
         services.AddSingleton(batchingOptions);
 
         Console.WriteLine("[*] Telemetry Batching Configuration:");

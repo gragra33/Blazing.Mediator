@@ -27,6 +27,8 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     [HttpGet("{id}")]
     public async Task<ActionResult<UserDto>> GetUser(int id)
     {
+        logger.LogInformation("Getting user with ID: {UserId}", id);
+        
         var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.GetUser", ActivityKind.Server);
         activity?.SetTag("controller.method", "GetUser");
@@ -35,10 +37,13 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
         {
             var query = new GetUserQuery { UserId = id };
             var user = await mediator.Send(query);
+            
+            logger.LogInformation("Successfully retrieved user {UserId} with name: {UserName}", id, user.Name);
             return Ok(user);
         }
-        catch (NotFoundException)
+        catch (NotFoundException ex)
         {
+            logger.LogWarning("User {UserId} not found: {Message}", id, ex.Message);
             return NotFound($"User with ID {id} not found");
         }
         catch (Exception ex)
@@ -59,6 +64,9 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
         [FromQuery] bool includeInactive = false,
         [FromQuery] string? searchTerm = null)
     {
+        logger.LogInformation("Getting users with filters - IncludeInactive: {IncludeInactive}, SearchTerm: {SearchTerm}", 
+            includeInactive, searchTerm ?? "none");
+        
         var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.GetUsers", ActivityKind.Server);
         activity?.SetTag("controller.method", "GetUsers");
@@ -72,11 +80,14 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
                 SearchTerm = searchTerm
             };
             var users = await mediator.Send(query);
+            
+            logger.LogInformation("Successfully retrieved {UserCount} users", users.Count);
             return Ok(users);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting users");
+            logger.LogError(ex, "Error getting users with filters - IncludeInactive: {IncludeInactive}, SearchTerm: {SearchTerm}", 
+                includeInactive, searchTerm);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -89,22 +100,31 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     [HttpPost]
     public async Task<ActionResult<int>> CreateUser([FromBody] CreateUserCommand command)
     {
+        logger.LogInformation("Creating new user with name: {UserName}, email: {UserEmail}", 
+            command.Name, command.Email);
+        
         var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.CreateUser", ActivityKind.Server);
         activity?.SetTag("controller.method", "CreateUser");
         try
         {
             var userId = await mediator.Send(command);
+            
+            logger.LogInformation("Successfully created user {UserId} with name: {UserName}", userId, command.Name);
             return CreatedAtAction(nameof(GetUser), new { id = userId }, userId);
         }
         catch (ValidationException ex)
         {
+            logger.LogWarning("Validation failed for user creation: {ValidationErrors}", 
+                string.Join(", ", ex.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")));
+            
             var errors = ex.Errors.Select(e => new { Property = e.PropertyName, Error = e.ErrorMessage });
             return BadRequest(new { Message = "Validation failed", Errors = errors });
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating user");
+            logger.LogError(ex, "Error creating user with name: {UserName}, email: {UserEmail}", 
+                command.Name, command.Email);
             return StatusCode(500, "Internal server error");
         }
     }
@@ -118,25 +138,38 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     [HttpPut("{id}")]
     public async Task<ActionResult> UpdateUser(int id, [FromBody] UpdateUserCommand command)
     {
+        logger.LogInformation("Updating user {UserId} with new name: {UserName}, email: {UserEmail}", 
+            id, command.Name, command.Email);
+        
         var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.UpdateUser", ActivityKind.Server);
         activity?.SetTag("controller.method", "UpdateUser");
         activity?.SetTag("user.id", id);
+        
         if (id != command.UserId)
         {
+            logger.LogWarning("ID mismatch in user update - Route ID: {RouteId}, Command ID: {CommandId}", 
+                id, command.UserId);
             return BadRequest("ID mismatch between route and body");
         }
+        
         try
         {
             await mediator.Send(command);
+            
+            logger.LogInformation("Successfully updated user {UserId}", id);
             return NoContent();
         }
-        catch (NotFoundException)
+        catch (NotFoundException ex)
         {
+            logger.LogWarning("User {UserId} not found for update: {Message}", id, ex.Message);
             return NotFound($"User with ID {id} not found");
         }
         catch (ValidationException ex)
         {
+            logger.LogWarning("Validation failed for user {UserId} update: {ValidationErrors}", 
+                id, string.Join(", ", ex.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")));
+            
             var errors = ex.Errors.Select(e => new { Property = e.PropertyName, Error = e.ErrorMessage });
             return BadRequest(new { Message = "Validation failed", Errors = errors });
         }
@@ -155,6 +188,8 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteUser(int id)
     {
+        logger.LogInformation("Deleting user {UserId}", id);
+        
         var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.DeleteUser", ActivityKind.Server);
         activity?.SetTag("controller.method", "DeleteUser");
@@ -163,10 +198,13 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
         {
             var command = new DeleteUserCommand { UserId = id };
             await mediator.Send(command);
+            
+            logger.LogInformation("Successfully deleted user {UserId}", id);
             return NoContent();
         }
-        catch (NotFoundException)
+        catch (NotFoundException ex)
         {
+            logger.LogWarning("User {UserId} not found for deletion: {Message}", id, ex.Message);
             return NotFound($"User with ID {id} not found");
         }
         catch (Exception ex)
@@ -181,22 +219,23 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     /// </summary>
     /// <returns>Error response.</returns>
     [HttpPost("simulate-error")]
-    public async Task<ActionResult> SimulateError()
+    public Task<ActionResult> SimulateError()
     {
+        logger.LogInformation("Simulating error for telemetry testing");
+        
         var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.SimulateError", ActivityKind.Server);
         activity?.SetTag("controller.method", "SimulateError");
         try
         {
             // This will trigger an error in the handler for telemetry testing
-            var command = new CreateUserCommand { Name = "Error User", Email = "error@example.com" };
-            await mediator.Send(command);
-            return Ok();
+            logger.LogDebug("About to throw simulated exception");
+            throw new InvalidOperationException("This is a simulated error for testing OpenTelemetry integration");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Simulated error occurred");
-            return StatusCode(500, new { Message = "Simulated error for telemetry testing", Details = ex.Message });
+            logger.LogError(ex, "Simulated error occurred for telemetry testing");
+            return Task.FromResult<ActionResult>(StatusCode(500, new { Message = "Simulated error for telemetry testing", Details = ex.Message }));
         }
     }
 
@@ -207,6 +246,8 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
     [HttpPost("simulate-validation-error")]
     public async Task<ActionResult> SimulateValidationError()
     {
+        logger.LogInformation("Simulating validation error for telemetry testing");
+        
         var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.SimulateValidationError", ActivityKind.Server);
         activity?.SetTag("controller.method", "SimulateValidationError");
@@ -214,11 +255,15 @@ public class UsersController(IMediator mediator, ILogger<UsersController> logger
         {
             // This will trigger validation errors for telemetry testing
             var command = new CreateUserCommand { Name = "", Email = "invalid-email" };
+            logger.LogDebug("Creating user with invalid data to trigger validation errors");
             await mediator.Send(command);
             return Ok();
         }
         catch (ValidationException ex)
         {
+            logger.LogWarning("Validation errors triggered during simulation: {ValidationErrors}", 
+                string.Join(", ", ex.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")));
+            
             var errors = ex.Errors.Select(e => new { Property = e.PropertyName, Error = e.ErrorMessage });
             return BadRequest(new { Message = "Validation failed (simulated)", Errors = errors });
         }

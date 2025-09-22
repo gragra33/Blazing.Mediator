@@ -264,10 +264,19 @@ public static class ServiceCollectionExtensions
         // Check if TelemetryOptions is configured
         bool hasTelemetryOptions = configuration.TelemetryOptions != null;
 
+        // Check if LoggingOptions is configured
+        bool hasLoggingOptions = configuration.LoggingOptions != null;
+
         // Register telemetry options if configured and not already registered
         if (hasTelemetryOptions && services.All(s => s.ServiceType != typeof(MediatorTelemetryOptions)))
         {
             services.AddSingleton(configuration.TelemetryOptions!);
+        }
+
+        // Register logging options if configured and not already registered
+        if (hasLoggingOptions && services.All(s => s.ServiceType != typeof(LoggingOptions)))
+        {
+            services.AddSingleton(configuration.LoggingOptions!);
         }
 
         // Register MediatorStatistics with default console renderer if not already registered and statistics tracking is enabled
@@ -293,7 +302,10 @@ public static class ServiceCollectionExtensions
             var notificationPipelineBuilder = provider.GetRequiredService<INotificationPipelineBuilder>();
             var statistics = shouldRegisterStatistics ? provider.GetRequiredService<MediatorStatistics>() : null;
             var telemetryOptions = provider.GetService<MediatorTelemetryOptions>();
-            return new Mediator(provider, pipelineBuilder, notificationPipelineBuilder, statistics, telemetryOptions);
+            var baseLogger = provider.GetService<ILogger<Mediator>>();
+            var loggingOptions = provider.GetService<LoggingOptions>();
+            var granularLogger = baseLogger != null ? new MediatorLogger(baseLogger, loggingOptions) : null;
+            return new Mediator(provider, pipelineBuilder, notificationPipelineBuilder, statistics, telemetryOptions, granularLogger);
         });
 
         if (finalDiscoverMiddleware || finalDiscoverNotificationMiddleware)

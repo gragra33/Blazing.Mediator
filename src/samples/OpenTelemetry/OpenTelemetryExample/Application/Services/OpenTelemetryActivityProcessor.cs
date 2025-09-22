@@ -1,6 +1,7 @@
 using OpenTelemetry;
 using OpenTelemetryExample.Domain.Entities;
 using OpenTelemetryExample.Infrastructure.Data;
+using OpenTelemetryExample.Models;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
@@ -501,14 +502,4 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
         _batchTimer.Dispose();
         _logger.LogInformation("OpenTelemetryActivityProcessor disposed successfully");
     }
-}
-
-/// <summary>
-/// Represents a batch of telemetry data for efficient database operations.
-/// </summary>
-internal sealed class TelemetryBatch
-{
-    public List<TelemetryTrace> Traces { get; } = new();
-    public List<TelemetryActivity> Activities { get; } = new();
-    public List<TelemetryMetric> Metrics { get; } = new();
 }

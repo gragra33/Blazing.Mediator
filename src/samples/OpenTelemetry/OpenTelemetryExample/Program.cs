@@ -1,5 +1,5 @@
+using OpenTelemetryExample.Application.Services;
 using OpenTelemetryExample.Extensions;
-using OpenTelemetryExample.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,21 +8,17 @@ builder.Services.AddApplicationServices(builder.Configuration, builder.Environme
 
 var app = builder.Build();
 
+// Inspect logging configuration using helper class
+LoggerInspectionHelper.PerformFullInspection(app.Services, "ProgramStartupTest");
+
 // Configure the HTTP request pipeline using extension method
 app.ConfigurePipeline();
 
-// Ensure database is created and seeded
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    context.Database.EnsureCreated();
-    Console.WriteLine("[*] In-memory database created and seeded with initial user data");
-}
+// Initialize database and verify telemetry logging setup
+await DatabaseInitializationHelper.InitializeAndSeedDatabaseAsync(app.Services);
 
-// Display startup information
-Console.WriteLine("[*] OpenTelemetry API Server is ready!");
-Console.WriteLine($"[*] Blazing.Mediator Telemetry: {(Blazing.Mediator.Mediator.TelemetryEnabled ? "ENABLED" : "DISABLED")}");
-Console.WriteLine($"[*] Environment: {app.Environment.EnvironmentName}");
+// Generate startup test logs
+//await DatabaseInitializationHelper.GenerateStartupTestLogsAsync(app.Services);
 
 app.Run();
 

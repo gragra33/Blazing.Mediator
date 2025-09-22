@@ -1,0 +1,342 @@
+<div class="card shadow-sm">
+    <div class="card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-journal-text me-2"></i>Recent Logs
+                @if (_isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span>
+                }
+            </h5>
+            
+            <!-- Log Count Info - Moved to right side -->
+            <div class="text-end">
+                @if (DataSource != null)
+                {
+                    <small class="text-muted">
+                        @if (CurrentPagination != null)
+                        {
+                            <span><strong>@CurrentPagination.StartIndex-@CurrentPagination.EndIndex</strong> of <strong>@CurrentPagination.TotalFilteredCount</strong> filtered logs</span>
+                            <br/>
+                            <span>(<strong>@(DataSource?.Summary?.TotalLogs ?? 0)</strong> total in the last <strong>@GetAgeLabel()</strong>)</span>
+                        }
+                        else
+                        {
+                            <span><strong>@GetLogs().Length</strong> of <strong>@(DataSource?.Summary?.TotalLogs ?? 0)</strong> logs in the last <strong>@GetAgeLabel()</strong></span>
+                        }
+                    </small>
+                }
+            </div>
+        </div>
+        
+        <!-- Controls Section - Moved inside card -->
+        <div class="mt-3 border-top pt-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <!-- Left Side - Filter Controls -->
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <!-- Application Only Toggle Switch -->
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="appFilter" 
+                               @bind="_appOnly" @bind:after="OnAppFilterChanged" />
+                        <label class="form-check-label me-2" for="appFilter">
+                            <small>Application Only</small>
+                        </label>
+                    </div>
+
+                    <!-- Mediator Only Toggle Switch -->
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="mediatorFilter" 
+                               @bind="_mediatorOnly" @bind:after="OnMediatorFilterChanged" />
+                        <label class="form-check-label me-2" for="mediatorFilter">
+                            <small>Mediator Only</small>
+                        </label>
+                    </div>
+
+                    <!-- Errors Only Toggle Switch -->
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="errorsFilter" 
+                               @bind="_errorsOnly" @bind:after="OnErrorsFilterChanged" />
+                        <label class="form-check-label me-2" for="errorsFilter">
+                            <small>Errors Only</small>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Right Side - Filter Controls -->
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <!-- Min Level Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-funnel me-1"></i>@(_minLogLevel ?? "All Levels")
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><button class="dropdown-item @(string.IsNullOrEmpty(_minLogLevel) ? "active" : "")" type="button" @onclick="() => SetMinLogLevel(null)">All Levels</button></li>
+                            @foreach (var level in _logLevels)
+                            {
+                                <li><button class="dropdown-item @(_minLogLevel == level ? "active" : "")" type="button" @onclick="() => SetMinLogLevel(level)">@level</button></li>
+                            }
+                        </ul>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div class="input-group input-group-sm" style="width: 200px;">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" placeholder="Search logs..." 
+                               value="@_searchText" @onchange="OnSearchTextChanged" />
+                    </div>
+
+                    <!-- Time Window Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-clock me-1"></i>@GetAgeLabel()
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><button class="dropdown-item @(_timeWindowMinutes == 1 ? "active" : "")" type="button" @onclick="() => UpdateAge(1)">Last minute</button></li>
+                            <li><button class="dropdown-item @(_timeWindowMinutes == 5 ? "active" : "")" type="button" @onclick="() => UpdateAge(5)">5 minutes</button></li>
+                            <li><button class="dropdown-item @(_timeWindowMinutes == 10 ? "active" : "")" type="button" @onclick="() => UpdateAge(10)">10 minutes</button></li>
+                            <li><button class="dropdown-item @(_timeWindowMinutes == 30 ? "active" : "")" type="button" @onclick="() => UpdateAge(30)">30 minutes</button></li>
+                            <li><button class="dropdown-item @(_timeWindowMinutes == 60 ? "active" : "")" type="button" @onclick="() => UpdateAge(60)">Last hour</button></li>
+                        </ul>
+                    </div>
+
+                    <!-- Page Size Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-grid me-1"></i>@_pageSize per page
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><button class="dropdown-item @(_pageSize == 10 ? "active" : "")" type="button" @onclick="() => OnPageSizeChanged(10)">10 per page</button></li>
+                            <li><button class="dropdown-item @(_pageSize == 20 ? "active" : "")" type="button" @onclick="() => OnPageSizeChanged(20)">20 per page</button></li>
+                            <li><button class="dropdown-item @(_pageSize == 50 ? "active" : "")" type="button" @onclick="() => OnPageSizeChanged(50)">50 per page</button></li>
+                            <li><button class="dropdown-item @(_pageSize == 100 ? "active" : "")" type="button" @onclick="() => OnPageSizeChanged(100)">100 per page</button></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- Summary Statistics -->
+        @if (DataSource?.Summary != null)
+        {
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="alert alert-light py-2">
+                        <div class="row text-center">
+                            <div class="col">
+                                <strong>@DataSource.Summary.TotalLogs</strong><br />
+                                <small class="text-muted">Total</small>
+                            </div>
+                            <div class="col">
+                                <strong class="text-danger">@DataSource.Summary.ErrorLogs</strong><br />
+                                <small class="text-muted">Errors</small>
+                            </div>
+                            <div class="col">
+                                <strong class="text-warning">@DataSource.Summary.WarningLogs</strong><br />
+                                <small class="text-muted">Warnings</small>
+                            </div>
+                            <div class="col">
+                                <strong class="text-info">@DataSource.Summary.InfoLogs</strong><br />
+                                <small class="text-muted">Info</small>
+                            </div>
+                            <div class="col">
+                                <strong class="text-secondary">@DataSource.Summary.DebugLogs</strong><br />
+                                <small class="text-muted">Debug</small>
+                            </div>
+                            <div class="col">
+                                <strong class="text-primary">@DataSource.Summary.MediatorLogs</strong><br />
+                                <small class="text-muted">Mediator</small>
+                            </div>
+                            <div class="col">
+                                <strong class="text-success">@DataSource.Summary.AppLogs</strong><br />
+                                <small class="text-muted">App</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Logs Table -->
+        @if (GetLogs().Length == 0)
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-inbox display-4 text-muted"></i>
+                <p class="text-muted mt-2">No logs found in the last @GetAgeLabel().</p>
+                @if (_appOnly || _mediatorOnly || _errorsOnly || !string.IsNullOrEmpty(_minLogLevel) || !string.IsNullOrEmpty(_searchText))
+                {
+                    <p class="text-muted small">Try adjusting your filters or extending the time window.</p>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 100px;">Time</th>
+                            <th scope="col" style="width: 80px;">Level</th>
+                            <th scope="col" style="width: 80px;">Source</th>
+                            <th scope="col">Message</th>
+                            <th scope="col" style="width: 100px;">Trace ID</th>
+                            <th scope="col" style="width: 80px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in GetLogs())
+                        {
+                            <tr style="border-left: 4px solid @GetRowBorderColor(log);">
+                                <td class="small">
+                                    <div title="@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")">
+                                        @log.Timestamp.ToString("HH:mm:ss")
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">
+                                        @log.RelativeTime
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge @GetLogLevelBadgeClass(log.LogLevel)">
+                                        <i class="@GetLogLevelIcon(log.LogLevel) me-1"></i>@log.LogLevel
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge @GetSourceBadgeClass(log.Source)">
+                                        @GetSourceDisplayName(log.Source)
+                                    </span>
+                                </td>
+                                <td class="small">
+                                    <div>@TruncateMessage(log.Message)</div>
+                                    @if (!string.IsNullOrEmpty(log.Category))
+                                    {
+                                        <div class="text-muted" style="font-size: 0.7rem;">
+                                            @log.Category
+                                        </div>
+                                    }
+                                    @if (log.HasException)
+                                    {
+                                        <div class="text-danger" style="font-size: 0.7rem;">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>Exception
+                                        </div>
+                                    }
+                                </td>
+                                <td class="small font-monospace">
+                                    @if (!string.IsNullOrEmpty(log.TraceId))
+                                    {
+	                                    <code class="small">@ShortenTraceId(log.TraceId)</code>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">N/A</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-primary btn-sm" 
+                                            @onclick="() => ViewLogDetails(log)"
+                                            title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            @if (CurrentPagination != null && CurrentPagination.TotalPages > 1)
+            {
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                    <div class="text-muted small">
+                        Page @CurrentPagination.Page of @CurrentPagination.TotalPages 
+                        (@CurrentPagination.TotalFilteredCount total logs)
+                    </div>
+                    
+                    <nav aria-label="Logs pagination">
+                        <ul class="pagination pagination-sm mb-0">
+                            <!-- First Page -->
+                            <li class="page-item @(CurrentPagination.HasPreviousPage ? "" : "disabled")">
+                                <button class="page-link" @onclick="FirstPage" disabled="@(!CurrentPagination.HasPreviousPage)" 
+                                        title="Go to first page">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </button>
+                            </li>
+                            
+                            <!-- Previous Page -->
+                            <li class="page-item @(CurrentPagination.HasPreviousPage ? "" : "disabled")">
+                                <button class="page-link" @onclick="PreviousPage" disabled="@(!CurrentPagination.HasPreviousPage)"
+                                        title="Go to previous page">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                            </li>
+                            
+                            <!-- Page Numbers -->
+                            @{
+                                int startPage = Math.Max(1, CurrentPagination.Page - 2);
+                                int endPage = Math.Min(CurrentPagination.TotalPages, CurrentPagination.Page + 2);
+                            }
+                            
+                            @if (startPage > 1)
+                            {
+                                <li class="page-item">
+                                    <button class="page-link" @onclick="() => GoToPage(1)">1</button>
+                                </li>
+                                @if (startPage > 2)
+                                {
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                }
+                            }
+                            
+                            @for (int pageNumber = startPage; pageNumber <= endPage; pageNumber++)
+                            {
+                                int currentPageLoop = pageNumber; // Capture for lambda
+                                <li class="page-item @(pageNumber == CurrentPagination.Page ? "active" : "")">
+                                    <button class="page-link" @onclick="() => GoToPage(currentPageLoop)">
+                                        @pageNumber
+                                    </button>
+                                </li>
+                            }
+                            
+                            @if (endPage < CurrentPagination.TotalPages)
+                            {
+                                @if (endPage < CurrentPagination.TotalPages - 1)
+                                {
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                }
+                                <li class="page-item">
+                                    <button class="page-link" @onclick="() => GoToPage(CurrentPagination.TotalPages)">
+                                        @CurrentPagination.TotalPages
+                                    </button>
+                                </li>
+                            }
+                            
+                            <!-- Next Page -->
+                            <li class="page-item @(CurrentPagination.HasNextPage ? "" : "disabled")">
+                                <button class="page-link" @onclick="NextPage" disabled="@(!CurrentPagination.HasNextPage)"
+                                        title="Go to next page">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </li>
+                            
+                            <!-- Last Page -->
+                            <li class="page-item @(CurrentPagination.HasNextPage ? "" : "disabled")">
+                                <button class="page-link" @onclick="LastPage" disabled="@(!CurrentPagination.HasNextPage)"
+                                        title="Go to last page">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- Log Details Modal -->
+<LogDetailsModal @ref="_logDetailsModal" />

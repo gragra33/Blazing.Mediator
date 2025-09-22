@@ -12,6 +12,7 @@ public sealed class MediatorStatistics : IDisposable
     private readonly ConcurrentDictionary<string, long> _notificationCounts = new();
     private readonly IStatisticsRenderer _renderer;
     private readonly StatisticsOptions _options;
+    private readonly ILogger<MediatorStatistics>? _logger;
 
     // Performance counters (only used when EnablePerformanceCounters is true)
     private readonly ConcurrentDictionary<string, List<long>> _executionTimes = new();
@@ -44,10 +45,12 @@ public sealed class MediatorStatistics : IDisposable
     /// </summary>
     /// <param name="renderer">The renderer to use for statistics output.</param>
     /// <param name="options">The statistics tracking options. If null, uses default options.</param>
-    public MediatorStatistics(IStatisticsRenderer renderer, StatisticsOptions? options = null)
+    /// <param name="logger">Optional logger for debug-level logging of analysis operations.</param>
+    public MediatorStatistics(IStatisticsRenderer renderer, StatisticsOptions? options = null, ILogger<MediatorStatistics>? logger = null)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _options = options ?? new StatisticsOptions();
+        _logger = logger;
 
         // Initialize cleanup timer if retention period is configured
         if (_options.MetricsRetentionPeriod > TimeSpan.Zero)
@@ -494,6 +497,9 @@ public sealed class MediatorStatistics : IDisposable
     /// <returns>Read-only list of query analysis information grouped by assembly with namespace.</returns>
     public IReadOnlyList<QueryCommandAnalysis> AnalyzeQueries(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
+        // Debug logging: Analysis started
+        _logger?.AnalyzeQueriesStarted(serviceProvider.GetType().Name);
+        
         // Use the parameter if provided, otherwise use the options setting
         bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
 
@@ -505,7 +511,19 @@ public sealed class MediatorStatistics : IDisposable
             .Where(t => t.Name.Contains("Query", StringComparison.OrdinalIgnoreCase));
 
         var allQueryTypes = queryTypes.Concat(requestWithResponseTypes).Distinct().ToList();
-        return CreateAnalysisResults(allQueryTypes, serviceProvider, true, useDetailedAnalysis);
+        
+        // Debug logging: Analysis completed
+        _logger?.AnalyzeQueriesCompleted(allQueryTypes.Count, useDetailedAnalysis);
+        
+        var results = CreateAnalysisResults(allQueryTypes, serviceProvider, true, useDetailedAnalysis);
+        
+        // Debug logging: Individual results
+        foreach (var result in results)
+        {
+            _logger?.AnalyzeQueryResult(result.ClassName, result.ResponseType?.Name ?? "void", result.HandlerStatus.ToString());
+        }
+        
+        return results;
     }
 
     /// <summary>
@@ -517,6 +535,9 @@ public sealed class MediatorStatistics : IDisposable
     /// <returns>Read-only list of command analysis information grouped by assembly with namespace.</returns>
     public IReadOnlyList<QueryCommandAnalysis> AnalyzeCommands(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
+        // Debug logging: Analysis started
+        _logger?.AnalyzeCommandsStarted(serviceProvider.GetType().Name);
+        
         // Use the parameter if provided, otherwise use the options setting
         bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
 
@@ -536,7 +557,19 @@ public sealed class MediatorStatistics : IDisposable
             .Where(t => t.Name.Contains("Command", StringComparison.OrdinalIgnoreCase));
 
         var allCommandTypes = commandTypes.Concat(voidRequestTypes).Concat(requestWithResponseTypes).Distinct().ToList();
-        return CreateAnalysisResults(allCommandTypes, serviceProvider, false, useDetailedAnalysis);
+        
+        // Debug logging: Analysis completed
+        _logger?.AnalyzeCommandsCompleted(allCommandTypes.Count, useDetailedAnalysis);
+        
+        var results = CreateAnalysisResults(allCommandTypes, serviceProvider, false, useDetailedAnalysis);
+        
+        // Debug logging: Individual results
+        foreach (var result in results)
+        {
+            _logger?.AnalyzeCommandResult(result.ClassName, result.ResponseType?.Name ?? "void", result.HandlerStatus.ToString());
+        }
+        
+        return results;
     }
 
     /// <summary>

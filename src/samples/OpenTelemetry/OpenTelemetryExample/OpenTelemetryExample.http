@@ -141,6 +141,52 @@ GET {{baseUrl}}/telemetry/traces/grouped?page=1&pageSize=5&blazingMediatorOnly=f
 GET {{baseUrl}}/telemetry/activities
 
 ###############################################################################
+### Logging Endpoints (Structured Logs)
+###############################################################################
+
+### Get recent logs (default - last 30 minutes, 20 per page)
+GET {{baseUrl}}/api/logs/recent
+
+### Get recent logs with time filter (last 5 minutes)
+GET {{baseUrl}}/api/logs/recent?timeWindowMinutes=5&pageSize=10
+
+### Get recent logs (App only)
+GET {{baseUrl}}/api/logs/recent?appOnly=true&timeWindowMinutes=30
+
+### Get recent logs (Mediator only)
+GET {{baseUrl}}/api/logs/recent?mediatorOnly=true&timeWindowMinutes=30
+
+### Get recent logs (Errors only)
+GET {{baseUrl}}/api/logs/recent?errorsOnly=true&timeWindowMinutes=60
+
+### Get recent logs (Warning level and above)
+GET {{baseUrl}}/api/logs/recent?minLogLevel=Warning&timeWindowMinutes=30
+
+### Get recent logs (Search for specific text)
+GET {{baseUrl}}/api/logs/recent?searchText=user&timeWindowMinutes=30
+
+### Get recent logs (Complex filtering)
+GET {{baseUrl}}/api/logs/recent?appOnly=true&errorsOnly=true&minLogLevel=Error&timeWindowMinutes=60&pageSize=50
+
+### Get recent logs (Pagination)
+GET {{baseUrl}}/api/logs/recent?page=2&pageSize=10&timeWindowMinutes=30
+
+### Get recent logs (Search with pagination)
+GET {{baseUrl}}/api/logs/recent?searchText=validation&page=1&pageSize=5&timeWindowMinutes=120
+
+### Get specific log details
+GET {{baseUrl}}/api/logs/1
+
+### Get logs summary (last 30 minutes)
+GET {{baseUrl}}/api/logs/summary
+
+### Get logs summary (last hour)
+GET {{baseUrl}}/api/logs/summary?timeWindowMinutes=60
+
+### Get logs summary (last 24 hours)
+GET {{baseUrl}}/api/logs/summary?timeWindowMinutes=1440
+
+###############################################################################
 ### Testing Endpoints (Telemetry Generation)
 ###############################################################################
 
@@ -152,6 +198,12 @@ POST {{baseUrl}}/testing/middleware/error
 
 ### Test middleware validation
 POST {{baseUrl}}/testing/middleware/validation
+
+### Test logging functionality (Generate sample logs)
+POST {{baseUrl}}/api/logs/test-logging
+
+### Test direct database logging (Bypass logging provider)
+POST {{baseUrl}}/api/logs/test-database-logging
 
 ###############################################################################
 ### Advanced Testing Scenarios for OpenTelemetry

@@ -6,7 +6,7 @@ namespace OpenTelemetryExample.Client.Pages;
 
 /// <summary>
 /// Main telemetry page that displays comprehensive OpenTelemetry monitoring data including
-/// health status, live metrics, recent traces, and activities.
+/// health status, live metrics, recent traces, recent logs, and activities.
 /// </summary>
 public partial class Telemetry : ComponentBase
 {
@@ -28,6 +28,7 @@ public partial class Telemetry : ComponentBase
     private DebugInformationCard.DebugData _debugData = new();
 
     private int _recentTracesRefreshTrigger;
+    private int _recentLogsRefreshTrigger;
 
     /// <summary>
     /// Initializes the telemetry page and sets up auto-refresh.
@@ -54,7 +55,7 @@ public partial class Telemetry : ComponentBase
             {
                 await InvokeAsync(async () =>
                 {
-                    await RefreshTelemetry(); // Auto-refresh excludes traces
+                    await RefreshTelemetry(); // Auto-refresh excludes traces and logs
                     _remainingSeconds = _refreshIntervalSeconds; // Reset countdown
                     StateHasChanged();
                 });
@@ -107,11 +108,12 @@ public partial class Telemetry : ComponentBase
     }
 
     /// <summary>
-    /// Refreshes telemetry data automatically (excludes traces to avoid performance impact).
+    /// Refreshes telemetry data automatically (excludes traces and logs to avoid performance impact).
     /// </summary>
     private async Task RefreshTelemetry()
     {
         _recentTracesRefreshTrigger++; // Force RecentTracesCard to refresh
+        _recentLogsRefreshTrigger++; // Force RecentLogsCard to refresh
         await Task.WhenAll(
             RefreshApiHealth(),
             RefreshTelemetryHealth(),
@@ -123,7 +125,7 @@ public partial class Telemetry : ComponentBase
     }
 
     /// <summary>
-    /// Refreshes all telemetry data including traces (used for manual refresh).
+    /// Refreshes all telemetry data including traces and logs (used for manual refresh).
     /// </summary>
     private async Task RefreshTelemetryManual()
     {
@@ -136,6 +138,7 @@ public partial class Telemetry : ComponentBase
         // Update debug data
         UpdateDebugData();
         _recentTracesRefreshTrigger++; // Force RecentTracesCard to refresh
+        _recentLogsRefreshTrigger++; // Force RecentLogsCard to refresh
         
         // Reset countdown when manually refreshing
         if (_autoRefreshEnabled)

@@ -1,6 +1,6 @@
 # OpenTelemetry Example - Blazing.Mediator Integration
 
-A comprehensive demonstration of OpenTelemetry integration with Blazing.Mediator, showcasing telemetry collection, metrics, tracing, real-time streaming, and monitoring capabilities across a full-stack .NET 9 application.
+A comprehensive demonstration of OpenTelemetry integration with Blazing.Mediator, showcasing telemetry collection, metrics, tracing, **structured logging**, real-time streaming, and monitoring capabilities across a full-stack .NET 9 application.
 
 ## Table of Contents
 
@@ -38,12 +38,14 @@ This sample consists of four main projects:
 ### OpenTelemetry Integration
 
 - **Complete OpenTelemetry Integration** - Metrics, tracing, and health checks
+- **Structured Logging** - Serilog integration with OpenTelemetry for comprehensive log collection
+- **Log Correlation** - Automatic correlation between logs, traces, and spans
 - **Blazing.Mediator Telemetry** - Comprehensive telemetry for all mediator operations including streaming
 - **Middleware Pipeline Telemetry** - Tracking middleware execution and performance
 - **Streaming Operations Telemetry** - Packet-level visibility for streaming operations
 - **Error and Exception Tracking** - Detailed error telemetry with sanitized data
 - **Health Checks** - Built-in health monitoring for telemetry systems
-- **Real-time Data Collection** - Live metrics and traces with custom processors and readers
+- **Real-time Data Collection** - Live metrics, traces, and logs with custom processors and readers
 - **Console Exporters** - Real-time telemetry output during development
 - **OTLP Exporters** - Integration with Aspire dashboard and external systems
 - **Validation Telemetry** - FluentValidation integration with telemetry
@@ -72,6 +74,7 @@ This sample consists of four main projects:
 - **Entity Framework Core** - In-memory database for demonstrations
 - **FluentValidation** - Validation with telemetry integration
 - **SignalR** - Real-time communication
+- **Serilog** - Structured logging with OpenTelemetry integration
 - **.NET Aspire** - Cloud-native orchestration with enhanced API documentation
 
 ## Prerequisites
@@ -159,6 +162,9 @@ Perfect for API development and testing without the client overhead.
 - **Live Metrics**: https://localhost:7000/telemetry/live-metrics
 - **Recent Traces**: https://localhost:7000/telemetry/traces
 - **Grouped Traces**: https://localhost:7000/telemetry/traces/grouped
+- **Recent Logs**: https://localhost:7000/api/logs/recent
+- **Log Details**: https://localhost:7000/api/logs/{id}
+- **Logs Summary**: https://localhost:7000/api/logs/summary
 - **Streaming Health**: https://localhost:7000/api/streaming/health
 
 **Benefits:**
@@ -207,6 +213,18 @@ GET https://localhost:7000/telemetry/live-metrics
 
 ### Get recent traces
 GET https://localhost:7000/telemetry/traces?maxRecords=20
+
+### Get recent logs
+GET https://localhost:7000/api/logs/recent?timeWindowMinutes=30&pageSize=20
+
+### Get logs with filtering
+GET https://localhost:7000/api/logs/recent?appOnly=true&errorsOnly=true&minLogLevel=Warning
+
+### Get specific log details
+GET https://localhost:7000/api/logs/1
+
+### Get logs summary
+GET https://localhost:7000/api/logs/summary?timeWindowMinutes=60
 
 ### Simulate validation error
 POST https://localhost:7000/api/users/simulate-validation-error
@@ -260,7 +278,9 @@ Navigate to the Blazor client application and explore:
 4. **Telemetry Dashboard** - Real-time monitoring showing:
    - Live metrics and performance data
    - Recent traces with filtering options
+   - Recent logs with filtering and search capabilities
    - Grouped traces for better visualization
+   - Log details with exception information and trace correlation
    - API health status
    - Telemetry configuration details
    - Interactive testing scenarios
@@ -297,6 +317,19 @@ Navigate to the Blazor client application and explore:
 - **SignalR Activities** - Real-time communication tracing
 - **Error Tracking** - Exception details and stack traces
 - **Validation Results** - Validation success/failure details
+
+### Structured Logging
+
+- **Log Correlation** - Automatic correlation with traces and spans using TraceId and SpanId
+- **Application Logs** - Comprehensive logging from application components
+- **Mediator Logs** - Detailed logging from Blazing.Mediator operations
+- **Exception Logging** - Detailed exception information with context
+- **Performance Logging** - Request duration and performance metrics
+- **Validation Logging** - FluentValidation results and details
+- **Middleware Logging** - Pipeline execution logging
+- **Database Storage** - Logs stored in ApplicationDbContext for analysis
+- **OpenTelemetry Integration** - Logs sent to OTLP endpoint for Aspire dashboard
+- **Filtering and Search** - Advanced filtering by level, source, time, and content
 
 ### Tags and Attributes
 
@@ -457,6 +490,48 @@ services.AddMediator(config =>
     config.AddMiddleware(typeof(LoggingMiddleware<,>));
     config.AddMiddleware(typeof(PerformanceMiddleware<,>));
 }, typeof(Program).Assembly);
+```
+
+### Serilog Configuration
+
+The sample demonstrates comprehensive Serilog setup with OpenTelemetry integration:
+
+```csharp
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "OpenTelemetryExample")
+    .Enrich.WithProperty("Environment", environment.EnvironmentName)
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties}{NewLine}{Exception}")
+    .WriteTo.Conditional(
+        condition => !string.IsNullOrEmpty(otlpEndpoint),
+        configureSink => configureSink.OpenTelemetry(options =>
+        {
+            options.Endpoint = otlpEndpoint ?? "";
+            options.IncludedData = IncludedData.TraceIdField | 
+                                  IncludedData.SpanIdField |
+                                  IncludedData.SourceContextAttribute;
+            options.ResourceAttributes = new Dictionary<string, object>
+            {
+                ["service.name"] = "OpenTelemetryExample",
+                ["service.version"] = "1.0.0"
+            };
+        }))
+    .CreateLogger();
+
+services.AddSerilog();
+
+// Custom database logging provider for telemetry storage
+services.AddSingleton<TelemetryDatabaseLoggingProvider>();
+services.AddLogging(builder =>
+{
+    builder.Services.AddSingleton<ILoggerProvider>(serviceProvider => 
+        serviceProvider.GetRequiredService<TelemetryDatabaseLoggingProvider>());
+});
 ```
 
 ### Aspire App Host Configuration

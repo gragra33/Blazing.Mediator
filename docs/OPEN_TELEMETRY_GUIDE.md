@@ -1,4 +1,4 @@
-# OpenTelemetry Support in Blazing.Mediator
+ OpenTelemetry Support in Blazing.Mediator
 
 Blazing.Mediator provides comprehensive built-in support for OpenTelemetry, allowing you to trace and monitor your application's behavior with detailed telemetry data across commands, queries, notifications, and streaming operations.
 

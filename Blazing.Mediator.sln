@@ -23,12 +23,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserManagement.Api.Tests", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 	ProjectSection(SolutionItems) = preProject
+		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
+		CONTRIBUTING.md = CONTRIBUTING.md
+		HISTORY.md = HISTORY.md
 		docs\MEDIATOR_LOGGING_GUIDE.md = docs\MEDIATOR_LOGGING_GUIDE.md
 		docs\MEDIATOR_PATTERN_GUIDE.md = docs\MEDIATOR_PATTERN_GUIDE.md
 		docs\MEDIATOR_STREAMING_GUIDE.md = docs\MEDIATOR_STREAMING_GUIDE.md
 		docs\NOTIFICATION_GUIDE.md = docs\NOTIFICATION_GUIDE.md
 		docs\OPEN_TELEMETRY_GUIDE.md = docs\OPEN_TELEMETRY_GUIDE.md
-		docs\README.md = docs\README.md
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazing.Mediator.Tests", "tests\Blazing.Mediator.Tests\Blazing.Mediator.Tests.csproj", "{B8044AD2-1790-ED7A-8F7A-FEBED1B2D7F5}"

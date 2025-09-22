@@ -281,8 +281,8 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<MediatorStatistics>(provider =>
             {
                 var renderer = provider.GetRequiredService<IStatisticsRenderer>();
-                var options = hasStatisticsOptions ? configuration.StatisticsOptions : null;
-                return new MediatorStatistics(renderer, options);
+                var statisticsOptions = hasStatisticsOptions ? configuration.StatisticsOptions : null;
+                return new MediatorStatistics(renderer, statisticsOptions);
             });
         }
 

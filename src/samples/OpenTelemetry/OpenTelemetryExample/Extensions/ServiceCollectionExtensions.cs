@@ -193,7 +193,7 @@ public static class ServiceCollectionExtensions
         
         services.AddSingleton(batchingOptions);
 
-        Console.WriteLine($"[*] Telemetry Batching Configuration:");
+        Console.WriteLine("[*] Telemetry Batching Configuration:");
         Console.WriteLine($"[*]   Streaming: {batchingOptions.StreamingBatchSize} items or {batchingOptions.StreamingBatchTimeoutMs}ms");
         Console.WriteLine($"[*]   Regular: {batchingOptions.RegularBatchSize} items or {batchingOptions.RegularBatchTimeoutMs}ms");
         Console.WriteLine($"[*]   Processing Interval: {batchingOptions.ProcessingIntervalMs}ms");

@@ -8,14 +8,12 @@ namespace OpenTelemetryExample.Application.Services;
 /// </summary>
 public sealed class OpenTelemetryMetricsReader : BaseExportingMetricReader
 {
-    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<OpenTelemetryMetricsReader> _logger;
     private readonly Timer _collectTimer;
 
     public OpenTelemetryMetricsReader(IServiceProvider serviceProvider, ILogger<OpenTelemetryMetricsReader> logger)
         : base(new OpenTelemetryMetricsExporter(serviceProvider))
     {
-        _serviceProvider = serviceProvider;
         _logger = logger;
 
         // Collect metrics every 10 seconds
@@ -42,7 +40,7 @@ public sealed class OpenTelemetryMetricsReader : BaseExportingMetricReader
     {
         if (disposing)
         {
-            _collectTimer?.Dispose();
+            _collectTimer.Dispose();
         }
         base.Dispose(disposing);
     }

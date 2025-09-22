@@ -204,14 +204,14 @@ public sealed class TelemetryService(HttpClient httpClient, ILogger<TelemetrySer
     {
         try
         {
-            var queryParams = new List<string>();
-
-            // Add pagination parameters
-            queryParams.Add($"page={Math.Max(page, 1)}");
-            queryParams.Add($"pageSize={Math.Max(pageSize, 1)}");
-
-            // Always include maxRecords parameter for backward compatibility
-            queryParams.Add($"maxRecords={Math.Max(maxRecords, 10)}");
+            var queryParams = new List<string>
+            {
+                // Add pagination parameters
+                $"page={Math.Max(page, 1)}",
+                $"pageSize={Math.Max(pageSize, 1)}",
+                // Always include maxRecords parameter for backward compatibility
+                $"maxRecords={Math.Max(maxRecords, 10)}"
+            };
 
             if (filterMediatorOnly)
                 queryParams.Add("blazingMediatorOnly=true");

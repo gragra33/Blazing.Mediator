@@ -78,49 +78,51 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
     private static int? GetInstanceOrder(Type middlewareType)
     {
         var instanceOrderProperty = middlewareType.GetProperty(OrderPropertyName, BindingFlags.Public | BindingFlags.Instance);
-        if (instanceOrderProperty != null && instanceOrderProperty.PropertyType == typeof(int) &&
-            (!instanceOrderProperty.GetGetMethod()!.IsVirtual ||
-             instanceOrderProperty.DeclaringType != typeof(INotificationMiddleware)))
+        if (instanceOrderProperty == null || instanceOrderProperty.PropertyType != typeof(int) ||
+            (instanceOrderProperty.GetGetMethod()!.IsVirtual &&
+             instanceOrderProperty.DeclaringType == typeof(INotificationMiddleware)))
         {
-            try
-            {
-                // Handle generic type definitions by checking constraints first
-                Type typeToInstantiate = middlewareType;
-                if (middlewareType.IsGenericTypeDefinition)
-                {
-                    // Check if we can satisfy generic constraints for notification middleware
-                    // Use a minimal notification type for constraint checking
-                    if (!CanSatisfyGenericConstraints(middlewareType, typeof(MinimalNotification)))
-                    {
-                        return null; // Cannot satisfy constraints
-                    }
+            return null;
+        }
 
-                    try
-                    {
-                        typeToInstantiate = middlewareType.MakeGenericType(typeof(MinimalNotification));
-                    }
-                    catch (ArgumentException)
-                    {
-                        return null; // Constraints not satisfied
-                    }
+        try
+        {
+            // Handle generic type definitions by checking constraints first
+            Type typeToInstantiate = middlewareType;
+            if (middlewareType.IsGenericTypeDefinition)
+            {
+                // Check if we can satisfy generic constraints for notification middleware
+                // Use a minimal notification type for constraint checking
+                if (!CanSatisfyGenericConstraints(middlewareType, typeof(MinimalNotification)))
+                {
+                    return null; // Cannot satisfy constraints
                 }
 
-                // Create a temporary instance to get the Order value
-                object? instance = Activator.CreateInstance(typeToInstantiate);
-                if (instance != null)
+                try
                 {
-                    int orderValue = (int)instanceOrderProperty.GetValue(instance)!;
-                    // Only use non-default values as explicit orders
-                    if (orderValue != 0)
-                    {
-                        return orderValue;
-                    }
+                    typeToInstantiate = middlewareType.MakeGenericType(typeof(MinimalNotification));
+                }
+                catch (ArgumentException)
+                {
+                    return null; // Constraints not satisfied
                 }
             }
-            catch
+
+            // Create a temporary instance to get the Order value
+            object? instance = Activator.CreateInstance(typeToInstantiate);
+            if (instance != null)
             {
-                // If we can't create an instance, fall through to fallback logic
+                int orderValue = (int)instanceOrderProperty.GetValue(instance)!;
+                // Only use non-default values as explicit orders
+                if (orderValue != 0)
+                {
+                    return orderValue;
+                }
             }
+        }
+        catch
+        {
+            // If we can't create an instance, fall through to fallback logic
         }
 
         return null;

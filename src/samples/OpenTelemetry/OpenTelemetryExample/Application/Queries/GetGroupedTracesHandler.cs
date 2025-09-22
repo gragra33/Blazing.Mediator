@@ -178,13 +178,9 @@ public sealed class GetGroupedTracesHandler(ApplicationDbContext context, ILogge
     private TraceGroupDto CreateTraceGroup(string traceId, List<TelemetryTrace> tracesInGroup)
     {
         // Find root trace (no parent or parent not in this group)
-        var rootTrace = tracesInGroup.FirstOrDefault(t => string.IsNullOrEmpty(t.ParentId) || 
-                                                         !tracesInGroup.Any(other => other.SpanId == t.ParentId));
-        
-        if (rootTrace == null)
-        {
-            rootTrace = tracesInGroup.OrderBy(t => t.StartTime).First();
-        }
+        var rootTrace = tracesInGroup.FirstOrDefault(t => string.IsNullOrEmpty(t.ParentId)
+                                                          || tracesInGroup.All(other => other.SpanId != t.ParentId)) ??
+                        tracesInGroup.OrderBy(t => t.StartTime).First();
 
         // Build hierarchy
         var hierarchicalTraces = BuildHierarchy(tracesInGroup, rootTrace.SpanId, 0);

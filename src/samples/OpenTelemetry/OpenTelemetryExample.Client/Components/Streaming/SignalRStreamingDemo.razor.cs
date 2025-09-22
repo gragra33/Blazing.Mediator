@@ -24,10 +24,19 @@ public partial class SignalRStreamingDemo : ComponentBase
     private HubConnection? hubConnection;
     private bool wasManuallyDisconnected;
 
+    /// <summary>
+    /// Gets or sets the navigation manager for handling URI navigation.
+    /// </summary>
     [Parameter, EditorRequired] public NavigationManager Navigation { get; set; } = null!;
 
+    /// <summary>
+    /// Gets or sets the JavaScript runtime service for interop calls.
+    /// </summary>
     [Parameter, EditorRequired] public IJSRuntime JSRuntimeService { get; set; } = null!;
 
+    /// <summary>
+    /// Gets or sets the HTTP client for making API calls.
+    /// </summary>
     [Parameter, EditorRequired] public HttpClient Http { get; set; } = null!;
 
     // Expose properties for the Razor template
@@ -128,7 +137,7 @@ public partial class SignalRStreamingDemo : ComponentBase
             await AddSignalRItem(item);
         });
 
-        hubConnection.On<object>("StreamCompleted", async (result) =>
+        hubConnection.On<object>("StreamCompleted", async _ =>
         {
             isStreaming = false;
             await InvokeAsync(StateHasChanged);
@@ -257,7 +266,7 @@ public partial class SignalRStreamingDemo : ComponentBase
         HubConnectionState.Connecting => "alert-warning",
         HubConnectionState.Disconnected => "alert-secondary",
         HubConnectionState.Reconnecting => "alert-info",
-        _ => wasManuallyDisconnected ? "alert-secondary" : "alert-secondary"
+        _ => "alert-secondary"
     };
 
     /// <summary>

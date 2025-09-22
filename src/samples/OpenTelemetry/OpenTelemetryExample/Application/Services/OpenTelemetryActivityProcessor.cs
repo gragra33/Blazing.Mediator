@@ -18,7 +18,7 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
     private readonly TelemetryBatchingOptions _options;
     private readonly ConcurrentQueue<TelemetryBatch> _batchQueue = new();
     private readonly Timer _batchTimer;
-    private readonly object _batchLock = new();
+    private readonly Lock _batchLock = new();
     private volatile bool _disposed;
 
     // Current batch tracking
@@ -284,7 +284,7 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
 
     private static bool IsStreamingTelemetry(Activity activity)
     {
-        var operationName = activity.OperationName?.ToLowerInvariant() ?? "";
+        var operationName = activity.OperationName.ToLowerInvariant();
         var requestType = GetRequestType(activity).ToLowerInvariant();
 
         // Check if this is streaming-related telemetry
@@ -297,7 +297,7 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
 
     private static bool ShouldSkipActivity(Activity activity)
     {
-        var operationName = activity.OperationName?.ToLowerInvariant() ?? "";
+        var operationName = activity.OperationName.ToLowerInvariant();
 
         // Skip telemetry endpoints to prevent feedback loops
         if (operationName.Contains("/telemetry") ||
@@ -498,7 +498,7 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
             }
         }
 
-        _batchTimer?.Dispose();
+        _batchTimer.Dispose();
         _logger.LogInformation("OpenTelemetryActivityProcessor disposed successfully");
     }
 }

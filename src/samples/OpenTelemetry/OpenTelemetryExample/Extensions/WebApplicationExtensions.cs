@@ -62,7 +62,7 @@ public static class WebApplicationExtensions
     {
         app.MapHealthChecks("/health");
         app.MapControllers();
-        app.MapHub<OpenTelemetryExample.Hubs.StreamingHub>("/streaming-hub");
+        app.MapHub<Hubs.StreamingHub>("/streaming-hub");
     }
 
     /// <summary>

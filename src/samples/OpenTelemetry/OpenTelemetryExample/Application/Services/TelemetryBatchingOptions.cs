@@ -39,7 +39,7 @@ public sealed class TelemetryBatchingOptions
     /// Gets or sets whether to enable detailed logging for batch processing.
     /// Default: false.
     /// </summary>
-    public bool EnableDetailedLogging { get; set; } = false;
+    public bool EnableDetailedLogging { get; set; }
 
     /// <summary>
     /// Validates the configuration and returns any validation errors.

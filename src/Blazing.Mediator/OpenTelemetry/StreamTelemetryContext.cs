@@ -1,8 +1,7 @@
 using System.Diagnostics;
-using Blazing.Mediator.OpenTelemetry;
 using Blazing.Mediator.Statistics;
 
-namespace Blazing.Mediator;
+namespace Blazing.Mediator.OpenTelemetry;
 
 /// <summary>
 /// Telemetry context for streaming operations that tracks comprehensive packet-level metrics.

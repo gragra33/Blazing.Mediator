@@ -410,8 +410,8 @@ public class StreamingHub(IMediator mediator, ILogger<StreamingHub> logger) : Hu
         
         logger.LogInformation("🔗 SignalR client connected: {ConnectionId}", Context.ConnectionId);
         
-        await Clients.Caller.SendAsync("Connected", new { 
-            ConnectionId = Context.ConnectionId, 
+        await Clients.Caller.SendAsync("Connected", new {
+            Context.ConnectionId, 
             Timestamp = DateTime.UtcNow,
             Message = "Welcome to OpenTelemetry Streaming Hub!"
         });

@@ -1158,13 +1158,10 @@ public sealed class Mediator : IMediator
         // Remove potential sensitive data patterns based on configuration
         var sanitized = message;
 
-        foreach (var pattern in SensitiveDataPatterns)
+        foreach (string pattern in SensitiveDataPatterns.Where(pattern => sanitized.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
         {
-            if (sanitized.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-            {
-                sanitized = $"{pattern}_error";
-                break; // Stop at first match to avoid over-sanitization
-            }
+            sanitized = $"{pattern}_error";
+            break; // Stop at first match to avoid over-sanitization
         }
 
         // Remove SQL connection strings
@@ -1331,8 +1328,8 @@ public sealed class Mediator : IMediator
         where TRequest : IRequest
     {
         // Create the proper delegate
-        RequestHandlerDelegate handlerDelegate = async () => await finalHandler();
-        
+        async Task HandlerDelegate() => await finalHandler();
+
         // Execute through middleware pipeline
         MethodInfo? executeMethod = _pipelineBuilder
             .GetType()
@@ -1350,7 +1347,7 @@ public sealed class Mediator : IMediator
         }
         
         MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(typeof(TRequest));
-        Task? pipelineTask = (Task?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, handlerDelegate, cancellationToken]);
+        Task? pipelineTask = (Task?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, (RequestHandlerDelegate)HandlerDelegate, cancellationToken]);
         if (pipelineTask != null)
         {
             await pipelineTask;
@@ -1368,8 +1365,8 @@ public sealed class Mediator : IMediator
         where TRequest : IRequest<TResponse>
     {
         // Create the proper delegate
-        RequestHandlerDelegate<TResponse> handlerDelegate = async () => await finalHandler();
-        
+        async Task<TResponse> HandlerDelegate() => await finalHandler();
+
         // Execute through middleware pipeline
         MethodInfo? executeMethod = _pipelineBuilder
             .GetType()
@@ -1386,7 +1383,7 @@ public sealed class Mediator : IMediator
         }
         
         MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(typeof(TRequest), typeof(TResponse));
-        Task<TResponse>? pipelineTask = (Task<TResponse>?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, handlerDelegate, cancellationToken]);
+        Task<TResponse>? pipelineTask = (Task<TResponse>?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, (RequestHandlerDelegate<TResponse>)HandlerDelegate, cancellationToken]);
         if (pipelineTask != null)
         {
             return await pipelineTask;

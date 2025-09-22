@@ -7,15 +7,27 @@ namespace OpenTelemetryExample.Shared.Models;
 /// </summary>
 public sealed class RecentTracesDto
 {
+    /// <summary>
+    /// Gets or sets the timestamp when the trace data was retrieved.
+    /// </summary>
     [JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; set; }
 
+    /// <summary>
+    /// Gets or sets the list of trace entries for the current page.
+    /// </summary>
     [JsonPropertyName("traces")]
     public List<TraceDto> Traces { get; set; } = new();
 
+    /// <summary>
+    /// Gets or sets a message describing the trace data or any relevant status.
+    /// </summary>
     [JsonPropertyName("message")]
     public string Message { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the total number of traces in the selected timeframe.
+    /// </summary>
     [JsonPropertyName("totalTracesInTimeframe")]
     public int TotalTracesInTimeframe { get; set; }
 

@@ -16,7 +16,6 @@ else if (TraceGroups != null && TraceGroups.Any())
         <table class="table table-sm table-hover">
             <thead>
                 <tr>
-                    <th style="width: 40px;"></th> <!-- Expand/Collapse column -->
                     <th>Operation</th>
                     <th>Trace ID</th>
                     <th class="text-end">Duration</th>
@@ -34,16 +33,14 @@ else if (TraceGroups != null && TraceGroups.Any())
                         <td>
                             @if (group.ChildTraces.Any())
                             {
-                                <button class="btn btn-sm btn-link p-0" @onclick="() => ToggleGroupExpansion(group)">
+                                <button class="btn btn-sm btn-link p-0 me-2" @onclick="() => ToggleGroupExpansion(group)">
                                     <i class="bi @(group.IsExpanded ? "bi-dash-square" : "bi-plus-square")"></i>
                                 </button>
                             }
-                        </td>
-                        <td>
                             <strong>@group.RootTrace.OperationName</strong>
                             @if (group.TraceCount > 1)
                             {
-                                <small class="text-muted">(@group.TraceCount traces)</small>
+                                <small class="text-muted"> (@group.TraceCount traces)</small>
                             }
                         </td>
                         <td><code class="small">@ShortenTraceId(group.TraceId)</code></td>
@@ -94,15 +91,13 @@ else
 @code {
     private RenderFragment RenderHierarchicalTrace(HierarchicalTraceDto hierarchicalTrace) => @<text>
         <tr style="border-left: 4px solid @GetChildBorderColor(hierarchicalTrace.Level);">
-            <td>
+            <td style="padding-left: @((hierarchicalTrace.Level + 1) * 1.5)rem;">
                 @if (hierarchicalTrace.Children.Any())
                 {
-                    <button class="btn btn-sm btn-link p-0" @onclick="() => ToggleTraceExpansion(hierarchicalTrace)" style="margin-left: @(hierarchicalTrace.Level)rem;">
+                    <button class="btn btn-sm btn-link p-0 me-2" @onclick="() => ToggleTraceExpansion(hierarchicalTrace)">
                         <i class="bi @(hierarchicalTrace.IsExpanded ? "bi-dash-square" : "bi-plus-square")"></i>
                     </button>
                 }
-            </td>
-            <td style="padding-left: @(hierarchicalTrace.Level + 0.5)rem;">
                 <span>@hierarchicalTrace.Trace.OperationName</span>
             </td>
             <td><code class="small">@ShortenSpanId(hierarchicalTrace.Trace.SpanId)</code></td>

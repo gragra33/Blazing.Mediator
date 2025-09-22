@@ -37,8 +37,8 @@ public class MiddlewareConstraintTests
         analysis.Count.ShouldBe(1);
 
         var middleware = analysis.First();
-        // Note: Currently open generic types include generic suffix - this may be improved in future versions
-        middleware.ClassName.ShouldBe("ClassConstraintMiddleware`2");
+        // Note: Generic suffix removed from class names for cleaner display
+        middleware.ClassName.ShouldBe("ClassConstraintMiddleware");
         middleware.TypeParameters.ShouldBe("<TRequest, TResponse>");
         middleware.GenericConstraints.ShouldContain("where TRequest : class");
         middleware.GenericConstraints.ShouldContain("IRequest<TResponse>");
@@ -68,8 +68,8 @@ public class MiddlewareConstraintTests
         analysis.Count.ShouldBe(1);
 
         var middleware = analysis.First();
-        // Note: Currently open generic types include generic suffix - this may be improved in future versions
-        middleware.ClassName.ShouldBe("InterfaceConstraintMiddleware`2");
+        // Note: Generic suffix removed from class names for cleaner display
+        middleware.ClassName.ShouldBe("InterfaceConstraintMiddleware");
         middleware.GenericConstraints.ShouldContain("where TRequest : ICommand<TResponse>");
     }
 
@@ -97,8 +97,8 @@ public class MiddlewareConstraintTests
         analysis.Count.ShouldBe(1);
 
         var middleware = analysis.First();
-        // Note: Currently open generic types include generic suffix - this may be improved in future versions
-        middleware.ClassName.ShouldBe("NewConstraintMiddleware`2");
+        // Note: Generic suffix removed from class names for cleaner display
+        middleware.ClassName.ShouldBe("NewConstraintMiddleware");
         middleware.GenericConstraints.ShouldContain("new()");
     }
 
@@ -126,8 +126,8 @@ public class MiddlewareConstraintTests
         analysis.Count.ShouldBe(1);
 
         var middleware = analysis.First();
-        // Note: Currently open generic types include generic suffix - this may be improved in future versions
-        middleware.ClassName.ShouldBe("MultipleConstraintMiddleware`2");
+        // Note: Generic suffix removed from class names for cleaner display
+        middleware.ClassName.ShouldBe("MultipleConstraintMiddleware");
         middleware.GenericConstraints.ShouldContain("where TRequest : class");
         middleware.GenericConstraints.ShouldContain("IQuery<TResponse>");
         middleware.GenericConstraints.ShouldContain("new()");
@@ -157,8 +157,8 @@ public class MiddlewareConstraintTests
         analysis.Count.ShouldBe(1);
 
         var middleware = analysis.First();
-        // Note: Currently open generic types include generic suffix - this may be improved in future versions
-        middleware.ClassName.ShouldBe("SingleParameterConstraintMiddleware`1");
+        // Note: Generic suffix removed from class names for cleaner display
+        middleware.ClassName.ShouldBe("SingleParameterConstraintMiddleware");
         middleware.TypeParameters.ShouldBe("<TRequest>");
         middleware.GenericConstraints.ShouldContain("where TRequest : ICommand");
     }
@@ -187,8 +187,8 @@ public class MiddlewareConstraintTests
         analysis.ShouldNotBeNull();
         analysis.Count.ShouldBe(2);
 
-        // Note: Currently open generic types include generic suffix - this may be improved in future versions
-        var constraintMiddleware = analysis.FirstOrDefault(a => a.ClassName == "NotificationConstraintMiddleware`1");
+        // Note: Generic types now have clean names without arity suffix
+        var constraintMiddleware = analysis.FirstOrDefault(a => a.ClassName == "NotificationConstraintMiddleware");
         constraintMiddleware.ShouldNotBeNull();
         constraintMiddleware.TypeParameters.ShouldBe("<TNotification>");
         constraintMiddleware.GenericConstraints.ShouldContain("where TNotification : class");
@@ -284,27 +284,27 @@ public class MiddlewareConstraintTests
         analysis.ShouldNotBeNull();
         analysis.Count.ShouldBe(5);
 
-        // Note: Currently open generic types include generic suffix - this may be improved in future versions
+        // Note: Generic types now have clean names without arity suffix
         // Verify each middleware has its constraints properly extracted
-        var classConstraint = analysis.FirstOrDefault(a => a.ClassName == "ClassConstraintMiddleware`2");
+        var classConstraint = analysis.FirstOrDefault(a => a.ClassName == "ClassConstraintMiddleware");
         classConstraint.ShouldNotBeNull();
         classConstraint.GenericConstraints.ShouldContain("class");
 
-        var interfaceConstraint = analysis.FirstOrDefault(a => a.ClassName == "InterfaceConstraintMiddleware`2");
+        var interfaceConstraint = analysis.FirstOrDefault(a => a.ClassName == "InterfaceConstraintMiddleware");
         interfaceConstraint.ShouldNotBeNull();
         interfaceConstraint.GenericConstraints.ShouldContain("ICommand<TResponse>");
 
-        var newConstraint = analysis.FirstOrDefault(a => a.ClassName == "NewConstraintMiddleware`2");
+        var newConstraint = analysis.FirstOrDefault(a => a.ClassName == "NewConstraintMiddleware");
         newConstraint.ShouldNotBeNull();
         newConstraint.GenericConstraints.ShouldContain("new()");
 
-        var multipleConstraint = analysis.FirstOrDefault(a => a.ClassName == "MultipleConstraintMiddleware`2");
+        var multipleConstraint = analysis.FirstOrDefault(a => a.ClassName == "MultipleConstraintMiddleware");
         multipleConstraint.ShouldNotBeNull();
         multipleConstraint.GenericConstraints.ShouldContain("class");
         multipleConstraint.GenericConstraints.ShouldContain("IQuery<TResponse>");
         multipleConstraint.GenericConstraints.ShouldContain("new()");
 
-        var singleParameter = analysis.FirstOrDefault(a => a.ClassName == "SingleParameterConstraintMiddleware`1");
+        var singleParameter = analysis.FirstOrDefault(a => a.ClassName == "SingleParameterConstraintMiddleware");
         singleParameter.ShouldNotBeNull();
         singleParameter.GenericConstraints.ShouldContain("ICommand");
     }

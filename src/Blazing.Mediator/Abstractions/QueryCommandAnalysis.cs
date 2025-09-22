@@ -1,27 +1,6 @@
 namespace Blazing.Mediator.Abstractions;
 
 /// <summary>
-/// Represents the status of handlers for a query or command.
-/// </summary>
-public enum HandlerStatus
-{
-    /// <summary>
-    /// No handler is registered for this request type.
-    /// </summary>
-    Missing,
-
-    /// <summary>
-    /// Exactly one handler is registered (ideal state).
-    /// </summary>
-    Single,
-
-    /// <summary>
-    /// Multiple handlers are registered (potential issue).
-    /// </summary>
-    Multiple
-}
-
-/// <summary>
 /// Represents analysis information for a query or command type, including handler details.
 /// Contains metadata about the type, its response type, assembly information, and handler status.
 /// </summary>

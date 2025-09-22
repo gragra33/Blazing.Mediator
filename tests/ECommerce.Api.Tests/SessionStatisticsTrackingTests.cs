@@ -230,11 +230,11 @@ public class SessionStatisticsTrackingTests : IClassFixture<WebApplicationFactor
         summary.GetProperty("activeSessions").GetInt32().ShouldBeGreaterThanOrEqualTo(1);
 
         var trackingInfo = root.GetProperty("trackingInfo");
-        trackingInfo.GetProperty("method").GetString().ShouldContain("StatisticsTrackingMiddleware");
-        trackingInfo.GetProperty("sessionTracking").GetString().ShouldContain("Enabled");
+        trackingInfo.GetProperty("method").GetString()!.ShouldContain("StatisticsTrackingMiddleware");
+        trackingInfo.GetProperty("sessionTracking").GetString()!.ShouldContain("Enabled");
 
         var instructions = root.GetProperty("instructions");
-        instructions.GetProperty("getSessionId").GetString().ShouldContain("/api/mediator/session");
+        instructions.GetProperty("getSessionId").GetString()!.ShouldContain("/api/mediator/session");
     }
 
     /// <summary>

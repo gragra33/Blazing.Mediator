@@ -9,7 +9,7 @@ namespace Blazing.Mediator.Benchmarks;
 [MemoryDiagnoser]
 public class Benchmarks
 {
-    private IMediator _mediator;
+    private IMediator _mediator = null!;
     private readonly Ping _request = new() { Message = "Hello World" };
     private readonly Pinged _notification = new();
 

@@ -296,7 +296,7 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
         foreach (var (type, order, configuration) in middlewareInfos.OrderBy(m => m.Order))
         {
             var orderDisplay = order == int.MaxValue ? "Default" : order.ToString();
-            var className = type.Name;
+            var className = GetCleanTypeName(type);
             var typeParameters = type.IsGenericType ?
                 $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>" :
                 string.Empty;
@@ -396,6 +396,18 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
         var genericArgNames = genericArgs.Select(arg => arg.IsGenericParameter ? arg.Name : FormatTypeName(arg));
 
         return $"{genericTypeName}<{string.Join(", ", genericArgNames)}>";
+    }
+
+    /// <summary>
+    /// Gets the clean type name without generic backtick notation.
+    /// </summary>
+    /// <param name="type">The type to get the clean name for.</param>
+    /// <returns>The clean type name without backtick notation (e.g., "ErrorHandlingMiddleware" instead of "ErrorHandlingMiddleware`1").</returns>
+    private static string GetCleanTypeName(Type type)
+    {
+        var typeName = type.Name;
+        var backtickIndex = typeName.IndexOf('`');
+        return backtickIndex > 0 ? typeName[..backtickIndex] : typeName;
     }
 
     /// <summary>

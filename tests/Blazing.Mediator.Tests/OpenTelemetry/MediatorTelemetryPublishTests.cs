@@ -36,7 +36,7 @@ public class MediatorTelemetryPublishTests : IDisposable
 
         services.AddSingleton<INotificationSubscriber<PublishTestNotification>>(_testSubscriber);
         services.AddSingleton<INotificationSubscriber<PublishTestNotification>>(_exceptionSubscriber);
-        services.AddSingleton<INotificationSubscriber<PublishTestNotificationWithSensitiveData>, TestSensitiveNotificationSubscriber>();
+        services.AddSingleton<INotificationSubscriber<PublishTestNotificationWithPassword>, TestSensitiveNotificationSubscriber>();
 
         _serviceProvider = services.BuildServiceProvider();
         _mediator = _serviceProvider.GetRequiredService<IMediator>();
@@ -181,7 +181,7 @@ public class MediatorTelemetryPublishTests : IDisposable
     public async Task Publish_SensitiveData_IsSanitized()
     {
         // Arrange
-        var notification = new PublishTestNotificationWithSensitiveData
+        var notification = new PublishTestNotificationWithPassword
         {
             Password = "secret123",
             Token = "abc123",
@@ -193,7 +193,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         await _mediator.Publish(notification);
 
         // Assert
-        var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("PublishTestNotificationWithSensitiveData"));
+        var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("PublishTestNotificationWithPassword"));
         activity.ShouldNotBeNull();
 
         // Verify sensitive data is sanitized
@@ -280,7 +280,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         public string Message { get; set; } = string.Empty;
     }
 
-    public class PublishTestNotificationWithSensitiveData : INotification
+    public class PublishTestNotificationWithPassword : INotification
     {
         public string Password { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
@@ -313,9 +313,9 @@ public class MediatorTelemetryPublishTests : IDisposable
         public void Reset() => CallCount = 0;
     }
 
-    public class TestSensitiveNotificationSubscriber : INotificationSubscriber<PublishTestNotificationWithSensitiveData>
+    public class TestSensitiveNotificationSubscriber : INotificationSubscriber<PublishTestNotificationWithPassword>
     {
-        public async Task OnNotification(PublishTestNotificationWithSensitiveData notification, CancellationToken cancellationToken = default)
+        public async Task OnNotification(PublishTestNotificationWithPassword notification, CancellationToken cancellationToken = default)
         {
             await Task.Delay(5, cancellationToken); // Simulate work
         }

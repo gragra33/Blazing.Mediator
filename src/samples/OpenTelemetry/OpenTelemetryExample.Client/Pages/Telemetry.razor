@@ -10,9 +10,30 @@
         <h2>
             <i class="bi bi-bar-chart-fill me-2"></i>Telemetry Dashboard
         </h2>
-        <button class="btn btn-outline-primary" @onclick="RefreshTelemetryManual">
-            <i class="bi bi-arrow-clockwise me-2"></i>Refresh
-        </button>
+        <div class="d-flex align-items-center gap-3">
+            <!-- Auto-refresh toggle -->
+            <div class="d-flex align-items-center">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="autoRefreshToggle" 
+                           checked="@_autoRefreshEnabled" @onchange="ToggleAutoRefresh">
+                    <label class="form-check-label" for="autoRefreshToggle">
+                        <i class="bi @(_autoRefreshEnabled ? "bi-arrow-repeat" : "bi-pause-circle") me-1"></i>
+                        @if (_autoRefreshEnabled)
+                        {
+                            <text>Auto-refresh (@_remainingSeconds.ToString()s of @_refreshIntervalSeconds.ToString()s)</text>
+                        }
+                        else
+                        {
+                            <text>Auto-refresh</text>
+                        }
+                    </label>
+                </div>
+            </div>
+            <!-- Manual refresh button -->
+            <button class="btn btn-outline-primary" @onclick="RefreshTelemetryManual">
+                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+            </button>
+        </div>
     </div>
 
     <div class="row mb-4">

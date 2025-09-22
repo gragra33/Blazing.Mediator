@@ -10,71 +10,60 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
-	ProjectSection(SolutionItems) = preProject
-		..\cleanbuild.ps1 = ..\cleanbuild.ps1
-		..\CODE_OF_CONDUCT.md = ..\CODE_OF_CONDUCT.md
-		..\CONTRIBUTING.md = ..\CONTRIBUTING.md
-		..\HISTORY.md = ..\HISTORY.md
-		..\LICENSE = ..\LICENSE
-		..\README.md = ..\README.md
-	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazing.Mediator", "Blazing.Mediator\Blazing.Mediator.csproj", "{24AD86B8-0699-F65C-416F-B7A16FB0868A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazing.Mediator", "src\Blazing.Mediator\Blazing.Mediator.csproj", "{24AD86B8-0699-F65C-416F-B7A16FB0868A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECommerce.Api", "samples\ECommerce.Api\ECommerce.Api.csproj", "{E8EC4B1A-0BA3-9961-20DC-5504BFAD2217}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECommerce.Api", "src\samples\ECommerce.Api\ECommerce.Api.csproj", "{E8EC4B1A-0BA3-9961-20DC-5504BFAD2217}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserManagement.Api", "samples\UserManagement.Api\UserManagement.Api.csproj", "{CB160201-84BB-4CDC-11DD-D97AD6597254}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserManagement.Api", "src\samples\UserManagement.Api\UserManagement.Api.csproj", "{CB160201-84BB-4CDC-11DD-D97AD6597254}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECommerce.Api.Tests", "..\tests\ECommerce.Api.Tests\ECommerce.Api.Tests.csproj", "{992FE69A-1672-6198-FDCB-C36057240DB7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECommerce.Api.Tests", "tests\ECommerce.Api.Tests\ECommerce.Api.Tests.csproj", "{992FE69A-1672-6198-FDCB-C36057240DB7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserManagement.Api.Tests", "..\tests\UserManagement.Api.Tests\UserManagement.Api.Tests.csproj", "{1725131D-B04E-B133-7D74-C6E89D42627E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserManagement.Api.Tests", "tests\UserManagement.Api.Tests\UserManagement.Api.Tests.csproj", "{1725131D-B04E-B133-7D74-C6E89D42627E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 	ProjectSection(SolutionItems) = preProject
-		..\docs\MEDIATOR_PATTERN_GUIDE.md = ..\docs\MEDIATOR_PATTERN_GUIDE.md
-		..\docs\MEDIATOR_STREAMING_GUIDE.md = ..\docs\MEDIATOR_STREAMING_GUIDE.md
-		..\docs\NOTIFICATION_GUIDE.md = ..\docs\NOTIFICATION_GUIDE.md
-		..\docs\README.md = ..\docs\README.md
+		docs\README.md = docs\README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazing.Mediator.Tests", "..\tests\Blazing.Mediator.Tests\Blazing.Mediator.Tests.csproj", "{B8044AD2-1790-ED7A-8F7A-FEBED1B2D7F5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazing.Mediator.Tests", "tests\Blazing.Mediator.Tests\Blazing.Mediator.Tests.csproj", "{B8044AD2-1790-ED7A-8F7A-FEBED1B2D7F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Api.Tests", "..\tests\Streaming.Api.Tests\Streaming.Api.Tests.csproj", "{315C14A3-F349-4ECD-8791-A7FB6671CA0A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Api.Tests", "tests\Streaming.Api.Tests\Streaming.Api.Tests.csproj", "{315C14A3-F349-4ECD-8791-A7FB6671CA0A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Api", "samples\Streaming.Api\Streaming.Api\Streaming.Api.csproj", "{BF348E60-0FC1-9C79-6997-EADD4DC8C204}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Api", "src\samples\Streaming.Api\Streaming.Api\Streaming.Api.csproj", "{BF348E60-0FC1-9C79-6997-EADD4DC8C204}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Streaming", "Streaming", "{55542A97-D621-4D09-8FFF-4F03C05EAD49}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Api.Shared", "samples\Streaming.Api\Streaming.Api.Shared\Streaming.Api.Shared.csproj", "{A1DE15F0-FB16-69CF-B2D9-F096AA4DA8C6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Api.Shared", "src\samples\Streaming.Api\Streaming.Api.Shared\Streaming.Api.Shared.csproj", "{A1DE15F0-FB16-69CF-B2D9-F096AA4DA8C6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Api.Client", "samples\Streaming.Api\Streaming.Api.Client\Streaming.Api.Client.csproj", "{FFF0B7C9-98F9-0DFD-A308-6E251DA25D7C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Api.Client", "src\samples\Streaming.Api\Streaming.Api.Client\Streaming.Api.Client.csproj", "{FFF0B7C9-98F9-0DFD-A308-6E251DA25D7C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Api.WASM", "samples\Streaming.Api\Streaming.Api.WASM\Streaming.Api.WASM.csproj", "{6F5D63D2-E7DB-E60C-F1CA-D1ED7EC94E5D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Api.WASM", "src\samples\Streaming.Api\Streaming.Api.WASM\Streaming.Api.WASM.csproj", "{6F5D63D2-E7DB-E60C-F1CA-D1ED7EC94E5D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazing.Mediator.Examples", "samples\Blazing.Mediator.Examples\Blazing.Mediator.Examples.csproj", "{A72C0B83-61A6-7998-D753-67153645B751}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazing.Mediator.Examples", "src\samples\Blazing.Mediator.Examples\Blazing.Mediator.Examples.csproj", "{A72C0B83-61A6-7998-D753-67153645B751}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazing.Mediator.Benchmarks", "..\benchmarks\Blazing.Mediator.Benchmarks\Blazing.Mediator.Benchmarks.csproj", "{0ECB3B9F-6109-4E5E-A033-9F84AA39CFC6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazing.Mediator.Benchmarks", "benchmarks\Blazing.Mediator.Benchmarks\Blazing.Mediator.Benchmarks.csproj", "{0ECB3B9F-6109-4E5E-A033-9F84AA39CFC6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiddlewareExample", "samples\MiddlewareExample\MiddlewareExample.csproj", "{902820E2-142E-3FA6-479B-09F3C3AEFDD2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiddlewareExample", "src\samples\MiddlewareExample\MiddlewareExample.csproj", "{902820E2-142E-3FA6-479B-09F3C3AEFDD2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleNotificationExample", "samples\SimpleNotificationExample\SimpleNotificationExample.csproj", "{F1A2B3C4-D5E6-F7A8-B9C0-D1E2F3A4B5C6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleNotificationExample", "src\samples\SimpleNotificationExample\SimpleNotificationExample.csproj", "{F1A2B3C4-D5E6-F7A8-B9C0-D1E2F3A4B5C6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypedMiddlewareExample", "samples\TypedMiddlewareExample\TypedMiddlewareExample.csproj", "{01250C5B-01C7-DE22-AC3A-93C6EF278CB0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypedMiddlewareExample", "src\samples\TypedMiddlewareExample\TypedMiddlewareExample.csproj", "{01250C5B-01C7-DE22-AC3A-93C6EF278CB0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypedSimpleNotificationExample", "samples\TypedSimpleNotificationExample\TypedSimpleNotificationExample.csproj", "{45FF4719-0E86-A047-5205-52262DBEB5D6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypedSimpleNotificationExample", "src\samples\TypedSimpleNotificationExample\TypedSimpleNotificationExample.csproj", "{45FF4719-0E86-A047-5205-52262DBEB5D6}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Open Telemetry", "Open Telemetry", "{6DE257AB-AFBC-4C6D-869F-D729F821BE02}"
 	ProjectSection(SolutionItems) = preProject
-		samples\OpenTelemetry\OpenTelemetryExample\README.md = samples\OpenTelemetry\OpenTelemetryExample\README.md
+		src\samples\OpenTelemetry\OpenTelemetryExample\README.md = src\samples\OpenTelemetry\OpenTelemetryExample\README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample", "samples\OpenTelemetry\OpenTelemetryExample\OpenTelemetryExample.csproj", "{719DA168-A5A3-91EE-8122-728DCE3B5BFB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample.Client", "src\samples\OpenTelemetry\OpenTelemetryExample.Client\OpenTelemetryExample.Client.csproj", "{CDCF915E-E66E-446A-9504-D1001AB750B2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample.Client", "samples\OpenTelemetry\OpenTelemetryExample.Client\OpenTelemetryExample.Client.csproj", "{CDCF915E-E66E-446A-9504-D1001AB750B2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample", "src\samples\OpenTelemetry\OpenTelemetryExample\OpenTelemetryExample.csproj", "{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample.AppHost", "samples\OpenTelemetry\OpenTelemetryExample.AppHost\OpenTelemetryExample.AppHost.csproj", "{E739815C-6898-4B62-88EA-056998A2BCC2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample.AppHost", "src\samples\OpenTelemetry\OpenTelemetryExample.AppHost\OpenTelemetryExample.AppHost.csproj", "{E739815C-6898-4B62-88EA-056998A2BCC2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample.Shared", "samples\OpenTelemetry\OpenTelemetryExample.Shared\OpenTelemetryExample.Shared.csproj", "{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetryExample.Shared", "src\samples\OpenTelemetry\OpenTelemetryExample.Shared\OpenTelemetryExample.Shared.csproj", "{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -290,18 +279,6 @@ Global
 		{45FF4719-0E86-A047-5205-52262DBEB5D6}.Release|x64.Build.0 = Release|Any CPU
 		{45FF4719-0E86-A047-5205-52262DBEB5D6}.Release|x86.ActiveCfg = Release|Any CPU
 		{45FF4719-0E86-A047-5205-52262DBEB5D6}.Release|x86.Build.0 = Release|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Debug|x64.Build.0 = Debug|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Debug|x86.Build.0 = Debug|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Release|x64.ActiveCfg = Release|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Release|x64.Build.0 = Release|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Release|x86.ActiveCfg = Release|Any CPU
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB}.Release|x86.Build.0 = Release|Any CPU
 		{CDCF915E-E66E-446A-9504-D1001AB750B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CDCF915E-E66E-446A-9504-D1001AB750B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CDCF915E-E66E-446A-9504-D1001AB750B2}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -314,6 +291,18 @@ Global
 		{CDCF915E-E66E-446A-9504-D1001AB750B2}.Release|x64.Build.0 = Release|Any CPU
 		{CDCF915E-E66E-446A-9504-D1001AB750B2}.Release|x86.ActiveCfg = Release|Any CPU
 		{CDCF915E-E66E-446A-9504-D1001AB750B2}.Release|x86.Build.0 = Release|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Debug|x64.Build.0 = Debug|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Debug|x86.Build.0 = Debug|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Release|x64.ActiveCfg = Release|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Release|x64.Build.0 = Release|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Release|x86.ActiveCfg = Release|Any CPU
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6}.Release|x86.Build.0 = Release|Any CPU
 		{E739815C-6898-4B62-88EA-056998A2BCC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E739815C-6898-4B62-88EA-056998A2BCC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E739815C-6898-4B62-88EA-056998A2BCC2}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -363,8 +352,8 @@ Global
 		{01250C5B-01C7-DE22-AC3A-93C6EF278CB0} = {E3E379DF-F4C6-4180-9B81-6769533ABE47}
 		{45FF4719-0E86-A047-5205-52262DBEB5D6} = {E3E379DF-F4C6-4180-9B81-6769533ABE47}
 		{6DE257AB-AFBC-4C6D-869F-D729F821BE02} = {E3E379DF-F4C6-4180-9B81-6769533ABE47}
-		{719DA168-A5A3-91EE-8122-728DCE3B5BFB} = {6DE257AB-AFBC-4C6D-869F-D729F821BE02}
 		{CDCF915E-E66E-446A-9504-D1001AB750B2} = {6DE257AB-AFBC-4C6D-869F-D729F821BE02}
+		{B1C2D3E4-F5A6-B7C8-D9E0-F1A2B3C4D5E6} = {6DE257AB-AFBC-4C6D-869F-D729F821BE02}
 		{E739815C-6898-4B62-88EA-056998A2BCC2} = {6DE257AB-AFBC-4C6D-869F-D729F821BE02}
 		{99055599-5FC4-0F7B-BC66-8F22C0FCFAA3} = {6DE257AB-AFBC-4C6D-869F-D729F821BE02}
 	EndGlobalSection

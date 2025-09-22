@@ -59,11 +59,11 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         if (message == "Session ID Not Yet Assigned")
         {
             sessionId.ValueKind.ShouldBe(JsonValueKind.Null);
-            root.GetProperty("note").GetString().ShouldContain("No session ID has been assigned yet");
+            root.GetProperty("note").GetString()!.ShouldContain("No session ID has been assigned yet");
 
             var instructions = root.GetProperty("instructions");
-            instructions.GetProperty("initializeSession").GetString().ShouldContain("Make any API request");
-            instructions.GetProperty("checkAgain").GetString().ShouldContain("call this endpoint again");
+            instructions.GetProperty("initializeSession").GetString()!.ShouldContain("Make any API request");
+            instructions.GetProperty("checkAgain").GetString()!.ShouldContain("call this endpoint again");
         }
         else
         {
@@ -103,7 +103,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         sessionId.ShouldStartWith("stats_"); // Our session ID format
 
         var usage = root.GetProperty("usage");
-        usage.GetProperty("viewSessionStats").GetString().ShouldContain(sessionId);
+        usage.GetProperty("viewSessionStats").GetString()!.ShouldContain(sessionId);
         usage.GetProperty("viewGlobalStats").GetString().ShouldBe("GET /api/mediator/statistics");
 
         var sessionInfo = root.GetProperty("sessionInfo");
@@ -137,7 +137,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
 
         // Verify the response structure
         root.GetProperty("message").GetString().ShouldBe("Real-Time Mediator Statistics");
-        root.GetProperty("note").GetString().ShouldContain("update dynamically");
+        root.GetProperty("note").GetString()!.ShouldContain("update dynamically");
 
         // Verify global statistics structure
         var globalStats = root.GetProperty("globalStatistics");
@@ -155,13 +155,13 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
 
         // Verify tracking info
         var trackingInfo = root.GetProperty("trackingInfo");
-        trackingInfo.GetProperty("method").GetString().ShouldContain("StatisticsTrackingMiddleware");
-        trackingInfo.GetProperty("sessionTracking").GetString().ShouldContain("Enabled");
+        trackingInfo.GetProperty("method").GetString()!.ShouldContain("StatisticsTrackingMiddleware");
+        trackingInfo.GetProperty("sessionTracking").GetString()!.ShouldContain("Enabled");
 
         // Verify instructions
         var instructions = root.GetProperty("instructions");
-        instructions.GetProperty("getSessionId").GetString().ShouldContain("/api/mediator/session");
-        instructions.GetProperty("viewSessionStats").GetString().ShouldContain("/api/mediator/statistics/session/");
+        instructions.GetProperty("getSessionId").GetString()!.ShouldContain("/api/mediator/session");
+        instructions.GetProperty("viewSessionStats").GetString()!.ShouldContain("/api/mediator/statistics/session/");
     }
 
     #endregion
@@ -196,7 +196,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
-        root.GetProperty("message").GetString().ShouldContain(sessionId);
+        root.GetProperty("message").GetString()!.ShouldContain(sessionId);
 
         var sessionStats = root.GetProperty("sessionStatistics");
         sessionStats.GetProperty("sessionId").GetString().ShouldBe(sessionId);
@@ -228,7 +228,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
-        root.GetProperty("error").GetString().ShouldContain("Session 'invalid-session-id' not found");
+        root.GetProperty("error").GetString()!.ShouldContain("Session 'invalid-session-id' not found");
     }
 
     #endregion
@@ -309,7 +309,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         summary.GetProperty("missingHandlers").GetInt32().ShouldBeGreaterThanOrEqualTo(0);
 
         var legend = root.GetProperty("legend");
-        legend.GetProperty("description").GetString().ShouldContain("Handler found");
+        legend.GetProperty("description").GetString()!.ShouldContain("Handler found");
 
         // Should find ECommerce queries
         var assemblies = queriesByAssembly.EnumerateArray().ToArray();
@@ -427,7 +427,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
 
         // Verify legend
         var legend = root.GetProperty("legend");
-        legend.GetProperty("description").GetString().ShouldContain("Handler found");
+        legend.GetProperty("description").GetString()!.ShouldContain("Handler found");
 
         // Verify timestamp
         root.TryGetProperty("timestamp", out _).ShouldBeTrue();
@@ -551,7 +551,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Step 8: Verify session usage instructions work
         var usage = sessionDoc.RootElement.GetProperty("usage");
         usage.ValueKind.ShouldNotBe(JsonValueKind.Null);
-        usage.GetProperty("viewSessionStats").GetString().ShouldContain(sessionId);
+        usage.GetProperty("viewSessionStats").GetString()!.ShouldContain(sessionId);
     }
 
     #endregion

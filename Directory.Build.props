@@ -1,7 +1,19 @@
 <Project>
   <PropertyGroup>
+    <!-- Common build properties -->
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Enable central package management -->
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
     <!-- Global warning suppressions -->
-    <NoWarn>$(NoWarn);NETSDK1057</NoWarn>
+    <NoWarn>$(NoWarn);NETSDK1057;NU1608;CS1591</NoWarn>
+    
+    <!-- Treat all warnings as errors -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     
     <!-- Source control and package settings -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

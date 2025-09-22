@@ -42,7 +42,7 @@ A high-performance, feature-rich implementation of the Mediator pattern for .NET
 
 ### **🔧 Advanced Topics**
 
--   **[Middleware System](docs/middleware/README.md)** - Custom middleware development and patterns
+-   **[Middleware System](docs/features/middleware/README.md)** - Custom middleware development and patterns
 -   **[Features Overview](docs/features/README.md)** - Advanced features and capabilities
 -   **[Sample Projects](docs/samples/README.md)** - Complete working examples
 -   **[API Reference](docs/api-reference/README.md)** - Complete API documentation
@@ -296,7 +296,7 @@ public class HealthController : ControllerBase
 ```
 BenchmarkDotNet=v0.13.10, OS=Windows 11
 Intel Core i7-12700K, 1 CPU, 20 logical and 12 physical cores
-.NET 8.0.0
+.NET 9.0.0
 
 | Method              | Mean      | Error    | StdDev   | Allocated |
 |---------------------|-----------|----------|----------|-----------|

@@ -336,7 +336,10 @@ public class ServiceCollectionExtensionsTests
         services.AddMediator(config =>
         {
             config.AddMiddleware<AutoDiscoveryInstanceOrderMiddleware>();
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
+        }, (Assembly[])null!);
+        
+        // Register the handler for MiddlewareTestQuery
+        services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
 
         // Act
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -362,7 +365,10 @@ public class ServiceCollectionExtensionsTests
         services.AddMediator(config =>
         {
             config.AddMiddleware<AutoDiscoveryNoOrderMiddleware>();
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
+        }, (Assembly[])null!);
+
+        // Register the handler for MiddlewareTestQuery
+        services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
 
         // Act
         ServiceProvider serviceProvider = services.BuildServiceProvider();

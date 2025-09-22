@@ -436,29 +436,5 @@ public class StatisticsOptionsTests : IDisposable
 }
 
 // Test model classes
-public record StatTestCommand : ICommand
-{
-    public string Value { get; init; } = string.Empty;
-}
-
-public record StatTestQuery : IQuery<string>
-{
-    public string Value { get; init; } = string.Empty;
-}
 
 // Test handlers
-public class StatTestCommandHandler : IRequestHandler<StatTestCommand>
-{
-    public Task Handle(StatTestCommand request, CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
-}
-
-public class StatTestQueryHandler : IRequestHandler<StatTestQuery, string>
-{
-    public Task<string> Handle(StatTestQuery request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult($"Handled: {request.Value}");
-    }
-}

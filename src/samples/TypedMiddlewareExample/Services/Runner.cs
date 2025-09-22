@@ -135,7 +135,7 @@ public class Runner
     }
 
     /// <summary>
-    /// Demonstrates inventory management using ICommand<T> (with validation).
+    /// Demonstrates inventory management using ICommand&lt;T&gt; (with validation).
     /// </summary>
     private async Task DemonstrateInventoryManagement()
     {
@@ -248,7 +248,7 @@ public class Runner
             Email = "john.doe@example.com",
             ContactMethod = "Email"
         };
-        var success = await _mediator.Send(validCommand);
+        await _mediator.Send(validCommand);
 
         _logger.LogDebug("<< Customer details updated successfully!");
         Console.WriteLine();

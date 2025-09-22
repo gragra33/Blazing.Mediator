@@ -34,7 +34,7 @@ public class MediatorTelemetrySendTests : IDisposable
         services.AddScoped<IRequestHandler<SendTestQuery, string>, SendTestQueryHandler>();
         services.AddScoped<IRequestHandler<SendTestCommandWithException>, SendTestCommandWithExceptionHandler>();
         services.AddScoped<IRequestHandler<SendTestQueryWithException, string>, SendTestQueryWithExceptionHandler>();
-        services.AddScoped<IRequestHandler<SendTestCommandWithSensitiveData>, SendTestCommandWithSensitiveDataHandler>();
+        services.AddScoped<IRequestHandler<SendTestCommandWithPassword>, SendTestCommandWithPasswordHandler>();
 
         _serviceProvider = services.BuildServiceProvider();
         _mediator = _serviceProvider.GetRequiredService<IMediator>();
@@ -239,14 +239,14 @@ public class MediatorTelemetrySendTests : IDisposable
     public async Task Send_SensitiveData_IsSanitized()
     {
         // Arrange
-        var command = new SendTestCommandWithSensitiveData { Password = "secret123", Token = "abc123" };
+        var command = new SendTestCommandWithPassword { Password = "secret123", Token = "abc123" };
         _recordedActivities?.Clear();
 
         // Act
         await _mediator.Send(command);
 
         // Assert
-        var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommandWithSensitiveData"));
+        var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommandWithPassword"));
         activity.ShouldNotBeNull();
 
         // Verify sensitive data is sanitized
@@ -354,15 +354,15 @@ public class MediatorTelemetrySendTests : IDisposable
         }
     }
 
-    public class SendTestCommandWithSensitiveData : IRequest
+    public class SendTestCommandWithPassword : IRequest
     {
         public string Password { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
     }
 
-    public class SendTestCommandWithSensitiveDataHandler : IRequestHandler<SendTestCommandWithSensitiveData>
+    public class SendTestCommandWithPasswordHandler : IRequestHandler<SendTestCommandWithPassword>
     {
-        public async Task Handle(SendTestCommandWithSensitiveData request, CancellationToken cancellationToken)
+        public async Task Handle(SendTestCommandWithPassword request, CancellationToken cancellationToken)
         {
             await Task.Delay(10, cancellationToken);
         }

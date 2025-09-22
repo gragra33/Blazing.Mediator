@@ -43,7 +43,6 @@ public partial class RecentTracesCard : ComponentBase
     private bool _appOnly;
     private bool _hidePackets;
     private int _timeWindowMinutes = 30;
-    private TraceDto? _selectedTrace;
     private bool _isLoading;
     private int _lastRefreshTrigger;
     private DisplayMode _displayMode = DisplayMode.Raw;

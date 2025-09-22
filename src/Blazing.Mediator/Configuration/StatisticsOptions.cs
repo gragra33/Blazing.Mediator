@@ -26,7 +26,7 @@ public sealed class StatisticsOptions
     /// This can add overhead, so consider disabling in high-performance scenarios.
     /// Default: false.
     /// </summary>
-    public bool EnableMiddlewareMetrics { get; set; } = false;
+    public bool EnableMiddlewareMetrics { get; set; }
 
     /// <summary>
     /// Gets or sets whether to enable advanced performance counters.
@@ -34,7 +34,7 @@ public sealed class StatisticsOptions
     /// throughput rates, and execution time percentiles. Has higher overhead.
     /// Default: false.
     /// </summary>
-    public bool EnablePerformanceCounters { get; set; } = false;
+    public bool EnablePerformanceCounters { get; set; }
 
     /// <summary>
     /// Gets or sets the period for which metrics data is retained in memory.
@@ -50,7 +50,7 @@ public sealed class StatisticsOptions
     /// frequency analysis, and performance insights. Requires additional memory.
     /// Default: false.
     /// </summary>
-    public bool EnableDetailedAnalysis { get; set; } = false;
+    public bool EnableDetailedAnalysis { get; set; }
 
     /// <summary>
     /// Gets or sets the maximum number of unique request types to track.

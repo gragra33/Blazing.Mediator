@@ -15,10 +15,13 @@ public partial class Telemetry : ComponentBase
     private TelemetryHealthDto? _telemetryHealth;
     private bool _telemetryHealthLoading = true;
     private Timer? _refreshTimer;
+    private bool _autoRefreshEnabled = true; // Auto-refresh enabled by default
+    private const int _refreshIntervalSeconds = 30;
+    private int _remainingSeconds = 30;
+    private Timer? _countdownTimer;
 
     // Strongly-typed telemetry data
     private LiveMetricsDto? _liveMetrics;
-    private RecentTracesDto? _recentTraces;
     private RecentActivitiesDto? _recentActivities;
 
     // Debug data for the debug component
@@ -33,15 +36,74 @@ public partial class Telemetry : ComponentBase
     {
         await RefreshTelemetryManual(); // Use manual refresh for initial load
 
-        // Set up auto-refresh every 30 seconds
-        _refreshTimer = new Timer(async void (_) =>
+        // Set up auto-refresh if enabled
+        StartAutoRefresh();
+    }
+
+    /// <summary>
+    /// Starts the auto-refresh timer if auto-refresh is enabled.
+    /// </summary>
+    private void StartAutoRefresh()
+    {
+        if (_autoRefreshEnabled && _refreshTimer == null)
         {
-            await InvokeAsync(async () =>
+            _remainingSeconds = _refreshIntervalSeconds;
+            
+            // Main refresh timer
+            _refreshTimer = new Timer(async void (_) =>
             {
-                await RefreshTelemetry(); // Auto-refresh excludes traces
-                StateHasChanged();
-            });
-        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+                await InvokeAsync(async () =>
+                {
+                    await RefreshTelemetry(); // Auto-refresh excludes traces
+                    _remainingSeconds = _refreshIntervalSeconds; // Reset countdown
+                    StateHasChanged();
+                });
+            }, null, TimeSpan.FromSeconds(_refreshIntervalSeconds), TimeSpan.FromSeconds(_refreshIntervalSeconds));
+            
+            // Countdown timer (updates every second)
+            _countdownTimer = new Timer(async void (_) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    if (_remainingSeconds > 0)
+                    {
+                        _remainingSeconds--;
+                        StateHasChanged();
+                    }
+                });
+            }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        }
+    }
+
+    /// <summary>
+    /// Stops the auto-refresh timer.
+    /// </summary>
+    private void StopAutoRefresh()
+    {
+        _refreshTimer?.Dispose();
+        _refreshTimer = null;
+        _countdownTimer?.Dispose();
+        _countdownTimer = null;
+    }
+
+    /// <summary>
+    /// Toggles the auto-refresh functionality on or off.
+    /// </summary>
+    private async Task ToggleAutoRefresh()
+    {
+        _autoRefreshEnabled = !_autoRefreshEnabled;
+        
+        if (_autoRefreshEnabled)
+        {
+            StartAutoRefresh();
+        }
+        else
+        {
+            StopAutoRefresh();
+        }
+        
+        StateHasChanged();
+        await Task.CompletedTask;
     }
 
     /// <summary>
@@ -54,8 +116,7 @@ public partial class Telemetry : ComponentBase
             RefreshApiHealth(),
             RefreshTelemetryHealth(),
             RefreshLiveMetrics(),
-            RefreshRecentActivities(),
-            RefreshRecentTraces()
+            RefreshRecentActivities()
         );
         // Update debug data
         UpdateDebugData();
@@ -70,12 +131,17 @@ public partial class Telemetry : ComponentBase
             RefreshApiHealth(),
             RefreshTelemetryHealth(),
             RefreshLiveMetrics(),
-            RefreshRecentActivities(),
-            RefreshRecentTraces()
+            RefreshRecentActivities()
         );
         // Update debug data
         UpdateDebugData();
         _recentTracesRefreshTrigger++; // Force RecentTracesCard to refresh
+        
+        // Reset countdown when manually refreshing
+        if (_autoRefreshEnabled)
+        {
+            _remainingSeconds = _refreshIntervalSeconds;
+        }
     }
 
     /// <summary>
@@ -128,27 +194,13 @@ public partial class Telemetry : ComponentBase
             var result = await TelemetryService.GetLiveMetricsAsync();
             _liveMetrics = result;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             _liveMetrics = null;
         }
     }
 
-    /// <summary>
-    /// Refreshes the recent traces data.
-    /// </summary>
-    private async Task RefreshRecentTraces()
-    {
-        try
-        {
-            var result = await TelemetryService.GetRecentTracesAsync();
-            _recentTraces = result;
-        }
-        catch (Exception ex)
-        {
-            _recentTraces = null;
-        }
-    }
+
 
     /// <summary>
     /// Refreshes the recent activities data.
@@ -160,7 +212,7 @@ public partial class Telemetry : ComponentBase
             var result = await TelemetryService.GetRecentActivitiesAsync();
             _recentActivities = result;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             _recentActivities = null;
         }
@@ -175,7 +227,7 @@ public partial class Telemetry : ComponentBase
         {
             ApiHealthy = _apiHealthy,
             LiveMetrics = _liveMetrics,
-            RecentTraces = _recentTraces,
+            RecentTraces = null, // RecentTracesCard manages its own data
             RecentActivities = _recentActivities,
             TelemetryHealth = _telemetryHealth
         };
@@ -196,6 +248,6 @@ public partial class Telemetry : ComponentBase
     /// </summary>
     public void Dispose()
     {
-        _refreshTimer?.Dispose();
+        StopAutoRefresh();
     }
 }

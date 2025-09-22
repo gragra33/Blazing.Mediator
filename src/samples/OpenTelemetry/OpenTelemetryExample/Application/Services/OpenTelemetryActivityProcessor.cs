@@ -475,7 +475,7 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
         return "Activity";
     }
 
-    public void Dispose()
+    public new void Dispose()
     {
         if (_disposed) return;
 

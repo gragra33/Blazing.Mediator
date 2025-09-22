@@ -5,16 +5,10 @@ namespace MiddlewareExample.Middleware;
 /// Base class for validation middleware that provides shared validation logic.
 /// </summary>
 /// <typeparam name="TRequest">The type of request to validate.</typeparam>
-public abstract class ValidationMiddlewareBase<TRequest>
+public abstract class ValidationMiddlewareBase<TRequest>(IServiceProvider serviceProvider, ILogger logger)
 {
-    protected readonly IServiceProvider ServiceProvider;
-    protected readonly ILogger Logger;
-
-    protected ValidationMiddlewareBase(IServiceProvider serviceProvider, ILogger logger)
-    {
-        ServiceProvider = serviceProvider;
-        Logger = logger;
-    }
+    protected readonly IServiceProvider ServiceProvider = serviceProvider;
+    protected readonly ILogger Logger = logger;
 
     public int Order => 100; // Execute after error handling but before business logic
 
@@ -72,14 +66,12 @@ public abstract class ValidationMiddlewareBase<TRequest>
 /// Validates requests before they reach the business logic handlers.
 /// </summary>
 /// <typeparam name="TRequest">The type of request to validate.</typeparam>
-public class ValidationMiddleware<TRequest> : ValidationMiddlewareBase<TRequest>, IRequestMiddleware<TRequest>
+public class ValidationMiddleware<TRequest>(
+    IServiceProvider serviceProvider,
+    ILogger<ValidationMiddleware<TRequest>> logger)
+    : ValidationMiddlewareBase<TRequest>(serviceProvider, logger), IRequestMiddleware<TRequest>
     where TRequest : IRequest
 {
-    public ValidationMiddleware(IServiceProvider serviceProvider, ILogger<ValidationMiddleware<TRequest>> logger)
-        : base(serviceProvider, logger)
-    {
-    }
-
     public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         await ValidateRequestAsync(request, cancellationToken);
@@ -95,14 +87,12 @@ public class ValidationMiddleware<TRequest> : ValidationMiddlewareBase<TRequest>
 /// </summary>
 /// <typeparam name="TRequest">The type of request to validate.</typeparam>
 /// <typeparam name="TResponse">The type of response returned.</typeparam>
-public class ValidationMiddleware<TRequest, TResponse> : ValidationMiddlewareBase<TRequest>, IRequestMiddleware<TRequest, TResponse>
+public class ValidationMiddleware<TRequest, TResponse>(
+    IServiceProvider serviceProvider,
+    ILogger<ValidationMiddleware<TRequest, TResponse>> logger)
+    : ValidationMiddlewareBase<TRequest>(serviceProvider, logger), IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public ValidationMiddleware(IServiceProvider serviceProvider, ILogger<ValidationMiddleware<TRequest, TResponse>> logger)
-        : base(serviceProvider, logger)
-    {
-    }
-
     public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         await ValidateRequestAsync(request, cancellationToken);

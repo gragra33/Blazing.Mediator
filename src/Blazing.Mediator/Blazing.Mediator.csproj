@@ -1,13 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Blazing.Mediator</PackageId>
-    <Version>1.7.0</Version>
+    <Version>1.8.0</Version>
     <Authors>Graeme Grant</Authors>
     <Product>Blazing.Mediator</Product>
     <Description>A high-performance, lightweight implementation of the Mediator pattern with built-in CQRS support for .NET applications. Features advanced middleware pipeline with ordered execution, conditional middleware, type-constrained middleware, automatic DI registration, and pipeline inspection. Supports native streaming capabilities with middleware support for IAsyncEnumerable data processing, JSON streaming, Server-Sent Events (SSE), and AI response streaming. Includes notification system with middleware pipeline support and real-time event processing.</Description>
@@ -17,14 +13,14 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
     <Copyright>Copyright (c) 2025 Graeme Grant</Copyright>
-    <PackageReleaseNotes>Version 1.7.0: Added type-constrained middleware support for Request and Notification pipelines. Enhanced middleware pipeline with generic type constraint validation for selective middleware execution based on interface types (ICommand, IQuery, INotification). New TypedMiddlewareExample sample project demonstrating type-constrained middleware with ICommand/IQuery distinction. Comprehensive test coverage for type constraints with edge case validation.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.8.0: Added type-constrained middleware support for Request and Notification pipelines. Enhanced middleware pipeline with generic type constraint validation for selective middleware execution based on interface types (ICommand, IQuery, INotification). New TypedMiddlewareExample sample project demonstrating type-constrained middleware with ICommand/IQuery distinction. Comprehensive test coverage for type constraints with edge case validation.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
-    <PackageReference Include="OpenTelemetry" Version="1.12.0" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,9 +30,6 @@
     <!-- Include LICENSE file -->
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
     
-    <!-- Include all documentation files -->
-    <None Include="..\..\docs\MEDIATOR_PATTERN_GUIDE.md" Pack="true" PackagePath="docs\" />
-    <None Include="..\..\docs\MEDIATOR_STREAMING_GUIDE.md" Pack="true" PackagePath="docs\" />
     
     <!-- Include contributing and other important files -->
     <None Include="..\..\CONTRIBUTING.md" Pack="true" PackagePath="\" />

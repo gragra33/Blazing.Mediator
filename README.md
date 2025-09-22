@@ -519,6 +519,10 @@ For streaming capabilities, real-time data processing, and advanced streaming pa
 
 For event-driven architecture, domain events, and notification patterns, see the [Notification System Guide](docs/NOTIFICATION_GUIDE.md).
 
+For OpenTelemetry integration, distributed tracing, metrics collection, and observability patterns, see the [OpenTelemetry Integration Guide](docs/OPEN_TELEMETRY_GUIDE.md).
+
+For debugging, logging configuration, performance monitoring, and troubleshooting guidance, see the [Mediator Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md).
+
 ### CQRS Implementation
 
 Blazing.Mediator naturally implements the **Command Query Responsibility Segregation (CQRS)** pattern:
@@ -696,12 +700,15 @@ The library includes nine comprehensive sample projects demonstrating different 
 
 ### V1.8.0
 
--   **OpenTelemetry Integration**: Full observability support with distributed tracing, metrics collection, and performance monitoring for enhanced debugging and monitoring capabilities
--   **Fluent Configuration API**: New modern fluent configuration approach using `builder.Services.AddMediator(config => { ... })` for improved type safety and enhanced functionality
--   **Legacy Method Deprecation**: Marked older `AddMediator()` and `AddMediatorFromLoadedAssemblies()` methods with boolean parameters as obsolete while maintaining backward compatibility during transition period
--   **OpenTelemetryExample Sample**: New comprehensive sample project demonstrating OpenTelemetry integration with web API server, Blazor client, and .NET Aspire support for modern cloud-native applications
--   **Enhanced Documentation**: Updated all documentation with new fluent configuration examples and comprehensive migration guidance from legacy registration methods
--   **Improved Developer Experience**: Streamlined configuration process with better IntelliSense support and compile-time validation through fluent API design
+-   **OpenTelemetry Integration**: Full observability support with distributed tracing, metrics collection, and performance monitoring for enhanced debugging and monitoring capabilities with seamless integration for modern cloud-native applications
+-   **Extensive Debug Logging**: Comprehensive debug logging infrastructure with configurable log levels, performance tracking, and detailed execution flow analysis for enhanced troubleshooting and monitoring
+-   **Enhanced Statistics**: Advanced statistics tracking with detailed performance metrics, execution counters, pipeline analysis, and comprehensive runtime insights for production monitoring and optimization
+-   **Fluent Configuration API**: New modern fluent configuration approach using `builder.Services.AddMediator(config => { ... })` for improved type safety, enhanced functionality, and streamlined developer experience with IntelliSense support
+-   **Legacy Method Deprecation**: Marked older `AddMediator()` and `AddMediatorFromLoadedAssemblies()` methods with boolean parameters as obsolete while maintaining backward compatibility during transition period with comprehensive migration guidance
+-   **OpenTelemetryExample Sample**: New comprehensive sample project demonstrating OpenTelemetry integration with web API server, Blazor client, and .NET Aspire support for modern cloud-native applications with real-time telemetry visualization
+-   **New Documentation Guides**: Added comprehensive [OpenTelemetry Integration Guide](docs/OPEN_TELEMETRY_GUIDE.md) and [Mediator Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md) with detailed implementation examples, best practices, and troubleshooting scenarios
+-   **Enhanced Documentation**: Updated all documentation with new fluent configuration examples, OpenTelemetry integration patterns, logging configuration, and comprehensive migration guidance from legacy registration methods
+-   **Improved Developer Experience**: Streamlined configuration process with better IntelliSense support, compile-time validation through fluent API design, enhanced debugging capabilities, and comprehensive observability features
 
 ### V1.7.0
 

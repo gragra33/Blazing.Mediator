@@ -48,8 +48,8 @@ var app = builder.Build();
 
 Blazing.Mediator uses two main activity sources:
 
-- `ActivitySources.BlazingMediatorSource` - For commands, queries, and notifications
-- `ActivitySources.BlazingMediatorStreamingSource` - For streaming operations
+-   `ActivitySources.BlazingMediatorSource` - For commands, queries, and notifications
+-   `ActivitySources.BlazingMediatorStreamingSource` - For streaming operations
 
 ## Features
 
@@ -57,33 +57,36 @@ Blazing.Mediator uses two main activity sources:
 
 When OpenTelemetry is enabled, Blazing.Mediator automatically creates activities and spans for:
 
-- **Command execution** - Traces command processing from start to finish
-- **Query execution** - Monitors query performance and results
-- **Notification handling** - Tracks notification distribution and processing
-- **Streaming operations** - Monitors streaming request lifecycle and data flow
-- **Pipeline behavior execution** - Traces middleware and behavior execution
+-   **Command execution** - Traces command processing from start to finish
+-   **Query execution** - Monitors query performance and results
+-   **Notification handling** - Tracks notification distribution and processing
+-   **Streaming operations** - Monitors streaming request lifecycle and data flow
+-   **Pipeline behavior execution** - Traces middleware and behavior execution
 
 ### Telemetry Context and Tags
 
 The mediator automatically adds contextual information to spans:
 
 #### Standard Tags
-- `mediator.request.type` - The type of the request being processed
-- `mediator.handler.type` - The type of the handler processing the request  
-- `mediator.operation.type` - The operation type (Request, Notification, Stream)
+
+-   `mediator.request.type` - The type of the request being processed
+-   `mediator.handler.type` - The type of the handler processing the request
+-   `mediator.operation.type` - The operation type (Request, Notification, Stream)
 
 #### Streaming-Specific Tags
-- `mediator.streaming.request.type` - Type of streaming request
-- `mediator.streaming.handler.type` - Type of streaming handler
-- `mediator.streaming.item.count` - Number of items processed in stream
-- `mediator.streaming.duration` - Total streaming duration
+
+-   `mediator.streaming.request.type` - Type of streaming request
+-   `mediator.streaming.handler.type` - Type of streaming handler
+-   `mediator.streaming.item.count` - Number of items processed in stream
+-   `mediator.streaming.duration` - Total streaming duration
 
 ### Error and Exception Tracking
 
 Exceptions during request processing are automatically recorded with:
-- Exception type and message
-- Stack trace information
-- Error status on the span
+
+-   Exception type and message
+-   Stack trace information
+-   Error status on the span
 
 ## Usage Examples
 
@@ -104,7 +107,7 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, User>
     }
 }
 
-// Query - automatically traced  
+// Query - automatically traced
 public record GetUserQuery(int Id) : IRequest<User>;
 
 public class GetUserHandler : IRequestHandler<GetUserQuery, User>
@@ -126,7 +129,7 @@ public record GetUsersStreamQuery(int PageSize) : IStreamRequest<User>;
 
 public class GetUsersStreamHandler : IStreamRequestHandler<GetUsersStreamQuery, User>
 {
-    public async IAsyncEnumerable<User> Handle(GetUsersStreamQuery request, 
+    public async IAsyncEnumerable<User> Handle(GetUsersStreamQuery request,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         // Streaming execution automatically traced
@@ -151,12 +154,12 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
     public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
     {
         using var activity = Activity.Current;
-        
+
         // Add custom tags for better observability
         activity?.SetTag("user.id", request.Id.ToString());
         activity?.SetTag("operation.category", "user-lookup");
         activity?.SetTag("cache.enabled", true);
-        
+
         // Check cache first
         var cachedUser = await GetUserFromCache(request.Id);
         if (cachedUser != null)
@@ -164,19 +167,19 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
             activity?.SetTag("cache.hit", true);
             return cachedUser;
         }
-        
+
         activity?.SetTag("cache.hit", false);
-        
+
         // Get from database
         var user = await GetUserFromDatabase(request.Id);
         activity?.SetTag("user.found", user != null);
-        
+
         if (user != null)
         {
             await CacheUser(user);
             activity?.SetTag("cache.stored", true);
         }
-        
+
         return user;
     }
 }
@@ -275,7 +278,7 @@ builder.Services.AddOpenTelemetry()
             .AddAspNetCoreInstrumentation(options =>
             {
                 options.RecordException = true;
-                options.Filter = (httpContext) => 
+                options.Filter = (httpContext) =>
                 {
                     // Filter out health check requests
                     return !httpContext.Request.Path.StartsWithSegments("/health");
@@ -303,20 +306,20 @@ public class PerformanceMonitoringBehavior<TRequest, TResponse> : IPipelineBehav
     {
         using var activity = Activity.Current;
         var stopwatch = Stopwatch.StartNew();
-        
+
         try
         {
             var response = await next();
-            
+
             stopwatch.Stop();
             activity?.SetTag("performance.duration_ms", stopwatch.ElapsedMilliseconds);
             activity?.SetTag("performance.status", "success");
-            
+
             if (stopwatch.ElapsedMilliseconds > 1000)
             {
                 activity?.SetTag("performance.slow_request", true);
             }
-            
+
             return response;
         }
         catch (Exception ex)
@@ -342,20 +345,20 @@ public class BusinessMetricsBehavior<TRequest, TResponse> : IPipelineBehavior<TR
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         using var activity = Activity.Current;
-        
+
         // Add business context
         activity?.SetTag("business.operation", typeof(TRequest).Name);
         activity?.SetTag("business.user_id", GetCurrentUserId());
         activity?.SetTag("business.tenant_id", GetCurrentTenantId());
-        
+
         var response = await next();
-        
+
         // Track business outcomes
         if (request is ICommand)
         {
             activity?.SetTag("business.command_executed", true);
         }
-        
+
         return response;
     }
 }
@@ -377,10 +380,10 @@ public class BusinessMetricsBehavior<TRequest, TResponse> : IPipelineBehavior<TR
 
 1. Verify OpenTelemetry is enabled: `options.EnableOpenTelemetry = true`
 2. Check activity source registration matches the constants:
-   ```csharp
-   .AddSource(ActivitySources.BlazingMediatorSource)
-   .AddSource(ActivitySources.BlazingMediatorStreamingSource)
-   ```
+    ```csharp
+    .AddSource(ActivitySources.BlazingMediatorSource)
+    .AddSource(ActivitySources.BlazingMediatorStreamingSource)
+    ```
 3. Ensure exporters are properly configured and accessible
 4. Check sampling configuration isn't filtering out traces
 
@@ -425,24 +428,24 @@ builder.Services.AddOpenTelemetry()
             .AddAspNetCoreInstrumentation(options =>
             {
                 options.RecordException = true;
-                options.Filter = httpContext => 
+                options.Filter = httpContext =>
                     !httpContext.Request.Path.StartsWithSegments("/health");
             })
-            
+
             // Add Blazing.Mediator sources
             .AddSource(ActivitySources.BlazingMediatorSource)
             .AddSource(ActivitySources.BlazingMediatorStreamingSource)
-            
+
             // Add other instrumentation
             .AddHttpClientInstrumentation()
             .AddEntityFrameworkCoreInstrumentation()
-            
+
             // Configure sampling
             .SetSampler(new TraceIdRatioBasedSampler(0.1))
-            
+
             // Add exporters based on environment
             .AddConsoleExporter(); // Development only
-            
+
         if (builder.Environment.IsProduction())
         {
             traceBuilder.AddOtlpExporter(options =>
@@ -464,65 +467,73 @@ This setup provides comprehensive observability for your Blazing.Mediator applic
 | `mediator.publish.subscriber.failure` | Counter | Number of failed subscriber notifications |
 
 #### Streaming Operations
-| Metric Name | Type | Description |
-|------------|------|-------------|
-| `mediator.stream.duration` | Histogram | Total duration of streaming operations |
-| `mediator.stream.success` | Counter | Number of successful streaming operations |
-| `mediator.stream.failure` | Counter | Number of failed streaming operations |
-| `mediator.stream.item_count` | Histogram | Number of items streamed |
-| `mediator.stream.time_to_first_byte` | Histogram | Time until first item is received |
-| `mediator.stream.packet.processing_time` | Histogram | Individual packet processing times |
-| `mediator.stream.inter_packet_time` | Histogram | Time between consecutive packets |
-| `mediator.stream.throughput` | Histogram | Items per second throughput |
+
+| Metric Name                              | Type      | Description                               |
+| ---------------------------------------- | --------- | ----------------------------------------- |
+| `mediator.stream.duration`               | Histogram | Total duration of streaming operations    |
+| `mediator.stream.success`                | Counter   | Number of successful streaming operations |
+| `mediator.stream.failure`                | Counter   | Number of failed streaming operations     |
+| `mediator.stream.item_count`             | Histogram | Number of items streamed                  |
+| `mediator.stream.time_to_first_byte`     | Histogram | Time until first item is received         |
+| `mediator.stream.packet.processing_time` | Histogram | Individual packet processing times        |
+| `mediator.stream.inter_packet_time`      | Histogram | Time between consecutive packets          |
+| `mediator.stream.throughput`             | Histogram | Items per second throughput               |
 
 #### Health and System Metrics
-| Metric Name | Type | Description |
-|------------|------|-------------|
-| `mediator.telemetry.health` | Counter | Health check counter for telemetry system |
-| `mediator.middleware.execution_count` | Counter | Number of middleware executions |
-| `mediator.handler.execution_count` | Counter | Number of handler executions |
+
+| Metric Name                           | Type    | Description                               |
+| ------------------------------------- | ------- | ----------------------------------------- |
+| `mediator.telemetry.health`           | Counter | Health check counter for telemetry system |
+| `mediator.middleware.execution_count` | Counter | Number of middleware executions           |
+| `mediator.handler.execution_count`    | Counter | Number of handler executions              |
 
 ### Tracing (Activities)
 
 #### Request/Response Tracing
-- **Request Processing** - Complete request/response lifecycle
-- **Middleware Execution** - Individual middleware execution spans
-- **Handler Execution** - Business logic execution spans
-- **Error Tracking** - Exception details and stack traces
-- **Validation Results** - Validation success/failure details
+
+-   **Request Processing** - Complete request/response lifecycle
+-   **Middleware Execution** - Individual middleware execution spans
+-   **Handler Execution** - Business logic execution spans
+-   **Error Tracking** - Exception details and stack traces
+-   **Validation Results** - Validation success/failure details
 
 #### Streaming Tracing
-- **Stream Initialization** - Stream setup and configuration
-- **Packet Processing** - Individual packet processing spans
-- **Stream Completion** - Final statistics and cleanup
-- **Performance Classification** - Throughput analysis and patterns
+
+-   **Stream Initialization** - Stream setup and configuration
+-   **Packet Processing** - Individual packet processing spans
+-   **Stream Completion** - Final statistics and cleanup
+-   **Performance Classification** - Throughput analysis and patterns
 
 ### Tags and Attributes
 
 #### Common Tags
-- `request_name` - The request type name (sanitized)
-- `request_type` - "query", "command", or "stream"
-- `response_type` - The response type name
-- `middleware.pipeline` - Complete middleware pipeline
-- `middleware.executed` - List of executed middleware
-- `handler.type` - The handler type name
+
+-   `request_name` - The request type name (sanitized)
+-   `request_type` - "query", "command", or "stream"
+-   `response_type` - The response type name
+-   `middleware.pipeline` - Complete middleware pipeline
+-   `middleware.executed` - List of executed middleware
+-   `handler.type` - The handler type name
 
 #### Error Tags
-- `exception.type` - Exception type (sanitized)
-- `exception.message` - Exception message (sanitized, filtered for sensitive data)
-- `validation.passed` - Validation result
+
+-   `exception.type` - Exception type (sanitized)
+-   `exception.message` - Exception message (sanitized, filtered for sensitive data)
+-   `validation.passed` - Validation result
 
 #### Performance Tags
-- `performance.duration_ms` - Operation duration in milliseconds
-- `performance.classification` - Performance classification (fast/normal/slow)
+
+-   `performance.duration_ms` - Operation duration in milliseconds
+-   `performance.classification` - Performance classification (fast/normal/slow)
 
 #### Streaming-Specific Tags
-- `stream.item_count` - Total items in the stream
-- `stream.time_to_first_byte_ms` - Time to first item in milliseconds
-- `stream.average_inter_packet_time_ms` - Average time between packets
-- `stream.throughput_items_per_second` - Throughput measurement
-- `stream.packet_size_bytes` - Packet size (when enabled)
-- `stream.performance_pattern` - Detected performance pattern
+
+-   `stream.item_count` - Total items in the stream
+-   `stream.time_to_first_byte_ms` - Time to first item in milliseconds
+-   `stream.average_inter_packet_time_ms` - Average time between packets
+-   `stream.throughput_items_per_second` - Throughput measurement
+-   `stream.packet_size_bytes` - Packet size (when enabled)
+-   `stream.performance_pattern` - Detected performance pattern
 
 ---
 

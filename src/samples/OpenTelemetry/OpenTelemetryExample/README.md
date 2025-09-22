@@ -1,6 +1,6 @@
 # OpenTelemetry Example - Blazing.Mediator Integration
 
-A comprehensive demonstration of OpenTelemetry integration with Blazing.Mediator, showcasing telemetry collection, metrics, tracing, and monitoring capabilities across a full-stack .NET 9 application.
+A comprehensive demonstration of OpenTelemetry integration with Blazing.Mediator, showcasing telemetry collection, metrics, tracing, real-time streaming, and monitoring capabilities across a full-stack .NET 9 application.
 
 ## Table of Contents
 
@@ -26,44 +26,58 @@ A comprehensive demonstration of OpenTelemetry integration with Blazing.Mediator
 
 ## Solution Architecture
 
-This sample consists of three main projects:
+This sample consists of four main projects:
 
 1. **OpenTelemetryExample** - ASP.NET Core Web API with comprehensive OpenTelemetry integration
-2. **OpenTelemetryExample.Client** - Blazor WebAssembly client application with client-side telemetry
-3. **OpenTelemetryExample.AppHost** - .NET Aspire App Host for orchestration and service discovery
+2. **OpenTelemetryExample.Client** - Blazor WebAssembly client application with real-time telemetry dashboard
+3. **OpenTelemetryExample.Shared** - Shared DTOs and models between API and client
+4. **OpenTelemetryExample.AppHost** - .NET Aspire App Host for orchestration and service discovery
 
 ## Features Demonstrated
 
 ### OpenTelemetry Integration
 
 - **Complete OpenTelemetry Integration** - Metrics, tracing, and health checks
-- **Mediator Telemetry** - Comprehensive telemetry for all mediator operations
+- **Blazing.Mediator Telemetry** - Comprehensive telemetry for all mediator operations including streaming
 - **Middleware Pipeline Telemetry** - Tracking middleware execution and performance
+- **Streaming Operations Telemetry** - Packet-level visibility for streaming operations
 - **Error and Exception Tracking** - Detailed error telemetry with sanitized data
 - **Health Checks** - Built-in health monitoring for telemetry systems
-- **Prometheus Metrics** - Metrics exported in Prometheus format
+- **Real-time Data Collection** - Live metrics and traces with custom processors and readers
 - **Console Exporters** - Real-time telemetry output during development
+- **OTLP Exporters** - Integration with Aspire dashboard and external systems
 - **Validation Telemetry** - FluentValidation integration with telemetry
 - **Performance Monitoring** - Request duration and throughput metrics
 
 ### CQRS with Blazing.Mediator
 
-- **Commands & Queries** - Complete CRUD operations
-- **Middleware Pipeline** - Validation, logging, and telemetry middleware
+- **Commands & Queries** - Complete CRUD operations with telemetry
+- **Streaming Operations** - Real-time data streaming through mediator
+- **Middleware Pipeline** - Validation, logging, performance, and telemetry middleware
 - **Notifications** - Event-driven architecture examples
-- **Error Handling** - Comprehensive exception management
+- **Error Handling** - Comprehensive exception management with telemetry
+
+### Real-time Streaming Features
+
+- **HTTP Streaming** - IAsyncEnumerable-based streaming endpoints
+- **SignalR Integration** - Real-time bidirectional streaming
+- **Server-Sent Events (SSE)** - Live data streaming to web clients
+- **Streaming Telemetry** - Comprehensive packet-level telemetry for streaming operations
+- **Multiple Streaming Patterns** - Various patterns for different use cases
 
 ### Modern .NET Stack
 
 - **.NET 9** - Latest framework features
-- **Blazor WebAssembly** - Modern client-side SPA
-- **Bootstrap 5** - Responsive UI framework
-- **.NET Aspire** - Cloud-native orchestration
+- **Blazor WebAssembly** - Modern client-side SPA with real-time dashboard
+- **Entity Framework Core** - In-memory database for demonstrations
+- **FluentValidation** - Validation with telemetry integration
+- **SignalR** - Real-time communication
+- **.NET Aspire** - Cloud-native orchestration with enhanced API documentation
 
 ## Prerequisites
 
 - .NET 9.0 or later
-- Docker (optional, for Prometheus/Grafana)
+- Docker (optional, for external monitoring tools)
 - Visual Studio 2022, Visual Studio Code, or JetBrains Rider (optional, for HTTP file testing)
 
 ## Running the Application
@@ -91,7 +105,8 @@ This is the easiest way to run the complete solution with proper service discove
 - Automatic service discovery between API and client
 - Centralized dashboard for monitoring both services
 - Automatic port assignment and routing
-- Integrated OpenTelemetry across the distributed application
+- Integrated OpenTelemetry collection and visualization
+- Enhanced API documentation through Swagger integration
 
 ### Option 2: Manual API Server + Blazor Client
 
@@ -120,7 +135,7 @@ Run both the API server and Blazor WebAssembly client manually for full-stack de
 **Benefits:**
 - Full user interface for testing all features
 - Real-time telemetry monitoring through the web client
-- Interactive demo scenarios
+- Interactive streaming demonstrations
 - Complete CRUD operations with visual feedback
 
 ### Option 3: API Server Only + Swagger UI
@@ -140,9 +155,11 @@ Perfect for API development and testing without the client overhead.
 **Available Endpoints:**
 - **API Base**: https://localhost:7000/api
 - **Health Checks**: https://localhost:7000/health
-- **Prometheus Metrics**: https://localhost:7000/metrics
 - **Telemetry Health**: https://localhost:7000/telemetry/health
-- **Telemetry Info**: https://localhost:7000/telemetry/metrics
+- **Live Metrics**: https://localhost:7000/telemetry/live-metrics
+- **Recent Traces**: https://localhost:7000/telemetry/traces
+- **Grouped Traces**: https://localhost:7000/telemetry/traces/grouped
+- **Streaming Health**: https://localhost:7000/api/streaming/health
 
 **Benefits:**
 - Interactive API documentation
@@ -182,24 +199,20 @@ Content-Type: application/json
   "email": "john@example.com"
 }
 
-### Update user (Command)
-PUT https://localhost:7000/api/users/1
-Content-Type: application/json
+### Stream users data
+GET https://localhost:7000/api/streaming/users?count=10&delayMs=500
 
-{
-  "userId": 1,
-  "name": "Jane Doe",
-  "email": "jane@example.com"
-}
+### Get live telemetry metrics
+GET https://localhost:7000/telemetry/live-metrics
 
-### Delete user (Command)
-DELETE https://localhost:7000/api/users/1
+### Get recent traces
+GET https://localhost:7000/telemetry/traces?maxRecords=20
 
 ### Simulate validation error
 POST https://localhost:7000/api/users/simulate-validation-error
 
-### Simulate general error
-POST https://localhost:7000/api/users/simulate-error
+### Test notifications
+POST https://localhost:7000/testing/notifications
 ```
 
 **Benefits:**
@@ -225,7 +238,7 @@ If you're using VS Code with the provided launch configurations:
 Before exploring the application, review the complete API documentation:
 
 - **Swagger UI** (`https://localhost:7000/swagger`) - Interactive documentation where you can:
-  - Browse all available endpoints
+  - Browse all available endpoints including streaming endpoints
   - Test API operations directly from the browser
   - View request/response schemas
   - Understand authentication requirements
@@ -239,11 +252,19 @@ Navigate to the Blazor client application and explore:
    - Create, read, update, delete operations
    - Form validation with telemetry
    - Error handling with trace correlation
-3. **Telemetry Dashboard** - Real-time monitoring showing:
+3. **Streaming** - Real-time streaming demonstrations:
+   - HTTP streaming with IAsyncEnumerable
+   - SignalR real-time communication
+   - Server-Sent Events (SSE) streaming
+   - Interactive streaming controls
+4. **Telemetry Dashboard** - Real-time monitoring showing:
+   - Live metrics and performance data
+   - Recent traces with filtering options
+   - Grouped traces for better visualization
    - API health status
-   - Telemetry configuration
+   - Telemetry configuration details
    - Interactive testing scenarios
-4. **Demo** - Interactive telemetry generation:
+5. **Demo** - Interactive telemetry generation:
    - Successful operations
    - Error scenarios for testing
    - Performance load testing
@@ -257,6 +278,8 @@ Navigate to the Blazor client application and explore:
 | `mediator.send.duration`               | Histogram | Duration of mediator send operations          |
 | `mediator.send.success`                | Counter   | Number of successful send operations          |
 | `mediator.send.failure`                | Counter   | Number of failed send operations              |
+| `mediator.sendstream.duration`         | Histogram | Duration of streaming operations              |
+| `mediator.sendstream.packet.duration`  | Histogram | Duration of individual packet processing      |
 | `mediator.publish.duration`            | Histogram | Duration of notification publish operations   |
 | `mediator.publish.success`             | Counter   | Number of successful publish operations       |
 | `mediator.publish.failure`             | Counter   | Number of failed publish operations           |
@@ -270,6 +293,8 @@ Navigate to the Blazor client application and explore:
 - **Request Processing** - Complete request/response lifecycle
 - **Middleware Execution** - Individual middleware execution spans
 - **Handler Execution** - Business logic execution spans
+- **Streaming Operations** - Individual packet-level spans for streaming
+- **SignalR Activities** - Real-time communication tracing
 - **Error Tracking** - Exception details and stack traces
 - **Validation Results** - Validation success/failure details
 
@@ -278,11 +303,14 @@ Navigate to the Blazor client application and explore:
 All telemetry includes relevant tags:
 
 - `request_name` - The request type name (sanitized)
-- `request_type` - "query" or "command"
+- `request_type` - "query", "command", or "stream"
 - `response_type` - The response type name (for queries)
+- `stream.packet.number` - Packet number for streaming operations
+- `stream.batch.id` - Batch identifier for streaming operations
 - `middleware.executed` - List of executed middleware
 - `middleware.pipeline` - Complete middleware pipeline
 - `handler.type` - The handler type name
+- `signalr.connection_id` - SignalR connection identifier
 - `exception.type` - Exception type (sanitized)
 - `exception.message` - Exception message (sanitized)
 - `validation.passed` - Validation result
@@ -302,39 +330,25 @@ Activity.SpanId:             8000000000000002
 Activity.TraceFlags:         Recorded
 Activity.ParentSpanId:       8000000000000001
 Activity.ActivitySourceName: Blazing.Mediator
-Activity.DisplayName:        Mediator.Send:GetUserQuery
+Activity.DisplayName:        Mediator.SendStream:StreamUsersQuery
 Activity.Kind:               Internal
 Activity.StartTime:          2024-01-15T10:30:00.0000000Z
 Activity.Duration:           00:00:00.0451234
 Activity.Tags:
-    request_name: GetUserQuery
-    request_type: query
-    handler.type: GetUserHandler
+    request_name: StreamUsersQuery
+    request_type: stream
+    handler.type: StreamUsersHandler
+    stream.packet.count: 10
     duration_ms: 45.1234
-Resource associated with Activity:
-    service.name: OpenTelemetryExample
-    service.version: 1.0.0
 ```
 
-### Prometheus Metrics
+### Real-time Data Collection
 
-Access metrics at `https://localhost:7000/metrics`:
+The application includes custom OpenTelemetry processors and readers:
 
-```prometheus
-# HELP mediator_send_duration Duration of mediator send operations
-# TYPE mediator_send_duration histogram
-mediator_send_duration_bucket{request_name="GetUserQuery",request_type="query",le="0.1"} 5
-mediator_send_duration_bucket{request_name="GetUserQuery",request_type="query",le="0.25"} 8
-mediator_send_duration_bucket{request_name="GetUserQuery",request_type="query",le="0.5"} 12
-
-# HELP mediator_send_success Number of successful mediator send operations
-# TYPE mediator_send_success counter
-mediator_send_success{request_name="GetUserQuery",request_type="query"} 15
-
-# HELP mediator_send_failure Number of failed mediator send operations
-# TYPE mediator_send_failure counter
-mediator_send_failure{request_name="GetUserQuery",request_type="query",exception_type="NotFoundException"} 2
-```
+- **OpenTelemetryActivityProcessor** - Captures and stores trace data in memory
+- **OpenTelemetryMetricsReader** - Collects and stores metrics data
+- **Live Dashboard Integration** - Real-time updates through API endpoints
 
 ### Health Checks
 
@@ -360,6 +374,21 @@ Health check endpoint at `https://localhost:7000/health`:
 }
 ```
 
+### Telemetry Health Check
+
+Specific telemetry health at `https://localhost:7000/telemetry/health`:
+
+```json
+{
+    "isHealthy": true,
+    "isEnabled": true,
+    "canRecordMetrics": true,
+    "meterName": "Blazing.Mediator",
+    "activitySourceName": "Blazing.Mediator",
+    "message": "Telemetry is enabled and working correctly"
+}
+```
+
 ## Configuration
 
 ### OpenTelemetry Configuration
@@ -367,58 +396,79 @@ Health check endpoint at `https://localhost:7000/health`:
 The sample demonstrates comprehensive OpenTelemetry setup:
 
 ```csharp
-builder.Services.AddOpenTelemetry()
+services.AddOpenTelemetry()
     .WithMetrics(metrics =>
     {
         metrics
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
-            .AddMeter("Blazing.Mediator") // ? Blazing.Mediator metrics
+            .AddMeter("Blazing.Mediator") // Blazing.Mediator metrics
             .AddMeter("OpenTelemetryExample")
-            .AddConsoleExporter()
-            .AddPrometheusExporter();
+            .AddMeter("OpenTelemetryExample.Controller")
+            .AddMeter("OpenTelemetryExample.Handler")
+            .AddMeter("OpenTelemetryExample.Mediator")
+            .AddReader(serviceProvider.GetRequiredService<OpenTelemetryMetricsReader>())
+            .AddConsoleExporter() // Development only
+            .AddOtlpExporter(); // Aspire integration
     })
     .WithTracing(tracing =>
     {
         tracing
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
-            .AddSource("Blazing.Mediator") // ? Blazing.Mediator tracing
+            .AddSource("Blazing.Mediator") // Blazing.Mediator tracing
             .AddSource("OpenTelemetryExample")
-            .AddConsoleExporter();
+            .AddSource("OpenTelemetryExample.Controller")
+            .AddSource("OpenTelemetryExample.Handler")
+            .AddSource("OpenTelemetryExample.Mediator")
+            .AddProcessor(serviceProvider.GetRequiredService<OpenTelemetryActivityProcessor>())
+            .AddConsoleExporter() // Development only
+            .AddOtlpExporter(); // Aspire integration
     });
 ```
 
 ### Mediator Telemetry Configuration
 
 ```csharp
-// Enable telemetry with default settings
-builder.Services.AddMediatorTelemetry();
-
-// Or configure with custom options
-builder.Services.ConfigureMediatorTelemetry(options =>
+// Enable telemetry with environment-specific settings
+if (environment.IsDevelopment())
 {
-    options.Enabled = true;
-    options.CaptureMiddlewareDetails = true;
-    options.CaptureHandlerDetails = true;
-    options.CaptureExceptionDetails = true;
-    options.MaxExceptionMessageLength = 200;
-    options.SensitiveDataPatterns.Add("custom_sensitive_pattern");
-});
+    services.AddMediatorTelemetryWithFullVisibility();
+}
+else
+{
+    services.AddMediatorTelemetryForProduction();
+}
 
-// Disable telemetry
-builder.Services.DisableMediatorTelemetry();
+// Configure streaming telemetry
+services.AddMediatorStreamingTelemetry(
+    enablePacketLevelTelemetry: true,
+    batchSize: environment.IsDevelopment() ? 1 : 10
+);
+
+// Add comprehensive middleware pipeline
+services.AddMediator(config =>
+{
+    config.AddMiddleware(typeof(TracingMiddleware<,>));
+    config.AddMiddleware(typeof(StreamingTracingMiddleware<,>));
+    config.AddMiddleware(typeof(StreamingPerformanceMiddleware<,>));
+    config.AddMiddleware(typeof(ErrorHandlingMiddleware<,>));
+    config.AddMiddleware(typeof(ValidationMiddleware<,>));
+    config.AddMiddleware(typeof(LoggingMiddleware<,>));
+    config.AddMiddleware(typeof(PerformanceMiddleware<,>));
+}, typeof(Program).Assembly);
 ```
 
 ### Aspire App Host Configuration
 
-The `OpenTelemetryExample.AppHost` project uses the latest .NET Aspire SDK to orchestrate the solution:
+The `OpenTelemetryExample.AppHost` project uses .NET Aspire with enhanced API documentation:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var apiService = builder.AddProject<Projects.OpenTelemetryExample>("OpenTelemetry-api-server")
-    .WithExternalHttpEndpoints();
+IResourceBuilder<ProjectResource> apiService = builder
+    .AddProject<Projects.OpenTelemetryExample>("OpenTelemetry-api-server")
+    .WithSwagger(); // Enhanced API documentation
 
 builder.AddProject<Projects.OpenTelemetryExample_Client>("OpenTelemetry-blazor-client")
     .WithReference(apiService)
@@ -439,11 +489,13 @@ Set these for advanced scenarios:
 
 ### Performance Testing
 
-The demo page includes scenarios for:
+The demo page and HTTP file include scenarios for:
 
 1. **Successful Operations** - Normal CRUD workflows
-2. **Error Scenarios** - Validation and exception testing
-3. **Load Testing** - Concurrent operation patterns
+2. **Streaming Operations** - Real-time data streaming tests
+3. **Error Scenarios** - Validation and exception testing
+4. **Load Testing** - Concurrent operation patterns
+5. **SignalR Testing** - Real-time communication testing
 
 ### Telemetry Validation
 
@@ -453,6 +505,8 @@ Test telemetry collection by:
 2. Using the HTTP file for automated testing
 3. Running the interactive demo scenarios
 4. Monitoring the console output for telemetry data
+5. Viewing real-time data in the telemetry dashboard
+6. Testing streaming operations with packet-level visibility
 
 ## Security and Privacy
 
@@ -521,24 +575,37 @@ public class CustomTracingHandler : IRequestHandler<GetUserQuery, UserDto>
 }
 ```
 
-## Docker and Production
+### Streaming Telemetry
 
-### Prometheus Configuration
+The implementation includes comprehensive streaming telemetry:
 
-```yaml
-# prometheus.yml
-global:
-    scrape_interval: 15s
-
-scrape_configs:
-    - job_name: "opentelemetry-example"
-      static_configs:
-          - targets: ["localhost:7000"]
-      metrics_path: "/metrics"
-      scrape_interval: 5s
+```csharp
+public class StreamingTracingMiddleware<TRequest, TResponse> : IStreamRequestMiddleware<TRequest, TResponse>
+    where TRequest : IStreamRequest<TResponse>
+{
+    public async IAsyncEnumerable<TResponse> HandleAsync(
+        TRequest request, 
+        StreamRequestHandlerDelegate<TResponse> next, 
+        CancellationToken cancellationToken)
+    {
+        using var activity = ActivitySource.StartActivity("Mediator.SendStream");
+        var packetNumber = 0;
+        
+        await foreach (var response in next())
+        {
+            packetNumber++;
+            activity?.AddEvent(new ActivityEvent($"stream.packet.{packetNumber}"));
+            yield return response;
+        }
+        
+        activity?.SetTag("stream.total_packets", packetNumber);
+    }
+}
 ```
 
-### Docker Compose
+## Docker and Production
+
+### Docker Compose with External Monitoring
 
 ```yaml
 version: "3.8"
@@ -547,6 +614,14 @@ services:
         build: .
         ports:
             - "7000:8080"
+        environment:
+            - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:14268
+
+    jaeger:
+        image: jaegertracing/all-in-one:latest
+        ports:
+            - "16686:16686"
+            - "14268:14268"
 
     prometheus:
         image: prom/prometheus
@@ -570,18 +645,22 @@ services:
 1. **Port Conflicts**: Ensure ports 5000-5001 and 7000-7001 are available
 2. **HTTPS Certificates**: Run `dotnet dev-certs https --trust` if needed
 3. **Build Errors**: Clean and rebuild with `dotnet clean && dotnet build`
+4. **SignalR Connection Issues**: Check CORS configuration and firewall settings
 
 ### Telemetry Not Appearing
 
 1. Check the console output for telemetry exports
 2. Verify OpenTelemetry health at `/telemetry/health`
-3. Ensure the service is properly configured in `appsettings.json`
+3. Ensure the service is properly configured
+4. Check the live metrics endpoint `/telemetry/live-metrics`
+5. Verify Blazing.Mediator telemetry is enabled
 
 ### API Connectivity Issues
 
 1. Verify the API server is running and accessible
 2. Check the client configuration for correct API base URL
 3. Test API endpoints directly via Swagger UI or HTTP file
+4. Check streaming endpoints at `/api/streaming/health`
 
 ## Learn More
 
@@ -589,9 +668,9 @@ services:
 - [OpenTelemetry .NET Documentation](https://opentelemetry.io/docs/languages/net/)
 - [.NET Aspire Documentation](https://learn.microsoft.com/en-us/dotnet/aspire/)
 - [Blazor WebAssembly Guide](https://learn.microsoft.com/en-us/aspnet/core/blazor/)
-- [Prometheus Metrics](https://prometheus.io/docs/concepts/metric_types/)
+- [SignalR Documentation](https://docs.microsoft.com/en-us/aspnet/core/signalr/)
 - [ASP.NET Core Health Checks](https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks)
 
 ---
 
-This example showcases the power of combining modern .NET technologies with comprehensive observability through OpenTelemetry and CQRS patterns with Blazing.Mediator. The solution demonstrates production-ready telemetry integration with multiple deployment and testing options to suit different development workflows.
+This example showcases the power of combining modern .NET technologies with comprehensive observability through OpenTelemetry and advanced CQRS patterns with Blazing.Mediator. The solution demonstrates production-ready telemetry integration with real-time streaming capabilities, multiple deployment options, and comprehensive testing scenarios to suit different development workflows.

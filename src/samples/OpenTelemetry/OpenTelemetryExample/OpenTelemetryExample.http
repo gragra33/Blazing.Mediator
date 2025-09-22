@@ -5,28 +5,42 @@
 @baseUrl = https://localhost:7000
 # @baseUrl = http://localhost:5000
 
-### Health Check
+###############################################################################
+### Health and Status Endpoints
+###############################################################################
+
+### Application Health Check
 GET {{baseUrl}}/health
 
 ### Telemetry Health Check
 GET {{baseUrl}}/telemetry/health
 
+### Telemetry Test Endpoint
+GET {{baseUrl}}/telemetry/test
+
 ### Telemetry Metrics Info
 GET {{baseUrl}}/telemetry/metrics
 
-### Get all users
+### Debug - Mediator Information
+GET {{baseUrl}}/debug/mediator
+
+###############################################################################
+### User Management Endpoints (CRUD Operations)
+###############################################################################
+
+### Get all users (Query)
 GET {{baseUrl}}/api/users
 
-### Get all users with filters
+### Get all users with pagination and filters
 GET {{baseUrl}}/api/users?page=1&pageSize=5&includeInactive=true&searchTerm=john
 
-### Get specific user
+### Get specific user (Query)
 GET {{baseUrl}}/api/users/1
 
 ### Get non-existent user (should return 404)
 GET {{baseUrl}}/api/users/999
 
-### Create new user
+### Create new user (Command)
 POST {{baseUrl}}/api/users
 Content-Type: application/json
 
@@ -44,7 +58,7 @@ Content-Type: application/json
   "email": "invalid-email"
 }
 
-### Update user
+### Update user (Command)
 PUT {{baseUrl}}/api/users/1
 Content-Type: application/json
 
@@ -64,7 +78,7 @@ Content-Type: application/json
   "email": "nonexistent@example.com"
 }
 
-### Delete user
+### Delete user (Command)
 DELETE {{baseUrl}}/api/users/2
 
 ### Delete non-existent user (should return 404)
@@ -76,17 +90,68 @@ POST {{baseUrl}}/api/users/simulate-error
 ### Simulate validation error for telemetry testing
 POST {{baseUrl}}/api/users/simulate-validation-error
 
+###############################################################################
+### Streaming Endpoints (Real-time Data)
+###############################################################################
+
+### Stream users with basic streaming response
+GET {{baseUrl}}/api/streaming/users?count=10&delayMs=500&searchTerm=&includeInactive=false
+
+### Stream users with large dataset
+GET {{baseUrl}}/api/streaming/users?count=100&delayMs=100
+
+### Stream generic data for testing
+GET {{baseUrl}}/api/streaming/stream-data?count=20&delayMs=200
+
+### Stream users with metadata
+GET {{baseUrl}}/api/streaming/users/metadata?count=15&delayMs=300&searchTerm=test
+
+### Server-Sent Events (SSE) streaming
+GET {{baseUrl}}/api/streaming/users/sse?count=10&delayMs=1000
+
+### Streaming health check
+GET {{baseUrl}}/api/streaming/health
+
+###############################################################################
+### Telemetry Data Endpoints (Live Monitoring)
+###############################################################################
+
+### Get live telemetry metrics
+GET {{baseUrl}}/telemetry/live-metrics
+
+### Get recent traces (default parameters)
+GET {{baseUrl}}/telemetry/traces
+
+### Get recent traces with filtering
+GET {{baseUrl}}/telemetry/traces?maxRecords=20&blazingMediatorOnly=true&timeWindowMinutes=60
+
+### Get recent traces with pagination
+GET {{baseUrl}}/telemetry/traces?page=1&pageSize=10&exampleAppOnly=true
+
+### Get grouped traces (hierarchical view)
+GET {{baseUrl}}/telemetry/traces/grouped
+
+### Get grouped traces with filtering
+GET {{baseUrl}}/telemetry/traces/grouped?maxRecords=15&hidePackets=true&timeWindowMinutes=30
+
+### Get grouped traces with pagination
+GET {{baseUrl}}/telemetry/traces/grouped?page=1&pageSize=5&blazingMediatorOnly=false
+
+### Get recent activities
+GET {{baseUrl}}/telemetry/activities
+
+###############################################################################
+### Testing Endpoints (Telemetry Generation)
+###############################################################################
+
 ### Test notification publishing
-POST {{baseUrl}}/notifications/test
+POST {{baseUrl}}/testing/notifications
 
 ### Test middleware error handling
-POST {{baseUrl}}/middleware/test-error
+POST {{baseUrl}}/testing/middleware/error
 
 ### Test middleware validation
-POST {{baseUrl}}/middleware/test-validation
-
-### Prometheus metrics endpoint (if configured)
-# GET {{baseUrl}}/metrics
+POST {{baseUrl}}/testing/middleware/validation
 
 ###############################################################################
 ### Advanced Testing Scenarios for OpenTelemetry
@@ -176,6 +241,55 @@ GET {{baseUrl}}/api/users?searchTerm=load
 GET {{baseUrl}}/api/users?includeInactive=false
 
 ###############################################################################
+### Streaming Load Testing Scenarios
+###############################################################################
+
+### Small stream test
+GET {{baseUrl}}/api/streaming/users?count=5&delayMs=1000
+
+###
+
+### Medium stream test
+GET {{baseUrl}}/api/streaming/users?count=25&delayMs=200
+
+###
+
+### Large stream test
+GET {{baseUrl}}/api/streaming/users?count=100&delayMs=50
+
+###
+
+### SSE load test
+GET {{baseUrl}}/api/streaming/users/sse?count=50&delayMs=100
+
+###
+
+### Stream with search filter
+GET {{baseUrl}}/api/streaming/users?count=30&delayMs=150&searchTerm=test
+
+###############################################################################
+### Telemetry Monitoring Scenarios
+###############################################################################
+
+### Monitor telemetry during operations
+GET {{baseUrl}}/telemetry/live-metrics
+
+###
+
+### Check traces after operations
+GET {{baseUrl}}/telemetry/traces?maxRecords=50&timeWindowMinutes=5
+
+###
+
+### View grouped traces
+GET {{baseUrl}}/telemetry/traces/grouped?maxRecords=25&timeWindowMinutes=10
+
+###
+
+### Monitor streaming telemetry
+GET {{baseUrl}}/telemetry/traces/grouped?blazingMediatorOnly=true&hidePackets=false
+
+###############################################################################
 ### Error Scenarios for OpenTelemetry Error Tracking
 ###############################################################################
 
@@ -208,6 +322,14 @@ Content-Type: application/json
   "name": "Mismatch Test",
   "email": "mismatch@example.com"
 }
+
+### Invalid streaming parameters
+GET {{baseUrl}}/api/streaming/users?count=-1&delayMs=invalid
+
+###
+
+### Test error in streaming
+GET {{baseUrl}}/api/streaming/users?count=1000000&delayMs=0
 
 ###############################################################################
 ### Performance Testing for OpenTelemetry Metrics
@@ -259,3 +381,92 @@ Content-Type: application/json
 ###
 
 DELETE {{baseUrl}}/api/users/6
+
+###############################################################################
+### Real-time Monitoring Workflow
+###############################################################################
+
+### Step 1: Start monitoring
+GET {{baseUrl}}/telemetry/health
+
+###
+
+### Step 2: Generate some activity
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Monitor Test",
+  "email": "monitor@test.com"
+}
+
+###
+
+### Step 3: Start a stream
+GET {{baseUrl}}/api/streaming/users?count=10&delayMs=500
+
+###
+
+### Step 4: Check live metrics
+GET {{baseUrl}}/telemetry/live-metrics
+
+###
+
+### Step 5: View recent traces
+GET {{baseUrl}}/telemetry/traces?maxRecords=20&timeWindowMinutes=5
+
+###
+
+### Step 6: View grouped traces for analysis
+GET {{baseUrl}}/telemetry/traces/grouped?maxRecords=10&timeWindowMinutes=5
+
+###
+
+### Step 7: Test error scenarios
+POST {{baseUrl}}/testing/middleware/error
+
+###
+
+### Step 8: Check traces after errors
+GET {{baseUrl}}/telemetry/traces?maxRecords=10&timeWindowMinutes=2
+
+###############################################################################
+### SignalR Hub Testing (WebSocket Endpoints)
+###############################################################################
+### Note: These are WebSocket connections - use SignalR client tools or browser console
+### Example JavaScript for browser console:
+
+# const connection = new signalR.HubConnectionBuilder()
+#     .withUrl("https://localhost:7000/streaming-hub")
+#     .build();
+# 
+# connection.start().then(function () {
+#     console.log("Connected to streaming hub");
+#     
+#     // Start streaming with parameters
+#     connection.invoke("StartStreaming", {
+#         count: 10,
+#         delayMs: 1000,
+#         batchSize: 1
+#     });
+#     
+#     // Listen for stream items
+#     connection.on("ReceiveStreamItem", function (data) {
+#         console.log("Received:", data);
+#     });
+#     
+#     // Listen for completion
+#     connection.on("StreamCompleted", function (data) {
+#         console.log("Stream completed:", data);
+#     });
+# });
+
+###############################################################################
+### Documentation and Discovery
+###############################################################################
+
+### OpenAPI/Swagger JSON
+GET {{baseUrl}}/swagger/v1/swagger.json
+
+### Swagger UI (open in browser)
+# GET {{baseUrl}}/swagger/index.html

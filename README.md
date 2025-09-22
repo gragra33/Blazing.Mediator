@@ -22,30 +22,9 @@ A high-performance, feature-rich implementation of the Mediator pattern for .NET
 
 -   **Fluent Configuration**: Modern, type-safe configuration API with comprehensive validation
 -   **Zero Configuration**: Works out of the box with sensible defaults and automatic setup
+-   **Extensive Debug Logging**: Powerful debug logging with configurable log levels, performance tracking, and detailed execution flow analysis
 -   **Testing Friendly**: Easy to mock and test with comprehensive test coverage
 -   **Type Safety**: Compile-time type checking with generic constraints and validation
-
-## 📚 Documentation
-
-### **🏁 Getting Started**
-
--   **[Installation](docs/getting-started/installation.md)** - Package installation and setup
--   **[Quick Start](docs/getting-started/quick-start.md)** - Get up and running in minutes
--   **[Basic Usage](docs/getting-started/basic-usage.md)** - Fundamental concepts and examples
--   **[Configuration](docs/getting-started/configuration.md)** - Complete configuration guide
-
-### **🧠 Core Concepts**
-
--   **[Mediator Pattern](docs/core-concepts/mediator-pattern.md)** - Understanding the mediator pattern
--   **[CQRS Implementation](docs/core-concepts/cqrs.md)** - Command Query Responsibility Segregation
--   **[Architecture Guide](docs/core-concepts/README.md)** - Architectural principles and best practices
-
-### **🔧 Advanced Topics**
-
--   **[Middleware System](docs/features/middleware/README.md)** - Custom middleware development and patterns
--   **[Features Overview](docs/features/README.md)** - Advanced features and capabilities
--   **[Sample Projects](docs/samples/README.md)** - Complete working examples
--   **[API Reference](docs/api-reference/README.md)** - Complete API documentation
 
 ## ⚡ Quick Start
 
@@ -66,10 +45,11 @@ using Blazing.Mediator;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Blazing.Mediator with automatic handler discovery
-builder.Services.AddBlazingMediator(options =>
+// With auto-discovery for middleware using fluent configuration
+builder.Services.AddMediator(config =>
 {
-    options.ServiceLifetime = ServiceLifetime.Scoped;
+    config.WithMiddlewareDiscovery()
+          .AddAssembly(typeof(Program).Assembly);
 });
 
 var app = builder.Build();
@@ -294,17 +274,27 @@ public class HealthController : ControllerBase
 ## 📈 Performance Benchmarks
 
 ```
-BenchmarkDotNet=v0.13.10, OS=Windows 11
-Intel Core i7-12700K, 1 CPU, 20 logical and 12 physical cores
-.NET 9.0.0
+BenchmarkDotNet=v0.15.2, OS=Windows 11
+AMD Ryzen 7 3700X, 1 CPU, 16 logical and 8 physical cores
+.NET 9.0.9
 
-| Method              | Mean      | Error    | StdDev   | Allocated |
-|---------------------|-----------|----------|----------|-----------|
-| Simple Request      | 89.32 ns  | 1.234 ns | 0.987 ns | 24 B      |
-| Request with Cache  | 156.77 ns | 2.891 ns | 1.455 ns | 48 B      |
-| Notification (3h)   | 267.44 ns | 4.123 ns | 2.876 ns | 96 B      |
-| Streaming (1000)    | 2.847 μs  | 0.089 μs | 0.067 μs | 1.2 KB    |
+| Method                    | Mean       | Error     | StdDev    | Allocated |
+|---------------------------|------------|-----------|-----------|-----------|
+| [-] Send Query            | 15.68 ms   | 0.264 ms  | 0.221 ms  | 4.93 KB   |
+| [+] Send Query            | 15.77 ms   | 0.096 ms  | 0.090 ms  | 4.93 KB   |
+| [-] Send Command          | 15.46 ms   | 0.229 ms  | 0.214 ms  | 4.30 KB   |
+| [+] Send Command          | 15.79 ms   | 0.058 ms  | 0.054 ms  | 4.30 KB   |
+| [-] Publish Notification  | 15.77 ms   | 0.145 ms  | 0.135 ms  | 4.12 KB   |
+| [+] Publish Notification  | 15.76 ms   | 0.152 ms  | 0.142 ms  | 4.12 KB   |
+| [-] Send Stream           | 157.76 ms  | 0.922 ms  | 0.862 ms  | 13.68 KB  |
+| [+] Send Stream           | 157.72 ms  | 0.584 ms  | 0.546 ms  | 13.68 KB  |
+| [-] Bulk Commands (1000)  | 1,581.72 ms| 3.402 ms  | 3.016 ms  | 414.06 KB |
+| [+] Bulk Commands (1000)  | 1,581.80 ms| 3.610 ms  | 3.377 ms  | 414.06 KB |
+| [-] Bulk Notifications    | 1,570.96 ms| 23.314 ms | 21.808 ms | 403.52 KB |
+| [+] Bulk Notifications    | 1,581.93 ms| 4.456 ms  | 4.168 ms  | 403.52 KB |
 ```
+
+**Legend:** `[-]` = Without OpenTelemetry | `[+]` = With OpenTelemetry enabled
 
 ## 🤝 Contributing
 

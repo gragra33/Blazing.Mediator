@@ -4,7 +4,7 @@ using BenchmarkDotNet.Jobs;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 
-namespace Blazing.Mediator.Benchmarks.OpenTelemetry;
+namespace Blazing.Mediator.Benchmarks;
 
 /// <summary>
 /// Performance benchmarks for OpenTelemetry instrumentation overhead in Blazing.Mediator.

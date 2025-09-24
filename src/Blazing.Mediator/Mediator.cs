@@ -9,8 +9,8 @@ namespace Blazing.Mediator;
 /// Implementation of the Mediator pattern that dispatches requests to their corresponding handlers.
 /// </summary>
 /// <remarks>
-/// The Mediator class serves as a centralized request dispatcher that decouples the request sender 
-/// from the request handler. It uses dependency injection to resolve handlers at runtime and 
+/// The Mediator class serves as a centralized request dispatcher that decouples the request sender
+/// from the request handler. It uses dependency injection to resolve handlers at runtime and
 /// supports both void and typed responses.
 /// </remarks>
 public sealed class Mediator : IMediator
@@ -159,7 +159,7 @@ public sealed class Mediator : IMediator
     /// <summary>
     /// Gets the sensitive data patterns for filtering telemetry data.
     /// </summary>
-    private List<string> SensitiveDataPatterns => _telemetryOptions?.SensitiveDataPatterns ?? 
+    private List<string> SensitiveDataPatterns => _telemetryOptions?.SensitiveDataPatterns ??
         ["password", "token", "secret", "key", "auth", "credential", "connection"];
 
     /// <summary>
@@ -228,10 +228,10 @@ public sealed class Mediator : IMediator
                         throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
                 }
                 object handler = handlerArray[0];
-                
+
                 // Debug logging: Handler found
                 _logger?.SendHandlerFound(handler.GetType().Name, requestType.Name);
-                
+
                 MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
                 try
                 {
@@ -243,7 +243,7 @@ public sealed class Mediator : IMediator
                     Task? task = (Task?)method.Invoke(handler, [request, cancellationToken]);
                     if (task != null)
                     {
-                        await task;
+                        await task.ConfigureAwait(false);
                     }
                 }
                 catch (TargetInvocationException ex) when (ex.InnerException != null)
@@ -253,7 +253,7 @@ public sealed class Mediator : IMediator
             }
 
             // Execute through middleware pipeline with enhanced tracking
-            await ExecuteWithMiddlewareTracking(request, FinalHandler, executedMiddleware, cancellationToken);
+            await ExecuteWithMiddlewareTracking(request, FinalHandler, executedMiddleware, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -264,20 +264,20 @@ public sealed class Mediator : IMediator
         finally
         {
             stopwatch.Stop();
-            
+
             // Debug logging: Send operation completed
             _logger?.SendOperationCompleted(request.GetType().Name, stopwatch.Elapsed.TotalMilliseconds, exception == null);
-            
+
             // Enhanced statistics recording
             if (_statistics != null)
             {
                 var requestTypeName = request.GetType().Name;
-                
+
                 // Record execution time if performance counters are enabled
                 if (HasPerformanceCountersEnabled())
                 {
                     _statistics.RecordExecutionTime(requestTypeName, stopwatch.ElapsedMilliseconds, exception == null);
-                    
+
                     // Record memory allocation if available
                     if (startMemory > 0)
                     {
@@ -289,13 +289,13 @@ public sealed class Mediator : IMediator
                         }
                     }
                 }
-                
+
                 // Record detailed analysis if enabled
                 if (HasDetailedAnalysisEnabled())
                 {
                     _statistics.RecordExecutionPattern(requestTypeName, DateTime.UtcNow);
                 }
-                
+
                 // Record middleware execution metrics if enabled
                 if (HasMiddlewareMetricsEnabled())
                 {
@@ -343,7 +343,7 @@ public sealed class Mediator : IMediator
                     {
                         activity?.SetTag("exception.type", SanitizeTypeName(exception.GetType().Name));
                         activity?.SetTag("exception.message", SanitizeExceptionMessage(exception.Message));
-                        
+
                         // Add stack trace if available and configured
                         var sanitizedStackTrace = SanitizeStackTrace(exception.StackTrace);
                         if (!string.IsNullOrEmpty(sanitizedStackTrace))
@@ -448,10 +448,10 @@ public sealed class Mediator : IMediator
                         throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
                 }
                 object handler = handlerArray[0];
-                
+
                 // Debug logging: Handler found
                 _logger?.SendHandlerFound(handler.GetType().Name, requestType.Name);
-                
+
                 MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
                 try
                 {
@@ -464,7 +464,7 @@ public sealed class Mediator : IMediator
                     Task<TResponse>? task = (Task<TResponse>?)method.Invoke(handler, [request, cancellationToken]);
                     if (task != null)
                     {
-                        return await task;
+                        return await task.ConfigureAwait(false);
                     }
                     throw new InvalidOperationException($"Handler for {requestType.Name} returned null");
                 }
@@ -475,7 +475,7 @@ public sealed class Mediator : IMediator
             }
 
             // Execute through middleware pipeline with enhanced tracking
-            return await ExecuteWithMiddlewareTracking(request, FinalHandler, executedMiddleware, cancellationToken);
+            return await ExecuteWithMiddlewareTracking(request, FinalHandler, executedMiddleware, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -486,20 +486,20 @@ public sealed class Mediator : IMediator
         finally
         {
             stopwatch.Stop();
-            
+
             // Debug logging: Send operation completed
             _logger?.SendOperationCompleted(request.GetType().Name, stopwatch.Elapsed.TotalMilliseconds, exception == null);
-            
+
             // Enhanced statistics recording
             if (_statistics != null)
             {
                 var requestTypeName = request.GetType().Name;
-                
+
                 // Record execution time if performance counters are enabled
                 if (HasPerformanceCountersEnabled())
                 {
                     _statistics.RecordExecutionTime(requestTypeName, stopwatch.ElapsedMilliseconds, exception == null);
-                    
+
                     // Record memory allocation if available
                     if (startMemory > 0)
                     {
@@ -511,13 +511,13 @@ public sealed class Mediator : IMediator
                         }
                     }
                 }
-                
+
                 // Record detailed analysis if enabled
                 if (HasDetailedAnalysisEnabled())
                 {
                     _statistics.RecordExecutionPattern(requestTypeName, DateTime.UtcNow);
                 }
-                
+
                 // Record middleware execution metrics if enabled
                 if (HasMiddlewareMetricsEnabled())
                 {
@@ -593,12 +593,12 @@ public sealed class Mediator : IMediator
     public IAsyncEnumerable<TResponse> SendStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        
+
         // Debug logging: SendStream operation started
         _logger?.SendStreamOperationStarted(request.GetType().Name);
-        
+
         _statistics?.IncrementQuery(request.GetType().Name);
-        
+
         Type requestType = request.GetType();
         Type handlerType = typeof(IStreamRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
 
@@ -623,10 +623,10 @@ public sealed class Mediator : IMediator
             }
 
             object handler = handlerArray[0];
-            
+
             // Debug logging: Stream handler found
             _logger?.SendStreamHandlerFound(handler.GetType().Name, requestType.Name);
-            
+
             MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
 
             try
@@ -683,8 +683,8 @@ public sealed class Mediator : IMediator
     {
         // Create the stream context outside try-catch to avoid yield restrictions
         var streamContext = new StreamTelemetryContext<TResponse>(request, _telemetryOptions);
-        
-        await foreach (var item in InstrumentedStreamEnumeration(baseStream, streamContext, cancellationToken))
+
+        await foreach (var item in InstrumentedStreamEnumeration(baseStream, streamContext, cancellationToken).ConfigureAwait(false))
         {
             yield return item;
         }
@@ -700,7 +700,7 @@ public sealed class Mediator : IMediator
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"Mediator.SendStream:{context.RequestTypeName}") : null;
-        
+
         // Ensure the activity is started and marked as active for proper telemetry propagation
         if (activity != null)
         {
@@ -712,13 +712,13 @@ public sealed class Mediator : IMediator
             activity.SetTag("mediator.operation", "SendStream");
             activity.SetTag("otel.library.name", "Blazing.Mediator");
             activity.SetTag("otel.library.version", typeof(Mediator).Assembly.GetName().Version?.ToString() ?? "1.0.0");
-            
+
             // Add streaming-specific semantic convention tags
             activity.SetTag("stream.type", "response");
             activity.SetTag("stream.packet_level_telemetry", IsPacketLevelTelemetryEnabled);
             activity.SetTag("stream.batch_size", GetPacketTelemetryBatchSize);
         }
-        
+
         var streamStopwatch = Stopwatch.StartNew();
         var lastItemTime = streamStopwatch.ElapsedMilliseconds;
         Exception? exception = null;
@@ -730,7 +730,7 @@ public sealed class Mediator : IMediator
         try
         {
             enumerator = baseStream.GetAsyncEnumerator(cancellationToken);
-            
+
             // Add an initial event to mark the start of streaming
             if (activity != null)
             {
@@ -742,16 +742,16 @@ public sealed class Mediator : IMediator
                     ["stream.operation"] = "start"
                 }));
             }
-            
+
             // Enumerate items with telemetry tracking
             while (true)
             {
                 bool hasNext;
                 var packetStopwatch = Stopwatch.StartNew();
-                
+
                 try
                 {
-                    hasNext = await enumerator.MoveNextAsync();
+                    hasNext = await enumerator.MoveNextAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -759,23 +759,23 @@ public sealed class Mediator : IMediator
                     context.RecordError(activity, ex);
                     throw;
                 }
-                
+
                 if (!hasNext) break;
-                
+
                 packetStopwatch.Stop();
                 var currentTime = streamStopwatch.ElapsedMilliseconds;
                 var item = enumerator.Current;
-                
+
                 // Record packet-level metrics with enhanced telemetry
                 context.RecordPacket(currentTime, lastItemTime, item, packetStopwatch.Elapsed.TotalMilliseconds, cancellationToken);
                 lastItemTime = currentTime;
-                
+
                 yield return item;
             }
-            
+
             // Stream completed successfully
             context.RecordSuccess(activity);
-            
+
             // Add completion event with comprehensive summary
             if (activity != null)
             {
@@ -794,9 +794,9 @@ public sealed class Mediator : IMediator
         {
             if (enumerator != null)
             {
-                await enumerator.DisposeAsync();
+                await enumerator.DisposeAsync().ConfigureAwait(false);
             }
-            
+
             streamStopwatch.Stop();
             context.RecordFinalMetrics(activity, streamStopwatch.Elapsed, exception);
         }
@@ -868,7 +868,7 @@ public sealed class Mediator : IMediator
 
                     try
                     {
-                        await subscriber.OnNotification(n, ct);
+                        await subscriber.OnNotification(n, ct).ConfigureAwait(false);
                         if (TelemetryEnabled)
                         {
                             var successTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "subscriber_type", subType } };
@@ -911,7 +911,7 @@ public sealed class Mediator : IMediator
 
                     try
                     {
-                        await genericSubscriber.OnNotification(n, ct);
+                        await genericSubscriber.OnNotification(n, ct).ConfigureAwait(false);
                         if (TelemetryEnabled)
                         {
                             var successTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "subscriber_type", $"{subType}(Generic)" } };
@@ -953,7 +953,7 @@ public sealed class Mediator : IMediator
             }
 
             // Execute through middleware pipeline
-            await _notificationPipelineBuilder.ExecutePipeline(notification, _serviceProvider, SubscriberHandler, cancellationToken);
+            await _notificationPipelineBuilder.ExecutePipeline(notification, _serviceProvider, SubscriberHandler, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1241,7 +1241,7 @@ public sealed class Mediator : IMediator
         }
 
         // Limit length based on configuration
-        return sanitized.Length > MaxExceptionMessageLength ? 
+        return sanitized.Length > MaxExceptionMessageLength ?
             sanitized[..MaxExceptionMessageLength] + "..." : sanitized;
     }
 
@@ -1392,7 +1392,7 @@ public sealed class Mediator : IMediator
         where TRequest : IRequest
     {
         // Create the proper delegate
-        async Task HandlerDelegate() => await finalHandler();
+        async Task HandlerDelegate() => await finalHandler().ConfigureAwait(false);
 
         // Execute through middleware pipeline
         MethodInfo? executeMethod = _pipelineBuilder
@@ -1403,18 +1403,18 @@ public sealed class Mediator : IMediator
                 m.GetParameters().Length == 4 &&
                 m.GetParameters()[2].ParameterType == typeof(RequestHandlerDelegate) &&
                 m.IsGenericMethodDefinition);
-        
+
         if (executeMethod == null)
         {
-            await finalHandler();
+            await finalHandler().ConfigureAwait(false);
             return;
         }
-        
+
         MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(typeof(TRequest));
         Task? pipelineTask = (Task?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, (RequestHandlerDelegate)HandlerDelegate, cancellationToken]);
         if (pipelineTask != null)
         {
-            await pipelineTask;
+            await pipelineTask.ConfigureAwait(false);
         }
     }
 
@@ -1429,7 +1429,7 @@ public sealed class Mediator : IMediator
         where TRequest : IRequest<TResponse>
     {
         // Create the proper delegate
-        async Task<TResponse> HandlerDelegate() => await finalHandler();
+        async Task<TResponse> HandlerDelegate() => await finalHandler().ConfigureAwait(false);
 
         // Execute through middleware pipeline
         MethodInfo? executeMethod = _pipelineBuilder
@@ -1440,19 +1440,19 @@ public sealed class Mediator : IMediator
                 m.GetParameters().Length == 4 &&
                 m.GetParameters()[2].ParameterType.IsGenericType &&
                 m.IsGenericMethodDefinition);
-        
+
         if (executeMethod == null)
         {
-            return await finalHandler();
+            return await finalHandler().ConfigureAwait(false);
         }
-        
+
         MethodInfo genericExecuteMethod = executeMethod.MakeGenericMethod(typeof(TRequest), typeof(TResponse));
         Task<TResponse>? pipelineTask = (Task<TResponse>?)genericExecuteMethod.Invoke(_pipelineBuilder, [request, _serviceProvider, (RequestHandlerDelegate<TResponse>)HandlerDelegate, cancellationToken]);
         if (pipelineTask != null)
         {
-            return await pipelineTask;
+            return await pipelineTask.ConfigureAwait(false);
         }
-        return await finalHandler();
+        return await finalHandler().ConfigureAwait(false);
     }
 
     /// <summary>

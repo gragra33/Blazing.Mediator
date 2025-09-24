@@ -275,11 +275,11 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
                 if (middleware is IConditionalNotificationMiddleware conditionalMiddleware &&
                     !conditionalMiddleware.ShouldExecute(notification))
                 {
-                    await currentPipeline(notification, cancellationToken);
+                    await currentPipeline(notification, cancellationToken).ConfigureAwait(false);
                     return;
                 }
 
-                await middleware.InvokeAsync(notification, currentPipeline, cancellationToken);
+                await middleware.InvokeAsync(notification, currentPipeline, cancellationToken).ConfigureAwait(false);
             };
         }
 
@@ -299,7 +299,7 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
         
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var pipeline = Build(serviceProvider, finalHandler);
-        await pipeline(notification, cancellationToken);
+        await pipeline(notification, cancellationToken).ConfigureAwait(false);
         stopwatch.Stop();
         
         // Debug logging: Notification pipeline execution completed

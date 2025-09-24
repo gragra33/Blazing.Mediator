@@ -261,12 +261,12 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
                 return middleware switch
                 {
                     // Check if this is conditional middleware and should execute
-                    _ when IsConditionalMiddleware(middleware, actualRequestType, typeof(TResponse), request) => await currentPipeline(),
-                    _ => await InvokeMiddlewareHandleAsync(middleware, request, currentPipeline, cancellationToken)
+                    _ when IsConditionalMiddleware(middleware, actualRequestType, typeof(TResponse), request) => await currentPipeline().ConfigureAwait(false),
+                    _ => await InvokeMiddlewareHandleAsync(middleware, request, currentPipeline, cancellationToken).ConfigureAwait(false)
                 };
             };
         }
-        TResponse result = await pipeline();
+        TResponse result = await pipeline().ConfigureAwait(false);
         return result;
     }
 
@@ -387,16 +387,16 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
                     // Check if this is conditional middleware and should execute
                     case IConditionalMiddleware<TRequest> conditionalMiddleware when !conditionalMiddleware.ShouldExecute(request):
                         // Skip this middleware
-                        await currentPipeline();
+                        await currentPipeline().ConfigureAwait(false);
                         return;
                     default:
-                        await middleware.HandleAsync(request, currentPipeline, cancellationToken);
+                        await middleware.HandleAsync(request, currentPipeline, cancellationToken).ConfigureAwait(false);
                         break;
                 }
             };
         }
 
-        await pipeline();
+        await pipeline().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -993,10 +993,10 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
                 var middleware = serviceProvider.GetService(middlewareType) as IRequestMiddleware<TRequest, TResponse>;
                 if (middleware == null) throw new InvalidOperationException();
                 executed.Add(middlewareType);
-                return await middleware.HandleAsync(request, currentPipeline, cancellationToken);
+                return await middleware.HandleAsync(request, currentPipeline, cancellationToken).ConfigureAwait(false);
             };
         }
-        try { await pipeline(); } catch { }
+        try { await pipeline().ConfigureAwait(false); } catch { }
         return executed;
     }
 
@@ -1047,7 +1047,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             var result = handleAsyncMethod.Invoke(middleware, [request, next, cancellationToken]);
             if (result is Task<TResponse> task)
             {
-                return await task;
+                return await task.ConfigureAwait(false);
             }
             
             throw new InvalidOperationException($"HandleAsync method on {middleware.GetType().Name} did not return Task<{typeof(TResponse).Name}>.");

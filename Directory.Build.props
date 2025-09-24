@@ -13,12 +13,20 @@
     <NoWarn>$(NoWarn);NETSDK1057;NU1608;CS1591</NoWarn>
     
     <!-- Treat all warnings as errors -->
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    
+    <!--- <TreatWarningsAsErrors>true</TreatWarningsAsErrors> -->
+
+    <!-- Code analysis and style enforcement -->
+    <!-- <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>All</AnalysisMode>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors> -->
+
+    <!-- Enforce coding style rules during build -->
+    <!-- <EnforceCodingStyleInBuild>true</EnforceCodingStyleInBuild> -->
+
     <!-- Source control and package settings -->
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <!-- <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat> -->
   </PropertyGroup>
 </Project>

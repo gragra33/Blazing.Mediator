@@ -2,11 +2,8 @@ using Blazing.Mediator.Statistics;
 using Blazing.Mediator.OpenTelemetry;
 using Blazing.Mediator.Services;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
-using Microsoft.Extensions.Logging;
 
-namespace Blazing.Mediator.Extensions;
+namespace Blazing.Mediator;
 
 /// <summary>
 /// Extension methods for IServiceCollection to register Blazing.Mediator services.

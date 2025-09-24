@@ -2,7 +2,6 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator.Abstractions;
 
 namespace Blazing.Mediator.Benchmarks;
 

@@ -20,7 +20,6 @@ First, make sure you have the necessary OpenTelemetry packages installed:
 To enable OpenTelemetry in your application, configure both the Mediator and OpenTelemetry services:
 
 ```csharp
-using Blazing.Mediator.Extensions;
 using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);

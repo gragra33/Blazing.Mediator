@@ -13,7 +13,7 @@ namespace Blazing.Mediator;
 /// from the request handler. It uses dependency injection to resolve handlers at runtime and
 /// supports both void and typed responses.
 /// </remarks>
-public sealed class Mediator : IMediator, IDisposable
+public sealed class Mediator : IMediator
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IMiddlewarePipelineBuilder _pipelineBuilder;
@@ -21,7 +21,6 @@ public sealed class Mediator : IMediator, IDisposable
     private readonly MediatorStatistics? _statistics;
     private readonly MediatorTelemetryOptions? _telemetryOptions;
     private readonly MediatorLogger? _logger;
-    private bool _disposed;
 
     // Thread-safe collections for notification subscribers
     private readonly ConcurrentDictionary<Type, ConcurrentBag<object>> _specificSubscribers = new();

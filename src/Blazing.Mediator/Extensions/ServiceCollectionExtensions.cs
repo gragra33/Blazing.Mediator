@@ -1,12 +1,16 @@
 using Blazing.Mediator.Statistics;
 using Blazing.Mediator.OpenTelemetry;
+using Blazing.Mediator.Services;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
+using Microsoft.Extensions.Logging;
 
-namespace Blazing.Mediator;
+namespace Blazing.Mediator.Extensions;
 
-/// <summary>  
-/// Provides extension methods for registering Mediator services in the dependency injection container.  
-/// </summary>  
+/// <summary>
+/// Extension methods for IServiceCollection to register Blazing.Mediator services.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
     #region AddMediator Methods
@@ -68,6 +72,52 @@ public static class ServiceCollectionExtensions
     {
         Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? [];
         return AddMediatorCore(services, options, false, false, false, assemblies, null);
+    }
+
+    /// <summary>
+    /// Adds Blazing.Mediator services with automatic static resource cleanup service.
+    /// The cleanup service can be manually called during application shutdown to dispose static OpenTelemetry resources.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="options">Configuration options for the mediator.</param>
+    /// <param name="enableStaticResourceCleanup">Whether to register a cleanup service for manual disposal of static resources.</param>
+    /// <param name="assemblies">Assemblies to scan for handlers.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddMediatorWithStaticCleanup(this IServiceCollection services, Action<MediatorConfiguration>? options, bool enableStaticResourceCleanup, params Assembly[]? assemblies)
+    {
+        // Register core mediator services
+        services.AddMediator(options, assemblies);
+
+        // Optionally register cleanup service for manual disposal
+        if (enableStaticResourceCleanup)
+        {
+            services.AddSingleton<MediatorCleanupService>();
+        }
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds Blazing.Mediator services with automatic static resource cleanup service.
+    /// The cleanup service can be manually called during application shutdown to dispose static OpenTelemetry resources.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="options">Configuration options for the mediator.</param>
+    /// <param name="enableStaticResourceCleanup">Whether to register a cleanup service for manual disposal of static resources.</param>
+    /// <param name="assemblyMarkerTypes">Types from assemblies to scan for handlers.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddMediatorWithStaticCleanup(this IServiceCollection services, Action<MediatorConfiguration>? options, bool enableStaticResourceCleanup, params Type[]? assemblyMarkerTypes)
+    {
+        // Register core mediator services
+        services.AddMediator(options, assemblyMarkerTypes);
+
+        // Optionally register cleanup service for manual disposal
+        if (enableStaticResourceCleanup)
+        {
+            services.AddSingleton<MediatorCleanupService>();
+        }
+
+        return services;
     }
 
     #region Obsolete AddMediator Overloads

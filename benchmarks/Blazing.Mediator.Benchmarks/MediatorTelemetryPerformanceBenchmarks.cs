@@ -14,7 +14,7 @@ namespace Blazing.Mediator.Benchmarks;
 [SimpleJob(RuntimeMoniker.Net90)]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
-public class MediatorTelemetryPerformanceBenchmarks
+public class MediatorTelemetryPerformanceBenchmarks : IDisposable
 {
     private ServiceProvider _serviceProviderWithTelemetry = null!;
     private ServiceProvider _serviceProviderWithoutTelemetry = null!;
@@ -27,6 +27,7 @@ public class MediatorTelemetryPerformanceBenchmarks
     private BenchmarkTestStreamRequest _streamRequest = null!;
 
     private ActivityListener? _activityListener;
+    private bool _disposed;
 
     [GlobalSetup]
     public void Setup()
@@ -94,20 +95,30 @@ public class MediatorTelemetryPerformanceBenchmarks
         _serviceProviderWithoutTelemetry?.Dispose();
     }
 
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _activityListener?.Dispose();
+        _serviceProviderWithTelemetry?.Dispose();
+        _serviceProviderWithoutTelemetry?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
     #region Send Command Benchmarks
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Send_Command")]
     public async Task Send_Command_WithoutTelemetry()
     {
-        await _mediatorWithoutTelemetry.Send(_command);
+        await _mediatorWithoutTelemetry.Send(_command).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Send_Command")]
     public async Task Send_Command_WithTelemetry()
     {
-        await _mediatorWithTelemetry.Send(_command);
+        await _mediatorWithTelemetry.Send(_command).ConfigureAwait(false);
     }
 
     #endregion
@@ -118,14 +129,14 @@ public class MediatorTelemetryPerformanceBenchmarks
     [BenchmarkCategory("Send_Query")]
     public async Task<string> Send_Query_WithoutTelemetry()
     {
-        return await _mediatorWithoutTelemetry.Send(_query);
+        return await _mediatorWithoutTelemetry.Send(_query).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Send_Query")]
     public async Task<string> Send_Query_WithTelemetry()
     {
-        return await _mediatorWithTelemetry.Send(_query);
+        return await _mediatorWithTelemetry.Send(_query).ConfigureAwait(false);
     }
 
     #endregion
@@ -136,14 +147,14 @@ public class MediatorTelemetryPerformanceBenchmarks
     [BenchmarkCategory("Publish_Notification")]
     public async Task Publish_Notification_WithoutTelemetry()
     {
-        await _mediatorWithoutTelemetry.Publish(_notification);
+        await _mediatorWithoutTelemetry.Publish(_notification).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Publish_Notification")]
     public async Task Publish_Notification_WithTelemetry()
     {
-        await _mediatorWithTelemetry.Publish(_notification);
+        await _mediatorWithTelemetry.Publish(_notification).ConfigureAwait(false);
     }
 
     #endregion
@@ -184,7 +195,7 @@ public class MediatorTelemetryPerformanceBenchmarks
     {
         for (int i = 0; i < 100; i++)
         {
-            await _mediatorWithoutTelemetry.Send(new BenchmarkTestCommand { Value = $"bulk test {i}" });
+            await _mediatorWithoutTelemetry.Send(new BenchmarkTestCommand { Value = $"bulk test {i}" }).ConfigureAwait(false);
         }
     }
 
@@ -194,7 +205,7 @@ public class MediatorTelemetryPerformanceBenchmarks
     {
         for (int i = 0; i < 100; i++)
         {
-            await _mediatorWithTelemetry.Send(new BenchmarkTestCommand { Value = $"bulk test {i}" });
+            await _mediatorWithTelemetry.Send(new BenchmarkTestCommand { Value = $"bulk test {i}" }).ConfigureAwait(false);
         }
     }
 
@@ -204,7 +215,7 @@ public class MediatorTelemetryPerformanceBenchmarks
     {
         for (int i = 0; i < 100; i++)
         {
-            await _mediatorWithoutTelemetry.Publish(new BenchmarkTestNotification { Message = $"bulk notification {i}" });
+            await _mediatorWithoutTelemetry.Publish(new BenchmarkTestNotification { Message = $"bulk notification {i}" }).ConfigureAwait(false);
         }
     }
 
@@ -214,7 +225,7 @@ public class MediatorTelemetryPerformanceBenchmarks
     {
         for (int i = 0; i < 100; i++)
         {
-            await _mediatorWithTelemetry.Publish(new BenchmarkTestNotification { Message = $"bulk notification {i}" });
+            await _mediatorWithTelemetry.Publish(new BenchmarkTestNotification { Message = $"bulk notification {i}" }).ConfigureAwait(false);
         }
     }
 
@@ -229,7 +240,7 @@ public class MediatorTelemetryPerformanceBenchmarks
         for (int i = 0; i < 50; i++)
         {
             var command = new BenchmarkTestCommand { Value = $"memory test {i}" };
-            await _mediatorWithoutTelemetry.Send(command);
+            await _mediatorWithoutTelemetry.Send(command).ConfigureAwait(false);
         }
     }
 
@@ -240,75 +251,69 @@ public class MediatorTelemetryPerformanceBenchmarks
         for (int i = 0; i < 50; i++)
         {
             var command = new BenchmarkTestCommand { Value = $"memory test {i}" };
-            await _mediatorWithTelemetry.Send(command);
+            await _mediatorWithTelemetry.Send(command).ConfigureAwait(false);
         }
     }
 
     #endregion
+}
 
-    #region Test Classes
+internal class BenchmarkTestCommand : IRequest
+{
+    public string Value { get; set; } = string.Empty;
+}
 
-    public class BenchmarkTestCommand : IRequest
+internal class BenchmarkTestCommandHandler : IRequestHandler<BenchmarkTestCommand>
+{
+    public async Task Handle(BenchmarkTestCommand request, CancellationToken cancellationToken = default)
     {
-        public string Value { get; set; } = string.Empty;
+        // Minimal work to simulate real handler
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
     }
+}
 
-    public class BenchmarkTestCommandHandler : IRequestHandler<BenchmarkTestCommand>
+internal class BenchmarkTestQuery : IRequest<string>
+{
+    public string Value { get; set; } = string.Empty;
+}
+
+internal class BenchmarkTestQueryHandler : IRequestHandler<BenchmarkTestQuery, string>
+{
+    public async Task<string> Handle(BenchmarkTestQuery request, CancellationToken cancellationToken = default)
     {
-        public async Task Handle(BenchmarkTestCommand request, CancellationToken cancellationToken)
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+        return $"Processed: {request.Value}";
+    }
+}
+
+internal class BenchmarkTestNotification : INotification
+{
+    public string Message { get; set; } = string.Empty;
+}
+
+internal class BenchmarkTestNotificationSubscriber : INotificationSubscriber<BenchmarkTestNotification>
+{
+    public async Task OnNotification(BenchmarkTestNotification notification, CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+    }
+}
+
+internal class BenchmarkTestStreamRequest : IStreamRequest<string>
+{
+    public int Count { get; set; }
+}
+
+internal class BenchmarkTestStreamHandler : IStreamRequestHandler<BenchmarkTestStreamRequest, string>
+{
+    public async IAsyncEnumerable<string> Handle(BenchmarkTestStreamRequest request,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        for (int i = 0; i < request.Count; i++)
         {
-            // Minimal work to simulate real handler
-            await Task.Delay(1, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+            yield return $"Item {i}";
         }
     }
-
-    public class BenchmarkTestQuery : IRequest<string>
-    {
-        public string Value { get; set; } = string.Empty;
-    }
-
-    public class BenchmarkTestQueryHandler : IRequestHandler<BenchmarkTestQuery, string>
-    {
-        public async Task<string> Handle(BenchmarkTestQuery request, CancellationToken cancellationToken)
-        {
-            // Minimal work to simulate real handler
-            await Task.Delay(1, cancellationToken);
-            return $"Handled: {request.Value}";
-        }
-    }
-
-    public class BenchmarkTestNotification : INotification
-    {
-        public string Message { get; set; } = string.Empty;
-    }
-
-    public class BenchmarkTestNotificationSubscriber : INotificationSubscriber<BenchmarkTestNotification>
-    {
-        public async Task OnNotification(BenchmarkTestNotification notification, CancellationToken cancellationToken = default)
-        {
-            // Minimal work to simulate real subscriber
-            await Task.Delay(1, cancellationToken);
-        }
-    }
-
-    public class BenchmarkTestStreamRequest : IStreamRequest<string>
-    {
-        public int Count { get; set; }
-    }
-
-    public class BenchmarkTestStreamHandler : IStreamRequestHandler<BenchmarkTestStreamRequest, string>
-    {
-        public async IAsyncEnumerable<string> Handle(BenchmarkTestStreamRequest request,
-            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            for (int i = 0; i < request.Count; i++)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                await Task.Delay(1, cancellationToken); // Minimal delay
-                yield return $"Item {i}";
-            }
-        }
-    }
-
-    #endregion
 }

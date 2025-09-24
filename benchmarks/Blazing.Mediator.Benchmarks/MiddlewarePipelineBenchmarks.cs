@@ -83,8 +83,6 @@ public class MiddlewarePipelineBenchmarks
         {
             config.WithStatisticsTracking();
         }, typeof(MiddlewarePipelineBenchmarks).Assembly);
-        servicesStandard.AddScoped<IRequestHandler<MiddlewareTestCommand>, MiddlewareTestCommandHandler>();
-        servicesStandard.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
         servicesStandard.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         var providerStandard = servicesStandard.BuildServiceProvider();
         _mediatorStandardConfig = providerStandard.GetRequiredService<IMediator>();
@@ -95,8 +93,6 @@ public class MiddlewarePipelineBenchmarks
         {
             config.WithStatisticsTracking();
         }, typeof(MiddlewarePipelineBenchmarks).Assembly);
-        servicesFull.AddScoped<IRequestHandler<MiddlewareTestCommand>, MiddlewareTestCommandHandler>();
-        servicesFull.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
         servicesFull.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         servicesFull.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
         var providerFull = servicesFull.BuildServiceProvider();
@@ -108,8 +104,6 @@ public class MiddlewarePipelineBenchmarks
         {
             config.WithStatisticsTracking();
         }, typeof(MiddlewarePipelineBenchmarks).Assembly);
-        servicesEnterprise.AddScoped<IRequestHandler<MiddlewareTestCommand>, MiddlewareTestCommandHandler>();
-        servicesEnterprise.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
         servicesEnterprise.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         servicesEnterprise.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
         servicesEnterprise.AddScoped(typeof(IRequestMiddleware<,>), typeof(PerformanceMiddleware<,>));
@@ -122,30 +116,30 @@ public class MiddlewarePipelineBenchmarks
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Middleware_Pipeline")]
-    public async Task Command_NoMiddleware()
+    public async Task CommandNoMiddleware()
     {
-        await _mediatorNoMiddleware.Send(_command);
+        await _mediatorNoMiddleware.Send(_command).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Middleware_Pipeline")]
-    public async Task Command_SingleMiddleware()
+    public async Task CommandSingleMiddleware()
     {
-        await _mediatorSingleMiddleware.Send(_command);
+        await _mediatorSingleMiddleware.Send(_command).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Middleware_Pipeline")]
-    public async Task Command_MultipleMiddleware()
+    public async Task CommandMultipleMiddleware()
     {
-        await _mediatorMultipleMiddleware.Send(_command);
+        await _mediatorMultipleMiddleware.Send(_command).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Middleware_Pipeline")]
-    public async Task Command_ConditionalMiddleware()
+    public async Task CommandConditionalMiddleware()
     {
-        await _mediatorConditionalMiddleware.Send(_command);
+        await _mediatorConditionalMiddleware.Send(_command).ConfigureAwait(false);
     }
 
     #endregion
@@ -154,23 +148,23 @@ public class MiddlewarePipelineBenchmarks
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Query_Middleware")]
-    public async Task<string> Query_NoMiddleware()
+    public async Task<string> QueryNoMiddleware()
     {
-        return await _mediatorNoMiddleware.Send(_query);
+        return await _mediatorNoMiddleware.Send(_query).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Query_Middleware")]
-    public async Task<string> Query_SingleMiddleware()
+    public async Task<string> QuerySingleMiddleware()
     {
-        return await _mediatorSingleMiddleware.Send(_query);
+        return await _mediatorSingleMiddleware.Send(_query).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Query_Middleware")]
-    public async Task<string> Query_MultipleMiddleware()
+    public async Task<string> QueryMultipleMiddleware()
     {
-        return await _mediatorMultipleMiddleware.Send(_query);
+        return await _mediatorMultipleMiddleware.Send(_query).ConfigureAwait(false);
     }
 
     #endregion
@@ -181,56 +175,56 @@ public class MiddlewarePipelineBenchmarks
     [BenchmarkCategory("Configuration_Complexity")]
     public async Task Command_MinimalConfiguration()
     {
-        await _mediatorMinimalConfig.Send(_command);
+        await _mediatorMinimalConfig.Send(_command).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Configuration_Complexity")]
     public async Task Command_StandardConfiguration()
     {
-        await _mediatorStandardConfig.Send(_command);
+        await _mediatorStandardConfig.Send(_command).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Configuration_Complexity")]
     public async Task Command_FullConfiguration()
     {
-        await _mediatorFullConfig.Send(_command);
+        await _mediatorFullConfig.Send(_command).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Configuration_Complexity")]
     public async Task Command_EnterpriseConfiguration()
     {
-        await _mediatorEnterpriseConfig.Send(_command);
+        await _mediatorEnterpriseConfig.Send(_command).ConfigureAwait(false);
     }
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Configuration_Query")]
     public async Task<string> Query_MinimalConfiguration()
     {
-        return await _mediatorMinimalConfig.Send(_query);
+        return await _mediatorMinimalConfig.Send(_query).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Configuration_Query")]
     public async Task<string> Query_StandardConfiguration()
     {
-        return await _mediatorStandardConfig.Send(_query);
+        return await _mediatorStandardConfig.Send(_query).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Configuration_Query")]
     public async Task<string> Query_FullConfiguration()
     {
-        return await _mediatorFullConfig.Send(_query);
+        return await _mediatorFullConfig.Send(_query).ConfigureAwait(false);
     }
 
     [Benchmark]
     [BenchmarkCategory("Configuration_Query")]
     public async Task<string> Query_EnterpriseConfiguration()
     {
-        return await _mediatorEnterpriseConfig.Send(_query);
+        return await _mediatorEnterpriseConfig.Send(_query).ConfigureAwait(false);
     }
 
     #endregion
@@ -246,7 +240,7 @@ public class MiddlewarePipelineBenchmarks
     {
         public async Task Handle(MiddlewareTestCommand request, CancellationToken cancellationToken = default)
         {
-            await Task.Delay(1, cancellationToken);
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -259,7 +253,7 @@ public class MiddlewarePipelineBenchmarks
     {
         public async Task<string> Handle(MiddlewareTestQuery request, CancellationToken cancellationToken = default)
         {
-            await Task.Delay(1, cancellationToken);
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             return $"Processed: {request.Value}";
         }
     }
@@ -276,7 +270,7 @@ public class MiddlewarePipelineBenchmarks
         public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal logging overhead
-            var result = await next();
+            var result = await next().ConfigureAwait(false);
             return result;
         }
     }
@@ -292,7 +286,7 @@ public class MiddlewarePipelineBenchmarks
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
             
-            return await next();
+            return await next().ConfigureAwait(false);
         }
     }
 
@@ -304,7 +298,7 @@ public class MiddlewarePipelineBenchmarks
         public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal performance tracking overhead
-            var result = await next();
+            var result = await next().ConfigureAwait(false);
             return result;
         }
     }
@@ -321,7 +315,7 @@ public class MiddlewarePipelineBenchmarks
             {
                 // Log the command
             }
-            var result = await next();
+            var result = await next().ConfigureAwait(false);
             return result;
         }
     }

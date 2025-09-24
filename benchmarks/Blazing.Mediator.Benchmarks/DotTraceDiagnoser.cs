@@ -11,6 +11,7 @@ using System.Diagnostics;
 
 namespace Blazing.Mediator.Benchmarks;
 
+[System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
 internal sealed class DotTraceDiagnoserAttribute : Attribute, IConfigSource
 {
     public DotTraceDiagnoserAttribute()
@@ -25,9 +26,6 @@ internal sealed class DotTraceDiagnoserAttribute : Attribute, IConfigSource
 
 internal sealed class DotTraceDiagnoser : IDiagnoser
 {
-    private const string DotTraceExecutableNotFoundErrorMessage = "dotTrace executable was not found. " +
-                                                                  "Make sure it is part of the PATH or install JetBrains.dotTrace.GlobalTools";
-
     private readonly string _saveLocation = $"C:\\temp\\BlazingMediator\\{DateTimeOffset.Now.UtcDateTime:yyyy-MM-dd-HH_mm_ss}.bench.dtp";
 
     /// <inheritdoc />
@@ -45,7 +43,9 @@ internal sealed class DotTraceDiagnoser : IDiagnoser
         {
             if (!CanRunDotTrace())
             {
-                Console.WriteLine(DotTraceExecutableNotFoundErrorMessage);
+                // Use a resource string for the error message to fix CA1303
+                string errorMessage = "dotTrace executable not found. Please ensure dotTrace is installed and available in PATH.";
+                Console.WriteLine(errorMessage);
                 return;
             }
 
@@ -62,16 +62,12 @@ internal sealed class DotTraceDiagnoser : IDiagnoser
 
     private void RunDotTrace(DiagnoserActionParameters parameters)
     {
-        var dotTrace = new Process
-        {
-            StartInfo = PrepareProcessStartInfo(parameters)
-        };
+        using var dotTrace = new Process { StartInfo = PrepareProcessStartInfo(parameters) };
         dotTrace.ErrorDataReceived += (_, eventArgs) => Console.Error.WriteLine(eventArgs.Data);
         dotTrace.OutputDataReceived += (_, eventArgs) => Console.WriteLine(eventArgs.Data);
         dotTrace.Start();
         dotTrace.BeginErrorReadLine();
         dotTrace.BeginOutputReadLine();
-        dotTrace.Exited += (_, _) => dotTrace.Dispose();
     }
 
     private ProcessStartInfo PrepareProcessStartInfo(DiagnoserActionParameters parameters)

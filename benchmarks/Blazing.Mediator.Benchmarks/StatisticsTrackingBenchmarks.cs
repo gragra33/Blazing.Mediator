@@ -43,17 +43,16 @@ public class StatisticsTrackingBenchmarks
         {
             config.WithStatisticsTracking();
         }, typeof(StatisticsTrackingBenchmarks).Assembly);
-        servicesWithStats.AddScoped<IRequestHandler<StatisticsTestCommand>, StatisticsTestCommandHandler>();
-        servicesWithStats.AddScoped<IRequestHandler<StatisticsTestQuery, string>, StatisticsTestQueryHandler>();
-        servicesWithStats.AddScoped<INotificationSubscriber<StatisticsTestNotification>, StatisticsTestNotificationSubscriber>();
-        servicesWithStats.AddScoped<IStreamRequestHandler<StatisticsTestStreamRequest, string>, StatisticsTestStreamHandler>();
         
         var providerWithStats = servicesWithStats.BuildServiceProvider();
         _mediatorWithStats = providerWithStats.GetRequiredService<IMediator>();
 
         // Subscribe to notifications
-        _mediatorWithoutStats.Subscribe(new StatisticsTestNotificationSubscriber());
-        _mediatorWithStats.Subscribe(providerWithStats.GetRequiredService<INotificationSubscriber<StatisticsTestNotification>>());
+        var notificationSubscriberWithoutStats = new StatisticsTestNotificationSubscriber();
+        _mediatorWithoutStats.Subscribe(notificationSubscriberWithoutStats);
+        
+        var notificationSubscriberWithStats = new StatisticsTestNotificationSubscriber();
+        _mediatorWithStats.Subscribe(notificationSubscriberWithStats);
     }
 
     #region Command Statistics Benchmarks

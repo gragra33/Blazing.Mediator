@@ -1,9 +1,6 @@
 using Blazing.Mediator.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
-using Shouldly;
 using System.Reflection;
-using Xunit;
-using Microsoft.Extensions.Logging;
 
 namespace Blazing.Mediator.Tests;
 

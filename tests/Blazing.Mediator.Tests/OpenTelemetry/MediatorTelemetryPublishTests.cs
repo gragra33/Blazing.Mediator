@@ -26,9 +26,12 @@ public class MediatorTelemetryPublishTests : IDisposable
         // Add logging
         services.AddLogging();
 
-        // Add mediator with telemetry enabled
+        // Add mediator with telemetry enabled - disable handler discovery to test pure subscriber functionality
         services.AddMediatorTelemetry();
-        services.AddMediator(typeof(MediatorTelemetryPublishTests).Assembly);
+        services.AddMediator(config =>
+        {
+            config.WithoutNotificationHandlerDiscovery();
+        }, typeof(MediatorTelemetryPublishTests).Assembly);
 
         // Register test notification subscribers
         _testSubscriber = new PublishTestNotificationSubscriber();

@@ -497,9 +497,6 @@ public sealed class MediatorStatistics : IDisposable
     /// <returns>Read-only list of query analysis information grouped by assembly with namespace.</returns>
     public IReadOnlyList<QueryCommandAnalysis> AnalyzeQueries(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
-        // Debug logging: Analysis started
-        _logger?.AnalyzeQueriesStarted(serviceProvider.GetType().Name);
-
         // Use the parameter if provided, otherwise use the options setting
         bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
 
@@ -512,16 +509,7 @@ public sealed class MediatorStatistics : IDisposable
 
         var allQueryTypes = queryTypes.Concat(requestWithResponseTypes).Distinct().ToList();
 
-        // Debug logging: Analysis completed
-        _logger?.AnalyzeQueriesCompleted(allQueryTypes.Count, useDetailedAnalysis);
-
         var results = CreateAnalysisResults(allQueryTypes, serviceProvider, true, useDetailedAnalysis);
-
-        // Debug logging: Individual results
-        foreach (var result in results)
-        {
-            _logger?.AnalyzeQueryResult(result.ClassName, result.ResponseType?.Name ?? "void", result.HandlerStatus.ToString());
-        }
 
         return results;
     }
@@ -535,9 +523,6 @@ public sealed class MediatorStatistics : IDisposable
     /// <returns>Read-only list of command analysis information grouped by assembly with namespace.</returns>
     public IReadOnlyList<QueryCommandAnalysis> AnalyzeCommands(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
-        // Debug logging: Analysis started
-        _logger?.AnalyzeCommandsStarted(serviceProvider.GetType().Name);
-
         // Use the parameter if provided, otherwise use the options setting
         bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
 
@@ -558,16 +543,26 @@ public sealed class MediatorStatistics : IDisposable
 
         var allCommandTypes = commandTypes.Concat(voidRequestTypes).Concat(requestWithResponseTypes).Distinct().ToList();
 
-        // Debug logging: Analysis completed
-        _logger?.AnalyzeCommandsCompleted(allCommandTypes.Count, useDetailedAnalysis);
-
         var results = CreateAnalysisResults(allCommandTypes, serviceProvider, false, useDetailedAnalysis);
 
-        // Debug logging: Individual results
-        foreach (var result in results)
-        {
-            _logger?.AnalyzeCommandResult(result.ClassName, result.ResponseType?.Name ?? "void", result.HandlerStatus.ToString());
-        }
+        return results;
+    }
+
+    /// <summary>
+    /// Analyzes all registered notifications in the application and returns detailed information about handlers and subscribers.
+    /// </summary>
+    /// <param name="serviceProvider">Service provider to scan for registered notification types.</param>
+    /// <param name="isDetailed">Whether to return detailed analysis or compact view.</param>
+    /// <returns>Read-only list of notification analysis information.</returns>
+    public IReadOnlyList<NotificationAnalysis> AnalyzeNotifications(IServiceProvider serviceProvider, bool? isDetailed = null)
+    {
+        // Use the parameter if provided, otherwise use the options setting
+        bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
+
+        // Look for INotification implementations
+        var notificationTypes = FindTypesImplementingInterface(typeof(INotification));
+
+        var results = CreateNotificationAnalysisResults(notificationTypes, serviceProvider, useDetailedAnalysis);
 
         return results;
     }
@@ -687,11 +682,169 @@ public sealed class MediatorStatistics : IDisposable
         catch (Exception ex)
         {
             // For debugging: log the exception details (in production this would be logged)
-            // ReSharper disable once InvocationIsSkipped
             Debug.WriteLine($"Error finding handlers for {requestType.Name}: {ex.Message}");
         }
 
         return handlers;
+    }
+
+    /// <summary>
+    /// Creates notification analysis results from a collection of notification types.
+    /// </summary>
+    private static IReadOnlyList<NotificationAnalysis> CreateNotificationAnalysisResults(IEnumerable<Type> types, IServiceProvider serviceProvider, bool isDetailed)
+    {
+        var analysisResults = new List<NotificationAnalysis>();
+
+        foreach (var type in types.OrderBy(t => t.Assembly.GetName().Name).ThenBy(t => t.Namespace ?? "Unknown").ThenBy(t => t.Name))
+        {
+            var className = type.Name;
+            var typeParameters = string.Empty;
+
+            // Handle generic types
+            if (type.IsGenericType)
+            {
+                // Remove generic suffix from class name
+                var backtickIndex = className.IndexOf('`');
+                if (backtickIndex > 0)
+                {
+                    className = className[..backtickIndex];
+                }
+
+                // Get type parameters
+                var genericArgs = type.GetGenericArguments();
+                typeParameters = $"<{string.Join(", ", genericArgs.Select(t => t.Name))}>";
+            }
+
+            // Determine primary interface
+            string primaryInterface = typeof(INotification).IsAssignableFrom(type) ? "INotification" : "Unknown";
+
+            // Find automatic handlers (INotificationHandler<T>)
+            var handlers = FindNotificationHandlers(type, serviceProvider);
+            HandlerStatus handlerStatus;
+            string handlerDetails;
+
+            // Determine handler status
+            switch (handlers.Count)
+            {
+                case 0:
+                    handlerStatus = HandlerStatus.Missing;
+                    handlerDetails = isDetailed ? "No handlers registered" : "No handlers";
+                    break;
+                case 1:
+                    handlerStatus = HandlerStatus.Single;
+                    handlerDetails = isDetailed ? handlers[0].Name : "Handler found";
+                    break;
+                default:
+                    handlerStatus = HandlerStatus.Multiple;
+                    handlerDetails = isDetailed
+                        ? $"{handlers.Count} handlers: {string.Join(", ", handlers.Select(h => h.Name))}"
+                        : $"{handlers.Count} handlers";
+                    break;
+            }
+
+            // Estimate manual subscribers (this is approximate since subscribers can be registered dynamically)
+            var (subscriberStatus, subscriberDetails, estimatedSubscribers) = EstimateSubscribers(type, serviceProvider, isDetailed);
+
+            analysisResults.Add(new NotificationAnalysis(
+                Type: type,
+                ClassName: className,
+                TypeParameters: isDetailed ? typeParameters : string.Empty,
+                Assembly: type.Assembly.GetName().Name ?? "Unknown",
+                Namespace: type.Namespace ?? "Unknown",
+                PrimaryInterface: primaryInterface,
+                HandlerStatus: handlerStatus,
+                HandlerDetails: handlerDetails,
+                Handlers: isDetailed ? handlers : [],
+                SubscriberStatus: subscriberStatus,
+                SubscriberDetails: subscriberDetails,
+                EstimatedSubscribers: estimatedSubscribers
+            ));
+        }
+
+        return analysisResults;
+    }
+
+    /// <summary>
+    /// Finds registered automatic notification handlers for a specific notification type.
+    /// </summary>
+    private static List<Type> FindNotificationHandlers(Type notificationType, IServiceProvider serviceProvider)
+    {
+        var handlers = new List<Type>();
+
+        try
+        {
+            // Look for INotificationHandler<T> implementations
+            var handlerInterfaceType = typeof(INotificationHandler<>).MakeGenericType(notificationType);
+            
+            // Try to get all registered services for this handler interface
+            var handlerServices = serviceProvider.GetServices(handlerInterfaceType);
+            handlers.AddRange(handlerServices.Where(h => h != null).Select(h => h!.GetType()).Distinct());
+        }
+        catch (Exception ex)
+        {
+            // For debugging: log the exception details
+            Debug.WriteLine($"Error finding handlers for notification {notificationType.Name}: {ex.Message}");
+        }
+
+        return handlers;
+    }
+
+    /// <summary>
+    /// Estimates the number and status of manual subscribers for a notification type.
+    /// Note: This is approximate since subscribers can be registered dynamically at runtime.
+    /// </summary>
+    private static (SubscriberStatus Status, string Details, int EstimatedCount) EstimateSubscribers(Type notificationType, IServiceProvider serviceProvider, bool isDetailed)
+    {
+        try
+        {
+            // Try to get the mediator service to check for registered subscribers
+            var mediator = serviceProvider.GetService<IMediator>();
+            if (mediator is Mediator concreteMediator)
+            {
+                // Use reflection to access internal subscriber tracking if available
+                // Note: This is a best-effort estimation and may not be completely accurate
+                var subscriberField = typeof(Mediator).GetField("_notificationSubscribers", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (subscriberField?.GetValue(concreteMediator) is IDictionary<string, object> subscribersDict)
+                {
+                    // Check if this notification type has any subscribers
+                    var typeKey = notificationType.FullName ?? notificationType.Name;
+                    var hasSubscribers = false;
+                    var estimatedCount = 0;
+
+                    // Iterate through the subscribers dictionary to find matches
+                    foreach (var key in subscribersDict.Keys)
+                    {
+                        if (key?.ToString()?.Contains(typeKey) == true)
+                        {
+                            hasSubscribers = true;
+                            estimatedCount++;
+                        }
+                    }
+
+                    if (hasSubscribers)
+                    {
+                        var details = isDetailed 
+                            ? $"Estimated {estimatedCount} subscriber(s) (dynamic registration may affect accuracy)"
+                            : $"{estimatedCount} subscriber(s)";
+                        return (SubscriberStatus.Present, details, estimatedCount);
+                    }
+                }
+            }
+
+            // If we can't determine, return unknown status
+            var unknownDetails = isDetailed 
+                ? "Cannot determine subscriber status (may be registered dynamically)"
+                : "Unknown";
+            return (SubscriberStatus.Unknown, unknownDetails, 0);
+        }
+        catch
+        {
+            // If there's any error, return none
+            var noneDetails = isDetailed 
+                ? "No subscribers found (or unable to detect)"
+                : "No subscribers";
+            return (SubscriberStatus.None, noneDetails, 0);
+        }
     }
 
     /// <summary>

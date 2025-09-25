@@ -55,6 +55,11 @@ public sealed class MediatorConfiguration
     public bool DiscoverNotificationMiddleware { get; set; }
 
     /// <summary>
+    /// Gets or sets whether to automatically discover and register notification handlers from assemblies.
+    /// </summary>
+    public bool DiscoverNotificationHandlers { get; set; } = true;
+
+    /// <summary>
     /// Initializes a new instance of the MediatorConfiguration class.
     /// </summary>
     /// <param name="services">The service collection for automatic DI registration of middleware</param>
@@ -226,6 +231,26 @@ public sealed class MediatorConfiguration
     public MediatorConfiguration WithNotificationMiddlewareDiscovery()
     {
         DiscoverNotificationMiddleware = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables automatic discovery and registration of notification handlers from assemblies.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithNotificationHandlerDiscovery()
+    {
+        DiscoverNotificationHandlers = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Disables automatic discovery and registration of notification handlers from assemblies.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithoutNotificationHandlerDiscovery()
+    {
+        DiscoverNotificationHandlers = false;
         return this;
     }
 

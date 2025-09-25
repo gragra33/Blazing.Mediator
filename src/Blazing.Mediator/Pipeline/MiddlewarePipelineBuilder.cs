@@ -110,7 +110,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         Type actualRequestType = request.GetType();
 
         // Debug logging: Pipeline started
-        _logger?.RequestMiddlewarePipelineStarted(actualRequestType.Name, _middlewareInfos.Count);
+        _logger?.LogDebug("Request middleware pipeline started for {RequestType} with {MiddlewareCount} middleware components", actualRequestType.Name, _middlewareInfos.Count);
 
         _ = Guid.NewGuid().ToString("N")[..8];
 
@@ -122,7 +122,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         foreach (MiddlewareInfo middlewareInfo in _middlewareInfos)
         {
             // Debug logging: Checking middleware compatibility
-            _logger?.RequestMiddlewareCompatibilityCheck(middlewareInfo.Type.Name, actualRequestType.Name);
+            _logger?.LogDebug("Checking middleware compatibility: {MiddlewareName} with request {RequestType}", middlewareInfo.Type.Name, actualRequestType.Name);
 
             Type middlewareType = middlewareInfo.Type;
 
@@ -177,7 +177,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             if (!isCompatible)
             {
                 // Debug logging: Middleware not compatible
-                _logger?.RequestMiddlewareCompatibilityResult(actualMiddlewareType.Name, "not compatible", actualRequestType.Name, middlewareInfo.Order);
+                _logger?.LogDebug("Middleware {MiddlewareName} is not compatible with request {RequestType}, order: {Order}", actualMiddlewareType.Name, actualRequestType.Name, middlewareInfo.Order);
 
                 // This middleware doesn't handle this request type, skip it
                 continue;
@@ -207,11 +207,11 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             applicableMiddleware.Add((actualMiddlewareType, actualOrder));
 
             // Debug logging: Middleware successfully added
-            _logger?.RequestMiddlewareCompatibilityResult(actualMiddlewareType.Name, "compatible", actualRequestType.Name, actualOrder);
+            _logger?.LogDebug("Middleware {MiddlewareName} is compatible with request {RequestType}, order: {Order}", actualMiddlewareType.Name, actualRequestType.Name, actualOrder);
         }
 
         // Debug logging: Pipeline execution info
-        _logger?.RequestMiddlewarePipelineExecution(applicableMiddleware.Count);
+        _logger?.LogDebug("Executing request middleware pipeline with {ApplicableMiddlewareCount} applicable middleware components", applicableMiddleware.Count);
 
         // Sort middleware by order (lower numbers execute first), then by registration order
         applicableMiddleware.Sort((a, b) =>

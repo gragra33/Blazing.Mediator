@@ -47,10 +47,21 @@ namespace Blazing.Mediator.Tests.Tests
                 .Select(m => m.Name)
                 .ToList();
 
-            // Act & Assert - Verify helper methods exist
-            privateMethods.ShouldContain("RegisterHandlers");
-            privateMethods.ShouldContain("RegisterMiddleware");
-            privateMethods.ShouldContain("RegisterMiddlewareFromAssembly");
+            // Act & Assert - Verify core method exists (the registration logic is now in MediatorRegistrationService)
+            privateMethods.ShouldContain("AddMediatorCore");
+            
+            // Verify that the registration service exists and contains the moved logic
+            var registrationServiceType = Type.GetType("Blazing.Mediator.Registration.MediatorRegistrationService, Blazing.Mediator");
+            registrationServiceType.ShouldNotBeNull("MediatorRegistrationService should exist");
+            
+            // Verify that the registration service has the expected methods
+            var registrationServiceMethods = registrationServiceType
+                .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+                .Select(m => m.Name)
+                .ToList();
+                
+            registrationServiceMethods.ShouldContain("RegisterHandlersFromAssembly");
+            registrationServiceMethods.ShouldContain("RegisterMiddlewareFromAssembly");
         }
 
         /// <summary>

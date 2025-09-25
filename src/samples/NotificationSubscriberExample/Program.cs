@@ -34,7 +34,7 @@ var host = Host.CreateDefaultBuilder(args)
 const string separator = "==============================================";
 
 Console.WriteLine(separator);
-Console.WriteLine("* Blazing.Mediator - Simple Notification Example");
+Console.WriteLine("* Blazing.Mediator - Notification Subscriber Example");
 Console.WriteLine(separator);
 Console.WriteLine();
 Console.WriteLine("This example demonstrates the notification system with:");

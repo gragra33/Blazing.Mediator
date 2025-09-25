@@ -1,6 +1,6 @@
 using Blazing.Mediator.Abstractions;
 
-namespace SimpleNotificationExample;
+namespace NotificationSubscriberExample;
 
 /// <summary>
 /// Runner service that demonstrates the notification system with auto-discovered middleware.

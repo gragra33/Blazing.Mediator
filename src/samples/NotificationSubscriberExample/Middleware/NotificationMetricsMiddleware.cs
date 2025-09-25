@@ -1,6 +1,6 @@
 using Blazing.Mediator.Abstractions;
 
-namespace SimpleNotificationExample.Middleware;
+namespace NotificationSubscriberExample.Middleware;
 
 /// <summary>
 /// Middleware that tracks metrics and performance for notification processing.

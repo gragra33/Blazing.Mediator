@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <RootNamespace>NotificationSubscriberExample</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-namespace SimpleNotificationExample.Subscribers;
+namespace NotificationSubscriberExample.Subscribers;
 
 /// <summary>
 /// Email notification handler that implements INotificationSubscriber.

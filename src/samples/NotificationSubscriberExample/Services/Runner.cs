@@ -1,7 +1,7 @@
 using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Statistics;
 
-namespace SimpleNotificationExample.Services;
+namespace NotificationSubscriberExample.Services;
 
 /// <summary>
 /// Runner service that demonstrates the notification system in action.

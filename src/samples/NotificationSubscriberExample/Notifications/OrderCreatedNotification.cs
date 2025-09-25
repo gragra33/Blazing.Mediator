@@ -1,4 +1,4 @@
-namespace SimpleNotificationExample.Notifications;
+namespace NotificationSubscriberExample.Notifications;
 
 /// <summary>
 /// Notification published when an order is created.

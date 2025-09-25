@@ -1,4 +1,4 @@
-namespace SimpleNotificationExample.Subscribers;
+namespace NotificationSubscriberExample.Subscribers;
 
 /// <summary>
 /// Simple inventory handler that implements INotificationSubscriber.

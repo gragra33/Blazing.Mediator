@@ -11,7 +11,7 @@ namespace OpenTelemetryExample.Extensions;
 /// Extension methods for mapping minimal API endpoints.
 /// Separates endpoint definitions from Program.cs for better organization.
 /// </summary>
-public static class MinimalEndpointsExtensions
+internal static class MinimalEndpointsExtensions
 {
     /// <summary>
     /// Maps telemetry-related endpoints.
@@ -57,14 +57,14 @@ public static class MinimalEndpointsExtensions
             .Produces<LiveMetricsDto>();
 
         telemetryGroup.MapGet("/traces", async (IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, bool? exampleAppOnly, int? timeWindowMinutes, int? page, int? pageSize) =>
-                await GetRecentTraces(mediator, maxRecords, blazingMediatorOnly, exampleAppOnly, timeWindowMinutes, page, pageSize))
+                await GetRecentTraces(mediator, maxRecords, blazingMediatorOnly, exampleAppOnly, timeWindowMinutes, page, pageSize).ConfigureAwait(false))
             .WithName("GetRecentTraces")
             .WithSummary("Get recent trace data")
             .WithDescription("Returns recent OpenTelemetry traces for display in the dashboard. Supports filtering and pagination.")
             .Produces<RecentTracesDto>();
 
         telemetryGroup.MapGet("/traces/grouped", async (IMediator mediator, int? maxRecords, bool? blazingMediatorOnly, bool? exampleAppOnly, int? timeWindowMinutes, bool? hidePackets, int? page, int? pageSize) =>
-                await GetGroupedTraces(mediator, maxRecords, blazingMediatorOnly, exampleAppOnly, timeWindowMinutes, hidePackets, page, pageSize))
+                await GetGroupedTraces(mediator, maxRecords, blazingMediatorOnly, exampleAppOnly, timeWindowMinutes, hidePackets, page, pageSize).ConfigureAwait(false))
             .WithName("GetGroupedTraces")
             .WithSummary("Get grouped trace data")
             .WithDescription("Returns recent OpenTelemetry traces organized in hierarchical groups by TraceId and ParentId. Supports filtering and pagination.")
@@ -203,7 +203,7 @@ public static class MinimalEndpointsExtensions
                 TimeWindow = TimeSpan.FromMinutes(30)
             };
 
-            var result = await mediator.Send(query);
+            var result = await mediator.Send(query).ConfigureAwait(false);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -214,7 +214,6 @@ public static class MinimalEndpointsExtensions
             var fallbackResult = new LiveMetricsDto
             {
                 Timestamp = DateTime.UtcNow,
-                Metrics = new MetricsData(),
                 Commands = [],
                 Queries = [],
                 Message = $"Error retrieving live metrics: {ex.Message}"
@@ -241,7 +240,7 @@ public static class MinimalEndpointsExtensions
                 PageSize = pageSize ?? 10
             };
 
-            var result = await mediator.Send(query);
+            var result = await mediator.Send(query).ConfigureAwait(false);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -285,7 +284,7 @@ public static class MinimalEndpointsExtensions
                 PageSize = pageSize ?? 10
             };
 
-            var result = await mediator.Send(query);
+            var result = await mediator.Send(query).ConfigureAwait(false);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -326,7 +325,7 @@ public static class MinimalEndpointsExtensions
                 TimeWindow = TimeSpan.FromMinutes(30)
             };
 
-            var result = await mediator.Send(query);
+            var result = await mediator.Send(query).ConfigureAwait(false);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -364,10 +363,9 @@ public static class MinimalEndpointsExtensions
     /// </summary>
     private static async Task<IResult> TestNotifications(IMediator mediator)
     {
-        Console.WriteLine("[+] Testing notification via Blazing.Mediator...");
-        var notification = new TestNotification { Message = "Test notification from API" };
-        await mediator.Publish(notification);
-        Console.WriteLine("[+] Notification published successfully!");
+        Console.WriteLine(Resources.TestingNotificationMessage);
+        await mediator.Publish(new TestNotification { Message = "Test notification from API" }).ConfigureAwait(false);
+        Console.WriteLine(Resources.NotificationPublishedMessage);
         return Results.Ok(new { Message = "Test notification published successfully" });
     }
 
@@ -376,17 +374,16 @@ public static class MinimalEndpointsExtensions
     /// </summary>
     private static async Task<IResult> TestMiddlewareError(IMediator mediator)
     {
-        Console.WriteLine("[!] Testing error middleware via Blazing.Mediator...");
+        Console.WriteLine(Resources.TestingErrorMiddlewareMessage);
         try
         {
-            // This will go through the middleware pipeline and fail
             var command = new CreateUserCommand { Name = "Error User", Email = "error@example.com" };
-            await mediator.Send(command);
+            await mediator.Send(command).ConfigureAwait(false);
             return Results.Ok(new { Message = "This should not be reached" });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[!] Error middleware test completed: {ex.Message}");
+            Console.WriteLine(Resources.ErrorMiddlewareTestCompleted + ex.Message);
             return Results.Problem(
                 title: "Middleware Error Test",
                 detail: ex.Message,
@@ -400,29 +397,39 @@ public static class MinimalEndpointsExtensions
     /// </summary>
     private static async Task<IResult> TestMiddlewareValidation(IMediator mediator)
     {
-        Console.WriteLine("[!] Testing validation middleware via Blazing.Mediator...");
+        Console.WriteLine(Resources.TestingValidationMiddlewareMessage);
         try
         {
-            // This will trigger validation errors
             var command = new CreateUserCommand { Name = "", Email = "invalid-email" };
-            await mediator.Send(command);
+            await mediator.Send(command).ConfigureAwait(false);
             return Results.Ok(new { Message = "This should not be reached" });
         }
         catch (ValidationException ex)
         {
-            Console.WriteLine($"[!] Validation middleware test completed: {ex.Message}");
+            Console.WriteLine(Resources.ValidationMiddlewareTestCompleted + ex.Message);
             var errors = ex.Errors.Select(e => new { Property = e.PropertyName, Error = e.ErrorMessage });
             return Results.BadRequest(new { Message = "Validation failed (for testing)", Errors = errors });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[-] Unexpected error during validation test: {ex.Message}");
+            Console.WriteLine(Resources.UnexpectedValidationError + ex.Message);
             return Results.Problem(
                 title: "Unexpected Error",
                 detail: ex.Message,
                 statusCode: 500
             );
         }
+    }
+
+    private static class Resources
+    {
+        public const string TestingValidationMiddlewareMessage = "[!] Testing validation middleware via Blazing.Mediator...";
+        public const string TestingNotificationMessage = "[+] Testing notification via Blazing.Mediator...";
+        public const string NotificationPublishedMessage = "[+] Notification published successfully!";
+        public const string TestingErrorMiddlewareMessage = "[!] Testing error middleware via Blazing.Mediator...";
+        public const string ErrorMiddlewareTestCompleted = "[!] Error middleware test completed: ";
+        public const string ValidationMiddlewareTestCompleted = "[!] Validation middleware test completed: ";
+        public const string UnexpectedValidationError = "[-] Unexpected error during validation test: ";
     }
 
     #endregion

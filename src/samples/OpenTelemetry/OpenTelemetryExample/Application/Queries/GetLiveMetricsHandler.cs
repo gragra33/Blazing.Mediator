@@ -8,13 +8,12 @@ namespace OpenTelemetryExample.Application.Queries;
 /// <summary>
 /// Handler for GetLiveMetricsQuery that retrieves real telemetry data from the database.
 /// </summary>
-public sealed class GetLiveMetricsHandler(ApplicationDbContext context, ILogger<GetLiveMetricsHandler> logger)
+internal sealed class GetLiveMetricsHandler(ApplicationDbContext context, ILogger<GetLiveMetricsHandler> logger)
     : IRequestHandler<GetLiveMetricsQuery, LiveMetricsDto>
 {
     public async Task<LiveMetricsDto> Handle(GetLiveMetricsQuery request, CancellationToken cancellationToken = default)
     {
         var cutoffTime = DateTime.UtcNow - request.TimeWindow;
-
         try
         {
             // Get recent metrics from the database
@@ -22,11 +21,12 @@ public sealed class GetLiveMetricsHandler(ApplicationDbContext context, ILogger<
                 .Where(m => m.Timestamp >= cutoffTime)
                 .OrderByDescending(m => m.Timestamp)
                 .Take(request.MaxRecords)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
 
             if (!recentMetrics.Any())
             {
-                logger.LogInformation("No telemetry metrics found in the last {TimeWindow} minutes", request.TimeWindow.TotalMinutes);
+                LogNoMetrics(logger, request.TimeWindow.TotalMinutes, null);
                 return new LiveMetricsDto
                 {
                     Timestamp = DateTime.UtcNow,
@@ -90,15 +90,13 @@ public sealed class GetLiveMetricsHandler(ApplicationDbContext context, ILogger<
                 Message = $"Live metrics from the last {request.TimeWindow.TotalMinutes:F0} minutes - {totalRequests} total requests, {successfulRequests} successful"
             };
 
-            logger.LogInformation("Retrieved live metrics: {TotalRequests} requests, {SuccessRate:F1}% success rate",
-                totalRequests, successfulRequests * 100.0 / totalRequests);
+            LogRetrievedMetrics(logger, totalRequests, successfulRequests * 100.0 / totalRequests, null);
 
             return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving live metrics");
-
+            LogError(logger, ex, null);
             // Return fallback data in case of error
             return new LiveMetricsDto
             {
@@ -110,4 +108,21 @@ public sealed class GetLiveMetricsHandler(ApplicationDbContext context, ILogger<
             };
         }
     }
+
+    // LoggerMessage delegates for CA1848
+    private static readonly Action<ILogger, double, Exception?> LogNoMetrics =
+        LoggerMessage.Define<double>(
+            LogLevel.Information,
+            new EventId(1, nameof(LogNoMetrics)),
+            "No telemetry metrics found in the last {TimeWindow} minutes");
+    private static readonly Action<ILogger, int, double, Exception?> LogRetrievedMetrics =
+        LoggerMessage.Define<int, double>(
+            LogLevel.Information,
+            new EventId(2, nameof(LogRetrievedMetrics)),
+            "Retrieved live metrics: {TotalRequests} requests, {SuccessRate:F1}% success rate");
+    private static readonly Action<ILogger, Exception, Exception?> LogError =
+        LoggerMessage.Define<Exception>(
+            LogLevel.Error,
+            new EventId(3, nameof(LogError)),
+            "Error retrieving live metrics");
 }

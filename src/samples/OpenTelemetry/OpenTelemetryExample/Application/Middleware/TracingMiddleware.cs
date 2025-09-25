@@ -18,7 +18,7 @@ public class TracingMiddleware<TRequest, TResponse> : IRequestMiddleware<TReques
         using var activity = activitySource.StartActivity($"Mediator:{typeof(TRequest).Name}", ActivityKind.Internal);
         activity?.SetTag("mediator.request_type", typeof(TRequest).FullName);
         activity?.SetTag("mediator.tracing_middleware", true);
-        var response = await next();
+        var response = await next().ConfigureAwait(false);
         activity?.SetTag("mediator.response_type", typeof(TResponse).FullName);
         return response;
     }

@@ -1,8 +1,8 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Benchmarks;
 
@@ -285,7 +285,7 @@ public class MiddlewarePipelineBenchmarks
             // Minimal validation overhead
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
-            
+
             return await next().ConfigureAwait(false);
         }
     }

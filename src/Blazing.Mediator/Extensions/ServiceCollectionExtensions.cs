@@ -1,6 +1,6 @@
-using Blazing.Mediator.Statistics;
 using Blazing.Mediator.OpenTelemetry;
 using Blazing.Mediator.Services;
+using Blazing.Mediator.Statistics;
 using System.Runtime.CompilerServices;
 
 namespace Blazing.Mediator;

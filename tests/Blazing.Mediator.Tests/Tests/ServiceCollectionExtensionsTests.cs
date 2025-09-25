@@ -337,7 +337,7 @@ public class ServiceCollectionExtensionsTests
         {
             config.AddMiddleware<AutoDiscoveryInstanceOrderMiddleware>();
         }, (Assembly[])null!);
-        
+
         // Register the handler for MiddlewareTestQuery
         services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
 

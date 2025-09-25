@@ -1,319 +1,228 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
+using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
-using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace Blazing.Mediator.Benchmarks;
 
 /// <summary>
-/// Performance benchmarks for OpenTelemetry instrumentation overhead in Blazing.Mediator.
-/// Measures the performance impact of telemetry on Send, Publish, and streaming operations.
+/// Benchmarks to measure the performance impact of OpenTelemetry instrumentation on Mediator operations.
+/// These benchmarks compare performance with telemetry enabled vs disabled to ensure minimal overhead.
 /// </summary>
-[MemoryDiagnoser]
 [SimpleJob(RuntimeMoniker.Net90)]
-[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
-[CategoriesColumn]
-public class MediatorTelemetryPerformanceBenchmarks : IDisposable
+[MemoryDiagnoser]
+[MinColumn, MaxColumn, MeanColumn, MedianColumn]
+public class MediatorTelemetryPerformanceBenchmarks
 {
-    private ServiceProvider _serviceProviderWithTelemetry = null!;
-    private ServiceProvider _serviceProviderWithoutTelemetry = null!;
+    private IServiceProvider _serviceProviderWithTelemetry = null!;
+    private IServiceProvider _serviceProviderWithoutTelemetry = null!;
     private IMediator _mediatorWithTelemetry = null!;
     private IMediator _mediatorWithoutTelemetry = null!;
-
-    private BenchmarkTestCommand _command = null!;
-    private BenchmarkTestQuery _query = null!;
-    private BenchmarkTestNotification _notification = null!;
-    private BenchmarkTestStreamRequest _streamRequest = null!;
-
-    private ActivityListener? _activityListener;
-    private bool _disposed;
+    
+    private TestCommand _testCommand = null!;
+    private TestQuery _testQuery = null!;
+    private TestNotification _testNotification = null!;
 
     [GlobalSetup]
     public void Setup()
     {
-        // Create command and query instances
-        _command = new BenchmarkTestCommand { Value = "benchmark test" };
-        _query = new BenchmarkTestQuery { Value = "benchmark query" };
-        _notification = new BenchmarkTestNotification { Message = "benchmark notification" };
-        _streamRequest = new BenchmarkTestStreamRequest { Count = 10 };
-
-        // Setup mediator WITH telemetry
+        // Setup with telemetry enabled
         var servicesWithTelemetry = new ServiceCollection();
-        servicesWithTelemetry.AddLogging();
-        servicesWithTelemetry.AddMediator(); // Don't scan assemblies
-
-        // Register handlers manually to avoid conflicts
-        servicesWithTelemetry.AddScoped<IRequestHandler<BenchmarkTestCommand>, BenchmarkTestCommandHandler>();
-        servicesWithTelemetry.AddScoped<IRequestHandler<BenchmarkTestQuery, string>, BenchmarkTestQueryHandler>();
-        servicesWithTelemetry.AddScoped<INotificationSubscriber<BenchmarkTestNotification>, BenchmarkTestNotificationSubscriber>();
-        servicesWithTelemetry.AddScoped<IStreamRequestHandler<BenchmarkTestStreamRequest, string>, BenchmarkTestStreamHandler>();
-
+        servicesWithTelemetry.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
+        servicesWithTelemetry.AddMediatorTelemetry();
+        servicesWithTelemetry.AddMediator();
+        servicesWithTelemetry.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
+        servicesWithTelemetry.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
+        servicesWithTelemetry.AddScoped<INotificationSubscriber<TestNotification>, TestNotificationSubscriber>();
+        
         _serviceProviderWithTelemetry = servicesWithTelemetry.BuildServiceProvider();
         _mediatorWithTelemetry = _serviceProviderWithTelemetry.GetRequiredService<IMediator>();
 
-        // Setup mediator WITHOUT telemetry
+        // Setup without telemetry
         var servicesWithoutTelemetry = new ServiceCollection();
-        servicesWithoutTelemetry.AddLogging();
-        servicesWithoutTelemetry.AddMediator(); // Don't scan assemblies
-
-        // Register handlers manually to avoid conflicts
-        servicesWithoutTelemetry.AddScoped<IRequestHandler<BenchmarkTestCommand>, BenchmarkTestCommandHandler>();
-        servicesWithoutTelemetry.AddScoped<IRequestHandler<BenchmarkTestQuery, string>, BenchmarkTestQueryHandler>();
-        servicesWithoutTelemetry.AddScoped<INotificationSubscriber<BenchmarkTestNotification>, BenchmarkTestNotificationSubscriber>();
-        servicesWithoutTelemetry.AddScoped<IStreamRequestHandler<BenchmarkTestStreamRequest, string>, BenchmarkTestStreamHandler>();
-
+        servicesWithoutTelemetry.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
+        servicesWithoutTelemetry.DisableMediatorTelemetry();
+        servicesWithoutTelemetry.AddMediator();
+        servicesWithoutTelemetry.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
+        servicesWithoutTelemetry.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
+        servicesWithoutTelemetry.AddScoped<INotificationSubscriber<TestNotification>, TestNotificationSubscriber>();
+        
         _serviceProviderWithoutTelemetry = servicesWithoutTelemetry.BuildServiceProvider();
         _mediatorWithoutTelemetry = _serviceProviderWithoutTelemetry.GetRequiredService<IMediator>();
 
-        // Disable telemetry for the without-telemetry mediator
-        Mediator.TelemetryEnabled = false;
-
-        // Setup activity listener to capture telemetry (for telemetry-enabled tests)
-        _activityListener = new ActivityListener
-        {
-            ShouldListenTo = source => source.Name == "Blazing.Mediator",
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-            ActivityStarted = _ => { /* Capture activity */ },
-            ActivityStopped = _ => { /* Activity completed */ }
-        };
-        ActivitySource.AddActivityListener(_activityListener);
-
-        // Re-enable telemetry for telemetry-enabled tests
-        Mediator.TelemetryEnabled = true;
-
         // Subscribe to notifications
-        _mediatorWithTelemetry.Subscribe(_serviceProviderWithTelemetry.GetService<INotificationSubscriber<BenchmarkTestNotification>>()!);
-        _mediatorWithoutTelemetry.Subscribe(_serviceProviderWithoutTelemetry.GetService<INotificationSubscriber<BenchmarkTestNotification>>()!);
+        var subscriber = _serviceProviderWithTelemetry.GetRequiredService<INotificationSubscriber<TestNotification>>();
+        _mediatorWithTelemetry.Subscribe(subscriber);
+        
+        var subscriberWithoutTelemetry = _serviceProviderWithoutTelemetry.GetRequiredService<INotificationSubscriber<TestNotification>>();
+        _mediatorWithoutTelemetry.Subscribe(subscriberWithoutTelemetry);
+
+        // Initialize test objects
+        _testCommand = new TestCommand { Value = "benchmark" };
+        _testQuery = new TestQuery { Value = "benchmark" };
+        _testNotification = new TestNotification { Message = "benchmark" };
     }
 
     [GlobalCleanup]
     public void Cleanup()
     {
-        _activityListener?.Dispose();
-        _serviceProviderWithTelemetry?.Dispose();
-        _serviceProviderWithoutTelemetry?.Dispose();
+        (_serviceProviderWithTelemetry as IDisposable)?.Dispose();
+        (_serviceProviderWithoutTelemetry as IDisposable)?.Dispose();
     }
 
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        _activityListener?.Dispose();
-        _serviceProviderWithTelemetry?.Dispose();
-        _serviceProviderWithoutTelemetry?.Dispose();
-        GC.SuppressFinalize(this);
-    }
-
-    #region Send Command Benchmarks
+    #region Command Benchmarks
 
     [Benchmark(Baseline = true)]
-    [BenchmarkCategory("Send_Command")]
-    public async Task Send_Command_WithoutTelemetry()
+    public async Task SendCommand_WithoutTelemetry()
     {
-        await _mediatorWithoutTelemetry.Send(_command).ConfigureAwait(false);
+        await _mediatorWithoutTelemetry.Send(_testCommand);
     }
 
     [Benchmark]
-    [BenchmarkCategory("Send_Command")]
-    public async Task Send_Command_WithTelemetry()
+    public async Task SendCommand_WithTelemetry()
     {
-        await _mediatorWithTelemetry.Send(_command).ConfigureAwait(false);
+        await _mediatorWithTelemetry.Send(_testCommand);
     }
 
     #endregion
 
-    #region Send Query Benchmarks
+    #region Query Benchmarks
 
-    [Benchmark(Baseline = true)]
-    [BenchmarkCategory("Send_Query")]
-    public async Task<string> Send_Query_WithoutTelemetry()
+    [Benchmark]
+    public async Task<string> SendQuery_WithoutTelemetry()
     {
-        return await _mediatorWithoutTelemetry.Send(_query).ConfigureAwait(false);
+        return await _mediatorWithoutTelemetry.Send(_testQuery);
     }
 
     [Benchmark]
-    [BenchmarkCategory("Send_Query")]
-    public async Task<string> Send_Query_WithTelemetry()
+    public async Task<string> SendQuery_WithTelemetry()
     {
-        return await _mediatorWithTelemetry.Send(_query).ConfigureAwait(false);
+        return await _mediatorWithTelemetry.Send(_testQuery);
     }
 
     #endregion
 
-    #region Publish Notification Benchmarks
+    #region Notification Benchmarks
 
-    [Benchmark(Baseline = true)]
-    [BenchmarkCategory("Publish_Notification")]
-    public async Task Publish_Notification_WithoutTelemetry()
+    [Benchmark]
+    public async Task PublishNotification_WithoutTelemetry()
     {
-        await _mediatorWithoutTelemetry.Publish(_notification).ConfigureAwait(false);
+        await _mediatorWithoutTelemetry.Publish(_testNotification);
     }
 
     [Benchmark]
-    [BenchmarkCategory("Publish_Notification")]
-    public async Task Publish_Notification_WithTelemetry()
+    public async Task PublishNotification_WithTelemetry()
     {
-        await _mediatorWithTelemetry.Publish(_notification).ConfigureAwait(false);
+        await _mediatorWithTelemetry.Publish(_testNotification);
     }
 
     #endregion
 
-    #region Stream Request Benchmarks
+    #region Batch Operation Benchmarks
 
-    [Benchmark(Baseline = true)]
-    [BenchmarkCategory("Send_Stream")]
-    public async Task<int> Send_Stream_WithoutTelemetry()
+    [Benchmark]
+    [Arguments(10)]
+    [Arguments(100)]
+    [Arguments(1000)]
+    public async Task SendCommand_Batch_WithoutTelemetry(int batchSize)
     {
-        var count = 0;
-        await foreach (var unused in _mediatorWithoutTelemetry.SendStream(_streamRequest))
+        var tasks = new Task[batchSize];
+        for (int i = 0; i < batchSize; i++)
         {
-            count++;
+            tasks[i] = _mediatorWithoutTelemetry.Send(_testCommand);
         }
-        return count;
+        await Task.WhenAll(tasks);
     }
 
     [Benchmark]
-    [BenchmarkCategory("Send_Stream")]
-    public async Task<int> Send_Stream_WithTelemetry()
+    [Arguments(10)]
+    [Arguments(100)]
+    [Arguments(1000)]
+    public async Task SendCommand_Batch_WithTelemetry(int batchSize)
     {
-        var count = 0;
-        await foreach (var unused in _mediatorWithTelemetry.SendStream(_streamRequest))
+        var tasks = new Task[batchSize];
+        for (int i = 0; i < batchSize; i++)
         {
-            count++;
+            tasks[i] = _mediatorWithTelemetry.Send(_testCommand);
         }
-        return count;
+        await Task.WhenAll(tasks);
+    }
+
+    [Benchmark]
+    [Arguments(10)]
+    [Arguments(100)]
+    [Arguments(1000)]
+    public async Task PublishNotification_Batch_WithoutTelemetry(int batchSize)
+    {
+        var tasks = new Task[batchSize];
+        for (int i = 0; i < batchSize; i++)
+        {
+            tasks[i] = _mediatorWithoutTelemetry.Publish(_testNotification);
+        }
+        await Task.WhenAll(tasks);
+    }
+
+    [Benchmark]
+    [Arguments(10)]
+    [Arguments(100)]
+    [Arguments(1000)]
+    public async Task PublishNotification_Batch_WithTelemetry(int batchSize)
+    {
+        var tasks = new Task[batchSize];
+        for (int i = 0; i < batchSize; i++)
+        {
+            tasks[i] = _mediatorWithTelemetry.Publish(_testNotification);
+        }
+        await Task.WhenAll(tasks);
     }
 
     #endregion
 
-    #region Bulk Operations Benchmarks
+    #region Test Classes
 
-    [Benchmark(Baseline = true)]
-    [BenchmarkCategory("Bulk_Operations")]
-    public async Task Bulk_Commands_WithoutTelemetry()
+    public class TestCommand : IRequest
     {
-        for (int i = 0; i < 100; i++)
+        public string Value { get; set; } = string.Empty;
+    }
+
+    public class TestCommandHandler : IRequestHandler<TestCommand>
+    {
+        public async Task Handle(TestCommand request, CancellationToken cancellationToken)
         {
-            await _mediatorWithoutTelemetry.Send(new BenchmarkTestCommand { Value = $"bulk test {i}" }).ConfigureAwait(false);
+            // Minimal work to focus on telemetry overhead
+            await Task.Yield();
         }
     }
 
-    [Benchmark]
-    [BenchmarkCategory("Bulk_Operations")]
-    public async Task Bulk_Commands_WithTelemetry()
+    public class TestQuery : IQuery<string>
     {
-        for (int i = 0; i < 100; i++)
+        public string Value { get; set; } = string.Empty;
+    }
+
+    public class TestQueryHandler : IRequestHandler<TestQuery, string>
+    {
+        public async Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
         {
-            await _mediatorWithTelemetry.Send(new BenchmarkTestCommand { Value = $"bulk test {i}" }).ConfigureAwait(false);
+            // Minimal work to focus on telemetry overhead
+            await Task.Yield();
+            return $"Result: {request.Value}";
         }
     }
 
-    [Benchmark(Baseline = true)]
-    [BenchmarkCategory("Bulk_Notifications")]
-    public async Task Bulk_Notifications_WithoutTelemetry()
+    public class TestNotification : INotification
     {
-        for (int i = 0; i < 100; i++)
-        {
-            await _mediatorWithoutTelemetry.Publish(new BenchmarkTestNotification { Message = $"bulk notification {i}" }).ConfigureAwait(false);
-        }
+        public string Message { get; set; } = string.Empty;
     }
 
-    [Benchmark]
-    [BenchmarkCategory("Bulk_Notifications")]
-    public async Task Bulk_Notifications_WithTelemetry()
+    public class TestNotificationSubscriber : INotificationSubscriber<TestNotification>
     {
-        for (int i = 0; i < 100; i++)
+        public async Task OnNotification(TestNotification notification, CancellationToken cancellationToken = default)
         {
-            await _mediatorWithTelemetry.Publish(new BenchmarkTestNotification { Message = $"bulk notification {i}" }).ConfigureAwait(false);
-        }
-    }
-
-    #endregion
-
-    #region Memory Allocation Benchmarks
-
-    [Benchmark(Baseline = true)]
-    [BenchmarkCategory("Memory_Allocation")]
-    public async Task Memory_Commands_WithoutTelemetry()
-    {
-        for (int i = 0; i < 50; i++)
-        {
-            var command = new BenchmarkTestCommand { Value = $"memory test {i}" };
-            await _mediatorWithoutTelemetry.Send(command).ConfigureAwait(false);
-        }
-    }
-
-    [Benchmark]
-    [BenchmarkCategory("Memory_Allocation")]
-    public async Task Memory_Commands_WithTelemetry()
-    {
-        for (int i = 0; i < 50; i++)
-        {
-            var command = new BenchmarkTestCommand { Value = $"memory test {i}" };
-            await _mediatorWithTelemetry.Send(command).ConfigureAwait(false);
+            // Minimal work to focus on telemetry overhead
+            await Task.Yield();
         }
     }
 
     #endregion
-}
-
-internal class BenchmarkTestCommand : IRequest
-{
-    public string Value { get; set; } = string.Empty;
-}
-
-internal class BenchmarkTestCommandHandler : IRequestHandler<BenchmarkTestCommand>
-{
-    public async Task Handle(BenchmarkTestCommand request, CancellationToken cancellationToken = default)
-    {
-        // Minimal work to simulate real handler
-        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
-    }
-}
-
-internal class BenchmarkTestQuery : IRequest<string>
-{
-    public string Value { get; set; } = string.Empty;
-}
-
-internal class BenchmarkTestQueryHandler : IRequestHandler<BenchmarkTestQuery, string>
-{
-    public async Task<string> Handle(BenchmarkTestQuery request, CancellationToken cancellationToken = default)
-    {
-        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
-        return $"Processed: {request.Value}";
-    }
-}
-
-internal class BenchmarkTestNotification : INotification
-{
-    public string Message { get; set; } = string.Empty;
-}
-
-internal class BenchmarkTestNotificationSubscriber : INotificationSubscriber<BenchmarkTestNotification>
-{
-    public async Task OnNotification(BenchmarkTestNotification notification, CancellationToken cancellationToken = default)
-    {
-        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
-    }
-}
-
-internal class BenchmarkTestStreamRequest : IStreamRequest<string>
-{
-    public int Count { get; set; }
-}
-
-internal class BenchmarkTestStreamHandler : IStreamRequestHandler<BenchmarkTestStreamRequest, string>
-{
-    public async IAsyncEnumerable<string> Handle(BenchmarkTestStreamRequest request,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        for (int i = 0; i < request.Count; i++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
-            yield return $"Item {i}";
-        }
-    }
 }

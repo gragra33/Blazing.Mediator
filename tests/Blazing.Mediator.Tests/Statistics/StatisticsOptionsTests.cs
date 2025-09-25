@@ -30,7 +30,7 @@ public class StatisticsOptionsTests : IDisposable
             config.WithStatisticsTracking(configureOptions);
         }, typeof(StatTestCommand).Assembly);
 
-    // Do not register handlers explicitly; rely on assembly scanning to avoid duplicate handler registration
+        // Do not register handlers explicitly; rely on assembly scanning to avoid duplicate handler registration
 
         _serviceProvider = services.BuildServiceProvider();
         _mediator = _serviceProvider.GetRequiredService<IMediator>();
@@ -166,16 +166,16 @@ public class StatisticsOptionsTests : IDisposable
 
         // Assert
         _statistics!.ShouldNotBeNull();
-        
+
         // Test performance tracking methods directly
         _statistics.RecordExecutionTime("TestRequest", 150, true);
         _statistics.RecordMemoryAllocation(1024);
-        
+
         var performanceMetrics = _statistics.GetPerformanceMetrics("TestRequest");
         performanceMetrics.ShouldNotBeNull();
         performanceMetrics.Value.RequestType.ShouldBe("TestRequest");
         performanceMetrics.Value.TotalExecutions.ShouldBe(1);
-        
+
         var summary = _statistics.GetPerformanceSummary();
         summary.ShouldNotBeNull();
         summary.Value.TotalRequests.ShouldBeGreaterThan(0);
@@ -198,14 +198,14 @@ public class StatisticsOptionsTests : IDisposable
 
         // Assert
         _statistics!.ShouldNotBeNull();
-        
+
         // Test that performance tracking methods don't work when disabled
         _statistics.RecordExecutionTime("TestRequest", 150, true);
         _statistics.RecordMemoryAllocation(1024);
-        
+
         var performanceMetrics = _statistics.GetPerformanceMetrics("TestRequest");
         performanceMetrics.ShouldBeNull();
-        
+
         var summary = _statistics.GetPerformanceSummary();
         summary.ShouldBeNull();
     }
@@ -229,15 +229,15 @@ public class StatisticsOptionsTests : IDisposable
 
         // Assert
         _statistics!.ShouldNotBeNull();
-        
+
         // Test detailed analysis methods directly
         _statistics.RecordExecutionPattern("TestRequest", DateTime.UtcNow);
         _statistics.ReportStatistics(); // Should not throw
-        
+
         // Test analysis methods that depend on EnableDetailedAnalysis
         var queries = _statistics.AnalyzeQueries(_serviceProvider!, isDetailed: true);
         queries.ShouldNotBeNull();
-        
+
         var commands = _statistics.AnalyzeCommands(_serviceProvider!, isDetailed: true);
         commands.ShouldNotBeNull();
     }
@@ -260,15 +260,15 @@ public class StatisticsOptionsTests : IDisposable
 
         // Assert
         _statistics!.ShouldNotBeNull();
-        
+
         // Test that detailed analysis methods don't track when disabled
         _statistics.RecordExecutionPattern("TestRequest", DateTime.UtcNow);
         _statistics.ReportStatistics(); // Should not throw
-        
+
         // Test analysis methods with detailed flag
         var queries = _statistics.AnalyzeQueries(_serviceProvider!, isDetailed: false);
         queries.ShouldNotBeNull();
-        
+
         var commands = _statistics.AnalyzeCommands(_serviceProvider!, isDetailed: false);
         commands.ShouldNotBeNull();
     }
@@ -292,12 +292,12 @@ public class StatisticsOptionsTests : IDisposable
 
         // Assert
         _statistics!.ShouldNotBeNull();
-        
+
         // Test that the limit is respected
         _statistics.RecordExecutionPattern("Type1", DateTime.UtcNow);
         _statistics.RecordExecutionPattern("Type2", DateTime.UtcNow);
         _statistics.RecordExecutionPattern("Type3", DateTime.UtcNow); // Should be ignored due to limit
-        
+
         _statistics.ReportStatistics(); // Should not throw
     }
 

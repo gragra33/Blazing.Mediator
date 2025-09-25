@@ -29,22 +29,20 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
     private DateTime _lastRegularFlush = DateTime.UtcNow;
 
     public OpenTelemetryActivityProcessor(
-        IServiceProvider serviceProvider, 
+        IServiceProvider serviceProvider,
         ILogger<OpenTelemetryActivityProcessor> logger,
         TelemetryBatchingOptions options)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _options = options;
-        
+
         // Initialize the batch processing timer with configured interval
-        _batchTimer = new Timer(ProcessBatches, null, 
-            TimeSpan.FromMilliseconds(_options.ProcessingIntervalMs), 
+        _batchTimer = new Timer(ProcessBatches, null,
+            TimeSpan.FromMilliseconds(_options.ProcessingIntervalMs),
             TimeSpan.FromMilliseconds(_options.ProcessingIntervalMs));
 
-        _logger.LogInformation("OpenTelemetryActivityProcessor initialized with batching: Streaming({StreamingBatchSize}/{StreamingTimeoutMs}ms), Regular({RegularBatchSize}/{RegularTimeoutMs}ms)",
-            _options.StreamingBatchSize, _options.StreamingBatchTimeoutMs,
-            _options.RegularBatchSize, _options.RegularBatchTimeoutMs);
+        OpenTelemetryActivityProcessorLog.LogInitialized(_logger, _options.StreamingBatchSize, _options.StreamingBatchTimeoutMs, _options.RegularBatchSize, _options.RegularBatchTimeoutMs);
     }
 
     public override void OnEnd(Activity activity)
@@ -117,8 +115,7 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
 
                     if (_options.EnableDetailedLogging)
                     {
-                        _logger.LogTrace("Added streaming telemetry to batch: {OperationName} (batch size: {BatchSize})",
-                            activity.OperationName, _currentStreamingBatch.Traces.Count);
+                        OpenTelemetryActivityProcessorLog.LogAddedStreamingTelemetry(_logger, activity.OperationName, _currentStreamingBatch.Traces.Count);
                     }
                 }
                 else
@@ -129,8 +126,7 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
 
                     if (_options.EnableDetailedLogging)
                     {
-                        _logger.LogTrace("Added regular telemetry to batch: {OperationName} (batch size: {BatchSize})",
-                            activity.OperationName, _currentRegularBatch.Traces.Count);
+                        OpenTelemetryActivityProcessorLog.LogAddedRegularTelemetry(_logger, activity.OperationName, _currentRegularBatch.Traces.Count);
                     }
                 }
             }
@@ -140,7 +136,7 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing activity: {OperationName}", activity.OperationName);
+            OpenTelemetryActivityProcessorLog.LogErrorProcessingActivity(_logger, ex, activity.OperationName);
         }
     }
 
@@ -194,8 +190,7 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
         if (batchToProcess.Traces.Count > 0)
         {
             _batchQueue.Enqueue(batchToProcess);
-            _logger.LogDebug("Queued streaming batch for processing with {TraceCount} traces, {ActivityCount} activities, {MetricCount} metrics",
-                batchToProcess.Traces.Count, batchToProcess.Activities.Count, batchToProcess.Metrics.Count);
+            OpenTelemetryActivityProcessorLog.LogQueuedStreamingBatch(_logger, batchToProcess.Traces.Count, batchToProcess.Activities.Count, batchToProcess.Metrics.Count);
         }
     }
 
@@ -215,15 +210,13 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
         if (batchToProcess.Traces.Count > 0)
         {
             _batchQueue.Enqueue(batchToProcess);
-            _logger.LogDebug("Queued regular batch for processing with {TraceCount} traces, {ActivityCount} activities, {MetricCount} metrics",
-                batchToProcess.Traces.Count, batchToProcess.Activities.Count, batchToProcess.Metrics.Count);
+            OpenTelemetryActivityProcessorLog.LogQueuedRegularBatch(_logger, batchToProcess.Traces.Count, batchToProcess.Activities.Count, batchToProcess.Metrics.Count);
         }
     }
 
     private void ProcessBatches(object? state)
     {
         if (_disposed) return;
-
         while (_batchQueue.TryDequeue(out var batch))
         {
             try
@@ -232,10 +225,9 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing telemetry batch with {Count} items", batch.Traces.Count);
+                LogErrorProcessingBatch(_logger, ex, batch.Traces.Count.ToString(), null);
             }
         }
-
         // Also check for timeout-based flushes
         CheckAndFlushBatches();
     }
@@ -271,48 +263,46 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
 
             stopwatch.Stop();
 
-            _logger.LogInformation("Successfully processed telemetry batch: {TraceCount} traces, {ActivityCount} activities, {MetricCount} metrics in {Duration}ms",
-                batch.Traces.Count, batch.Activities.Count, batch.Metrics.Count, stopwatch.ElapsedMilliseconds);
+            OpenTelemetryActivityProcessorLog.LogProcessedBatch(_logger, batch.Traces.Count, batch.Activities.Count, batch.Metrics.Count, stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "Failed to process telemetry batch with {TraceCount} traces in {Duration}ms",
-                batch.Traces.Count, stopwatch.ElapsedMilliseconds);
+            OpenTelemetryActivityProcessorLog.LogFailedProcessBatch(_logger, ex, batch.Traces.Count, stopwatch.ElapsedMilliseconds);
             throw;
         }
     }
 
     private static bool IsStreamingTelemetry(Activity activity)
     {
-        var operationName = activity.OperationName.ToLowerInvariant();
-        var requestType = GetRequestType(activity).ToLowerInvariant();
+        var operationName = activity.OperationName.ToUpperInvariant();
+        var requestType = GetRequestType(activity).ToUpperInvariant();
 
         // Check if this is streaming-related telemetry
-        return operationName.Contains("sendstream") ||
-               operationName.Contains("stream_packet") ||
-               requestType.Contains("stream") ||
-               requestType.Contains("stream_packet") ||
-               operationName.Contains("mediator.sendstream");
+        return operationName.Contains("SENDSTREAM") ||
+               operationName.Contains("STREAM_PACKET") ||
+               requestType.Contains("STREAM") ||
+               requestType.Contains("STREAM_PACKET") ||
+               operationName.Contains("MEDIATOR.SENDSTREAM");
     }
 
     private static bool ShouldSkipActivity(Activity activity)
     {
-        var operationName = activity.OperationName.ToLowerInvariant();
+        var operationName = activity.OperationName.ToUpperInvariant();
 
         // Skip telemetry endpoints to prevent feedback loops
-        if (operationName.Contains("/telemetry") ||
-            operationName.Contains("/debug") ||
-            operationName.Contains("otlp") ||
-            operationName.Contains("healthcheck"))
+        if (operationName.Contains("/TELEMETRY") ||
+            operationName.Contains("/DEBUG") ||
+            operationName.Contains("OTLP") ||
+            operationName.Contains("HEALTHCHECK"))
         {
             return true;
         }
 
         // Reduce minimum duration filter to capture packet-level spans
         // Only skip extremely short activities (less than 0.1ms) unless they're mediator operations
-        if (activity.Duration.TotalMilliseconds < 0.1 && 
-            !operationName.Contains("mediator", StringComparison.OrdinalIgnoreCase))
+        if (activity.Duration.TotalMilliseconds < 0.1 &&
+            !operationName.Contains("MEDIATOR", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
@@ -495,11 +485,17 @@ public sealed class OpenTelemetryActivityProcessor : BaseProcessor<Activity>, ID
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing final batch during disposal");
+                OpenTelemetryActivityProcessorLog.LogErrorProcessingBatch(_logger, ex, batch.Traces.Count);
             }
         }
 
         _batchTimer.Dispose();
-        _logger.LogInformation("OpenTelemetryActivityProcessor disposed successfully");
+        OpenTelemetryActivityProcessorLog.LogDisposed(_logger);
     }
+
+    private static readonly Action<ILogger, Exception, string, Exception?> LogErrorProcessingBatch =
+        LoggerMessage.Define<Exception, string>(
+            LogLevel.Error,
+            new EventId(4, nameof(LogErrorProcessingBatch)),
+            "Error processing telemetry batch with {Count} items");
 }

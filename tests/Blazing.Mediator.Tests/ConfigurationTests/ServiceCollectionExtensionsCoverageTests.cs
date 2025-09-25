@@ -31,7 +31,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
         var statistics = _serviceProvider.GetService<MediatorStatistics>();
-        
+
         Assert.NotNull(mediator);
         Assert.Null(statistics); // Statistics should be disabled by default
     }
@@ -50,7 +50,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 
@@ -67,7 +67,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 
@@ -84,7 +84,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 
@@ -101,7 +101,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 
@@ -118,7 +118,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 
@@ -139,7 +139,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
         var statistics = _serviceProvider.GetService<MediatorStatistics>();
-        
+
         Assert.NotNull(mediator);
         Assert.NotNull(statistics);
     }
@@ -157,7 +157,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 
@@ -178,7 +178,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
         var statistics = _serviceProvider.GetService<MediatorStatistics>();
-        
+
         Assert.NotNull(mediator);
         Assert.NotNull(statistics);
     }
@@ -191,13 +191,13 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         services.AddLogging();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies(assembly => 
+        services.AddMediatorFromLoadedAssemblies(assembly =>
             assembly.GetName().Name?.Contains("Blazing.Mediator") == true);
 
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 
@@ -217,7 +217,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
         var statistics = _serviceProvider.GetService<MediatorStatistics>();
-        
+
         Assert.NotNull(mediator);
         Assert.NotNull(statistics);
     }
@@ -236,7 +236,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 
@@ -254,7 +254,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 
@@ -271,7 +271,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 
@@ -288,7 +288,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 
@@ -305,7 +305,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Assert
         _serviceProvider = services.BuildServiceProvider();
         var mediator = _serviceProvider.GetService<IMediator>();
-        
+
         Assert.NotNull(mediator);
     }
 }

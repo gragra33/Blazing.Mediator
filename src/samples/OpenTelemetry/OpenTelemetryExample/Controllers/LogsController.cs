@@ -85,7 +85,7 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
                 page,
                 pageSize);
 
-            var result = await mediator.Send(query);
+            var result = await mediator.Send(query).ConfigureAwait(false);
 
             logger.LogDebug("Successfully retrieved {LogCount} logs for page {Page} of {TotalPages}",
                 result.Logs.Count(), page, result.Pagination.TotalPages);
@@ -94,7 +94,7 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving recent logs");
+            LogsControllerLog.LogErrorRetrievingRecentLogs(logger, ex);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving logs");
         }
     }
@@ -117,8 +117,8 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
             // For now, we'll use the recent logs query with a filter for the specific ID
             // In a real implementation, you might want a dedicated query for this
             var query = new GetRecentLogsQuery(TimeWindowMinutes: 1440); // 24 hours
-            var result = await mediator.Send(query);
-            
+            var result = await mediator.Send(query).ConfigureAwait(false);
+
             var log = result.Logs.FirstOrDefault(l => l.Id == id);
             if (log == null)
             {
@@ -131,7 +131,7 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving log with ID: {LogId}", id);
+            LogsControllerLog.LogErrorRetrievingLogById(logger, ex, id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the log");
         }
     }
@@ -157,14 +157,14 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
             logger.LogDebug("Getting logs summary for time window: {TimeWindow} minutes", timeWindowMinutes);
 
             var query = new GetRecentLogsQuery(TimeWindowMinutes: timeWindowMinutes, PageSize: 1); // We only need the summary
-            var result = await mediator.Send(query);
+            var result = await mediator.Send(query).ConfigureAwait(false);
 
             logger.LogDebug("Successfully retrieved logs summary");
             return Ok(result.Summary);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving logs summary");
+            LogsControllerLog.LogErrorRetrievingLogsSummary(logger, ex);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving logs summary");
         }
     }
@@ -179,27 +179,27 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
     public async Task<ActionResult> TestLogging()
     {
         logger.LogInformation("Testing logging functionality - generating sample logs");
-        
+
         try
         {
             // Test that we can get the TelemetryDatabaseLoggingProvider
             var loggingProvider = HttpContext.RequestServices.GetService<TelemetryDatabaseLoggingProvider>();
             var providerFound = loggingProvider != null;
-            
+
             logger.LogInformation("TelemetryDatabaseLoggingProvider found in DI: {ProviderFound}", providerFound);
-            
+
             // Generate various types of logs for testing
             logger.LogDebug("Debug log: Starting test logging process");
             logger.LogInformation("Information log: Processing test logging request");
             logger.LogWarning("Warning log: This is a test warning message");
-            
+
             // Simulate some work
-            await Task.Delay(100);
-            
+            await Task.Delay(100).ConfigureAwait(false);
+
             // Log with structured data
-            logger.LogInformation("Structured log: User {UserId} performed action {Action} at {Timestamp}", 
+            logger.LogInformation("Structured log: User {UserId} performed action {Action} at {Timestamp}",
                 123, "TestLogging", DateTime.UtcNow);
-            
+
             // Simulate an error scenario (but catch it)
             try
             {
@@ -209,12 +209,12 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
             {
                 logger.LogError(ex, "Error log: Caught test exception during logging test");
             }
-            
+
             logger.LogInformation("Test logging completed successfully");
-            
+
             // Wait a moment for logs to be processed
-            await Task.Delay(3000);
-            
+            await Task.Delay(3000).ConfigureAwait(false);
+
             // Check if logs were actually saved to database
             using var scope = HttpContext.RequestServices.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -222,10 +222,11 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
                 .Where(l => l.Category.Contains("LogsController"))
                 .OrderByDescending(l => l.Timestamp)
                 .Take(10)
-                .ToListAsync();
-                
-            return Ok(new { 
-                message = "Test logs generated successfully", 
+                .ToListAsync().ConfigureAwait(false);
+
+            return Ok(new
+            {
+                message = "Test logs generated successfully",
                 timestamp = DateTime.UtcNow,
                 generatedLogs = 6,
                 telemetryProviderFound = providerFound,
@@ -235,7 +236,7 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error during test logging");
+            LogsControllerLog.LogUnexpectedErrorDuringTestLogging(logger, ex);
             return StatusCode(500, "Error occurred during test logging");
         }
     }
@@ -250,12 +251,12 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
     public async Task<ActionResult> TestDatabaseLogging()
     {
         logger.LogInformation("Testing direct database logging");
-        
+
         try
         {
             using var scope = HttpContext.RequestServices.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            
+
             var testLog = new TelemetryLog
             {
                 Timestamp = DateTime.UtcNow,
@@ -268,17 +269,18 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
                 ThreadId = Environment.CurrentManagedThreadId,
                 Tags = new Dictionary<string, object> { { "test", "direct-save" } }
             };
-            
+
             context.TelemetryLogs.Add(testLog);
-            var savedCount = await context.SaveChangesAsync();
-            
+            var savedCount = await context.SaveChangesAsync().ConfigureAwait(false);
+
             logger.LogInformation("Direct database save completed - saved {SavedCount} log entries", savedCount);
-            
+
             // Check if the log was actually saved
-            var totalLogs = await context.TelemetryLogs.CountAsync();
-            
-            return Ok(new { 
-                message = "Direct database test completed", 
+            var totalLogs = await context.TelemetryLogs.CountAsync().ConfigureAwait(false);
+
+            return Ok(new
+            {
+                message = "Direct database test completed",
                 savedCount,
                 totalLogsInDatabase = totalLogs,
                 testLog = new { testLog.Id, testLog.Timestamp, testLog.Message }
@@ -286,9 +288,10 @@ public class LogsController(IMediator mediator, ILogger<LogsController> logger) 
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error during direct database logging test");
-            return StatusCode(500, new { 
-                message = "Error during direct database test", 
+            LogsControllerLog.LogErrorDuringDirectDatabaseLoggingTest(logger, ex);
+            return StatusCode(500, new
+            {
+                message = "Error during direct database test",
                 error = ex.Message,
                 type = ex.GetType().Name
             });

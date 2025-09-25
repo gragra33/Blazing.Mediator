@@ -296,12 +296,12 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
     {
         // Debug logging: Notification pipeline execution started
         _logger?.NotificationMiddlewarePipelineStarted(typeof(TNotification).Name, _middlewareInfos.Count);
-        
+
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var pipeline = Build(serviceProvider, finalHandler);
         await pipeline(notification, cancellationToken).ConfigureAwait(false);
         stopwatch.Stop();
-        
+
         // Debug logging: Notification pipeline execution completed
         _logger?.NotificationMiddlewarePipelineCompleted(typeof(TNotification).Name, stopwatch.Elapsed.TotalMilliseconds);
     }

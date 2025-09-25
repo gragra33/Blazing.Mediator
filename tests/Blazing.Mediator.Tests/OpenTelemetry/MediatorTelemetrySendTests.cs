@@ -74,7 +74,7 @@ public class MediatorTelemetrySendTests : IDisposable
         // Verify activity was created
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommand"));
         activity.ShouldNotBeNull("Activity should be created for command");
-    activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
+        activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
 
         // Verify activity tags
         activity.GetTagItem("request_name").ShouldBe("SendTestCommand");
@@ -103,7 +103,7 @@ public class MediatorTelemetrySendTests : IDisposable
         // Verify activity was created
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("SendTestQuery"));
         activity.ShouldNotBeNull("Activity should be created for query");
-    activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
+        activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
 
         // Verify activity tags include response type
         activity.GetTagItem("request_name").ShouldBe("SendTestQuery");
@@ -164,7 +164,7 @@ public class MediatorTelemetrySendTests : IDisposable
         // Arrange - Create a separate mediator with telemetry explicitly disabled
         var services = new ServiceCollection();
         services.AddLogging();
-        
+
         // Configure mediator with telemetry disabled
         services.AddMediator(config =>
         {
@@ -176,7 +176,7 @@ public class MediatorTelemetrySendTests : IDisposable
 
         using var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
-        
+
         var command = new SendTestCommand { Value = "test" };
         var recordedActivities = new List<Activity>();
 

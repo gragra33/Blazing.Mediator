@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using Blazing.Mediator.Statistics;
+using System.Diagnostics;
 
 namespace Blazing.Mediator.OpenTelemetry;
 
@@ -105,7 +105,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
 
         Mediator.StreamPacketCounter.Add(1, packetTags);
         Mediator.StreamPacketProcessingTimeHistogram.Record(packetProcessingTimeMs, packetTags);
-        
+
         if (interPacketTime > 0)
         {
             Mediator.StreamInterPacketTimeHistogram.Record(interPacketTime, packetTags);
@@ -129,7 +129,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
                 packetActivity.SetTag("mediator.request_type", "stream_packet");
                 packetActivity.SetTag("otel.library.name", "Blazing.Mediator");
                 packetActivity.SetTag("otel.library.version", typeof(Mediator).Assembly.GetName().Version?.ToString() ?? "1.0.0");
-                
+
                 // Add packet size if available (attempt to serialize for size estimation)
                 try
                 {
@@ -148,18 +148,18 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
                 {
                     // Ignore errors in size calculation
                 }
-                
+
                 // Ensure the packet span has a minimum duration to avoid being filtered out
                 Task.Delay(1, cancellationToken).Wait(cancellationToken);
                 packetActivity.SetStatus(ActivityStatusCode.Ok);
             }
         }
-        
+
         // Add batched activity events for better performance
-        var shouldCreateEvent = Mediator.PacketTelemetryBatchSize <= 1 || 
-                                (_itemCount % Mediator.PacketTelemetryBatchSize == 0) || 
+        var shouldCreateEvent = Mediator.PacketTelemetryBatchSize <= 1 ||
+                                (_itemCount % Mediator.PacketTelemetryBatchSize == 0) ||
                                 _itemCount == 1;
-        
+
         if (shouldCreateEvent && _activity != null)
         {
             if (Mediator.PacketTelemetryBatchSize > 1 && _itemCount > 1)
@@ -250,21 +250,21 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
             activity.SetTag("stream.max_inter_packet_time_ms", maxInterPacketTime);
             activity.SetTag("stream.avg_packet_processing_time_ms", avgPacketProcessingTime);
             activity.SetTag("stream.total_processing_time_ms", _totalPacketProcessingTime);
-            
+
             // Advanced streaming metrics
             if (_itemCount > 1)
             {
                 var isConsistentThroughput = (maxInterPacketTime - minInterPacketTime) < (avgInterPacketTime * 0.5);
                 activity.SetTag("stream.consistent_throughput", isConsistentThroughput);
                 activity.SetTag("stream.jitter_ms", jitter);
-                
+
                 // Performance classification using configurable thresholds
                 if (telemetryOptions?.EnableStreamingPerformanceClassification == true)
                 {
                     var excellentThreshold = telemetryOptions.ExcellentPerformanceThreshold;
                     var goodThreshold = telemetryOptions.GoodPerformanceThreshold;
                     var fairThreshold = telemetryOptions.FairPerformanceThreshold;
-                    
+
                     var performance = jitter < avgInterPacketTime * excellentThreshold ? "excellent" :
                         jitter < avgInterPacketTime * goodThreshold ? "good" :
                         jitter < avgInterPacketTime * fairThreshold ? "fair" : "poor";
@@ -279,7 +279,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
                     activity.SetTag("stream.performance_class", performance);
                 }
             }
-            
+
             // OpenTelemetry semantic conventions
             activity.SetTag("stream.packet.count", _itemCount);
             activity.SetTag("stream.packet_level_telemetry_enabled", IsPacketLevelTelemetryEnabled);
@@ -298,12 +298,12 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
         // Enhanced streaming metrics
         Mediator.StreamDurationHistogram.Record(totalDuration.TotalMilliseconds, tags);
         Mediator.StreamThroughputHistogram.Record(throughputItemsPerSec, tags);
-        
+
         if (_timeToFirstByte.TotalMilliseconds > 0)
         {
             Mediator.StreamTtfbHistogram.Record(_timeToFirstByte.TotalMilliseconds, tags);
         }
-        
+
         if (jitter > 0)
         {
             Mediator.StreamPacketJitterHistogram.Record(jitter, tags);

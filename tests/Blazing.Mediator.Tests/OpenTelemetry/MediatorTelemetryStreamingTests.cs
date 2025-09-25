@@ -138,7 +138,7 @@ public class MediatorTelemetryStreamingTests : IDisposable
         // Arrange - Create a separate mediator with telemetry explicitly disabled
         var services = new ServiceCollection();
         services.AddLogging();
-        
+
         // Configure mediator with telemetry disabled
         services.AddMediator(config =>
         {
@@ -150,7 +150,7 @@ public class MediatorTelemetryStreamingTests : IDisposable
 
         using var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
-        
+
         var request = new StreamingTestStreamRequest { Count = 2 };
         var recordedActivities = new List<Activity>();
 

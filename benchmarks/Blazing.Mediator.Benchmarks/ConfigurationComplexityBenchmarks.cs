@@ -1,8 +1,8 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Benchmarks;
 
@@ -63,11 +63,11 @@ public class ConfigurationComplexityBenchmarks
         {
             config.WithStatisticsTracking();
         }, typeof(ConfigurationComplexityBenchmarks).Assembly);
-        
+
         // Add standard middleware
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
-        
+
         var provider = services.BuildServiceProvider();
         _mediatorStandardConfig = provider.GetRequiredService<IMediator>();
     }
@@ -80,13 +80,13 @@ public class ConfigurationComplexityBenchmarks
         {
             config.WithStatisticsTracking();
         }, typeof(ConfigurationComplexityBenchmarks).Assembly);
-        
+
         // Add comprehensive middleware pipeline
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(PerformanceMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(CachingMiddleware<,>));
-        
+
         var provider = services.BuildServiceProvider();
         _mediatorFullConfig = provider.GetRequiredService<IMediator>();
     }
@@ -99,7 +99,7 @@ public class ConfigurationComplexityBenchmarks
         {
             config.WithStatisticsTracking();
         }, typeof(ConfigurationComplexityBenchmarks).Assembly);
-        
+
         // Add enterprise-grade middleware chain
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(SecurityMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
@@ -109,7 +109,7 @@ public class ConfigurationComplexityBenchmarks
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(CachingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(ErrorHandlingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(AuditMiddleware<,>));
-        
+
         var provider = services.BuildServiceProvider();
         _mediatorEnterpriseConfig = provider.GetRequiredService<IMediator>();
     }
@@ -198,7 +198,7 @@ public class ConfigurationComplexityBenchmarks
     [BenchmarkCategory("Configuration_Notifications")]
     public async Task NotificationFullConfiguration()
     {
-        await _mediatorFullConfig.Publish(_notification). ConfigureAwait(false);
+        await _mediatorFullConfig.Publish(_notification).ConfigureAwait(false);
     }
 
     [Benchmark]
@@ -290,7 +290,7 @@ public class ConfigurationComplexityBenchmarks
     {
         for (int i = 0; i < 50; i++)
         {
-            await _mediatorFullConfig.Send(new ConfigTestCommand { Value = $"bulk {i}" }). ConfigureAwait(false);
+            await _mediatorFullConfig.Send(new ConfigTestCommand { Value = $"bulk {i}" }).ConfigureAwait(false);
         }
     }
 

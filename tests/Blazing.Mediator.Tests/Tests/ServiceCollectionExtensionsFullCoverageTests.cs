@@ -68,9 +68,9 @@ namespace Blazing.Mediator.Tests.Tests
         public void AddMediator_WithDiscoverMiddlewareAndAssemblies_RegistersCorrectly()
         {
             ServiceCollection services = new();
-            services.AddMediator(config => 
-            { 
-                config.WithStatisticsTracking(); 
+            services.AddMediator(config =>
+            {
+                config.WithStatisticsTracking();
             }, typeof(TestCommand).Assembly);
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             serviceProvider.GetService<IMediator>().ShouldNotBeNull();

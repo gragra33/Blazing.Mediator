@@ -49,7 +49,7 @@ public sealed class TelemetryDatabaseLoggingConfiguration
         "Successfully saved",
         "Processing batch of",
         "Microsoft.EntityFrameworkCore.Database.Command",
-        "Microsoft.EntityFrameworkCore.Infrastructure", 
+        "Microsoft.EntityFrameworkCore.Infrastructure",
         "Microsoft.EntityFrameworkCore.Query",
         "Microsoft.EntityFrameworkCore.Update",
         "Microsoft.EntityFrameworkCore.Database.Transaction",

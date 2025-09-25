@@ -918,9 +918,9 @@ public class MediatorStatisticsTests
         var missingHandlerResults = allResults.Where(r => r.HandlerStatus == HandlerStatus.Missing).ToList();
         missingHandlerResults.ShouldNotBeEmpty();
 
-    // Verify missing handler details (should be "No handler" in non-detailed mode)
-    missingHandlerResults.ShouldAllBe(r => r.HandlerDetails == "No handler");
-    missingHandlerResults.ShouldAllBe(r => r.Handlers.Count == 0);
+        // Verify missing handler details (should be "No handler" in non-detailed mode)
+        missingHandlerResults.ShouldAllBe(r => r.HandlerDetails == "No handler");
+        missingHandlerResults.ShouldAllBe(r => r.Handlers.Count == 0);
     }
 
     /// <summary>

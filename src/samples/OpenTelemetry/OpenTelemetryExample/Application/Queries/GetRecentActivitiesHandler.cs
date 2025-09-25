@@ -8,13 +8,12 @@ namespace OpenTelemetryExample.Application.Queries;
 /// <summary>
 /// Handler for GetRecentActivitiesQuery that retrieves real activity data from the database.
 /// </summary>
-public sealed class GetRecentActivitiesHandler(ApplicationDbContext context, ILogger<GetRecentActivitiesHandler> logger)
+internal sealed class GetRecentActivitiesHandler(ApplicationDbContext context, ILogger<GetRecentActivitiesHandler> logger)
     : IRequestHandler<GetRecentActivitiesQuery, RecentActivitiesDto>
 {
     public async Task<RecentActivitiesDto> Handle(GetRecentActivitiesQuery request, CancellationToken cancellationToken = default)
     {
         var cutoffTime = DateTime.UtcNow - request.TimeWindow;
-
         try
         {
             // Get recent activities from the database
@@ -22,11 +21,12 @@ public sealed class GetRecentActivitiesHandler(ApplicationDbContext context, ILo
                 .Where(a => a.StartTime >= cutoffTime)
                 .OrderByDescending(a => a.StartTime)
                 .Take(request.MaxRecords)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
 
             if (!recentActivities.Any())
             {
-                logger.LogInformation("No telemetry activities found in the last {TimeWindow} minutes", request.TimeWindow.TotalMinutes);
+                LogNoActivities(logger, request.TimeWindow.TotalMinutes, null);
                 return new RecentActivitiesDto
                 {
                     Timestamp = DateTime.UtcNow,
@@ -53,13 +53,12 @@ public sealed class GetRecentActivitiesHandler(ApplicationDbContext context, ILo
                 Message = $"Recent activities from the last {request.TimeWindow.TotalMinutes:F0} minutes - showing {activityDtos.Count} activities"
             };
 
-            logger.LogInformation("Retrieved {ActivityCount} recent activities", activityDtos.Count);
+            LogActivitiesRetrieved(logger, activityDtos.Count, null);
             return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving recent activities");
-
+            LogActivitiesError(logger, ex, null);
             return new RecentActivitiesDto
             {
                 Timestamp = DateTime.UtcNow,
@@ -68,4 +67,21 @@ public sealed class GetRecentActivitiesHandler(ApplicationDbContext context, ILo
             };
         }
     }
+
+    // LoggerMessage delegates for CA1848
+    private static readonly Action<ILogger, double, Exception?> LogNoActivities =
+        LoggerMessage.Define<double>(
+            LogLevel.Information,
+            new EventId(1, nameof(LogNoActivities)),
+            "No telemetry activities found in the last {TimeWindow} minutes");
+    private static readonly Action<ILogger, int, Exception?> LogActivitiesRetrieved =
+        LoggerMessage.Define<int>(
+            LogLevel.Information,
+            new EventId(2, nameof(LogActivitiesRetrieved)),
+            "Retrieved {ActivityCount} recent activities");
+    private static readonly Action<ILogger, Exception, Exception?> LogActivitiesError =
+        LoggerMessage.Define<Exception>(
+            LogLevel.Error,
+            new EventId(3, nameof(LogActivitiesError)),
+            "Error retrieving recent activities");
 }

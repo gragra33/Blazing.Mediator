@@ -1,6 +1,6 @@
 ﻿namespace OpenTelemetryExample.Client.Pages;
 
-    public partial class Streaming : IAsyncDisposable
+public partial class Streaming : IAsyncDisposable
 {
     #region IAsyncDisposable
 

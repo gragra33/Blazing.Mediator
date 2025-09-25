@@ -19,7 +19,7 @@ public static class LoggingBuilderExtensions
     {
         // Add configuration support (Microsoft recommended pattern)
         builder.AddConfiguration();
-        
+
         // Register the provider using Microsoft's recommended enumerable pattern
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<ILoggerProvider, TelemetryDatabaseLoggingProvider>());
@@ -43,7 +43,7 @@ public static class LoggingBuilderExtensions
     {
         builder.AddDatabaseLogging();
         builder.Services.Configure(configure);
-        
+
         return builder;
     }
 }

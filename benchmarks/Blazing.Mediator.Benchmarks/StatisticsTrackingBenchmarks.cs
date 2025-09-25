@@ -17,7 +17,7 @@ public class StatisticsTrackingBenchmarks
 {
     private IMediator _mediatorWithoutStats = null!;
     private IMediator _mediatorWithStats = null!;
-    
+
     private StatisticsTestCommand _command = null!;
     private StatisticsTestQuery _query = null!;
     private StatisticsTestNotification _notification = null!;
@@ -43,14 +43,14 @@ public class StatisticsTrackingBenchmarks
         {
             config.WithStatisticsTracking();
         }, typeof(StatisticsTrackingBenchmarks).Assembly);
-        
+
         var providerWithStats = servicesWithStats.BuildServiceProvider();
         _mediatorWithStats = providerWithStats.GetRequiredService<IMediator>();
 
         // Subscribe to notifications
         var notificationSubscriberWithoutStats = new StatisticsTestNotificationSubscriber();
         _mediatorWithoutStats.Subscribe(notificationSubscriberWithoutStats);
-        
+
         var notificationSubscriberWithStats = new StatisticsTestNotificationSubscriber();
         _mediatorWithStats.Subscribe(notificationSubscriberWithStats);
     }

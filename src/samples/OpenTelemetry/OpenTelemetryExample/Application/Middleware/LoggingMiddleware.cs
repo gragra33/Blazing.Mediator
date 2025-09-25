@@ -18,9 +18,9 @@ public sealed class LoggingMiddleware<TRequest>(ILogger<LoggingMiddleware<TReque
     {
         var requestType = typeof(TRequest).Name;
         var stopwatch = Stopwatch.StartNew();
-        
-        _logger.LogInformation("Starting processing of {RequestType}", requestType);
-        _logger.LogDebug("Request details for {RequestType}: {@Request}", requestType, request);
+
+        LoggingMiddlewareLog.LogStartProcessing(_logger, requestType);
+        LoggingMiddlewareLog.LogRequestDetails(_logger, requestType, request);
 
         // Add request details to current activity
         Activity.Current?.SetTag("request.type", requestType);
@@ -29,19 +29,17 @@ public sealed class LoggingMiddleware<TRequest>(ILogger<LoggingMiddleware<TReque
 
         try
         {
-            await next();
+            await next().ConfigureAwait(false);
             stopwatch.Stop();
 
-            _logger.LogInformation("Successfully completed {RequestType} in {ElapsedMs}ms", 
-                requestType, stopwatch.ElapsedMilliseconds);
+            LoggingMiddlewareLog.LogCompleted(_logger, requestType, stopwatch.ElapsedMilliseconds);
             Activity.Current?.SetTag("request.success", true);
             Activity.Current?.SetTag("request.duration_ms", stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "Failed to process {RequestType} after {ElapsedMs}ms: {ErrorMessage}", 
-                requestType, stopwatch.ElapsedMilliseconds, ex.Message);
+            LoggingMiddlewareLog.LogFailed(_logger, ex, requestType, stopwatch.ElapsedMilliseconds, ex.Message);
             Activity.Current?.SetTag("request.success", false);
             Activity.Current?.SetTag("request.duration_ms", stopwatch.ElapsedMilliseconds);
             Activity.Current?.SetTag("request.error", ex.Message);
@@ -67,10 +65,9 @@ public class LoggingMiddleware<TRequest, TResponse>(ILogger<LoggingMiddleware<TR
         var requestType = typeof(TRequest).Name;
         var responseType = typeof(TResponse).Name;
         var stopwatch = Stopwatch.StartNew();
-        
-        _logger.LogInformation("Starting processing of {RequestType} expecting {ResponseType}", 
-            requestType, responseType);
-        _logger.LogDebug("Request details for {RequestType}: {@Request}", requestType, request);
+
+        LoggingMiddlewareLog.LogStartProcessingWithResponse(_logger, requestType, responseType);
+        LoggingMiddlewareLog.LogRequestDetailsWithResponse(_logger, requestType, request);
 
         // Add request details to current activity
         Activity.Current?.SetTag("request.type", requestType);
@@ -80,13 +77,12 @@ public class LoggingMiddleware<TRequest, TResponse>(ILogger<LoggingMiddleware<TR
 
         try
         {
-            var response = await next();
+            var response = await next().ConfigureAwait(false);
             stopwatch.Stop();
 
-            _logger.LogInformation("Successfully completed {RequestType} -> {ResponseType} in {ElapsedMs}ms", 
-                requestType, responseType, stopwatch.ElapsedMilliseconds);
-            _logger.LogDebug("Response for {RequestType}: {@Response}", requestType, response);
-            
+            LoggingMiddlewareLog.LogCompletedWithResponse(_logger, requestType, responseType, stopwatch.ElapsedMilliseconds);
+            LoggingMiddlewareLog.LogResponse(_logger, requestType, response is null ? "null" : response);
+
             Activity.Current?.SetTag("request.success", true);
             Activity.Current?.SetTag("request.duration_ms", stopwatch.ElapsedMilliseconds);
 
@@ -95,9 +91,8 @@ public class LoggingMiddleware<TRequest, TResponse>(ILogger<LoggingMiddleware<TR
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "Failed to process {RequestType} -> {ResponseType} after {ElapsedMs}ms: {ErrorMessage}", 
-                requestType, responseType, stopwatch.ElapsedMilliseconds, ex.Message);
-            
+            LoggingMiddlewareLog.LogFailedWithResponse(_logger, ex, requestType, responseType, stopwatch.ElapsedMilliseconds, ex.Message);
+
             Activity.Current?.SetTag("request.success", false);
             Activity.Current?.SetTag("request.duration_ms", stopwatch.ElapsedMilliseconds);
             Activity.Current?.SetTag("request.error", ex.Message);

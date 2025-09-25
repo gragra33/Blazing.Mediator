@@ -22,7 +22,7 @@ public sealed class PerformanceMiddleware<TRequest>(ILogger<PerformanceMiddlewar
 
         try
         {
-            await next();
+            await next().ConfigureAwait(false);
             stopwatch.Stop();
 
             var duration = stopwatch.ElapsedMilliseconds;
@@ -67,7 +67,7 @@ public sealed class PerformanceMiddleware<TRequest, TResponse>(
 
         try
         {
-            var response = await next();
+            var response = await next().ConfigureAwait(false);
             stopwatch.Stop();
 
             var duration = stopwatch.ElapsedMilliseconds;

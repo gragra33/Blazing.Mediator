@@ -33,7 +33,7 @@ public sealed class MediatorStatistics : IDisposable
     // Detailed analysis data (only used when EnableDetailedAnalysis is true)
     private readonly ConcurrentDictionary<string, List<DateTime>> _executionPatterns = new();
     private readonly ConcurrentDictionary<string, long> _hourlyExecutionCounts = new();
-    
+
     // Metrics retention and cleanup
     private readonly ConcurrentDictionary<string, DateTime> _metricTimestamps = new();
     private readonly Timer? _cleanupTimer;
@@ -178,7 +178,7 @@ public sealed class MediatorStatistics : IDisposable
 
         _middlewareExecutionCounts.AddOrUpdate(middlewareType, 1, (_, count) => count + 1);
         _middlewareExecutionTimes.AddOrUpdate(middlewareType, executionTimeMs, (_, total) => total + executionTimeMs);
-        
+
         if (!successful)
         {
             _middlewareFailures.AddOrUpdate(middlewareType, 1, (_, count) => count + 1);
@@ -200,7 +200,7 @@ public sealed class MediatorStatistics : IDisposable
         }
 
         // Check max tracked request types limit
-        if (_executionPatterns.Count >= _options.MaxTrackedRequestTypes && 
+        if (_executionPatterns.Count >= _options.MaxTrackedRequestTypes &&
             !_executionPatterns.ContainsKey(requestType))
         {
             return; // Don't track new request types if we've hit the limit
@@ -211,13 +211,13 @@ public sealed class MediatorStatistics : IDisposable
             lock (patterns)
             {
                 patterns.Add(executionTime);
-                
+
                 // Keep only recent patterns to prevent unbounded growth
                 if (patterns.Count > 10000)
                 {
                     patterns.RemoveAt(0);
                 }
-                
+
                 return patterns;
             }
         });
@@ -499,7 +499,7 @@ public sealed class MediatorStatistics : IDisposable
     {
         // Debug logging: Analysis started
         _logger?.AnalyzeQueriesStarted(serviceProvider.GetType().Name);
-        
+
         // Use the parameter if provided, otherwise use the options setting
         bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
 
@@ -511,18 +511,18 @@ public sealed class MediatorStatistics : IDisposable
             .Where(t => t.Name.Contains("Query", StringComparison.OrdinalIgnoreCase));
 
         var allQueryTypes = queryTypes.Concat(requestWithResponseTypes).Distinct().ToList();
-        
+
         // Debug logging: Analysis completed
         _logger?.AnalyzeQueriesCompleted(allQueryTypes.Count, useDetailedAnalysis);
-        
+
         var results = CreateAnalysisResults(allQueryTypes, serviceProvider, true, useDetailedAnalysis);
-        
+
         // Debug logging: Individual results
         foreach (var result in results)
         {
             _logger?.AnalyzeQueryResult(result.ClassName, result.ResponseType?.Name ?? "void", result.HandlerStatus.ToString());
         }
-        
+
         return results;
     }
 
@@ -537,7 +537,7 @@ public sealed class MediatorStatistics : IDisposable
     {
         // Debug logging: Analysis started
         _logger?.AnalyzeCommandsStarted(serviceProvider.GetType().Name);
-        
+
         // Use the parameter if provided, otherwise use the options setting
         bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
 
@@ -557,18 +557,18 @@ public sealed class MediatorStatistics : IDisposable
             .Where(t => t.Name.Contains("Command", StringComparison.OrdinalIgnoreCase));
 
         var allCommandTypes = commandTypes.Concat(voidRequestTypes).Concat(requestWithResponseTypes).Distinct().ToList();
-        
+
         // Debug logging: Analysis completed
         _logger?.AnalyzeCommandsCompleted(allCommandTypes.Count, useDetailedAnalysis);
-        
+
         var results = CreateAnalysisResults(allCommandTypes, serviceProvider, false, useDetailedAnalysis);
-        
+
         // Debug logging: Individual results
         foreach (var result in results)
         {
             _logger?.AnalyzeCommandResult(result.ClassName, result.ResponseType?.Name ?? "void", result.HandlerStatus.ToString());
         }
-        
+
         return results;
     }
 

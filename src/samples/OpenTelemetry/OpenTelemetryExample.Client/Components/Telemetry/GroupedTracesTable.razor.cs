@@ -100,7 +100,7 @@ public partial class GroupedTracesTable : ComponentBase
     private void ExpandAll()
     {
         if (TraceGroups == null) return;
-        
+
         foreach (var group in TraceGroups)
         {
             group.IsExpanded = true;
@@ -115,7 +115,7 @@ public partial class GroupedTracesTable : ComponentBase
     private void CollapseAll()
     {
         if (TraceGroups == null) return;
-        
+
         foreach (var group in TraceGroups)
         {
             group.IsExpanded = false;

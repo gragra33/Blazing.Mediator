@@ -23,7 +23,7 @@ public partial class LogDetailsModal : ComponentBase
     {
         _currentLog = log;
         StateHasChanged();
-        
+
         // Show the Bootstrap modal
         await JSRuntime.InvokeVoidAsync("eval", $"new bootstrap.Modal(document.getElementById('{_modalId}')).show()");
     }
@@ -35,7 +35,7 @@ public partial class LogDetailsModal : ComponentBase
     {
         _currentLog = null;
         StateHasChanged();
-        
+
         // Hide the Bootstrap modal
         await JSRuntime.InvokeVoidAsync("eval", $"bootstrap.Modal.getInstance(document.getElementById('{_modalId}'))?.hide()");
     }

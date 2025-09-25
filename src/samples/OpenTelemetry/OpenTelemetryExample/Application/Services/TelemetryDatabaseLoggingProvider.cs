@@ -29,12 +29,12 @@ public sealed class TelemetryDatabaseLoggingProvider : ILoggerProvider
         _serviceProvider = serviceProvider;
         _currentConfig = config.CurrentValue;
         _onChangeToken = config.OnChange(updatedConfig => _currentConfig = updatedConfig);
-        
+
         // Set up batch processing timer with configurable interval
-        _batchTimer = new Timer(ProcessLogBatch, null, 
+        _batchTimer = new Timer(ProcessLogBatch, null,
             TimeSpan.FromMilliseconds(_currentConfig.ProcessingIntervalMs),
             TimeSpan.FromMilliseconds(_currentConfig.ProcessingIntervalMs));
-            
+
         Console.WriteLine($"[*] TelemetryDatabaseLoggingProvider initialized with batch processing (BatchSize: {_currentConfig.BatchSize}, Interval: {_currentConfig.ProcessingIntervalMs}ms)");
     }
 
@@ -57,7 +57,7 @@ public sealed class TelemetryDatabaseLoggingProvider : ILoggerProvider
 
     private async void ProcessLogBatch(object? state)
     {
-        if (_disposed || _logQueue.IsEmpty || !_currentConfig.Enabled) 
+        if (_disposed || _logQueue.IsEmpty || !_currentConfig.Enabled)
             return;
 
         var logs = new List<TelemetryLog>();
@@ -74,16 +74,16 @@ public sealed class TelemetryDatabaseLoggingProvider : ILoggerProvider
         try
         {
             Console.WriteLine($"[DEBUG] Processing batch of {logs.Count} logs");
-            
+
             using var scope = _serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            
+
             // Add logs to context
             await context.TelemetryLogs.AddRangeAsync(logs);
-            
+
             // Save changes
             var savedCount = await context.SaveChangesAsync();
-            
+
             Console.WriteLine($"[DEBUG] Successfully saved {savedCount} logs to database");
         }
         catch (Exception ex)
@@ -103,21 +103,24 @@ public sealed class TelemetryDatabaseLoggingProvider : ILoggerProvider
     {
         if (_disposed)
             return;
-
-        Console.WriteLine("[*] TelemetryDatabaseLoggingProvider disposing");
+        Console.WriteLine(Resources.ProviderDisposing);
         _disposed = true;
-        
+
         // Process any remaining logs
         ProcessLogBatch(null);
-        
+
         _batchTimer?.Dispose();
         _onChangeToken?.Dispose();
-        
+
         foreach (var logger in _loggers.Values)
         {
             logger.Dispose();
         }
         _loggers.Clear();
+    }
+    private static class Resources
+    {
+        public const string ProviderDisposing = "[*] TelemetryDatabaseLoggingProvider disposing";
     }
 }
 
@@ -152,7 +155,7 @@ internal sealed class TelemetryDatabaseLogger(
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
         Console.WriteLine($"[TELEMETRY DEBUG] TelemetryDatabaseLogger.Log called: Level={logLevel}, Category={categoryName}");
-        
+
         if (!IsEnabled(logLevel))
         {
             Console.WriteLine($"[TELEMETRY DEBUG] Log level {logLevel} not enabled for {categoryName}");
@@ -162,9 +165,9 @@ internal sealed class TelemetryDatabaseLogger(
         var activity = Activity.Current;
         var message = formatter(state, exception);
         var config = getCurrentConfig();
-        
+
         Console.WriteLine($"[TELEMETRY DEBUG] Processing log message: {message}");
-        
+
         // Skip telemetry-related logs to avoid recursive logging using configuration
         if (ShouldSkipLog(message, categoryName, config.SkipPatterns))
         {
@@ -209,9 +212,9 @@ internal sealed class TelemetryDatabaseLogger(
         {
             return true;
         }
-        
+
         // Check if any skip pattern matches the message or category
-        return skipPatterns.Any(pattern => 
+        return skipPatterns.Any(pattern =>
             message.Contains(pattern, StringComparison.OrdinalIgnoreCase) ||
             category.Contains(pattern, StringComparison.OrdinalIgnoreCase));
     }
@@ -234,7 +237,7 @@ internal sealed class TelemetryDatabaseLogger(
     private static Dictionary<string, object> ExtractTags<TState>(TState state)
     {
         var tags = new Dictionary<string, object>();
-        
+
         if (state is IEnumerable<KeyValuePair<string, object>> keyValuePairs)
         {
             foreach (var kvp in keyValuePairs)
@@ -245,7 +248,7 @@ internal sealed class TelemetryDatabaseLogger(
                 }
             }
         }
-        
+
         return tags;
     }
 

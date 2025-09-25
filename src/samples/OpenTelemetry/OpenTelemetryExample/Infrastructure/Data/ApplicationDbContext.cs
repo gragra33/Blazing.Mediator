@@ -147,37 +147,47 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin",
             "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson",
             "Walker", "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores",
-            "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell", "Carter", "Roberts"
+            "Green", "AdAMS", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell", "Carter", "Roberts"
         };
 
         var domains = new[] { "example.com", "demo.org", "test.net", "sample.co", "mock.io" };
-        var random = new Random(42); // Fixed seed for consistent data
+        var random = System.Security.Cryptography.RandomNumberGenerator.Create(); // Use secure RNG
         var baseDate = DateTime.UtcNow.AddDays(-365); // Start from a year ago
 
         var users = new User[count];
+        var randomBytes = new byte[4];
         for (int i = 0; i < count; i++)
         {
-            var firstName = firstNames[random.Next(firstNames.Length)];
-            var lastName = lastNames[random.Next(lastNames.Length)];
-            var domain = domains[random.Next(domains.Length)];
-            var email = $"{firstName.ToLower()}.{lastName.ToLower()}@{domain}";
-            
+            random.GetBytes(randomBytes);
+            var firstName = firstNames[BitConverter.ToUInt32(randomBytes, 0) % (uint)firstNames.Length];
+            random.GetBytes(randomBytes);
+            var lastName = lastNames[BitConverter.ToUInt32(randomBytes, 0) % (uint)lastNames.Length];
+            random.GetBytes(randomBytes);
+            var domain = domains[BitConverter.ToUInt32(randomBytes, 0) % (uint)domains.Length];
+            var email = $"{firstName.ToUpperInvariant()}.{lastName.ToUpperInvariant()}@{domain}";
+
             // Make email unique by adding number for duplicates
             if (i > 0 && users.Take(i).Any(u => u.Email == email))
             {
-                email = $"{firstName.ToLower()}.{lastName.ToLower()}{i}@{domain}";
+                email = $"{firstName.ToUpperInvariant()}.{lastName.ToUpperInvariant()}{i}@{domain}";
             }
+
+            random.GetBytes(randomBytes);
+            var days = BitConverter.ToUInt32(randomBytes, 0) % 365;
+            random.GetBytes(randomBytes);
+            var isActive = (BitConverter.ToUInt32(randomBytes, 0) % 100) > 15; // 85% chance active
 
             users[i] = new User
             {
                 Id = i + 1,
                 Name = $"{firstName} {lastName}",
                 Email = email,
-                CreatedAt = baseDate.AddDays(random.NextDouble() * 365), // Random date within the year
-                IsActive = random.NextDouble() > 0.15 // 85% chance of being active
+                CreatedAt = baseDate.AddDays(days), // Random date within the year
+                IsActive = isActive
             };
         }
 
+        random.Dispose();
         return users;
     }
 }

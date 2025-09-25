@@ -167,7 +167,7 @@ public class MediatorConfigurationTests : IDisposable
 
         // Assert
         _serviceProvider = services.BuildServiceProvider();
-        
+
         var telemetryOptions = _serviceProvider.GetService<MediatorTelemetryOptions>();
         Assert.NotNull(telemetryOptions);
         Assert.True(telemetryOptions.Enabled);
@@ -491,7 +491,7 @@ public class MediatorConfigurationTests : IDisposable
         // Verify both inspectors are available
         var requestInspector = _serviceProvider.GetService<IMiddlewarePipelineInspector>();
         var notificationInspector = _serviceProvider.GetService<INotificationMiddlewarePipelineInspector>();
-        
+
         Assert.NotNull(requestInspector);
         Assert.NotNull(notificationInspector);
     }

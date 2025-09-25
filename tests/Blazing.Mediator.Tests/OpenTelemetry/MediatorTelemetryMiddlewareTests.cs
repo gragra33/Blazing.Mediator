@@ -93,7 +93,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Assert
         // NOTE: The current implementation doesn't actually execute middleware through the pipeline
         // So we skip the middleware execution count tests and focus on telemetry
-        
+
         // Verify activity contains basic telemetry information
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
         activity.ShouldNotBeNull("Activity should be created");
@@ -101,7 +101,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Verify basic telemetry tags
         activity.GetTagItem("request_name").ShouldNotBeNull();
         activity.GetTagItem("request_type").ShouldBe("command");
-        
+
         // The middleware pipeline information should be captured in telemetry
         var middlewarePipeline = activity.GetTagItem("middleware.pipeline")?.ToString();
         if (middlewarePipeline != null)
@@ -133,15 +133,15 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Assert
         // NOTE: The current implementation doesn't actually execute middleware through the pipeline
         // So we test telemetry capture instead
-        
+
         // Verify activity was created
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
         activity.ShouldNotBeNull("Activity should be created");
-        
+
         // Verify basic telemetry information
         activity.GetTagItem("request_name").ShouldNotBeNull();
         activity.GetTagItem("request_type").ShouldBe("command");
-        
+
         // The middleware pipeline should be captured in telemetry
         var middlewarePipeline = activity.GetTagItem("middleware.pipeline")?.ToString();
         if (middlewarePipeline != null)
@@ -172,7 +172,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Assert
         // NOTE: The current implementation doesn't actually execute middleware through the pipeline
         // So we focus on telemetry capture instead
-        
+
         // Verify activity was created
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
         activity.ShouldNotBeNull("Activity should be created");
@@ -181,7 +181,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Verify basic telemetry information
         activity.GetTagItem("request_name").ShouldNotBeNull();
         activity.GetTagItem("request_type").ShouldBe("command");
-        
+
         // The middleware pipeline should be captured in telemetry
         var middlewarePipeline = activity.GetTagItem("middleware.pipeline")?.ToString();
         if (middlewarePipeline != null)
@@ -214,7 +214,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
 
         // NOTE: The current implementation doesn't actually execute middleware through the pipeline
         // So we skip the middleware execution count tests and focus on telemetry
-        
+
         // Verify activity contains basic information
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestQuery"));
         activity.ShouldNotBeNull("Activity should be created for query");
@@ -223,7 +223,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         activity.GetTagItem("request_name").ShouldNotBeNull();
         activity.GetTagItem("request_type").ShouldBe("query");
         activity.GetTagItem("response_type").ShouldBe("String");
-        
+
         // The middleware.executed tag may be empty since middleware tracking isn't working
         // but the activity should still be created and contain basic telemetry
     }
@@ -249,15 +249,15 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Assert
         // NOTE: The current implementation doesn't actually execute middleware through the pipeline
         // So we test telemetry capture instead
-        
+
         // Verify activity was created
         var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
         activity.ShouldNotBeNull("Activity should be created");
-        
+
         // Verify basic telemetry information
         activity.GetTagItem("request_name").ShouldNotBeNull();
         activity.GetTagItem("request_type").ShouldBe("command");
-        
+
         // The middleware pipeline should be captured in telemetry
         var middlewarePipeline = activity.GetTagItem("middleware.pipeline")?.ToString();
         if (middlewarePipeline != null)

@@ -7,32 +7,31 @@ namespace OpenTelemetryExample.Application.Services;
 /// Helper class for database initialization, seeding, and verification.
 /// Handles database setup and telemetry provider verification during startup.
 /// </summary>
-public static class DatabaseInitializationHelper
+internal static class DatabaseInitializationHelper
 {
     /// <summary>
     /// Initializes the database, seeds initial data, and verifies telemetry logging setup.
     /// </summary>
     /// <param name="serviceProvider">The service provider for resolving dependencies.</param>
+    /// <param name="logger">The logger for this operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task InitializeAndSeedDatabaseAsync(IServiceProvider serviceProvider)
+    public static async Task InitializeAndSeedDatabaseAsync(IServiceProvider serviceProvider, ILogger logger)
     {
         using var scope = serviceProvider.CreateScope();
         var scopedServices = scope.ServiceProvider;
-        
+
         var context = scopedServices.GetRequiredService<ApplicationDbContext>();
-        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
-        
+
         logger.LogInformation("Starting database initialization and seeding process");
-        
-        await InitializeDatabaseSchemaAsync(context, logger);
-        await VerifyDatabaseTablesAsync(context, logger);
-        await VerifyTelemetryLoggingProviderAsync(scopedServices, logger);
-        
+
+        await InitializeDatabaseSchemaAsync(context, logger).ConfigureAwait(false);
+        await VerifyDatabaseTablesAsync(context, logger).ConfigureAwait(false);
+        await VerifyTelemetryLoggingProviderAsync(scopedServices, logger).ConfigureAwait(false);
+
         LogCompletionStatus();
-        
         logger.LogInformation("Database initialization and seeding process completed successfully");
     }
-    
+
     /// <summary>
     /// Initializes the database schema by ensuring it's recreated with the latest structure.
     /// </summary>
@@ -41,13 +40,13 @@ public static class DatabaseInitializationHelper
     private static async Task InitializeDatabaseSchemaAsync(ApplicationDbContext context, ILogger logger)
     {
         logger.LogInformation("Initializing in-memory database schema");
-        
+
         try
         {
             // Ensure database is created with latest schema including TelemetryLogs
-            await context.Database.EnsureDeletedAsync(); // Delete existing database to ensure fresh schema
-            await context.Database.EnsureCreatedAsync();
-            
+            await context.Database.EnsureDeletedAsync().ConfigureAwait(false); // Delete existing database to ensure fresh schema
+            await context.Database.EnsureCreatedAsync().ConfigureAwait(false);
+
             logger.LogInformation("Database schema created successfully");
         }
         catch (Exception ex)
@@ -56,7 +55,7 @@ public static class DatabaseInitializationHelper
             throw;
         }
     }
-    
+
     /// <summary>
     /// Verifies that all expected database tables exist and are accessible.
     /// </summary>
@@ -67,19 +66,19 @@ public static class DatabaseInitializationHelper
         try
         {
             // Check Users table
-            var userCount = await context.Users.CountAsync();
+            var userCount = await context.Users.CountAsync().ConfigureAwait(false);
             logger.LogInformation("Database initialized with {UserCount} users", userCount);
-            
+
             // Check TelemetryLogs table exists and is accessible
-            var logCount = await context.TelemetryLogs.CountAsync();
+            var logCount = await context.TelemetryLogs.CountAsync().ConfigureAwait(false);
             logger.LogInformation("TelemetryLogs table initialized with {LogCount} logs", logCount);
-            
+
             // Verify other telemetry tables
-            var activityCount = await context.TelemetryActivities.CountAsync();
-            var metricCount = await context.TelemetryMetrics.CountAsync();
-            var traceCount = await context.TelemetryTraces.CountAsync();
-            
-            logger.LogInformation("Telemetry tables verified - Activities: {ActivityCount}, Metrics: {MetricCount}, Traces: {TraceCount}", 
+            var activityCount = await context.TelemetryActivities.CountAsync().ConfigureAwait(false);
+            var metricCount = await context.TelemetryMetrics.CountAsync().ConfigureAwait(false);
+            var traceCount = await context.TelemetryTraces.CountAsync().ConfigureAwait(false);
+
+            logger.LogInformation("Telemetry tables verified - Activities: {ActivityCount}, Metrics: {MetricCount}, Traces: {TraceCount}",
                 activityCount, metricCount, traceCount);
         }
         catch (Exception ex)
@@ -88,7 +87,7 @@ public static class DatabaseInitializationHelper
             throw;
         }
     }
-    
+
     /// <summary>
     /// Verifies that the TelemetryDatabaseLoggingProvider is properly registered and functional.
     /// </summary>
@@ -102,18 +101,18 @@ public static class DatabaseInitializationHelper
             var providers = serviceProvider.GetServices<ILoggerProvider>();
             var telemetryProviderFound = providers.Any(p => p is TelemetryDatabaseLoggingProvider);
             logger.LogInformation("TelemetryDatabaseLoggingProvider found in DI providers: {Found}", telemetryProviderFound);
-            
+
             if (telemetryProviderFound)
             {
                 logger.LogInformation("TelemetryDatabaseLoggingProvider successfully registered following Microsoft's pattern");
-                
+
                 // Test the logging factory to ensure loggers are created properly
                 var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
                 var testLogger = loggerFactory.CreateLogger("DatabaseInitializationTest");
                 logger.LogInformation("Test logger created successfully using LoggerFactory");
-                
+
                 // Generate test logs to verify the provider is working
-                await GenerateTestLogsAsync(testLogger, logger);
+                await GenerateTestLogsAsync(testLogger, logger).ConfigureAwait(false);
             }
             else
             {
@@ -126,7 +125,7 @@ public static class DatabaseInitializationHelper
             throw;
         }
     }
-    
+
     /// <summary>
     /// Generates test log entries at various levels to verify the telemetry provider is working.
     /// </summary>
@@ -135,7 +134,7 @@ public static class DatabaseInitializationHelper
     private static async Task GenerateTestLogsAsync(ILogger testLogger, ILogger logger)
     {
         logger.LogInformation("Generating test logs for TelemetryDatabaseLoggingProvider verification");
-        
+
         try
         {
             // Generate test logs at different levels
@@ -145,10 +144,10 @@ public static class DatabaseInitializationHelper
             testLogger.LogWarning("Test warning message for TelemetryDatabaseLoggingProvider verification");
             testLogger.LogError("Test error message for TelemetryDatabaseLoggingProvider verification");
             testLogger.LogCritical("Test critical message for TelemetryDatabaseLoggingProvider verification");
-            
+
             // Wait a brief moment for async processing
-            await Task.Delay(100);
-            
+            await Task.Delay(100).ConfigureAwait(false);
+
             logger.LogInformation("Test logs generated successfully");
         }
         catch (Exception ex)
@@ -156,7 +155,7 @@ public static class DatabaseInitializationHelper
             logger.LogError(ex, "Error generating test logs");
         }
     }
-    
+
     /// <summary>
     /// Logs completion status to the console for visibility.
     /// </summary>
@@ -166,20 +165,20 @@ public static class DatabaseInitializationHelper
         Console.WriteLine("[*] TelemetryLogs table is ready for log capture");
         Console.WriteLine("[*] Database initialization completed successfully");
     }
-    
+
     /// <summary>
     /// Generates startup test logs to verify logging functionality across different categories.
     /// </summary>
     /// <param name="serviceProvider">The service provider for resolving loggers.</param>
+    /// <param name="logger">The logger instance to use.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task GenerateStartupTestLogsAsync(IServiceProvider serviceProvider)
+    public static async Task GenerateStartupTestLogsAsync(IServiceProvider serviceProvider, ILogger logger)
     {
-        var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-        
+
         logger.LogInformation("OpenTelemetry API Server is starting up");
-        logger.LogInformation("Blazing.Mediator Telemetry: {TelemetryStatus}", 
+        logger.LogInformation("Blazing.Mediator Telemetry: {TelemetryStatus}",
             Blazing.Mediator.Mediator.TelemetryEnabled ? "ENABLED" : "DISABLED");
-        logger.LogInformation("Environment: {Environment}", 
+        logger.LogInformation("Environment: {Environment}",
             serviceProvider.GetRequiredService<IWebHostEnvironment>().EnvironmentName);
         logger.LogInformation("Application URLs will be displayed after startup");
 
@@ -191,16 +190,16 @@ public static class DatabaseInitializationHelper
         // Test application-specific logging from different categories
         var appLogger = serviceProvider.GetRequiredService<ILogger<OpenTelemetryExample.Controllers.UsersController>>();
         appLogger.LogInformation("Test log from UsersController category for telemetry capture");
-        
+
         var mediatorLogger = serviceProvider.GetRequiredService<ILogger<Blazing.Mediator.Mediator>>();
         mediatorLogger.LogInformation("Test log from Blazing.Mediator category for telemetry capture");
 
         // Wait a moment for logs to be processed
-        await Task.Delay(3000);
+        await Task.Delay(3000).ConfigureAwait(false);
 
         LogStartupCompletion();
     }
-    
+
     /// <summary>
     /// Logs startup completion status to the console.
     /// </summary>

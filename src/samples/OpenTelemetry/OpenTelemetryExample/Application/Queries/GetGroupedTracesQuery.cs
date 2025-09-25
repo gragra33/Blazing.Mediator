@@ -32,12 +32,12 @@ public sealed class GetGroupedTracesQuery : IRequest<GroupedTracesDto>
     /// Gets or sets a value indicating whether to hide packet traces.
     /// </summary>
     public bool HidePackets { get; set; } = false;
-    
+
     /// <summary>
     /// Gets or sets the page number for pagination (1-based).
     /// </summary>
     public int Page { get; set; } = 1;
-    
+
     /// <summary>
     /// Gets or sets the number of trace groups per page.
     /// </summary>

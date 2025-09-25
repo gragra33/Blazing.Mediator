@@ -61,7 +61,10 @@ public sealed class PagedResult<T>
     /// </summary>
     [JsonPropertyName("endIndex")]
     public int EndIndex => Math.Min(StartIndex + Items.Count - 1, TotalCount);
+}
 
+public static class PagedResult
+{
     /// <summary>
     /// Creates a paginated result from a list of items and pagination metadata.
     /// </summary>
@@ -70,7 +73,7 @@ public sealed class PagedResult<T>
     /// <param name="pageSize">The number of items per page</param>
     /// <param name="totalCount">The total number of items across all pages</param>
     /// <returns>A new paginated result</returns>
-    public static PagedResult<T> Create(List<T> items, int page, int pageSize, int totalCount)
+    public static PagedResult<T> Create<T>(List<T> items, int page, int pageSize, int totalCount)
     {
         return new PagedResult<T>
         {

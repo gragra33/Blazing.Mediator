@@ -15,11 +15,8 @@ LoggerInspectionHelper.PerformFullInspection(app.Services, "ProgramStartupTest")
 app.ConfigurePipeline();
 
 // Initialize database and verify telemetry logging setup
-await DatabaseInitializationHelper.InitializeAndSeedDatabaseAsync(app.Services);
+await DatabaseInitializationHelper.InitializeAndSeedDatabaseAsync(app.Services, app.Logger);
 
-// Generate startup test logs
-//await DatabaseInitializationHelper.GenerateStartupTestLogsAsync(app.Services);
+await app.RunAsync();
 
-app.Run();
-
-public partial class Program { }
+public static partial class Program { }

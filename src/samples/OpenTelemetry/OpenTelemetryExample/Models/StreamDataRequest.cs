@@ -9,7 +9,7 @@ public class StreamDataRequest
     /// Gets or sets the number of data items to stream.
     /// </summary>
     public int Count { get; set; } = 50;
-    
+
     /// <summary>
     /// Gets or sets the delay in milliseconds between each streamed item.
     /// </summary>

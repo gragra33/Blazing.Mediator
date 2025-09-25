@@ -47,19 +47,19 @@ public partial class RecentTracesCard : ComponentBase
     private int _lastRefreshTrigger;
     private DisplayMode _displayMode = DisplayMode.Raw;
     private TraceDetailsModal? _traceDetailsModal;
-    
+
     // Pagination state
     private int _currentPage = 1;
     private int _pageSize = 10;
-    
+
     // Grouped mode data source
     private GroupedTracesDto? GroupedDataSource { get; set; }
 
     /// <summary>
     /// Gets the current pagination info based on display mode.
     /// </summary>
-    private PaginationInfo? CurrentPagination => _displayMode == DisplayMode.Raw 
-        ? DataSource?.Pagination 
+    private PaginationInfo? CurrentPagination => _displayMode == DisplayMode.Raw
+        ? DataSource?.Pagination
         : GroupedDataSource?.Pagination;
 
     /// <summary>
@@ -339,7 +339,7 @@ public partial class RecentTracesCard : ComponentBase
     /// <summary>
     /// Handles changes to the application filter.
     /// </summary>
-    private async Task OnAppFilterChanged() 
+    private async Task OnAppFilterChanged()
     {
         _currentPage = 1; // Reset to first page when changing filters
         await RefreshTraces();
@@ -348,7 +348,7 @@ public partial class RecentTracesCard : ComponentBase
     /// <summary>
     /// Handles changes to the mediator filter.
     /// </summary>
-    private async Task OnMediatorFilterChanged() 
+    private async Task OnMediatorFilterChanged()
     {
         _currentPage = 1; // Reset to first page when changing filters
         await RefreshTraces();
@@ -363,7 +363,7 @@ public partial class RecentTracesCard : ComponentBase
         {
             _isLoading = true;
             await InvokeAsync(StateHasChanged);
-            
+
             if (_displayMode == DisplayMode.Raw)
             {
                 DataSource = await TelemetryService.GetRecentTracesAsync(_pageSize, _mediatorOnly, _appOnly, _timeWindowMinutes, _currentPage, _pageSize);
@@ -374,7 +374,7 @@ public partial class RecentTracesCard : ComponentBase
                 GroupedDataSource = await TelemetryService.GetGroupedTracesAsync(_pageSize, _mediatorOnly, _appOnly, _timeWindowMinutes, _hidePackets, _currentPage, _pageSize);
                 DataSource = null;
             }
-            
+
             if (OnFiltersChanged.HasDelegate)
             {
                 await InvokeAsync(async () => await OnFiltersChanged.InvokeAsync());

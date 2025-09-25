@@ -4,6 +4,7 @@ using OpenTelemetryExample.Application.Queries;
 using OpenTelemetryExample.Domain.Entities;
 using OpenTelemetryExample.Infrastructure.Data;
 using OpenTelemetryExample.Shared.Models;
+using System.Globalization;
 
 namespace OpenTelemetryExample.Application.Handlers;
 
@@ -27,7 +28,8 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
             // Get total count for the timeframe first (before any filtering)
             var totalAvailableInTimeframe = await context.TelemetryTraces
                 .Where(t => t.StartTime >= cutoffTime)
-                .CountAsync(cancellationToken);
+                .CountAsync(cancellationToken)
+                .ConfigureAwait(false);
 
             // Start with base query for the timeframe
             var baseQuery = context.TelemetryTraces
@@ -37,20 +39,21 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
             var filteredQuery = ApplyTraceFilters(baseQuery, request.MediatorOnly, request.ExampleAppOnly);
 
             // Get total filtered count (matching the filter criteria)
-            var totalFilteredCount = await filteredQuery.CountAsync(cancellationToken);
+            var totalFilteredCount = await filteredQuery.CountAsync(cancellationToken).ConfigureAwait(false);
 
             // Apply pagination and ordering - most recent first
             var pagedTraces = await filteredQuery
                 .OrderByDescending(t => t.StartTime)
                 .Skip(skip)
                 .Take(pageSize)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
 
             if (!pagedTraces.Any())
             {
                 logger.LogInformation("No telemetry traces found in the last {TimeWindow} minutes with filter: MediatorOnly={MediatorOnly}, ExampleAppOnly={ExampleAppOnly}, Page={Page}",
                     request.TimeWindow.TotalMinutes, request.MediatorOnly, request.ExampleAppOnly, page);
-                
+
                 return new RecentTracesDto
                 {
                     Timestamp = DateTime.UtcNow,
@@ -167,13 +170,13 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
     /// </summary>
     private static string NormalizeStatus(string status)
     {
-        return status.ToLower() switch
+        return status.ToLower(CultureInfo.InvariantCulture) switch
         {
             "unset" => "Success", // ActivityStatusCode.Unset typically means successful completion
             "ok" => "Success",
             "error" => "Error",
             "cancelled" => "Cancelled",
-            _ => status.Length > 0 ? char.ToUpper(status[0]) + status[1..].ToLower() : "Unknown"
+            _ => status.Length > 0 ? char.ToUpper(status[0], CultureInfo.InvariantCulture) + status[1..].ToLower(CultureInfo.InvariantCulture) : "Unknown"
         };
     }
 
@@ -222,8 +225,8 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
         {
             foreach (var tag in tags)
             {
-                var key = tag.Key.ToLower();
-                var value = tag.Value.ToString()?.ToLower() ?? "";
+                var key = tag.Key.ToLower(CultureInfo.InvariantCulture);
+                var value = tag.Value.ToString()?.ToLower(CultureInfo.InvariantCulture) ?? "";
 
                 if (key.Contains("mediator") || value.Contains("blazing.mediator") || value.Contains("mediator"))
                     return "Blazing.Mediator";
@@ -272,6 +275,7 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
 
         return false;
     }
+
     /// <summary>
     /// Determines if a trace is from Blazing.Mediator.
     /// </summary>
@@ -293,8 +297,8 @@ public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger
         {
             foreach (var tag in tags)
             {
-                var key = tag.Key.ToLower();
-                var value = tag.Value.ToString()?.ToLower() ?? "";
+                var key = tag.Key.ToLower(CultureInfo.InvariantCulture);
+                var value = tag.Value.ToString()?.ToLower(CultureInfo.InvariantCulture) ?? "";
 
                 if (key.Contains("mediator") || value.Contains("blazing.mediator") || value.Contains("mediator"))
                     return true;

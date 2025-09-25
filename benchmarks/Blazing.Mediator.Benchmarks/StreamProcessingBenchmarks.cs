@@ -1,9 +1,9 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
+using Blazing.Mediator.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.CompilerServices;
-using Blazing.Mediator.Abstractions;
 
 namespace Blazing.Mediator.Benchmarks;
 
@@ -19,7 +19,7 @@ public class StreamProcessingBenchmarks
 {
     private IMediator _mediatorNoMiddleware = null!;
     private IMediator _mediatorWithMiddleware = null!;
-    
+
     private SmallStreamRequest _smallStreamRequest = null!;
     private MediumStreamRequest _mediumStreamRequest = null!;
     private LargeStreamRequest _largeStreamRequest = null!;
@@ -382,9 +382,9 @@ public class StreamProcessingBenchmarks
             for (int i = 0; i < request.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                yield return new StreamDataObject 
-                { 
-                    Id = i, 
+                yield return new StreamDataObject
+                {
+                    Id = i,
                     Name = $"Object-{i}",
                     Timestamp = DateTime.UtcNow
                 };

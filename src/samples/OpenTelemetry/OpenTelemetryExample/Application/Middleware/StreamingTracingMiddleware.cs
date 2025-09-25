@@ -24,7 +24,7 @@ public class StreamingTracingMiddleware<TRequest, TResponse>(
     {
         var requestType = typeof(TRequest).Name;
         var responseType = typeof(TResponse).Name;
-        
+
         using var activity = ActivitySource.StartActivity($"StreamingMiddleware.{requestType}");
         activity?.SetTag("middleware.type", "StreamingTracing");
         activity?.SetTag("request.type", requestType);
@@ -56,7 +56,7 @@ public class StreamingTracingMiddleware<TRequest, TResponse>(
             logger.LogError(ex,
                 "❌ [STREAMING TRACE] Failed to start stream {RequestType} -> {ResponseType} [ID: {StreamId}] Error: {ErrorMessage}",
                 requestType, responseType, streamId, ex.Message);
-            
+
             throw;
         }
 
@@ -84,7 +84,7 @@ public class StreamingTracingMiddleware<TRequest, TResponse>(
             await foreach (var item in stream.WithCancellation(cancellationToken))
             {
                 itemCount++;
-                
+
                 // Add activity event for each item
                 activity?.AddEvent(new ActivityEvent("stream.item.processed", default, new ActivityTagsCollection
                 {
@@ -112,7 +112,7 @@ public class StreamingTracingMiddleware<TRequest, TResponse>(
             activity?.SetStatus(ActivityStatusCode.Ok, $"Stream completed successfully with {itemCount} items");
 
             logger.LogInformation(
-                "✅ [STREAMING TRACE] Completed stream {RequestType} -> {ResponseType} [ID: {StreamId}] " +
+                "[STREAMING TRACE] Completed stream {RequestType} -> {ResponseType} [ID: {StreamId}] " +
                 "Items: {ItemCount}, Duration: {Duration}ms, Throughput: {Throughput:F2} items/sec",
                 requestType, responseType, streamId, itemCount, duration.TotalMilliseconds,
                 itemCount / Math.Max(duration.TotalSeconds, 0.001));
@@ -121,7 +121,7 @@ public class StreamingTracingMiddleware<TRequest, TResponse>(
         {
             var streamException = ex;
             var duration = DateTime.UtcNow - startTime;
-            
+
             activity?.SetTag("stream.items_count", itemCount);
             activity?.SetTag("stream.duration_ms", duration.TotalMilliseconds);
             activity?.SetTag("exception.type", ex.GetType().Name);
@@ -132,7 +132,7 @@ public class StreamingTracingMiddleware<TRequest, TResponse>(
                 "❌ [STREAMING TRACE] Failed stream {RequestType} -> {ResponseType} [ID: {StreamId}] " +
                 "Items processed: {ItemCount}, Duration: {Duration}ms, Error: {ErrorMessage}",
                 requestType, responseType, streamId, itemCount, duration.TotalMilliseconds, ex.Message);
-            
+
             throw;
         }
 

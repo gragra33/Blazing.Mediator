@@ -115,7 +115,7 @@ public static class MediatorTelemetryExtensions
     /// <returns>The service collection for method chaining.</returns>
     public static IServiceCollection DisableMediatorTelemetry(this IServiceCollection services)
     {
-        return services.ConfigureMediatorTelemetry(options => 
+        return services.ConfigureMediatorTelemetry(options =>
         {
             options.Enabled = false;
             options.PacketLevelTelemetryEnabled = false;

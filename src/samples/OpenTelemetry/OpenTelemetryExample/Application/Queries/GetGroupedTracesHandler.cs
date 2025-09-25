@@ -4,6 +4,7 @@ using OpenTelemetryExample.Application.Queries;
 using OpenTelemetryExample.Domain.Entities;
 using OpenTelemetryExample.Infrastructure.Data;
 using OpenTelemetryExample.Shared.Models;
+using System.Globalization;
 
 namespace OpenTelemetryExample.Application.Handlers;
 
@@ -39,13 +40,14 @@ public sealed class GetGroupedTracesHandler(ApplicationDbContext context, ILogge
             // Get all filtered traces for grouping
             var allFilteredTraces = await filteredTraces
                 .OrderByDescending(t => t.StartTime)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
 
             if (!allFilteredTraces.Any())
             {
                 logger.LogInformation("No telemetry traces found in the last {TimeWindow} minutes with filter: MediatorOnly={MediatorOnly}, ExampleAppOnly={ExampleAppOnly}, HidePackets={HidePackets}, Page={Page}",
                     request.TimeWindow.TotalMinutes, request.MediatorOnly, request.ExampleAppOnly, request.HidePackets, page);
-                
+
                 return new GroupedTracesDto
                 {
                     Timestamp = DateTime.UtcNow,
@@ -150,7 +152,7 @@ public sealed class GetGroupedTracesHandler(ApplicationDbContext context, ILogge
         // Apply hide packets filter
         if (hidePackets)
         {
-            baseQuery = baseQuery.Where(trace => !trace.OperationName.Contains("Mediator.SendStream:") || 
+            baseQuery = baseQuery.Where(trace => !trace.OperationName.Contains("Mediator.SendStream:") ||
                                                !trace.OperationName.Contains(".packet_"));
         }
 
@@ -270,12 +272,13 @@ public sealed class GetGroupedTracesHandler(ApplicationDbContext context, ILogge
     /// </summary>
     private static string NormalizeStatus(string status)
     {
-        return status switch
+        return status.ToLower(CultureInfo.InvariantCulture) switch
         {
-            "Unset" => "OK",
-            "Ok" => "OK",
-            "Error" => "Error",
-            _ => status
+            "unset" => "Success", // ActivityStatusCode.Unset typically means successful completion
+            "ok" => "Success",
+            "error" => "Error",
+            "cancelled" => "Cancelled",
+            _ => status.Length > 0 ? char.ToUpper(status[0], CultureInfo.InvariantCulture) + status[1..].ToLower(CultureInfo.InvariantCulture) : "Unknown"
         };
     }
 
@@ -324,8 +327,8 @@ public sealed class GetGroupedTracesHandler(ApplicationDbContext context, ILogge
         {
             foreach (var tag in tags)
             {
-                var key = tag.Key.ToLower();
-                var value = tag.Value.ToString()?.ToLower() ?? "";
+                var key = tag.Key.ToLower(CultureInfo.InvariantCulture);
+                var value = tag.Value.ToString()?.ToLower(CultureInfo.InvariantCulture) ?? "";
 
                 if (key.Contains("mediator") || value.Contains("blazing.mediator") || value.Contains("mediator"))
                     return "Blazing.Mediator";
@@ -396,8 +399,8 @@ public sealed class GetGroupedTracesHandler(ApplicationDbContext context, ILogge
         {
             foreach (var tag in tags)
             {
-                var key = tag.Key.ToLower();
-                var value = tag.Value.ToString()?.ToLower() ?? "";
+                var key = tag.Key.ToLower(CultureInfo.InvariantCulture);
+                var value = tag.Value.ToString()?.ToLower(CultureInfo.InvariantCulture) ?? "";
 
                 if (key.Contains("mediator") || value.Contains("blazing.mediator") || value.Contains("mediator"))
                     return true;

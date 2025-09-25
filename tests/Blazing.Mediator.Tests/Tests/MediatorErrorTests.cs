@@ -501,17 +501,17 @@ namespace Blazing.Mediator.Tests
             }, typeof(MiddlewareTestQueryHandler).Assembly);
 
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-            
+
             // Analyze the middleware pipeline before execution
             var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
             var analysis = inspector.AnalyzeMiddleware(serviceProvider);
-            
+
             // Debug: Print what middleware is actually registered
             foreach (var middleware in analysis)
             {
                 Console.WriteLine($"Middleware: {middleware.ClassName}, Order: {middleware.Order}, Type: {middleware.Type.Name}");
             }
-            
+
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
             MiddlewareTestQuery query = new() { Value = "test" };

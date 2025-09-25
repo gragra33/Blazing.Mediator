@@ -64,6 +64,8 @@ Console.WriteLine();
 using var scope = host.Services.CreateScope();
 var services = scope.ServiceProvider;
 
+var pipelineInspector = services.GetRequiredService<IMiddlewarePipelineInspector>();
+
 var runner = services.GetRequiredService<Runner>();
 
 // Inspect middleware pipeline before running the demo

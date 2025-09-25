@@ -49,7 +49,7 @@ public partial class Telemetry : ComponentBase
         if (_autoRefreshEnabled && _refreshTimer == null)
         {
             _remainingSeconds = _refreshIntervalSeconds;
-            
+
             // Main refresh timer
             _refreshTimer = new Timer(async void (_) =>
             {
@@ -60,7 +60,7 @@ public partial class Telemetry : ComponentBase
                     StateHasChanged();
                 });
             }, null, TimeSpan.FromSeconds(_refreshIntervalSeconds), TimeSpan.FromSeconds(_refreshIntervalSeconds));
-            
+
             // Countdown timer (updates every second)
             _countdownTimer = new Timer(async void (_) =>
             {
@@ -93,7 +93,7 @@ public partial class Telemetry : ComponentBase
     private async Task ToggleAutoRefresh()
     {
         _autoRefreshEnabled = !_autoRefreshEnabled;
-        
+
         if (_autoRefreshEnabled)
         {
             StartAutoRefresh();
@@ -102,7 +102,7 @@ public partial class Telemetry : ComponentBase
         {
             StopAutoRefresh();
         }
-        
+
         StateHasChanged();
         await Task.CompletedTask;
     }
@@ -139,7 +139,7 @@ public partial class Telemetry : ComponentBase
         UpdateDebugData();
         _recentTracesRefreshTrigger++; // Force RecentTracesCard to refresh
         _recentLogsRefreshTrigger++; // Force RecentLogsCard to refresh
-        
+
         // Reset countdown when manually refreshing
         if (_autoRefreshEnabled)
         {

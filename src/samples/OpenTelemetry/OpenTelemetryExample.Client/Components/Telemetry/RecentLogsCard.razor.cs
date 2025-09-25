@@ -39,7 +39,7 @@ public partial class RecentLogsCard : ComponentBase
     private bool _isLoading;
     private int _lastRefreshTrigger;
     private LogDetailsModal? _logDetailsModal;
-    
+
     // Pagination state
     private int _currentPage = 1;
     private int _pageSize = 20;
@@ -152,7 +152,7 @@ public partial class RecentLogsCard : ComponentBase
         _searchText = e.Value?.ToString();
         if (string.IsNullOrEmpty(_searchText))
             _searchText = null;
-        
+
         _currentPage = 1; // Reset to first page when changing filters
         await RefreshLogs();
         await OnFiltersChanged.InvokeAsync();
@@ -321,7 +321,7 @@ public partial class RecentLogsCard : ComponentBase
     /// </summary>
     /// <param name="traceId">The full trace ID.</param>
     /// <returns>Shortened trace ID with ellipsis if needed.</returns>
-    private string ShortenTraceId(string? traceId) 
+    private string ShortenTraceId(string? traceId)
     {
         if (string.IsNullOrEmpty(traceId))
             return "N/A";
@@ -365,17 +365,17 @@ public partial class RecentLogsCard : ComponentBase
         {
             _isLoading = true;
             await InvokeAsync(StateHasChanged);
-            
+
             DataSource = await TelemetryService.GetRecentLogsAsync(
-                _timeWindowMinutes, 
-                _appOnly, 
-                _mediatorOnly, 
-                _errorsOnly, 
-                _minLogLevel, 
-                _searchText, 
-                _currentPage, 
+                _timeWindowMinutes,
+                _appOnly,
+                _mediatorOnly,
+                _errorsOnly,
+                _minLogLevel,
+                _searchText,
+                _currentPage,
                 _pageSize);
-            
+
             if (OnFiltersChanged.HasDelegate)
             {
                 await InvokeAsync(async () => await OnFiltersChanged.InvokeAsync());
@@ -414,10 +414,10 @@ public partial class RecentLogsCard : ComponentBase
     {
         if (string.IsNullOrEmpty(message))
             return "";
-        
+
         if (message.Length <= maxLength)
             return message;
-        
+
         return message[..maxLength] + "...";
     }
 

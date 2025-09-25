@@ -8,17 +8,15 @@ namespace OpenTelemetryExample.Application.Queries;
 /// <summary>
 /// Handler for retrieving recent telemetry logs with filtering, pagination, and summary statistics.
 /// </summary>
-public sealed class GetRecentLogsHandler(ApplicationDbContext context, ILogger<GetRecentLogsHandler> logger)
+internal sealed class GetRecentLogsHandler(ApplicationDbContext context, ILogger<GetRecentLogsHandler> logger)
     : IQueryHandler<GetRecentLogsQuery, RecentLogsDto>
 {
-    public async Task<RecentLogsDto> Handle(GetRecentLogsQuery request, CancellationToken cancellationToken)
+    public async Task<RecentLogsDto> Handle(GetRecentLogsQuery request, CancellationToken cancellationToken = default)
     {
-        logger.LogDebug("Retrieving recent logs with filters: TimeWindow={TimeWindow}min, AppOnly={AppOnly}, MediatorOnly={MediatorOnly}, ErrorsOnly={ErrorsOnly}, MinLevel={MinLevel}, Search='{Search}', Page={Page}, PageSize={PageSize}",
-            request.TimeWindowMinutes, request.AppOnly, request.MediatorOnly, request.ErrorsOnly, 
-            request.MinimumLogLevel, request.SearchText, request.Page, request.PageSize);
-
+        // Use LoggerMessage delegate for CA1848
+        LogRetrievingRecentLogs(logger, request.TimeWindowMinutes, request.MinimumLogLevel ?? string.Empty, request.SearchText ?? string.Empty, request.Page, request.PageSize, null);
         var cutoffTime = DateTime.UtcNow.AddMinutes(-request.TimeWindowMinutes);
-        
+
         // Start with base query
         var query = context.TelemetryLogs
             .Where(log => log.Timestamp >= cutoffTime)
@@ -46,18 +44,18 @@ public sealed class GetRecentLogsHandler(ApplicationDbContext context, ILogger<G
 
         if (!string.IsNullOrEmpty(request.SearchText))
         {
-            var searchLower = request.SearchText.ToLower();
-            query = query.Where(log => 
-                log.Message.ToLower().Contains(searchLower) ||
-                log.Category.ToLower().Contains(searchLower) ||
-                (log.Exception != null && log.Exception.ToLower().Contains(searchLower)));
+            var searchUpper = request.SearchText.ToUpperInvariant();
+            query = query.Where(log =>
+                log.Message != null && log.Message.ToUpperInvariant().Contains(searchUpper, StringComparison.Ordinal) ||
+                log.Category != null && log.Category.ToUpperInvariant().Contains(searchUpper, StringComparison.Ordinal) ||
+                (log.Exception != null && log.Exception.ToUpperInvariant().Contains(searchUpper, StringComparison.Ordinal)));
         }
 
         // Get total count for pagination
-        var totalCount = await query.CountAsync(cancellationToken);
+        var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
 
         // Calculate summary statistics before pagination
-        var summary = await CalculateSummaryAsync(query, cancellationToken);
+        var summary = await CalculateSummaryAsync(query, cancellationToken).ConfigureAwait(false);
 
         // Apply pagination and ordering
         var logs = await query
@@ -82,7 +80,7 @@ public sealed class GetRecentLogsHandler(ApplicationDbContext context, ILogger<G
                 EventId = log.EventId,
                 Scopes = log.Scopes
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var pagination = new PaginationInfo
         {
@@ -102,8 +100,8 @@ public sealed class GetRecentLogsHandler(ApplicationDbContext context, ILogger<G
             SearchText = request.SearchText
         };
 
-        logger.LogDebug("Retrieved {LogCount} logs out of {TotalCount} total logs matching filters", 
-            logs.Count, totalCount);
+        // Use LoggerMessage delegate for CA1848
+        LogRetrievedLogs(logger, logs.Count, totalCount, null);
 
         return new RecentLogsDto
         {
@@ -118,14 +116,14 @@ public sealed class GetRecentLogsHandler(ApplicationDbContext context, ILogger<G
     {
         var summary = new LogSummary
         {
-            TotalLogs = await query.CountAsync(cancellationToken),
-            ErrorLogs = await query.CountAsync(log => log.LogLevel == "Error" || log.LogLevel == "Critical", cancellationToken),
-            WarningLogs = await query.CountAsync(log => log.LogLevel == "Warning", cancellationToken),
-            InfoLogs = await query.CountAsync(log => log.LogLevel == "Information", cancellationToken),
-            DebugLogs = await query.CountAsync(log => log.LogLevel == "Debug" || log.LogLevel == "Trace", cancellationToken),
-            LogsWithExceptions = await query.CountAsync(log => log.Exception != null, cancellationToken),
-            AppLogs = await query.CountAsync(log => log.Source == "Application" || log.Source == "Controller", cancellationToken),
-            MediatorLogs = await query.CountAsync(log => log.Source == "Mediator", cancellationToken)
+            TotalLogs = await query.CountAsync(cancellationToken).ConfigureAwait(false),
+            ErrorLogs = await query.CountAsync(log => log.LogLevel == "Error" || log.LogLevel == "Critical", cancellationToken).ConfigureAwait(false),
+            WarningLogs = await query.CountAsync(log => log.LogLevel == "Warning", cancellationToken).ConfigureAwait(false),
+            InfoLogs = await query.CountAsync(log => log.LogLevel == "Information", cancellationToken).ConfigureAwait(false),
+            DebugLogs = await query.CountAsync(log => log.LogLevel == "Debug" || log.LogLevel == "Trace", cancellationToken).ConfigureAwait(false),
+            LogsWithExceptions = await query.CountAsync(log => log.Exception != null, cancellationToken).ConfigureAwait(false),
+            AppLogs = await query.CountAsync(log => log.Source == "Application" || log.Source == "Controller", cancellationToken).ConfigureAwait(false),
+            MediatorLogs = await query.CountAsync(log => log.Source == "Mediator", cancellationToken).ConfigureAwait(false)
         };
 
         return summary;
@@ -144,4 +142,17 @@ public sealed class GetRecentLogsHandler(ApplicationDbContext context, ILogger<G
             _ => 2 // Default to Information level
         };
     }
+
+    // LoggerMessage delegates for CA1848
+    private static readonly Action<ILogger, int, string, string, int, int, Exception?> LogRetrievingRecentLogs =
+        LoggerMessage.Define<int, string, string, int, int>(
+            LogLevel.Debug,
+            new EventId(1, nameof(LogRetrievingRecentLogs)),
+            "Retrieving recent logs with filters: TimeWindow={TimeWindow}min, MinLevel={MinLevel}, Search='{Search}', Page={Page}, PageSize={PageSize}");
+
+    private static readonly Action<ILogger, int, int, Exception?> LogRetrievedLogs =
+        LoggerMessage.Define<int, int>(
+            LogLevel.Debug,
+            new EventId(2, nameof(LogRetrievedLogs)),
+            "Retrieved {LogCount} logs out of {TotalCount} total logs matching filters");
 }

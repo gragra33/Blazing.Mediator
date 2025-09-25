@@ -38,7 +38,7 @@ public partial class RawTracesTable : ComponentBase
 
         if (HidePackets)
         {
-            return Traces.Where(trace => 
+            return Traces.Where(trace =>
                 !trace.OperationName.Contains("packet_", StringComparison.OrdinalIgnoreCase));
         }
 

@@ -30,17 +30,17 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
         [FromQuery] int count = 50,
         [FromQuery] int delayMs = 100)
     {
-        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.StreamData", ActivityKind.Server);
-        
+
         activity?.SetTag("controller.method", "StreamData");
         activity?.SetTag("stream.count", count);
         activity?.SetTag("stream.delay_ms", delayMs);
 
-        logger.LogInformation("🌊 Starting generic data streaming: count={Count}, delay={DelayMs}ms", 
+        logger.LogInformation("🌊 Starting generic data streaming: count={Count}, delay={DelayMs}ms",
             count, delayMs);
 
-        // ✅ FIX: Use mediator with StreamUsersQuery instead of generating data directly
+        // FIX: Use mediator with StreamUsersQuery instead of generating data directly
         var query = new StreamUsersQuery
         {
             Count = count,
@@ -52,10 +52,10 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
         var itemCount = 0;
         var batchId = Guid.NewGuid().ToString("N")[..8];
 
-        await foreach (var user in mediator.SendStream(query))
+        await foreach (var user in mediator.SendStream(query).ConfigureAwait(false))
         {
             itemCount++;
-            
+
             var streamResponse = new StreamResponseDto<string>
             {
                 Data = $"User: {user.Name} ({user.Email}) - Generated at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC",
@@ -88,7 +88,7 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
         }
 
         activity?.SetTag("stream.items_streamed", itemCount);
-        logger.LogInformation("✅ Completed stream-data: {ItemCount} items streamed", itemCount);
+        logger.LogInformation("Completed stream-data: {ItemCount} items streamed", itemCount);
     }
 
     /// <summary>
@@ -106,16 +106,16 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
         [FromQuery] string? searchTerm = null,
         [FromQuery] bool includeInactive = false)
     {
-        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.StreamUsers", ActivityKind.Server);
-        
+
         activity?.SetTag("controller.method", "StreamUsers");
         activity?.SetTag("stream.count", count);
         activity?.SetTag("stream.delay_ms", delayMs);
         activity?.SetTag("search_term", searchTerm);
         activity?.SetTag("include_inactive", includeInactive);
 
-        logger.LogInformation("🌊 Starting user streaming: count={Count}, delay={DelayMs}ms, search={SearchTerm}", 
+        logger.LogInformation("🌊 Starting user streaming: count={Count}, delay={DelayMs}ms, search={SearchTerm}",
             count, delayMs, searchTerm);
 
         var query = new StreamUsersQuery
@@ -127,7 +127,7 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
         };
 
         var itemCount = 0;
-        await foreach (var user in mediator.SendStream(query))
+        await foreach (var user in mediator.SendStream(query).ConfigureAwait(false))
         {
             itemCount++;
             activity?.AddEvent(new ActivityEvent($"controller.stream.item.{itemCount}", default, new ActivityTagsCollection
@@ -136,12 +136,12 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
                 ["user.id"] = user.Id,
                 ["user.name"] = user.Name
             }));
-            
+
             yield return user;
         }
 
         activity?.SetTag("stream.items_streamed", itemCount);
-        logger.LogInformation("✅ Completed user streaming: {ItemCount} items streamed", itemCount);
+        logger.LogInformation("Completed user streaming: {ItemCount} items streamed", itemCount);
     }
 
     /// <summary>
@@ -159,9 +159,9 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
         [FromQuery] string? searchTerm = null,
         [FromQuery] bool includeInactive = false)
     {
-        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.StreamUsersSSE", ActivityKind.Server);
-        
+
         activity?.SetTag("controller.method", "StreamUsersSSE");
         activity?.SetTag("stream.count", count);
         activity?.SetTag("stream.delay_ms", delayMs);
@@ -184,17 +184,17 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
         };
 
         var itemCount = 0;
-        await foreach (var userResponse in mediator.SendStream(query))
+        await foreach (var userResponse in mediator.SendStream(query).ConfigureAwait(false))
         {
             itemCount++;
-            
+
             var jsonData = JsonSerializer.Serialize(userResponse, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
 
-            await Response.WriteAsync($"data: {jsonData}\n\n");
-            await Response.Body.FlushAsync();
+            await Response.WriteAsync($"data: {jsonData}\n\n").ConfigureAwait(false);
+            await Response.Body.FlushAsync().ConfigureAwait(false);
 
             activity?.AddEvent(new ActivityEvent($"controller.sse.item.{itemCount}", default, new ActivityTagsCollection
             {
@@ -213,7 +213,7 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
         }
 
         activity?.SetTag("stream.items_streamed", itemCount);
-        logger.LogInformation("✅ Completed SSE user streaming: {ItemCount} items streamed", itemCount);
+        logger.LogInformation("Completed SSE user streaming: {ItemCount} items streamed", itemCount);
     }
 
     /// <summary>
@@ -231,9 +231,9 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
         [FromQuery] string? searchTerm = null,
         [FromQuery] bool includeInactive = false)
     {
-        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.StreamUsersWithMetadata", ActivityKind.Server);
-        
+
         activity?.SetTag("controller.method", "StreamUsersWithMetadata");
         activity?.SetTag("stream.count", count);
         activity?.SetTag("stream.delay_ms", delayMs);
@@ -251,7 +251,7 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
         };
 
         var itemCount = 0;
-        await foreach (var userResponse in mediator.SendStream(query))
+        await foreach (var userResponse in mediator.SendStream(query).ConfigureAwait(false))
         {
             itemCount++;
             activity?.AddEvent(new ActivityEvent($"controller.metadata.item.{itemCount}", default, new ActivityTagsCollection
@@ -262,12 +262,12 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
                 ["metadata.batch_id"] = userResponse.Metadata.BatchId,
                 ["metadata.is_last"] = userResponse.Metadata.IsLast
             }));
-            
+
             yield return userResponse;
         }
 
         activity?.SetTag("stream.items_streamed", itemCount);
-        logger.LogInformation("✅ Completed user streaming with metadata: {ItemCount} items streamed", itemCount);
+        logger.LogInformation("Completed user streaming with metadata: {ItemCount} items streamed", itemCount);
     }
 
     /// <summary>
@@ -276,9 +276,9 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
     [HttpGet("health")]
     public async Task<ActionResult<object>> GetStreamingHealth()
     {
-        var activitySource = new ActivitySource(ActivitySourceName);
+        using var activitySource = new ActivitySource(ActivitySourceName);
         using var activity = activitySource.StartActivity($"{ControllerName}.GetStreamingHealth", ActivityKind.Server);
-        
+
         activity?.SetTag("controller.method", "GetStreamingHealth");
 
         try
@@ -286,8 +286,8 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
             // Test basic streaming functionality
             var testQuery = new StreamUsersQuery { Count = 1, DelayMs = 0 };
             var testItems = new List<UserDto>();
-            
-            await foreach (var item in mediator.SendStream(testQuery))
+
+            await foreach (var item in mediator.SendStream(testQuery).ConfigureAwait(false))
             {
                 testItems.Add(item);
                 break; // Only test one item
@@ -313,9 +313,9 @@ public class StreamingController(IMediator mediator, ILogger<StreamingController
         {
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.SetTag("health.status", "unhealthy");
-            
-            logger.LogError(ex, "Streaming health check failed");
-            
+
+            StreamingControllerLog.LogStreamingHealthCheckFailed(logger, ex);
+
             return StatusCode(500, new
             {
                 Status = "Unhealthy",

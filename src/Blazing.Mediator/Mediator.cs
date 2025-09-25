@@ -1,5 +1,5 @@
-using Blazing.Mediator.Statistics;
 using Blazing.Mediator.OpenTelemetry;
+using Blazing.Mediator.Statistics;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 

@@ -27,45 +27,45 @@ public partial class ApiStreamingDemo : ComponentBase
     [Parameter, EditorRequired] public IJSRuntime JSRuntimeService { get; set; } = null!;
 
     // Expose properties for the Razor template
-    
+
     /// <summary>
     /// Gets or sets the number of items to stream.
     /// </summary>
-    protected int Count 
-    { 
-        get => count; 
-        set => count = value; 
+    protected int Count
+    {
+        get => count;
+        set => count = value;
     }
-    
+
     /// <summary>
     /// Gets or sets the delay between streaming items in milliseconds.
     /// </summary>
-    protected int Delay 
-    { 
-        get => delay; 
-        set => delay = value; 
+    protected int Delay
+    {
+        get => delay;
+        set => delay = value;
     }
-    
+
     /// <summary>
     /// Gets a value indicating whether streaming is currently active.
     /// </summary>
     protected bool IsStreaming => isStreaming;
-    
+
     /// <summary>
     /// Gets the total number of items received so far.
     /// </summary>
     protected int ItemsReceived => itemsReceived;
-    
+
     /// <summary>
     /// Gets the total duration of the streaming session in milliseconds.
     /// </summary>
     protected long Duration => duration;
-    
+
     /// <summary>
     /// Gets the current throughput in items per second.
     /// </summary>
     protected double Throughput => throughput;
-    
+
     /// <summary>
     /// Gets the collection of received streaming results.
     /// </summary>
@@ -92,7 +92,7 @@ public partial class ApiStreamingDemo : ComponentBase
         try
         {
             var url = $"/api/streaming/stream-data?Count={count}&DelayMs={delay}";
-            
+
             await foreach (var item in Http.GetFromJsonAsAsyncEnumerable<StreamResponseDto<string>>(
                 url, cancellationTokenSource.Token))
             {
@@ -127,10 +127,10 @@ public partial class ApiStreamingDemo : ComponentBase
         cancellationTokenSource?.Cancel();
         cancellationTokenSource?.Dispose();
         cancellationTokenSource = null;
-        
+
         isStreaming = false;
         StateHasChanged();
-        
+
         return Task.CompletedTask;
     }
 
@@ -153,7 +153,7 @@ public partial class ApiStreamingDemo : ComponentBase
         {
             StateHasChanged();
         }
-        
+
         return Task.CompletedTask;
     }
 }

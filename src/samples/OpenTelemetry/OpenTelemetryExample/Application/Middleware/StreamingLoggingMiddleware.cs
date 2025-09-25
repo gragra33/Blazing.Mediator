@@ -1,6 +1,6 @@
-using System.Runtime.CompilerServices;
 using Blazing.Mediator;
 using Blazing.Mediator.Abstractions;
+using System.Runtime.CompilerServices;
 
 namespace OpenTelemetryExample.Application.Middleware;
 
@@ -20,8 +20,8 @@ public class StreamingLoggingMiddleware<TRequest, TResponse>(
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var requestType = typeof(TRequest).Name;
-        var requestData = System.Text.Json.JsonSerializer.Serialize(request, new System.Text.Json.JsonSerializerOptions 
-        { 
+        var requestData = System.Text.Json.JsonSerializer.Serialize(request, new System.Text.Json.JsonSerializerOptions
+        {
             WriteIndented = false,
             PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
         });
@@ -36,7 +36,7 @@ public class StreamingLoggingMiddleware<TRequest, TResponse>(
         await foreach (var item in next().WithCancellation(cancellationToken))
         {
             itemCount++;
-            
+
             // Log first few items and then every 25th item
             if (itemCount <= 3 || itemCount % 25 == 0)
             {

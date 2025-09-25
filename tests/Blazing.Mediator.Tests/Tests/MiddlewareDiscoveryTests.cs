@@ -130,7 +130,7 @@ public class MiddlewareDiscoveryTests
 
         // Act - Auto-discover both types
         services.AddMediator(
-            config => 
+            config =>
             {
                 config.WithMiddlewareDiscovery();
                 config.WithNotificationMiddlewareDiscovery();
@@ -198,7 +198,7 @@ public class MiddlewareDiscoveryTests
 
         // Act - Use auto-discovery with the test assembly explicitly
         services.AddMediator(
-            config => 
+            config =>
             {
                 config.WithMiddlewareDiscovery();
                 config.WithNotificationMiddlewareDiscovery();

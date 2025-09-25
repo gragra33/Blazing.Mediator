@@ -40,59 +40,59 @@ public partial class SignalRStreamingDemo : ComponentBase
     [Parameter, EditorRequired] public HttpClient Http { get; set; } = null!;
 
     // Expose properties for the Razor template
-    
+
     /// <summary>
     /// Gets or sets the number of items to stream.
     /// </summary>
-    protected int Count 
-    { 
-        get => count; 
-        set => count = value; 
+    protected int Count
+    {
+        get => count;
+        set => count = value;
     }
-    
+
     /// <summary>
     /// Gets or sets the delay between streaming items in milliseconds.
     /// </summary>
-    protected int Delay 
-    { 
-        get => delay; 
-        set => delay = value; 
+    protected int Delay
+    {
+        get => delay;
+        set => delay = value;
     }
-    
+
     /// <summary>
     /// Gets or sets the batch size for streaming operations.
     /// </summary>
-    protected int BatchSize 
-    { 
-        get => batchSize; 
-        set => batchSize = value; 
+    protected int BatchSize
+    {
+        get => batchSize;
+        set => batchSize = value;
     }
-    
+
     /// <summary>
     /// Gets a value indicating whether streaming is currently active.
     /// </summary>
     protected bool IsStreaming => isStreaming;
-    
+
     /// <summary>
     /// Gets the total number of items received so far.
     /// </summary>
     protected int ItemsReceived => itemsReceived;
-    
+
     /// <summary>
     /// Gets the total duration of the streaming session in milliseconds.
     /// </summary>
     protected long Duration => duration;
-    
+
     /// <summary>
     /// Gets the current throughput in items per second.
     /// </summary>
     protected double Throughput => throughput;
-    
+
     /// <summary>
     /// Gets the collection of received streaming results.
     /// </summary>
     protected List<StreamResponseDto<string>> Results => results;
-    
+
     /// <summary>
     /// Gets the current SignalR hub connection.
     /// </summary>
@@ -171,9 +171,9 @@ public partial class SignalRStreamingDemo : ComponentBase
             wasManuallyDisconnected = true; // Mark as manually disconnected
             await hubConnection.DisposeAsync();
             hubConnection = null;
-            
+
             isStreaming = false;
-            
+
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -209,7 +209,7 @@ public partial class SignalRStreamingDemo : ComponentBase
         catch (Exception ex)
         {
             await JSRuntimeService.InvokeVoidAsync("console.error", "SignalR Streaming Error", ex.Message);
-            
+
             isStreaming = false;
             StateHasChanged();
         }
@@ -231,7 +231,7 @@ public partial class SignalRStreamingDemo : ComponentBase
                 // Log error but continue with cleanup
             }
         }
-        
+
         isStreaming = false;
         StateHasChanged();
     }

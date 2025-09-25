@@ -108,10 +108,10 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
     {
         // Use the actual runtime type of the request instead of the generic parameter type
         Type actualRequestType = request.GetType();
-        
+
         // Debug logging: Pipeline started
         _logger?.RequestMiddlewarePipelineStarted(actualRequestType.Name, _middlewareInfos.Count);
-        
+
         _ = Guid.NewGuid().ToString("N")[..8];
 
         RequestHandlerDelegate<TResponse> pipeline = finalHandler;
@@ -123,7 +123,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         {
             // Debug logging: Checking middleware compatibility
             _logger?.RequestMiddlewareCompatibilityCheck(middlewareInfo.Type.Name, actualRequestType.Name);
-            
+
             Type middlewareType = middlewareInfo.Type;
 
             // Handle open generic types by making them closed generic types
@@ -168,17 +168,17 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
 
             // Check if this middleware type implements IRequestMiddleware<TRequest, TResponse>
             var interfaces = actualMiddlewareType.GetInterfaces();
-            
+
             bool isCompatible = interfaces.Any(i => i.IsGenericType &&
                 i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>) &&
                 i.GetGenericArguments()[0] == actualRequestType &&
                 i.GetGenericArguments()[1] == typeof(TResponse));
-                
+
             if (!isCompatible)
             {
                 // Debug logging: Middleware not compatible
                 _logger?.RequestMiddlewareCompatibilityResult(actualMiddlewareType.Name, "not compatible", actualRequestType.Name, middlewareInfo.Order);
-                
+
                 // This middleware doesn't handle this request type, skip it
                 continue;
             }
@@ -205,7 +205,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             }
 
             applicableMiddleware.Add((actualMiddlewareType, actualOrder));
-            
+
             // Debug logging: Middleware successfully added
             _logger?.RequestMiddlewareCompatibilityResult(actualMiddlewareType.Name, "compatible", actualRequestType.Name, actualOrder);
         }
@@ -240,7 +240,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             {
                 // Create middleware instance using DI container
                 object? middlewareInstance = serviceProvider.GetService(middlewareType);
-                
+
                 if (middlewareInstance == null)
                 {
                     throw new InvalidOperationException(
@@ -257,7 +257,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
 
                 // Use dynamic invocation to call HandleAsync with the correct types
                 object middleware = middlewareInstance;
-                
+
                 return middleware switch
                 {
                     // Check if this is conditional middleware and should execute
@@ -369,7 +369,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             {
                 // Create middleware instance using DI container
                 object? middlewareInstance = serviceProvider.GetService(middlewareType);
-                
+
                 if (middlewareInstance == null)
                 {
                     throw new InvalidOperationException($"Could not create instance of middleware {middlewareName}. Make sure the middleware is registered in the DI container.");
@@ -410,248 +410,6 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         where TRequest : IStreamRequest<TResponse>
     {
         return ExecuteStreamPipelineInternal(request, serviceProvider, finalHandler, cancellationToken);
-    }
-
-    #endregion
-
-    #region Inspector Methods
-
-    /// <inheritdoc />
-    public IReadOnlyList<Type> GetRegisteredMiddleware()
-    {
-        List<Type> list = [];
-        list.AddRange(_middlewareInfos.Select(info => info.Type));
-
-        return list;
-    }
-
-    /// <inheritdoc />
-    public IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration()
-    {
-        List<(Type Type, object? Configuration)> list = [];
-        list.AddRange(_middlewareInfos.Select(info => (info.Type, info.Configuration)));
-
-        return list;
-    }
-
-    /// <inheritdoc />
-    public IReadOnlyList<(Type Type, int Order, object? Configuration)> GetDetailedMiddlewareInfo(IServiceProvider? serviceProvider = null)
-    {
-        if (serviceProvider == null)
-        {
-            // Return cached registration-time order values
-            List<(Type Type, int Order, object? Configuration)> list = [];
-            list.AddRange(_middlewareInfos.Select(info => (info.Type, info.Order, info.Configuration)));
-
-            return list;
-        }
-
-        // Use service provider to get actual runtime order values using the same logic as ExecutePipeline
-        var result = new List<(Type Type, int Order, object? Configuration)>();
-
-        foreach (var middlewareInfo in _middlewareInfos)
-        {
-            int actualOrder = middlewareInfo.Order; // Start with cached order
-
-            try
-            {
-                if (middlewareInfo.Type.IsGenericTypeDefinition)
-                {
-                    // Use the same logic as ExecutePipeline to make concrete types
-                    var genericParams = middlewareInfo.Type.GetGenericArguments();
-                    Type? actualMiddlewareType = null;
-
-                    switch (genericParams)
-                    {
-                        case { Length: 2 }:
-                            // Check if this is meant for IRequestMiddleware<TRequest, TResponse>
-                            // Create concrete type with minimal types that satisfy IRequest constraints
-                            if (CanSatisfyGenericConstraints(middlewareInfo.Type, typeof(MinimalRequest), typeof(object)))
-                            {
-                                try
-                                {
-                                    actualMiddlewareType = middlewareInfo.Type.MakeGenericType(typeof(MinimalRequest), typeof(object));
-                                }
-                                catch (ArgumentException)
-                                {
-                                    // Constraints not satisfied, skip
-                                }
-                            }
-                            break;
-                        case { Length: 1 }:
-                            // Check if this is meant for IRequestMiddleware<TRequest> 
-                            // Create concrete type for single parameter middleware
-                            if (CanSatisfyGenericConstraints(middlewareInfo.Type, typeof(MinimalRequest)))
-                            {
-                                try
-                                {
-                                    actualMiddlewareType = middlewareInfo.Type.MakeGenericType(typeof(MinimalRequest));
-                                }
-                                catch (ArgumentException)
-                                {
-                                    // Constraints not satisfied, skip
-                                }
-                            }
-                            break;
-                    }
-
-                    if (actualMiddlewareType != null)
-                    {
-                        // Try to get the actual Order from instance - same as ExecutePipeline
-                        var instance = serviceProvider.GetService(actualMiddlewareType);
-                        if (instance != null)
-                        {
-                            var orderProperty = instance.GetType().GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
-                            if (orderProperty != null && orderProperty.PropertyType == typeof(int))
-                            {
-                                actualOrder = (int)orderProperty.GetValue(instance)!;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // For non-generic types, resolve directly from DI - same as ExecutePipeline
-                    var instance = serviceProvider.GetService(middlewareInfo.Type);
-                    if (instance != null)
-                    {
-                        var orderProperty = instance.GetType().GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
-                        if (orderProperty != null && orderProperty.PropertyType == typeof(int))
-                        {
-                            actualOrder = (int)orderProperty.GetValue(instance)!;
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // If we can't get instance, use cached order - same as ExecutePipeline
-            }
-
-            result.Add((middlewareInfo.Type, actualOrder, middlewareInfo.Configuration));
-        }
-
-        return result;
-    }
-
-    /// <inheritdoc />
-    public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider, bool? isDetailed = true)
-    {
-        var middlewareInfos = GetDetailedMiddlewareInfo(serviceProvider);
-
-        var analysisResults = new List<MiddlewareAnalysis>();
-
-        foreach (var (type, order, configuration) in middlewareInfos.OrderBy(m => m.Order))
-        {
-            var orderDisplay = order == int.MaxValue ? "Default" : order.ToString();
-            var className = GetCleanTypeName(type);
-            var typeParameters = type.IsGenericType ?
-                $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>" :
-                string.Empty;
-
-            var detailed = isDetailed ?? true;
-
-            // Extract generic constraints
-            var genericConstraints = detailed ? GetGenericConstraints(type) : string.Empty;
-
-            // Always discover handlers, but adjust output detail based on mode
-            var handlerInfo = detailed ? configuration : null; // Include configuration only in detailed mode
-
-            analysisResults.Add(new MiddlewareAnalysis(
-                Type: type,
-                Order: order,
-                OrderDisplay: orderDisplay,
-                ClassName: className,
-                TypeParameters: detailed ? typeParameters : string.Empty, // Skip type parameters in compact mode
-                GenericConstraints: genericConstraints,
-                Configuration: handlerInfo
-            ));
-        }
-
-        return analysisResults;
-    }
-
-    #endregion
-
-    #region Helper Methods
-
-    /// <summary>
-    /// Determines the order for a middleware type. Middleware with explicit Order property use that value.
-    /// Middleware without explicit order are assigned incrementally starting from int.MaxValue - 1000000 
-    /// to ensure they execute after all explicitly ordered middleware.
-    /// </summary>
-    private int GetMiddlewareOrder(Type middlewareType)
-    {
-        // Try to get order from a static Order property or field first
-        var orderProperty = middlewareType.GetProperty("Order", BindingFlags.Public | BindingFlags.Static);
-        if (orderProperty != null && orderProperty.PropertyType == typeof(int))
-        {
-            int staticOrder = (int)orderProperty.GetValue(null)!;
-            return staticOrder; // No clamping - use full int range
-        }
-
-        var orderField = middlewareType.GetField("Order", BindingFlags.Public | BindingFlags.Static);
-        if (orderField != null && orderField.FieldType == typeof(int))
-        {
-            int staticOrder = (int)orderField.GetValue(null)!;
-            return staticOrder; // No clamping - use full int range
-        }
-
-        // Check for OrderAttribute if it exists (common pattern)
-        var orderAttribute = middlewareType.GetCustomAttributes(false)
-            .FirstOrDefault(attr => attr.GetType().Name == "OrderAttribute");
-        if (orderAttribute != null)
-        {
-            var orderProp = orderAttribute.GetType().GetProperty("Order");
-            if (orderProp != null && orderProp.PropertyType == typeof(int))
-            {
-                int attrOrder = (int)orderProp.GetValue(orderAttribute)!;
-                return attrOrder; // No clamping - use full int range
-            }
-        }
-
-        // Try to get order from instance Order property (for IRequestMiddleware implementations)
-        var instanceOrderProperty = middlewareType.GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
-        if (instanceOrderProperty != null && instanceOrderProperty.PropertyType == typeof(int))
-        {
-            try
-            {
-                // Handle generic type definitions by making them concrete first
-                Type typeToInstantiate = middlewareType;
-                if (middlewareType.IsGenericTypeDefinition)
-                {
-                    // For generic types, try to make a concrete type to get the Order value
-                    var genericArgs = middlewareType.GetGenericArguments();
-                    Type[] concreteArgs = new Type[genericArgs.Length];
-                    for (int i = 0; i < genericArgs.Length; i++)
-                    {
-                        concreteArgs[i] = typeof(object); // Use object as placeholder
-                    }
-                    typeToInstantiate = middlewareType.MakeGenericType(concreteArgs);
-                }
-
-                // Create a temporary instance to get the Order value
-                object? instance = Activator.CreateInstance(typeToInstantiate);
-                if (instance != null)
-                {
-                    int orderValue = (int)instanceOrderProperty.GetValue(instance)!;
-                    return orderValue; // No clamping - use full int range
-                }
-            }
-            catch
-            {
-                // If we can't create an instance, fall through to fallback logic
-            }
-        }
-
-        // Fallback: middleware has no explicit order, assign it after all explicitly ordered middleware
-        // Use a high base value (int.MaxValue - 1000000) and increment from there to maintain discovery order
-        const int unorderedMiddlewareBaseOrder = int.MaxValue - 1000000;
-
-        // Count how many unordered middleware we already have to maintain discovery order
-        int unorderedCount = _middlewareInfos.Count(m => m.Order >= unorderedMiddlewareBaseOrder);
-
-        return unorderedMiddlewareBaseOrder + unorderedCount;
     }
 
     /// <summary>
@@ -771,6 +529,220 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         }
     }
 
+    #endregion
+
+    #region Inspector Methods
+
+    /// <inheritdoc />
+    public IReadOnlyList<Type> GetRegisteredMiddleware()
+    {
+        List<Type> list = [];
+        list.AddRange(_middlewareInfos.Select(info => info.Type));
+
+        return list;
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration()
+    {
+        List<(Type Type, object? Configuration)> list = [];
+        list.AddRange(_middlewareInfos.Select(info => (info.Type, info.Configuration)));
+
+        return list;
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<(Type Type, int Order, object? Configuration)> GetDetailedMiddlewareInfo(IServiceProvider? serviceProvider = null)
+    {
+        if (serviceProvider == null)
+        {
+            // Return cached registration-time order values
+            List<(Type Type, int Order, object? Configuration)> list = [];
+            list.AddRange(_middlewareInfos.Select(info => (info.Type, info.Order, info.Configuration)));
+
+            return list;
+        }
+
+        // Use service provider to get actual runtime order values using improved logic
+        var result = new List<(Type Type, int Order, object? Configuration)>();
+
+        foreach (var middlewareInfo in _middlewareInfos)
+        {
+            int actualOrder = middlewareInfo.Order; // Start with cached order
+
+            try
+            {
+                if (middlewareInfo.Type.IsGenericTypeDefinition)
+                {
+                    // For generic type definitions, try to find a suitable concrete type to instantiate
+                    var genericParams = middlewareInfo.Type.GetGenericArguments();
+                    Type? actualMiddlewareType = null;
+
+                    switch (genericParams)
+                    {
+                        case { Length: 2 }:
+                            // Try to find types that can satisfy the middleware constraints
+                            actualMiddlewareType = TryCreateConcreteMiddlewareType(middlewareInfo.Type, serviceProvider, 2);
+                            break;
+                        case { Length: 1 }:
+                            // Try to find types that can satisfy the middleware constraints
+                            actualMiddlewareType = TryCreateConcreteMiddlewareType(middlewareInfo.Type, serviceProvider, 1);
+                            break;
+                    }
+
+                    if (actualMiddlewareType != null)
+                    {
+                        // Try to get the actual Order from instance - same as ExecutePipeline
+                        var instance = serviceProvider.GetService(actualMiddlewareType);
+                        if (instance != null)
+                        {
+                            var orderProperty = instance.GetType().GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
+                            if (orderProperty != null && orderProperty.PropertyType == typeof(int))
+                            {
+                                actualOrder = (int)orderProperty.GetValue(instance)!;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // For non-generic types, resolve directly from DI - same as ExecutePipeline
+                    var instance = serviceProvider.GetService(middlewareInfo.Type);
+                    if (instance != null)
+                    {
+                        var orderProperty = instance.GetType().GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
+                        if (orderProperty != null && orderProperty.PropertyType == typeof(int))
+                        {
+                            actualOrder = (int)orderProperty.GetValue(instance)!;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // If we can't get instance, use cached order - same as ExecutePipeline
+            }
+
+            result.Add((middlewareInfo.Type, actualOrder, middlewareInfo.Configuration));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Attempts to create a concrete middleware type from a generic type definition by finding suitable type arguments.
+    /// Uses assembly scanning to find types that naturally satisfy the middleware's type constraints.
+    /// </summary>
+    private static Type? TryCreateConcreteMiddlewareType(Type middlewareTypeDefinition, IServiceProvider serviceProvider, int parameterCount)
+    {
+        if (!middlewareTypeDefinition.IsGenericTypeDefinition)
+            return middlewareTypeDefinition;
+
+        var genericParams = middlewareTypeDefinition.GetGenericArguments();
+        if (genericParams.Length != parameterCount)
+            return null;
+
+        // Get all types from loaded assemblies, prioritizing test assemblies
+        var candidateTypes = new List<Type>();
+        
+        try
+        {
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => !a.IsDynamic)
+                .OrderBy(a =>
+                {
+                    var name = a.FullName ?? "";
+                    // Prioritize test assemblies and user assemblies over system assemblies
+                    if (name.Contains("Test")) return 0;
+                    if (!name.StartsWith("System") && !name.StartsWith("Microsoft")) return 1;
+                    return 2;
+                })
+                .ToArray();
+
+            foreach (var assembly in assemblies)
+            {
+                try
+                {
+                    var types = assembly.GetTypes()
+                        .Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericTypeDefinition && t.IsPublic)
+                        .Where(t => t.GetConstructor(Type.EmptyTypes) != null); // Must have parameterless constructor
+
+                    candidateTypes.AddRange(types);
+                }
+                catch
+                {
+                    // Skip assemblies that can't be inspected
+                    continue;
+                }
+            }
+        }
+        catch
+        {
+            // If assembly scanning fails, fall back to simple types
+            candidateTypes.AddRange([typeof(SimpleRequest), typeof(SimpleCommand), typeof(string), typeof(object)]);
+        }
+
+        // Try different combinations of candidate types as type arguments
+        if (parameterCount == 2)
+        {
+            // For 2-parameter middleware (TRequest, TResponse)
+            foreach (var requestType in candidateTypes)
+            {
+                foreach (var responseType in new[] { typeof(object), typeof(string), typeof(int) })
+                {
+                    if (TryMakeGenericType(middlewareTypeDefinition, [requestType, responseType], out var concreteType))
+                    {
+                        return concreteType;
+                    }
+                }
+            }
+        }
+        else if (parameterCount == 1)
+        {
+            // For 1-parameter middleware (TRequest)
+            foreach (var requestType in candidateTypes)
+            {
+                if (TryMakeGenericType(middlewareTypeDefinition, [requestType], out var concreteType))
+                {
+                    return concreteType;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Safely attempts to create a generic type with the given type arguments.
+    /// </summary>
+    private static bool TryMakeGenericType(Type genericTypeDefinition, Type[] typeArguments, out Type? concreteType)
+    {
+        concreteType = null;
+        
+        try
+        {
+            // First check if the constraints can be satisfied
+            if (!CanSatisfyGenericConstraints(genericTypeDefinition, typeArguments))
+            {
+                return false;
+            }
+
+            // Try to create the concrete type
+            concreteType = genericTypeDefinition.MakeGenericType(typeArguments);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            // Constraints were not satisfied
+            return false;
+        }
+        catch
+        {
+            // Other error
+            return false;
+        }
+    }
+    
     /// <summary>
     /// Checks if a generic type definition can be instantiated with the given type arguments
     /// by validating all generic constraints.
@@ -929,76 +901,138 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         return backtickIndex > 0 ? typeName[..backtickIndex] : typeName;
     }
 
-    /// <summary>
-    /// Minimal request implementation that satisfies both IRequest and IRequest{T} constraints for middleware inspection.
-    /// </summary>
-    private sealed class MinimalRequest : IRequest, IRequest<object> { /* skipped */ }
+    /// <inheritdoc />
+    public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider, bool? isDetailed = true)
+    {
+        var middlewareInfos = GetDetailedMiddlewareInfo(serviceProvider);
+
+        var analysisResults = new List<MiddlewareAnalysis>();
+
+        foreach (var (type, order, configuration) in middlewareInfos.OrderBy(m => m.Order))
+        {
+            var orderDisplay = order == int.MaxValue ? "Default" : order.ToString();
+            var className = GetCleanTypeName(type);
+            var typeParameters = type.IsGenericType ?
+                $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>" :
+                string.Empty;
+
+            var detailed = isDetailed ?? true;
+
+            // Extract generic constraints
+            var genericConstraints = detailed ? GetGenericConstraints(type) : string.Empty;
+
+            // Always discover handlers, but adjust output detail based on mode
+            var handlerInfo = detailed ? configuration : null; // Include configuration only in detailed mode
+
+            analysisResults.Add(new MiddlewareAnalysis(
+                Type: type,
+                Order: order,
+                OrderDisplay: orderDisplay,
+                ClassName: className,
+                TypeParameters: detailed ? typeParameters : string.Empty, // Skip type parameters in compact mode
+                GenericConstraints: genericConstraints,
+                Configuration: handlerInfo
+            ));
+        }
+
+        return analysisResults;
+    }
 
     #endregion
 
+    #region Helper Methods
+
     /// <summary>
-    /// Returns the list of middleware types that were actually executed for a given request.
+    /// Determines the order for a middleware type. Middleware with explicit Order property use that value.
+    /// Middleware without explicit order are assigned incrementally starting from int.MaxValue - 1000000 
+    /// to ensure they execute after all explicitly ordered middleware.
     /// </summary>
-    /// <typeparam name="TRequest">The request type.</typeparam>
-    /// <typeparam name="TResponse">The response type.</typeparam>
-    /// <param name="request">The request instance.</param>
-    /// <param name="serviceProvider">The service provider.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>List of executed middleware types in order of execution.</returns>
-    public async Task<IReadOnlyList<Type>> GetExecutedMiddlewareAsync<TRequest, TResponse>(TRequest request, IServiceProvider serviceProvider, CancellationToken cancellationToken)
-        where TRequest : IRequest<TResponse>
+    private int GetMiddlewareOrder(Type middlewareType)
     {
-        var executed = new List<Type>();
-        RequestHandlerDelegate<TResponse> pipeline = () => Task.FromResult(default(TResponse)!);
-        List<(Type Type, int Order)> applicableMiddleware = [];
-        foreach (var middlewareInfo in _middlewareInfos)
+        // Try to get order from a static Order property or field first
+        var orderProperty = middlewareType.GetProperty("Order", BindingFlags.Public | BindingFlags.Static);
+        if (orderProperty != null && orderProperty.PropertyType == typeof(int))
         {
-            Type middlewareType = middlewareInfo.Type;
-            Type actualMiddlewareType;
+            int staticOrder = (int)orderProperty.GetValue(null)!;
+            return staticOrder; // No clamping - use full int range
+        }
+
+        var orderField = middlewareType.GetField("Order", BindingFlags.Public | BindingFlags.Static);
+        if (orderField != null && orderField.FieldType == typeof(int))
+        {
+            int staticOrder = (int)orderField.GetValue(null)!;
+            return staticOrder; // No clamping - use full int range
+        }
+
+        // Check for OrderAttribute if it exists (common pattern)
+        var orderAttribute = middlewareType.GetCustomAttributes(false)
+            .FirstOrDefault(attr => attr.GetType().Name == "OrderAttribute");
+        if (orderAttribute != null)
+        {
+            var orderProp = orderAttribute.GetType().GetProperty("Order");
+            if (orderProp != null && orderProp.PropertyType == typeof(int))
+            {
+                int attrOrder = (int)orderProp.GetValue(orderAttribute)!;
+                return attrOrder; // No clamping - use full int range
+            }
+        }
+
+        // Try to get order from instance Order property (for IRequestMiddleware implementations)
+        var instanceOrderProperty = middlewareType.GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
+        if (instanceOrderProperty != null && instanceOrderProperty.PropertyType == typeof(int))
+        {
             if (middlewareType.IsGenericTypeDefinition)
             {
-                var genericParams = middlewareType.GetGenericArguments();
-                switch (genericParams)
-                {
-                    case { Length: 2 }:
-                        if (!CanSatisfyGenericConstraints(middlewareType, typeof(TRequest), typeof(TResponse)))
-                            continue;
-                        try { actualMiddlewareType = middlewareType.MakeGenericType(typeof(TRequest), typeof(TResponse)); }
-                        catch { continue; }
-                        break;
-                    default:
-                        continue;
-                }
+                // For generic type definitions, we can't determine the actual order at registration time
+                // The ExecutePipeline method will get the correct order from the concrete instance
+                // Use a placeholder order that indicates this middleware has an explicit order
+                // but needs to be resolved at execution time
+                return int.MaxValue - 1000000; // Use fallback order for now
             }
             else
             {
-                actualMiddlewareType = middlewareType;
+                // For non-generic types, we can create an instance to get the order
+                try
+                {
+                    object? instance = Activator.CreateInstance(middlewareType);
+                    if (instance != null)
+                    {
+                        int orderValue = (int)instanceOrderProperty.GetValue(instance)!;
+                        return orderValue; // No clamping - use full int range
+                    }
+                }
+                catch
+                {
+                    // If we can't create an instance, fall through to fallback logic
+                }
             }
-            if (!actualMiddlewareType.GetInterfaces().Any(i => i.IsGenericType &&
-                i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>) &&
-                i.GetGenericArguments()[0] == typeof(TRequest) &&
-                i.GetGenericArguments()[1] == typeof(TResponse)))
-            {
-                continue;
-            }
-            applicableMiddleware.Add((actualMiddlewareType, middlewareInfo.Order));
         }
-        applicableMiddleware.Sort((a, b) => a.Order.CompareTo(b.Order));
-        for (int i = applicableMiddleware.Count - 1; i >= 0; i--)
-        {
-            (Type middlewareType, int _) = applicableMiddleware[i];
-            RequestHandlerDelegate<TResponse> currentPipeline = pipeline;
-            pipeline = async () =>
-            {
-                var middleware = serviceProvider.GetService(middlewareType) as IRequestMiddleware<TRequest, TResponse>;
-                if (middleware == null) throw new InvalidOperationException();
-                executed.Add(middlewareType);
-                return await middleware.HandleAsync(request, currentPipeline, cancellationToken).ConfigureAwait(false);
-            };
-        }
-        try { await pipeline().ConfigureAwait(false); } catch { }
-        return executed;
+
+        // Fallback: middleware has no explicit order, assign it after all explicitly ordered middleware
+        // Use a high base value (int.MaxValue - 1000000) and increment from there to maintain discovery order
+        const int unorderedMiddlewareBaseOrder = int.MaxValue - 1000000;
+
+        // Count how many unordered middleware we already have to maintain discovery order
+        int unorderedCount = _middlewareInfos.Count(m => m.Order >= unorderedMiddlewareBaseOrder);
+
+        return unorderedMiddlewareBaseOrder + unorderedCount;
     }
+
+    #endregion
+
+    #region Placeholder Types for Constraint Satisfaction
+
+    /// <summary>
+    /// Simple command that satisfies IRequest constraints.
+    /// </summary>
+    private sealed class SimpleCommand : IRequest { }
+
+    /// <summary>
+    /// Simple request that satisfies IRequest{T} constraints.
+    /// </summary>
+    private sealed class SimpleRequest : IRequest<object> { }
+
+    #endregion
 
     #region Helper methods for dynamic middleware invocation
 
@@ -1024,19 +1058,19 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
     /// Invokes HandleAsync method on middleware using reflection.
     /// </summary>
     private static async Task<TResponse> InvokeMiddlewareHandleAsync<TResponse>(
-        object middleware, 
-        object request, 
-        RequestHandlerDelegate<TResponse> next, 
+        object middleware,
+        object request,
+        RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
         // Get the specific HandleAsync method with the correct parameter types
         var requestType = request.GetType();
         var nextType = typeof(RequestHandlerDelegate<TResponse>);
         var cancellationTokenType = typeof(CancellationToken);
-        
-        var handleAsyncMethod = middleware.GetType().GetMethod("HandleAsync", 
+
+        var handleAsyncMethod = middleware.GetType().GetMethod("HandleAsync",
             [requestType, nextType, cancellationTokenType]);
-            
+
         if (handleAsyncMethod == null)
         {
             throw new InvalidOperationException($"Middleware {middleware.GetType().Name} does not have HandleAsync method with signature ({requestType.Name}, {nextType.Name}, {cancellationTokenType.Name}).");
@@ -1049,7 +1083,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             {
                 return await task.ConfigureAwait(false);
             }
-            
+
             throw new InvalidOperationException($"HandleAsync method on {middleware.GetType().Name} did not return Task<{typeof(TResponse).Name}>.");
         }
         catch (TargetInvocationException ex) when (ex.InnerException != null)

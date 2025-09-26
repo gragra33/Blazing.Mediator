@@ -244,24 +244,26 @@ public static class ServiceCollectionExtensions
                 });
             }
 
-            // Add tracing middleware first for full coverage
-            config.AddMiddleware(typeof(TracingMiddleware<,>));
-            config.AddMiddleware(typeof(TracingMiddleware<>));
+            config.WithMiddlewareDiscovery();
 
-            // Add streaming-specific middleware
-            config.AddMiddleware(typeof(StreamingTracingMiddleware<,>));
-            config.AddMiddleware(typeof(StreamingPerformanceMiddleware<,>));
-            config.AddMiddleware(typeof(StreamingLoggingMiddleware<,>));
+            //// Add tracing middleware first for full coverage
+            //config.AddMiddleware(typeof(TracingMiddleware<,>));
+            //config.AddMiddleware(typeof(TracingMiddleware<>));
 
-            // Add middleware pipeline in order of execution
-            config.AddMiddleware(typeof(ErrorHandlingMiddleware<,>));
-            config.AddMiddleware(typeof(ErrorHandlingMiddleware<>));
-            config.AddMiddleware(typeof(ValidationMiddleware<,>));
-            config.AddMiddleware(typeof(ValidationMiddleware<>));
-            config.AddMiddleware(typeof(LoggingMiddleware<,>));
-            config.AddMiddleware(typeof(LoggingMiddleware<>));
-            config.AddMiddleware(typeof(PerformanceMiddleware<,>));
-            config.AddMiddleware(typeof(PerformanceMiddleware<>));
+            //// Add streaming-specific middleware
+            //config.AddMiddleware(typeof(StreamingTracingMiddleware<,>));
+            //config.AddMiddleware(typeof(StreamingPerformanceMiddleware<,>));
+            //config.AddMiddleware(typeof(StreamingLoggingMiddleware<,>));
+
+            //// Add middleware pipeline in order of execution
+            //config.AddMiddleware(typeof(ErrorHandlingMiddleware<,>));
+            //config.AddMiddleware(typeof(ErrorHandlingMiddleware<>));
+            //config.AddMiddleware(typeof(ValidationMiddleware<,>));
+            //config.AddMiddleware(typeof(ValidationMiddleware<>));
+            //config.AddMiddleware(typeof(LoggingMiddleware<,>));
+            //config.AddMiddleware(typeof(LoggingMiddleware<>));
+            //config.AddMiddleware(typeof(PerformanceMiddleware<,>));
+            //config.AddMiddleware(typeof(PerformanceMiddleware<>));
         }, typeof(Program).Assembly);
 
         return services;

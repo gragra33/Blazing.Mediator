@@ -132,7 +132,7 @@ internal static class MediatorRegistrationService
     }
 
     /// <summary>
-    /// Registers middleware from the specified assemblies.
+    /// Registers middleware from the specified assemblies with enhanced support for constrained middleware.
     /// </summary>
     private static void RegisterMiddleware(IServiceCollection services, MediatorConfiguration configuration, Assembly[]? assemblies, bool finalDiscoverMiddleware, bool finalDiscoverNotificationMiddleware)
     {
@@ -143,7 +143,7 @@ internal static class MediatorRegistrationService
 
             foreach (Assembly assembly in uniqueAssemblies)
             {
-                RegisterMiddlewareFromAssembly(configuration, assembly, finalDiscoverMiddleware, finalDiscoverNotificationMiddleware);
+                RegisterMiddlewareFromAssembly(services, configuration, assembly, finalDiscoverMiddleware, finalDiscoverNotificationMiddleware);
             }
         }
     }
@@ -159,9 +159,29 @@ internal static class MediatorRegistrationService
         services.AddScoped(provider =>
             provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
 
-        // Register the configured notification pipeline builder as the scoped notification pipeline builder
+        // Register the configured notification pipeline builder as the scoped notification pipeline builder with constraint validation
         services.AddScoped(provider =>
-            provider.GetRequiredService<MediatorConfiguration>().NotificationPipelineBuilder);
+        {
+            var config = provider.GetRequiredService<MediatorConfiguration>();
+            var notificationPipelineBuilder = config.NotificationPipelineBuilder;
+            
+            // Apply constraint validation options if configured
+            if (notificationPipelineBuilder is NotificationPipelineBuilder builder && config.ConstraintValidationOptions != null)
+            {
+                builder.SetConstraintValidationOptions(config.ConstraintValidationOptions);
+            }
+            
+            return notificationPipelineBuilder;
+        });
+
+        // Register constraint validation options if configured
+        if (configuration.ConstraintValidationOptions != null)
+        {
+            services.AddSingleton(configuration.ConstraintValidationOptions);
+        }
+
+        // Register constraint compatibility checker as a singleton service
+        services.AddSingleton<ConstraintCompatibilityChecker>();
 
         // Register pipeline inspector for debugging (same instance as pipeline builder)
         services.AddScoped(provider =>
@@ -193,35 +213,80 @@ internal static class MediatorRegistrationService
     }
 
     /// <summary>  
-    /// Registers middleware from a single assembly.  
+    /// Registers middleware from a single assembly with enhanced support for type-constrained notification middleware.
     /// </summary>  
+    /// <param name="services">The service collection for DI registration.</param>
     /// <param name="configuration">The mediator configuration.</param>  
     /// <param name="assembly">Assembly to scan for middleware.</param>  
     /// <param name="discoverMiddleware">Whether to discover request middleware.</param>  
     /// <param name="discoverNotificationMiddleware">Whether to discover notification middleware.</param>  
-    private static void RegisterMiddlewareFromAssembly(MediatorConfiguration configuration, Assembly assembly, bool discoverMiddleware = true, bool discoverNotificationMiddleware = true)
+    private static void RegisterMiddlewareFromAssembly(IServiceCollection services, MediatorConfiguration configuration, Assembly assembly, bool discoverMiddleware = true, bool discoverNotificationMiddleware = true)
     {
         try
         {
+            // Get constraint validation options for enhanced discovery
+            var constraintValidationOptions = configuration.ConstraintValidationOptions;
+            bool strictValidation = constraintValidationOptions?.Strictness == ConstraintValidationOptions.ValidationStrictness.Strict;
+            bool constraintValidationEnabled = constraintValidationOptions?.Strictness != ConstraintValidationOptions.ValidationStrictness.Disabled;
+
+            // Check if constrained middleware discovery is enabled
+            bool discoverConstrainedMiddleware = configuration.DiscoverConstrainedMiddleware;
+
             List<Type> middlewareTypes = assembly.GetTypes()
                 .Where(t =>
                     t is { IsAbstract: false, IsInterface: false } &&
-                    t.GetInterfaces().Any(i => IsMiddlewareType(i, discoverMiddleware, discoverNotificationMiddleware)))
+                    t.GetInterfaces().Any(i => IsMiddlewareType(i, discoverMiddleware, discoverNotificationMiddleware, discoverConstrainedMiddleware)))
                 .ToList();
 
             foreach (Type middlewareType in middlewareTypes)
             {
-                // Check if it's a notification middleware type
-                bool isNotificationMiddleware = middlewareType.GetInterfaces().Any(i =>
-                    i == typeof(INotificationMiddleware) ||
-                    i == typeof(IConditionalNotificationMiddleware));
+                // Enhanced discovery for type-constrained notification middleware
+                var notificationMiddlewareInterfaces = middlewareType.GetInterfaces()
+                    .Where(i => i == typeof(INotificationMiddleware) ||
+                               i == typeof(IConditionalNotificationMiddleware) ||
+                               (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(INotificationMiddleware<>) && discoverConstrainedMiddleware))
+                    .ToList();
+
+                bool isNotificationMiddleware = notificationMiddlewareInterfaces.Any();
 
                 if (isNotificationMiddleware)
                 {
+                    // Register the middleware type in DI if not already registered
+                    if (services.All(s => s.ImplementationType != middlewareType))
+                    {
+                        services.AddScoped(middlewareType);
+                    }
+
+                    // Enhanced constraint validation for type-constrained middleware
+                    foreach (var interfaceType in notificationMiddlewareInterfaces)
+                    {
+                        if (interfaceType.IsGenericType && interfaceType.GetGenericTypeDefinition() == typeof(INotificationMiddleware<>))
+                        {
+                            var constraintType = interfaceType.GetGenericArguments()[0];
+                            
+                            // Validate constraint compatibility if enabled
+                            if (constraintValidationEnabled)
+                            {
+                                var validationResult = ValidateConstraintType(constraintType, middlewareType, constraintValidationOptions!, strictValidation);
+                                if (!validationResult.IsValid && strictValidation)
+                                {
+                                    throw new InvalidOperationException($"Constraint validation failed for middleware {middlewareType.Name} with constraint {constraintType.Name}: {validationResult.ErrorMessage}");
+                                }
+                            }
+                        }
+                    }
+
+                    // Add to configuration pipeline
                     configuration.AddNotificationMiddleware(middlewareType);
                 }
                 else
                 {
+                    // Register the middleware type in DI if not already registered
+                    if (services.All(s => s.ImplementationType != middlewareType))
+                    {
+                        services.AddScoped(middlewareType);
+                    }
+
                     configuration.AddMiddleware(middlewareType);
                 }
             }
@@ -236,7 +301,7 @@ internal static class MediatorRegistrationService
 
         return;
 
-        static bool IsMiddlewareType(Type i, bool includeRequestMiddleware, bool includeNotificationMiddleware) =>
+        static bool IsMiddlewareType(Type i, bool includeRequestMiddleware, bool includeNotificationMiddleware, bool includeConstrainedMiddleware) =>
             (includeRequestMiddleware && i.IsGenericType &&
             (i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<>) ||
              i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>) ||
@@ -246,7 +311,160 @@ internal static class MediatorRegistrationService
              i.GetGenericTypeDefinition() == typeof(IConditionalStreamRequestMiddleware<,>))) ||
              (includeNotificationMiddleware &&
              (i == typeof(INotificationMiddleware) ||
-             i == typeof(IConditionalNotificationMiddleware)));
+             i == typeof(IConditionalNotificationMiddleware) ||
+             (includeConstrainedMiddleware && i.IsGenericType && i.GetGenericTypeDefinition() == typeof(INotificationMiddleware<>))));
+    }
+
+    /// <summary>
+    /// Validates a constraint type for type-constrained notification middleware.
+    /// </summary>
+    /// <param name="constraintType">The constraint type to validate.</param>
+    /// <param name="middlewareType">The middleware type implementing the constraint.</param>
+    /// <param name="options">Constraint validation options.</param>
+    /// <param name="strictValidation">Whether to use strict validation.</param>
+    /// <returns>Validation result with success status and error message.</returns>
+    private static (bool IsValid, string? ErrorMessage) ValidateConstraintType(Type constraintType, Type middlewareType, ConstraintValidationOptions options, bool strictValidation)
+    {
+        try
+        {
+            // Check if the constraint type is excluded from validation
+            if (options.ExcludedTypes.Contains(constraintType))
+            {
+                return (true, null);
+            }
+
+            // Basic constraint validation: must implement INotification
+            if (!typeof(INotification).IsAssignableFrom(constraintType))
+            {
+                return (false, $"Constraint type {constraintType.Name} must implement INotification");
+            }
+
+            // Validate nested generic constraints if enabled
+            if (options.ValidateNestedGenericConstraints && constraintType.IsGenericType)
+            {
+                var result = ValidateNestedGenericConstraints(constraintType, options.MaxConstraintInheritanceDepth);
+                if (!result.IsValid)
+                {
+                    return result;
+                }
+            }
+
+            // Validate circular dependencies if enabled
+            if (options.ValidateCircularDependencies)
+            {
+                var result = ValidateCircularDependencies(constraintType, new HashSet<Type>(), options.MaxConstraintInheritanceDepth);
+                if (!result.IsValid)
+                {
+                    return result;
+                }
+            }
+
+            // Apply custom validation rules if any exist
+            if (options.CustomValidationRules.TryGetValue(constraintType, out var customRule))
+            {
+                try
+                {
+                    if (!customRule(constraintType, middlewareType))
+                    {
+                        return (false, $"Custom validation rule failed for constraint {constraintType.Name} on middleware {middlewareType.Name}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return (false, $"Custom validation rule threw exception: {ex.Message}");
+                }
+            }
+
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Validation error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Validates nested generic constraints in complex type hierarchies.
+    /// </summary>
+    private static (bool IsValid, string? ErrorMessage) ValidateNestedGenericConstraints(Type type, int maxDepth, int currentDepth = 0)
+    {
+        if (currentDepth >= maxDepth)
+        {
+            return (false, $"Maximum constraint inheritance depth ({maxDepth}) exceeded for type {type.Name}");
+        }
+
+        if (type.IsGenericType)
+        {
+            var genericArguments = type.GetGenericArguments();
+            foreach (var arg in genericArguments)
+            {
+                if (!typeof(INotification).IsAssignableFrom(arg))
+                {
+                    return (false, $"Generic argument {arg.Name} in {type.Name} must implement INotification");
+                }
+
+                if (arg.IsGenericType)
+                {
+                    var result = ValidateNestedGenericConstraints(arg, maxDepth, currentDepth + 1);
+                    if (!result.IsValid)
+                    {
+                        return result;
+                    }
+                }
+            }
+        }
+
+        return (true, null);
+    }
+
+    /// <summary>
+    /// Validates that there are no circular dependencies in constraint type hierarchies.
+    /// </summary>
+    private static (bool IsValid, string? ErrorMessage) ValidateCircularDependencies(Type type, HashSet<Type> visited, int maxDepth)
+    {
+        if (visited.Count >= maxDepth)
+        {
+            return (false, $"Maximum constraint inheritance depth ({maxDepth}) exceeded while checking for circular dependencies");
+        }
+
+        if (visited.Contains(type))
+        {
+            return (false, $"Circular dependency detected in constraint hierarchy involving {type.Name}");
+        }
+
+        visited.Add(type);
+
+        try
+        {
+            // Check base type
+            if (type.BaseType != null && type.BaseType != typeof(object))
+            {
+                var result = ValidateCircularDependencies(type.BaseType, visited, maxDepth);
+                if (!result.IsValid)
+                {
+                    return result;
+                }
+            }
+
+            // Check implemented interfaces
+            foreach (var interfaceType in type.GetInterfaces())
+            {
+                if (interfaceType.IsGenericType && typeof(INotification).IsAssignableFrom(interfaceType))
+                {
+                    var result = ValidateCircularDependencies(interfaceType, visited, maxDepth);
+                    if (!result.IsValid)
+                    {
+                        return result;
+                    }
+                }
+            }
+
+            return (true, null);
+        }
+        finally
+        {
+            visited.Remove(type);
+        }
     }
 
     /// <summary>  

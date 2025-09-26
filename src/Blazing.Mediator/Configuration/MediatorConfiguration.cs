@@ -45,6 +45,12 @@ public sealed class MediatorConfiguration
     public LoggingOptions? LoggingOptions { get; private set; }
 
     /// <summary>
+    /// Gets the constraint validation options for type-constrained notification middleware.
+    /// Controls how strictly constraint compatibility is enforced during registration and execution.
+    /// </summary>
+    public ConstraintValidationOptions? ConstraintValidationOptions { get; private set; }
+
+    /// <summary>
     /// Gets or sets whether to automatically discover and register request middleware from assemblies.
     /// </summary>
     public bool DiscoverMiddleware { get; set; }
@@ -53,6 +59,13 @@ public sealed class MediatorConfiguration
     /// Gets or sets whether to automatically discover and register notification middleware from assemblies.
     /// </summary>
     public bool DiscoverNotificationMiddleware { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to automatically discover and register type-constrained notification middleware from assemblies.
+    /// When enabled, middleware implementing INotificationMiddleware{T} will be automatically discovered and registered.
+    /// This is separate from DiscoverNotificationMiddleware to allow fine-grained control over discovery behavior.
+    /// </summary>
+    public bool DiscoverConstrainedMiddleware { get; set; } = true; // Default to true for new functionality
 
     /// <summary>
     /// Gets or sets whether to automatically discover and register notification handlers from assemblies.
@@ -215,6 +228,69 @@ public sealed class MediatorConfiguration
     }
 
     /// <summary>
+    /// Enables constraint validation with default lenient configuration.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithConstraintValidation()
+    {
+        ConstraintValidationOptions = ConstraintValidationOptions.CreateLenient();
+        return this;
+    }
+
+    /// <summary>
+    /// Enables constraint validation with granular configuration options.
+    /// </summary>
+    /// <param name="configure">Action to configure the constraint validation options.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when configure is null.</exception>
+    public MediatorConfiguration WithConstraintValidation(Action<ConstraintValidationOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var options = ConstraintValidationOptions.CreateLenient();
+        configure(options);
+        options.ValidateAndThrow(); // Validate the configuration
+
+        ConstraintValidationOptions = options;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables constraint validation with pre-configured options.
+    /// </summary>
+    /// <param name="options">The constraint validation options to use.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
+    public MediatorConfiguration WithConstraintValidation(ConstraintValidationOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        options.ValidateAndThrow(); // Validate the configuration
+        ConstraintValidationOptions = options.Clone();
+        return this;
+    }
+
+    /// <summary>
+    /// Enables strict constraint validation (fails fast on any constraint issues).
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithStrictConstraintValidation()
+    {
+        ConstraintValidationOptions = ConstraintValidationOptions.CreateStrict();
+        return this;
+    }
+
+    /// <summary>
+    /// Disables constraint validation entirely.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithoutConstraintValidation()
+    {
+        ConstraintValidationOptions = ConstraintValidationOptions.CreateDisabled();
+        return this;
+    }
+
+    /// <summary>
     /// Enables automatic discovery and registration of request middleware from assemblies.
     /// </summary>
     /// <returns>The configuration for chaining</returns>
@@ -231,6 +307,28 @@ public sealed class MediatorConfiguration
     public MediatorConfiguration WithNotificationMiddlewareDiscovery()
     {
         DiscoverNotificationMiddleware = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables automatic discovery and registration of type-constrained notification middleware from assemblies.
+    /// This allows middleware implementing INotificationMiddleware{T} to be automatically discovered and registered.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithConstrainedMiddlewareDiscovery()
+    {
+        DiscoverConstrainedMiddleware = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Disables automatic discovery and registration of type-constrained notification middleware from assemblies.
+    /// Only manually registered constrained middleware will be available.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithoutConstrainedMiddlewareDiscovery()
+    {
+        DiscoverConstrainedMiddleware = false;
         return this;
     }
 

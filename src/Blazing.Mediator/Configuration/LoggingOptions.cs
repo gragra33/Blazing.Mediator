@@ -112,6 +112,22 @@ public sealed class LoggingOptions
     public bool EnableSubscriberDetails { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets whether to enable constraint-based middleware routing logging.
+    /// When enabled, logs detailed constraint validation, middleware skipping decisions, 
+    /// and execution flow for type-constrained notification middleware.
+    /// Default: false (can be verbose).
+    /// </summary>
+    public bool EnableConstraintLogging { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to enable detailed middleware routing logging.
+    /// When enabled, logs middleware execution decisions, pipeline flow, 
+    /// and constraint-based routing information.
+    /// Default: false (can be verbose).
+    /// </summary>
+    public bool EnableMiddlewareRoutingLogging { get; set; }
+
+    /// <summary>
     /// Validates the logging options and returns any validation errors.
     /// </summary>
     /// <returns>A list of validation error messages, empty if all options are valid.</returns>
@@ -119,7 +135,13 @@ public sealed class LoggingOptions
     {
         var errors = new List<string>();
 
-        // Currently no specific validation rules, but could be extended in the future
+        // Check for potentially performance-impacting combinations
+        if (EnableConstraintLogging && EnableMiddlewareRoutingLogging && EnablePerformanceTiming)
+        {
+            errors.Add("Warning: Enabling constraint logging, middleware routing logging, and performance timing together may significantly impact performance in high-volume scenarios.");
+        }
+
+        // Currently no other specific validation rules, but could be extended in the future
         // for things like mutually exclusive options or performance considerations
 
         return errors.AsReadOnly();
@@ -147,7 +169,9 @@ public sealed class LoggingOptions
             EnableDetailedHandlerInfo = EnableDetailedHandlerInfo,
             EnableMiddlewareExecutionOrder = EnableMiddlewareExecutionOrder,
             EnablePerformanceTiming = EnablePerformanceTiming,
-            EnableSubscriberDetails = EnableSubscriberDetails
+            EnableSubscriberDetails = EnableSubscriberDetails,
+            EnableConstraintLogging = EnableConstraintLogging,
+            EnableMiddlewareRoutingLogging = EnableMiddlewareRoutingLogging
         };
     }
 
@@ -174,7 +198,9 @@ public sealed class LoggingOptions
             EnableDetailedHandlerInfo = false,
             EnableMiddlewareExecutionOrder = false,
             EnablePerformanceTiming = false,
-            EnableSubscriberDetails = false
+            EnableSubscriberDetails = false,
+            EnableConstraintLogging = false,
+            EnableMiddlewareRoutingLogging = false
         };
     }
 
@@ -201,7 +227,38 @@ public sealed class LoggingOptions
             EnableDetailedHandlerInfo = true,
             EnableMiddlewareExecutionOrder = true,
             EnablePerformanceTiming = true,
-            EnableSubscriberDetails = true
+            EnableSubscriberDetails = true,
+            EnableConstraintLogging = true,
+            EnableMiddlewareRoutingLogging = true
+        };
+    }
+
+    /// <summary>
+    /// Creates logging options optimized for constraint-based middleware debugging.
+    /// Enables constraint and middleware routing logging while keeping other verbose options disabled.
+    /// </summary>
+    /// <returns>A new LoggingOptions instance optimized for constraint debugging.</returns>
+    public static LoggingOptions CreateConstraintDebugging()
+    {
+        return new LoggingOptions
+        {
+            EnableRequestMiddleware = false,
+            EnableNotificationMiddleware = true,
+            EnableSend = false,
+            EnableSendStream = false,
+            EnablePublish = true,
+            EnableRequestPipelineResolution = false,
+            EnableNotificationPipelineResolution = true,
+            EnableWarnings = true,
+            EnableQueryAnalyzer = false,
+            EnableCommandAnalyzer = false,
+            EnableDetailedTypeClassification = false,
+            EnableDetailedHandlerInfo = false,
+            EnableMiddlewareExecutionOrder = true,
+            EnablePerformanceTiming = true,
+            EnableSubscriberDetails = false,
+            EnableConstraintLogging = true,
+            EnableMiddlewareRoutingLogging = true
         };
     }
 }

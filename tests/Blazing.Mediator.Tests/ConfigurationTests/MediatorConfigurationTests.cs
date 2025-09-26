@@ -510,6 +510,104 @@ public class MediatorConfigurationTests : IDisposable
 
         Assert.Same(config, result);
     }
+
+    // NEW TESTS FOR DiscoverConstrainedMiddleware
+
+    [Fact]
+    public void WithConstrainedMiddlewareDiscovery_ReturnsConfiguration()
+    {
+        // Arrange
+        var config = new MediatorConfiguration();
+
+        // Act
+        var result = config.WithConstrainedMiddlewareDiscovery();
+
+        // Assert
+        Assert.Same(config, result);
+        Assert.True(config.DiscoverConstrainedMiddleware);
+    }
+
+    [Fact]
+    public void WithoutConstrainedMiddlewareDiscovery_ReturnsConfiguration()
+    {
+        // Arrange
+        var config = new MediatorConfiguration();
+
+        // Act
+        var result = config.WithoutConstrainedMiddlewareDiscovery();
+
+        // Assert
+        Assert.Same(config, result);
+        Assert.False(config.DiscoverConstrainedMiddleware);
+    }
+
+    [Fact]
+    public void DiscoverConstrainedMiddleware_DefaultValue_IsTrue()
+    {
+        // Arrange & Act
+        var config = new MediatorConfiguration();
+
+        // Assert
+        Assert.True(config.DiscoverConstrainedMiddleware);
+    }
+
+    [Fact]
+    public void ConstrainedMiddlewareDiscovery_ShouldBeChainable()
+    {
+        // Arrange
+        var config = new MediatorConfiguration();
+
+        // Act
+        var result = config.WithMiddlewareDiscovery()
+                          .WithNotificationMiddlewareDiscovery()
+                          .WithConstrainedMiddlewareDiscovery()
+                          .WithoutConstrainedMiddlewareDiscovery()
+                          .WithConstrainedMiddlewareDiscovery();
+
+        // Assert
+        Assert.Same(config, result);
+        Assert.True(config.DiscoverConstrainedMiddleware); // Last call should win
+    }
+
+    [Fact]
+    public void WithConstrainedMiddlewareDiscovery_SetsPropertyCorrectly()
+    {
+        // Arrange
+        var config = new MediatorConfiguration();
+        Assert.True(config.DiscoverConstrainedMiddleware); // Default is true
+
+        // Act
+        config.WithoutConstrainedMiddlewareDiscovery(); // Set to false
+        Assert.False(config.DiscoverConstrainedMiddleware);
+
+        config.WithConstrainedMiddlewareDiscovery(); // Set back to true
+        Assert.True(config.DiscoverConstrainedMiddleware);
+    }
+
+    [Fact]
+    public void ConstrainedMiddlewareDiscovery_WorksWithOtherDiscoveryOptions()
+    {
+        // Arrange
+        var config = new MediatorConfiguration();
+
+        // Act
+        config.WithMiddlewareDiscovery()
+              .WithNotificationMiddlewareDiscovery()
+              .WithConstrainedMiddlewareDiscovery();
+
+        // Assert
+        Assert.True(config.DiscoverMiddleware);
+        Assert.True(config.DiscoverNotificationMiddleware);
+        Assert.True(config.DiscoverConstrainedMiddleware);
+
+        // Act - Disable constrained middleware discovery while keeping others
+        config.WithoutConstrainedMiddlewareDiscovery();
+
+        // Assert
+        Assert.True(config.DiscoverMiddleware);
+        Assert.True(config.DiscoverNotificationMiddleware);
+        Assert.False(config.DiscoverConstrainedMiddleware);
+    }
 }
 
 // Test types for assembly scanning

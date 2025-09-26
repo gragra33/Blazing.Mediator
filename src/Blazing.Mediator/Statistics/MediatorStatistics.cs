@@ -1,4 +1,9 @@
 using System.Diagnostics;
+using System.Collections.Concurrent;
+using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Blazing.Mediator.Abstractions;
 
 namespace Blazing.Mediator.Statistics;
 
@@ -29,6 +34,14 @@ public sealed class MediatorStatistics : IDisposable
     private readonly ConcurrentDictionary<string, long> _middlewareExecutionCounts = new();
     private readonly ConcurrentDictionary<string, long> _middlewareExecutionTimes = new();
     private readonly ConcurrentDictionary<string, long> _middlewareFailures = new();
+
+    // NEW: Constrained middleware metrics (Phase 6 - Step 6.1 & 6.2)
+    private readonly ConcurrentDictionary<string, long> _constrainedMiddlewareExecutions = new();
+    private readonly ConcurrentDictionary<string, long> _constrainedMiddlewareSkips = new();
+    private readonly ConcurrentDictionary<string, long> _constraintCheckTime = new();
+    private readonly ConcurrentDictionary<string, long> _constraintCheckCount = new();
+    private readonly ConcurrentDictionary<string, ConstraintMetrics> _constraintMetrics = new();
+    private readonly ConcurrentDictionary<string, NotificationConstraintMetrics> _notificationConstraintMetrics = new();
 
     // Detailed analysis data (only used when EnableDetailedAnalysis is true)
     private readonly ConcurrentDictionary<string, List<DateTime>> _executionPatterns = new();
@@ -186,6 +199,288 @@ public sealed class MediatorStatistics : IDisposable
 
         UpdateMetricTimestamp($"middleware_{middlewareType}");
     }
+
+    #region Constrained Middleware Metrics (Phase 6 - Step 6.1 & 6.2)
+
+    /// <summary>
+    /// Records constrained middleware execution metrics when middleware metrics are enabled.
+    /// </summary>
+    /// <param name="middlewareType">The middleware type name.</param>
+    /// <param name="constraintType">The constraint type name.</param>
+    /// <param name="executionTimeMs">The execution time in milliseconds.</param>
+    /// <param name="successful">Whether the middleware executed successfully.</param>
+    public void RecordConstrainedMiddlewareExecution(string middlewareType, string constraintType, long executionTimeMs, bool successful = true)
+    {
+        if (!_options.EnableMiddlewareMetrics || string.IsNullOrEmpty(middlewareType) || string.IsNullOrEmpty(constraintType))
+        {
+            return;
+        }
+
+        var constraintKey = $"{middlewareType}<{constraintType}>";
+        _constrainedMiddlewareExecutions.AddOrUpdate(constraintKey, 1, (_, count) => count + 1);
+
+        // Update constraint-specific metrics
+        _constraintMetrics.AddOrUpdate(constraintKey, new ConstraintMetrics
+        {
+            MiddlewareType = middlewareType,
+            ConstraintType = constraintType,
+            ExecutionCount = 1,
+            TotalExecutionTime = executionTimeMs,
+            SuccessCount = successful ? 1 : 0,
+            FailureCount = successful ? 0 : 1,
+            LastExecution = DateTime.UtcNow
+        }, (_, existing) => new ConstraintMetrics
+        {
+            MiddlewareType = existing.MiddlewareType,
+            ConstraintType = existing.ConstraintType,
+            ExecutionCount = existing.ExecutionCount + 1,
+            TotalExecutionTime = existing.TotalExecutionTime + executionTimeMs,
+            SuccessCount = existing.SuccessCount + (successful ? 1 : 0),
+            FailureCount = existing.FailureCount + (successful ? 0 : 1),
+            LastExecution = DateTime.UtcNow
+        });
+
+        UpdateMetricTimestamp($"constrained_middleware_{constraintKey}");
+    }
+
+    /// <summary>
+    /// Records when constrained middleware is skipped due to constraint mismatch.
+    /// </summary>
+    /// <param name="middlewareType">The middleware type name.</param>
+    /// <param name="constraintType">The constraint type name.</param>
+    /// <param name="requestType">The request type that didn't match.</param>
+    public void RecordConstrainedMiddlewareSkip(string middlewareType, string constraintType, string requestType)
+    {
+        if (!_options.EnableMiddlewareMetrics || string.IsNullOrEmpty(middlewareType) || string.IsNullOrEmpty(constraintType))
+        {
+            return;
+        }
+
+        var skipKey = $"{middlewareType}<{constraintType}>_skip_{requestType}";
+        _constrainedMiddlewareSkips.AddOrUpdate(skipKey, 1, (_, count) => count + 1);
+
+        // Update general constraint skip counter
+        var constraintKey = $"{middlewareType}<{constraintType}>";
+        _constraintMetrics.AddOrUpdate(constraintKey, new ConstraintMetrics
+        {
+            MiddlewareType = middlewareType,
+            ConstraintType = constraintType,
+            SkipCount = 1,
+            LastSkip = DateTime.UtcNow
+        }, (_, existing) => new ConstraintMetrics
+        {
+            MiddlewareType = existing.MiddlewareType,
+            ConstraintType = existing.ConstraintType,
+            ExecutionCount = existing.ExecutionCount,
+            TotalExecutionTime = existing.TotalExecutionTime,
+            SuccessCount = existing.SuccessCount,
+            FailureCount = existing.FailureCount,
+            SkipCount = existing.SkipCount + 1,
+            LastExecution = existing.LastExecution,
+            LastSkip = DateTime.UtcNow
+        });
+
+        UpdateMetricTimestamp($"constraint_skip_{skipKey}");
+    }
+
+    /// <summary>
+    /// Records constraint checking overhead time.
+    /// </summary>
+    /// <param name="constraintType">The constraint type being checked.</param>
+    /// <param name="checkTimeMs">The time taken to check the constraint in milliseconds.</param>
+    public void RecordConstraintCheckTime(string constraintType, long checkTimeMs)
+    {
+        if (!_options.EnablePerformanceCounters || string.IsNullOrEmpty(constraintType))
+        {
+            return;
+        }
+
+        _constraintCheckTime.AddOrUpdate(constraintType, checkTimeMs, (_, total) => total + checkTimeMs);
+        _constraintCheckCount.AddOrUpdate(constraintType, 1, (_, count) => count + 1);
+
+        UpdateMetricTimestamp($"constraint_check_{constraintType}");
+    }
+
+    /// <summary>
+    /// Records notification constrained middleware execution metrics.
+    /// </summary>
+    /// <param name="middlewareType">The notification middleware type name.</param>
+    /// <param name="constraintType">The constraint type name.</param>
+    /// <param name="notificationType">The notification type being processed.</param>
+    /// <param name="executionTimeMs">The execution time in milliseconds.</param>
+    /// <param name="successful">Whether the middleware executed successfully.</param>
+    public void RecordNotificationConstrainedMiddlewareExecution(string middlewareType, string constraintType, string notificationType, long executionTimeMs, bool successful = true)
+    {
+        if (!_options.EnableMiddlewareMetrics || string.IsNullOrEmpty(middlewareType) || string.IsNullOrEmpty(constraintType))
+        {
+            return;
+        }
+
+        var constraintKey = $"{middlewareType}<{constraintType}>";
+        _notificationConstraintMetrics.AddOrUpdate(constraintKey, 
+            new NotificationConstraintMetrics
+            {
+                MiddlewareType = middlewareType,
+                ConstraintType = constraintType,
+                ExecutionCount = 1,
+                TotalExecutionTime = executionTimeMs,
+                SuccessCount = successful ? 1 : 0,
+                FailureCount = successful ? 0 : 1,
+                LastExecution = DateTime.UtcNow
+            }, 
+            (_, existing) => 
+            {
+                // Add the notification type to the processed collection
+                existing.ProcessedNotificationTypes.Add(notificationType);
+                
+                // Update the metrics
+                return new NotificationConstraintMetrics
+                {
+                    MiddlewareType = existing.MiddlewareType,
+                    ConstraintType = existing.ConstraintType,
+                    ExecutionCount = existing.ExecutionCount + 1,
+                    TotalExecutionTime = existing.TotalExecutionTime + executionTimeMs,
+                    SuccessCount = existing.SuccessCount + (successful ? 1 : 0),
+                    FailureCount = existing.FailureCount + (successful ? 0 : 1),
+                    LastExecution = DateTime.UtcNow,
+                    LastSkip = existing.LastSkip
+                };
+            });
+
+        // For new entries, add the notification type
+        if (_notificationConstraintMetrics.TryGetValue(constraintKey, out var metrics))
+        {
+            metrics.ProcessedNotificationTypes.Add(notificationType);
+        }
+
+        UpdateMetricTimestamp($"notification_constrained_middleware_{constraintKey}");
+    }
+
+    /// <summary>
+    /// Records when notification constrained middleware is skipped due to constraint mismatch.
+    /// </summary>
+    /// <param name="middlewareType">The notification middleware type name.</param>
+    /// <param name="constraintType">The constraint type name.</param>
+    /// <param name="notificationType">The notification type that didn't match.</param>
+    public void RecordNotificationConstrainedMiddlewareSkip(string middlewareType, string constraintType, string notificationType)
+    {
+        if (!_options.EnableMiddlewareMetrics || string.IsNullOrEmpty(middlewareType) || string.IsNullOrEmpty(constraintType))
+        {
+            return;
+        }
+
+        var skipKey = $"{middlewareType}<{constraintType}>_skip_{notificationType}";
+        _constrainedMiddlewareSkips.AddOrUpdate(skipKey, 1, (_, count) => count + 1);
+
+        // Update notification constraint metrics
+        var constraintKey = $"{middlewareType}<{constraintType}>";
+        _notificationConstraintMetrics.AddOrUpdate(constraintKey, 
+            new NotificationConstraintMetrics
+            {
+                MiddlewareType = middlewareType,
+                ConstraintType = constraintType,
+                SkipCount = 1,
+                LastSkip = DateTime.UtcNow
+            }, 
+            (_, existing) => 
+            {
+                // Add the notification type to the skipped collection
+                existing.SkippedNotificationTypes.Add(notificationType);
+                
+                // Update the metrics
+                return new NotificationConstraintMetrics
+                {
+                    MiddlewareType = existing.MiddlewareType,
+                    ConstraintType = existing.ConstraintType,
+                    ExecutionCount = existing.ExecutionCount,
+                    TotalExecutionTime = existing.TotalExecutionTime,
+                    SuccessCount = existing.SuccessCount,
+                    FailureCount = existing.FailureCount,
+                    SkipCount = existing.SkipCount + 1,
+                    LastExecution = existing.LastExecution,
+                    LastSkip = DateTime.UtcNow
+                };
+            });
+
+        // For new entries, add the notification type to skipped collection
+        if (_notificationConstraintMetrics.TryGetValue(constraintKey, out var metrics))
+        {
+            metrics.SkippedNotificationTypes.Add(notificationType);
+        }
+
+        UpdateMetricTimestamp($"notification_constraint_skip_{skipKey}");
+    }
+
+    /// <summary>
+    /// Gets constrained middleware performance metrics.
+    /// </summary>
+    /// <param name="middlewareType">The middleware type.</param>
+    /// <param name="constraintType">The constraint type.</param>
+    /// <returns>Constraint metrics if available.</returns>
+    public ConstraintMetrics? GetConstraintMetrics(string middlewareType, string constraintType)
+    {
+        if (string.IsNullOrEmpty(middlewareType) || string.IsNullOrEmpty(constraintType))
+            return null;
+
+        var constraintKey = $"{middlewareType}<{constraintType}>";
+        return _constraintMetrics.TryGetValue(constraintKey, out var metrics) ? metrics : null;
+    }
+
+    /// <summary>
+    /// Gets notification constrained middleware performance metrics.
+    /// </summary>
+    /// <param name="middlewareType">The notification middleware type.</param>
+    /// <param name="constraintType">The constraint type.</param>
+    /// <returns>Notification constraint metrics if available.</returns>
+    public NotificationConstraintMetrics? GetNotificationConstraintMetrics(string middlewareType, string constraintType)
+    {
+        if (string.IsNullOrEmpty(middlewareType) || string.IsNullOrEmpty(constraintType))
+            return null;
+
+        var constraintKey = $"{middlewareType}<{constraintType}>";
+        return _notificationConstraintMetrics.TryGetValue(constraintKey, out var metrics) ? metrics : null;
+    }
+
+    /// <summary>
+    /// Gets all constrained middleware metrics.
+    /// </summary>
+    /// <returns>Dictionary of all constraint metrics.</returns>
+    public IReadOnlyDictionary<string, ConstraintMetrics> GetAllConstraintMetrics()
+    {
+        return _constraintMetrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    }
+
+    /// <summary>
+    /// Gets all notification constrained middleware metrics.
+    /// </summary>
+    /// <returns>Dictionary of all notification constraint metrics.</returns>
+    public IReadOnlyDictionary<string, NotificationConstraintMetrics> GetAllNotificationConstraintMetrics()
+    {
+        return _notificationConstraintMetrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    }
+
+    /// <summary>
+    /// Gets constraint checking performance statistics.
+    /// </summary>
+    /// <returns>Dictionary of constraint type to average check time in milliseconds.</returns>
+    public IReadOnlyDictionary<string, double> GetConstraintCheckingPerformance()
+    {
+        var performance = new Dictionary<string, double>();
+
+        foreach (var constraintType in _constraintCheckTime.Keys)
+        {
+            if (_constraintCheckTime.TryGetValue(constraintType, out var totalTime) &&
+                _constraintCheckCount.TryGetValue(constraintType, out var count) &&
+                count > 0)
+            {
+                performance[constraintType] = (double)totalTime / count;
+            }
+        }
+
+        return performance;
+    }
+
+    #endregion
 
     /// <summary>
     /// Records detailed execution pattern when detailed analysis is enabled.
@@ -347,6 +642,41 @@ public sealed class MediatorStatistics : IDisposable
         _renderer.Render($"Commands: {_commandCounts.Count}");
         _renderer.Render($"Notifications: {_notificationCounts.Count}");
 
+        // Include constrained middleware metrics if enabled and available
+        if (_options.EnableMiddlewareMetrics && (_constraintMetrics.Any() || _notificationConstraintMetrics.Any()))
+        {
+            _renderer.Render("");
+            _renderer.Render("Constrained Middleware Statistics:");
+            
+            // Report request constrained middleware
+            if (_constraintMetrics.Any())
+            {
+                _renderer.Render($"Request Constrained Middleware: {_constraintMetrics.Count}");
+                foreach (var constraint in _constraintMetrics)
+                {
+                    var metrics = constraint.Value;
+                    var efficiency = metrics.ExecutionCount + metrics.SkipCount > 0 
+                        ? (double)metrics.ExecutionCount / (metrics.ExecutionCount + metrics.SkipCount) * 100 
+                        : 0;
+                    _renderer.Render($"  {constraint.Key}: Executions={metrics.ExecutionCount}, Skips={metrics.SkipCount}, Efficiency={efficiency:F1}%");
+                }
+            }
+
+            // Report notification constrained middleware
+            if (_notificationConstraintMetrics.Any())
+            {
+                _renderer.Render($"Notification Constrained Middleware: {_notificationConstraintMetrics.Count}");
+                foreach (var constraint in _notificationConstraintMetrics)
+                {
+                    var metrics = constraint.Value;
+                    var efficiency = metrics.ExecutionCount + metrics.SkipCount > 0 
+                        ? (double)metrics.ExecutionCount / (metrics.ExecutionCount + metrics.SkipCount) * 100 
+                        : 0;
+                    _renderer.Render($"  {constraint.Key}: Executions={metrics.ExecutionCount}, Skips={metrics.SkipCount}, Efficiency={efficiency:F1}%");
+                }
+            }
+        }
+
         // Include performance metrics if enabled
         if (_options.EnablePerformanceCounters)
         {
@@ -362,6 +692,18 @@ public sealed class MediatorStatistics : IDisposable
                 _renderer.Render($"Average Execution Time: {summaryValue.AverageExecutionTimeMs:F1}ms");
                 _renderer.Render($"Total Memory Allocated: {summaryValue.TotalMemoryAllocatedBytes:N0} bytes");
                 _renderer.Render($"Unique Request Types: {summaryValue.UniqueRequestTypes}");
+            }
+
+            // Include constraint checking performance
+            var constraintPerformance = GetConstraintCheckingPerformance();
+            if (constraintPerformance.Any())
+            {
+                _renderer.Render("");
+                _renderer.Render("Constraint Checking Performance:");
+                foreach (var perf in constraintPerformance)
+                {
+                    _renderer.Render($"  {perf.Key}: Average check time {perf.Value:F3}ms");
+                }
             }
         }
     }
@@ -428,6 +770,25 @@ public sealed class MediatorStatistics : IDisposable
             _totalExecutionTime.TryRemove(key, out _);
             _failedExecutions.TryRemove(key, out _);
             _lastExecutionTimes.TryRemove(key, out _);
+        }
+
+        // Clean up constrained middleware metrics
+        if (key.StartsWith("constrained_middleware_") || key.StartsWith("constraint_skip_") || 
+            key.StartsWith("constraint_check_") || key.StartsWith("notification_constrained_middleware_") ||
+            key.StartsWith("notification_constraint_skip_"))
+        {
+            // Remove from constraint-specific collections
+            var constraintKeysToRemove = _constraintMetrics.Keys.Where(k => key.Contains(k)).ToList();
+            foreach (var constraintKey in constraintKeysToRemove)
+            {
+                _constraintMetrics.TryRemove(constraintKey, out _);
+            }
+
+            var notificationConstraintKeysToRemove = _notificationConstraintMetrics.Keys.Where(k => key.Contains(k)).ToList();
+            foreach (var constraintKey in notificationConstraintKeysToRemove)
+            {
+                _notificationConstraintMetrics.TryRemove(constraintKey, out _);
+            }
         }
     }
 
@@ -988,4 +1349,70 @@ public sealed class MediatorStatistics : IDisposable
 
         return analysisResults;
     }
+}
+
+// Extension method to help with concurrent collections
+public static class CollectionExtensions
+{
+    public static ConcurrentHashSet<T> ToConcurrentHashSet<T>(this IEnumerable<T> source)
+    {
+        var hashSet = new ConcurrentHashSet<T>();
+        foreach (var item in source)
+        {
+            hashSet.Add(item);
+        }
+        return hashSet;
+    }
+}
+
+// Simple thread-safe hash set implementation
+public class ConcurrentHashSet<T> : IEnumerable<T>
+{
+    private readonly HashSet<T> _hashSet = new();
+    private readonly object _lock = new();
+
+    public void Add(T item)
+    {
+        lock (_lock)
+        {
+            _hashSet.Add(item);
+        }
+    }
+
+    public void Clear()
+    {
+        lock (_lock)
+        {
+            _hashSet.Clear();
+        }
+    }
+
+    public int Count
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _hashSet.Count;
+            }
+        }
+    }
+
+    public IEnumerable<T> Union(IEnumerable<T> other)
+    {
+        lock (_lock)
+        {
+            return _hashSet.Union(other);
+        }
+    }
+
+    public IEnumerator<T> GetEnumerator()
+    {
+        lock (_lock)
+        {
+            return _hashSet.ToList().GetEnumerator();
+        }
+    }
+
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }

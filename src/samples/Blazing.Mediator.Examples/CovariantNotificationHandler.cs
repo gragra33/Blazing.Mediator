@@ -1,11 +1,13 @@
+using System.Diagnostics;
+
 namespace Blazing.Mediator.Examples;
 
 /// <summary>
 /// Covariant notification handler that handles all INotification types using Blazing.Mediator.
 /// This demonstrates covariant notification handling where a handler can handle base types and derived types.
-/// Compare with MediatR version: uses Blazing.Mediator.INotificationSubscriber&lt;T&gt; with covariance support.
+/// Compare with MediatR version: uses Blazing.Mediator.INotificationHandler&lt;T&gt; with covariance support.
 /// </summary>
-public class CovariantNotificationHandler : INotificationSubscriber<INotification>
+public class CovariantNotificationHandler : INotificationHandler<INotification>
 {
     private readonly TextWriter _writer;
 
@@ -24,8 +26,14 @@ public class CovariantNotificationHandler : INotificationSubscriber<INotificatio
     /// <param name="notification">Any notification implementing INotification.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task OnNotification(INotification notification, CancellationToken cancellationToken)
+    public async Task Handle(INotification notification, CancellationToken cancellationToken)
     {
+        var stopwatch = Stopwatch.StartNew();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - CovariantNotificationHandler starting for {notification.GetType().Name}");
+        
         await _writer.WriteLineAsync("Got notified");
+        
+        stopwatch.Stop();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - CovariantNotificationHandler completed in {stopwatch.ElapsedMilliseconds}ms");
     }
 }

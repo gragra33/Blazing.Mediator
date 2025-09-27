@@ -631,7 +631,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
 
     /// <summary>
     /// Attempts to create a concrete middleware type from a generic type definition by finding suitable type arguments.
-    /// Uses assembly scanning to find types that naturally satisfy the middleware's type constraints.
+    /// Uses fast fallback types to avoid expensive assembly scanning.
     /// </summary>
     private static Type? TryCreateConcreteMiddlewareType(Type middlewareTypeDefinition, IServiceProvider serviceProvider, int parameterCount)
     {
@@ -642,51 +642,22 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         if (genericParams.Length != parameterCount)
             return null;
 
-        // Get all types from loaded assemblies, prioritizing test assemblies
-        var candidateTypes = new List<Type>();
-        
-        try
-        {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies()
-                .Where(a => !a.IsDynamic)
-                .OrderBy(a =>
-                {
-                    var name = a.FullName ?? "";
-                    // Prioritize test assemblies and user assemblies over system assemblies
-                    if (name.Contains("Test")) return 0;
-                    if (!name.StartsWith("System") && !name.StartsWith("Microsoft")) return 1;
-                    return 2;
-                })
-                .ToArray();
+        // Use fast fallback types instead of expensive assembly scanning
+        // This significantly improves performance by avoiding AppDomain.CurrentDomain.GetAssemblies() 
+        // and assembly.GetTypes() calls which can take 30+ seconds
+        var fastFallbackTypes = new[] 
+        { 
+            typeof(InternalRequestPlaceholder), 
+            typeof(InternalCommandPlaceholder), 
+            typeof(object), 
+            typeof(string)
+        };
 
-            foreach (var assembly in assemblies)
-            {
-                try
-                {
-                    var types = assembly.GetTypes()
-                        .Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericTypeDefinition && t.IsPublic)
-                        .Where(t => t.GetConstructor(Type.EmptyTypes) != null); // Must have parameterless constructor
-
-                    candidateTypes.AddRange(types);
-                }
-                catch
-                {
-                    // Skip assemblies that can't be inspected
-                    continue;
-                }
-            }
-        }
-        catch
-        {
-            // If assembly scanning fails, fall back to simple types
-            candidateTypes.AddRange([typeof(InternalRequestPlaceholder), typeof(InternalCommandPlaceholder), typeof(string), typeof(object)]);
-        }
-
-        // Try different combinations of candidate types as type arguments
+        // Try different combinations of fast fallback types as type arguments
         if (parameterCount == 2)
         {
             // For 2-parameter middleware (TRequest, TResponse)
-            foreach (var requestType in candidateTypes)
+            foreach (var requestType in fastFallbackTypes)
             {
                 foreach (var responseType in new[] { typeof(object), typeof(string), typeof(int) })
                 {
@@ -700,7 +671,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         else if (parameterCount == 1)
         {
             // For 1-parameter middleware (TRequest)
-            foreach (var requestType in candidateTypes)
+            foreach (var requestType in fastFallbackTypes)
             {
                 if (TryMakeGenericType(middlewareTypeDefinition, [requestType], out var concreteType))
                 {
@@ -709,6 +680,8 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             }
         }
 
+        // If fast fallback fails, return null instead of expensive assembly scanning
+        // The middleware order will use the cached registration-time value
         return null;
     }
 
@@ -731,7 +704,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             concreteType = genericTypeDefinition.MakeGenericType(typeArguments);
             return true;
         }
-        catch (ArgumentException)
+        catch (ArgumentException ex)
         {
             // Constraints were not satisfied
             return false;

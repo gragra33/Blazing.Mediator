@@ -365,6 +365,42 @@ public sealed class MediatorConfiguration
     }
 
     /// <summary>
+    /// Disables telemetry tracking by clearing telemetry options.
+    /// This prevents OpenTelemetry metrics and tracing from being collected.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithoutTelemetry()
+    {
+        TelemetryOptions = null;
+        return this;
+    }
+
+    /// <summary>
+    /// Disables statistics tracking by clearing statistics options.
+    /// This prevents runtime statistics collection for queries, commands, and notifications.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithoutStatistics()
+    {
+        StatisticsOptions = null;
+#pragma warning disable CS0618 // For backwards compatibility
+        EnableStatisticsTracking = false;
+#pragma warning restore CS0618
+        return this;
+    }
+
+    /// <summary>
+    /// Disables debug logging by clearing logging options.
+    /// This prevents detailed debug logging from being generated.
+    /// </summary>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration WithoutLogging()
+    {
+        LoggingOptions = null;
+        return this;
+    }
+
+    /// <summary>
     /// Enables automatic discovery and registration of request middleware from assemblies.
     /// </summary>
     /// <returns>The configuration for chaining</returns>

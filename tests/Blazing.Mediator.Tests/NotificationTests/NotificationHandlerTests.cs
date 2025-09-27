@@ -695,6 +695,188 @@ public class NotificationHandlerTests
 
     #endregion
 
+    #region Covariant Handler Tests
+
+    /// <summary>
+    /// Tests that covariant notification handlers work with inheritance hierarchies.
+    /// </summary>
+    [Fact]
+    public async Task Publish_WithCovariantHandlers_InvokesAllCompatibleHandlers()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddScoped<TestService>(); // For handlers that need it
+
+        services.AddMediator(config =>
+        {
+            config.WithNotificationHandlerDiscovery();
+        }, typeof(NotificationHandlerTests).Assembly);
+
+        // Manually register covariant test handlers
+        services.AddScoped<BaseNotificationCovariantHandler>();
+        services.AddScoped<InterfaceNotificationCovariantHandler>();
+        services.AddScoped<SpecificDerivedHandler>();
+        services.AddScoped<INotificationHandler<BaseTestNotificationForCovariance>>(sp => sp.GetRequiredService<BaseNotificationCovariantHandler>());
+        services.AddScoped<INotificationHandler<ITestNotificationInterface>>(sp => sp.GetRequiredService<InterfaceNotificationCovariantHandler>());
+        services.AddScoped<INotificationHandler<DerivedTestNotificationForCovariance>>(sp => sp.GetRequiredService<SpecificDerivedHandler>());
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+        // Reset counters
+        BaseNotificationCovariantHandler.CallCount = 0;
+        InterfaceNotificationCovariantHandler.CallCount = 0;
+        SpecificDerivedHandler.CallCount = 0;
+
+        var derivedNotification = new DerivedTestNotificationForCovariance
+        {
+            Message = "Test covariant handling",
+            BaseProperty = "Base value",
+            DerivedProperty = "Derived value",
+            InterfaceValue = "Interface value"
+        };
+
+        // Act
+        await mediator.Publish(derivedNotification);
+
+        // Assert - All compatible handlers should be called
+        BaseNotificationCovariantHandler.CallCount.ShouldBe(1);
+        InterfaceNotificationCovariantHandler.CallCount.ShouldBe(1);
+        SpecificDerivedHandler.CallCount.ShouldBe(1);
+
+        // Check that handlers received the correct notification
+        BaseNotificationCovariantHandler.LastNotification.ShouldNotBeNull();
+        InterfaceNotificationCovariantHandler.LastNotification.ShouldNotBeNull();
+        SpecificDerivedHandler.LastNotification.ShouldNotBeNull();
+    }
+
+    /// <summary>
+    /// Tests that only base-compatible handlers are invoked for base notifications.
+    /// </summary>
+    [Fact]
+    public async Task Publish_WithBaseNotification_OnlyInvokesBaseHandlers()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddScoped<TestService>();
+
+        services.AddMediator(config =>
+        {
+            config.WithNotificationHandlerDiscovery();
+        }, typeof(NotificationHandlerTests).Assembly);
+
+        // Manually register covariant test handlers
+        services.AddScoped<BaseNotificationCovariantHandler>();
+        services.AddScoped<InterfaceNotificationCovariantHandler>();
+        services.AddScoped<SpecificDerivedHandler>();
+        services.AddScoped<INotificationHandler<BaseTestNotificationForCovariance>>(sp => sp.GetRequiredService<BaseNotificationCovariantHandler>());
+        services.AddScoped<INotificationHandler<ITestNotificationInterface>>(sp => sp.GetRequiredService<InterfaceNotificationCovariantHandler>());
+        services.AddScoped<INotificationHandler<DerivedTestNotificationForCovariance>>(sp => sp.GetRequiredService<SpecificDerivedHandler>());
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+        // Reset counters
+        BaseNotificationCovariantHandler.CallCount = 0;
+        InterfaceNotificationCovariantHandler.CallCount = 0;
+        SpecificDerivedHandler.CallCount = 0;
+
+        var baseNotification = new BaseTestNotificationForCovariance
+        {
+            Message = "Test base handling",
+            BaseProperty = "Base value",
+            InterfaceValue = "Interface value"
+        };
+
+        // Act
+        await mediator.Publish(baseNotification);
+
+        // Assert - Only base and interface handlers should be called
+        BaseNotificationCovariantHandler.CallCount.ShouldBe(1);
+        InterfaceNotificationCovariantHandler.CallCount.ShouldBe(1);
+        SpecificDerivedHandler.CallCount.ShouldBe(0); // Should NOT be called for base type
+    }
+
+    #region Covariant Test Types
+
+    /// <summary>
+    /// Interface for covariant testing.
+    /// </summary>
+    public interface ITestNotificationInterface : INotification
+    {
+        string InterfaceValue { get; }
+    }
+
+    /// <summary>
+    /// Base notification for covariant testing.
+    /// </summary>
+    public class BaseTestNotificationForCovariance : INotification, ITestNotificationInterface
+    {
+        public string Message { get; set; } = string.Empty;
+        public string BaseProperty { get; set; } = string.Empty;
+        public string InterfaceValue { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Derived notification for covariant testing.
+    /// </summary>
+    public class DerivedTestNotificationForCovariance : BaseTestNotificationForCovariance
+    {
+        public string DerivedProperty { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Handler for base notifications.
+    /// </summary>
+    public class BaseNotificationCovariantHandler : INotificationHandler<BaseTestNotificationForCovariance>
+    {
+        public static int CallCount = 0;
+        public static BaseTestNotificationForCovariance? LastNotification = null;
+
+        public Task Handle(BaseTestNotificationForCovariance notification, CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            LastNotification = notification;
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// Handler for interface-based notifications.
+    /// </summary>
+    public class InterfaceNotificationCovariantHandler : INotificationHandler<ITestNotificationInterface>
+    {
+        public static int CallCount = 0;
+        public static ITestNotificationInterface? LastNotification = null;
+
+        public Task Handle(ITestNotificationInterface notification, CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            LastNotification = notification;
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// Handler for specific derived notifications.
+    /// </summary>
+    public class SpecificDerivedHandler : INotificationHandler<DerivedTestNotificationForCovariance>
+    {
+        public static int CallCount = 0;
+        public static DerivedTestNotificationForCovariance? LastNotification = null;
+
+        public Task Handle(DerivedTestNotificationForCovariance notification, CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            LastNotification = notification;
+            return Task.CompletedTask;
+        }
+    }
+
+    #endregion
+
+    #endregion
+
     #region Configuration Tests
 
     /// <summary>

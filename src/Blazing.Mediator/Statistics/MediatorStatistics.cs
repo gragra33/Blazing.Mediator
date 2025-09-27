@@ -578,36 +578,63 @@ public sealed class MediatorStatistics : IDisposable
 
     /// <summary>
     /// Finds all types in loaded assemblies that implement the specified interface.
-    /// Filters out internal implementation details from the Blazing.Mediator assembly.
+    /// Uses optimized caching and filtering to avoid repeated expensive assembly scanning operations.
     /// </summary>
     private static List<Type> FindTypesImplementingInterface(Type interfaceType)
     {
-        var types = new List<Type>();
-
-        // Get all loaded assemblies
-        var assemblies = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
-            .ToList();
-
-        foreach (var assembly in assemblies)
+        // Use a static cache to avoid repeated assembly scanning
+        // This significantly improves performance for multiple analysis calls
+        return _typeCache.GetOrAdd(interfaceType, static iType =>
         {
-            try
-            {
-                var assemblyTypes = assembly.GetTypes()
-                    .Where(t => t is { IsAbstract: false, IsInterface: false, IsClass: true })
-                    .Where(t => ShouldIncludeTypeInAnalysis(t)) // Filter out internal implementation details
-                    .ToList();
+            var types = new List<Type>();
 
-                types.AddRange(assemblyTypes.Where(type => ImplementsInterface(type, interfaceType)));
-            }
-            catch (ReflectionTypeLoadException)
+            try 
             {
-                // Skip assemblies that can't be loaded
-            }
-        }
+                // Get all loaded assemblies with optimized filtering
+                var assemblies = AppDomain.CurrentDomain.GetAssemblies()
+                    .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+                    // Filter out system assemblies early to reduce scanning overhead
+                    .Where(a => 
+                    {
+                        var name = a.FullName ?? "";
+                        return !name.StartsWith("System.") && 
+                               !name.StartsWith("Microsoft.") && 
+                               !name.StartsWith("netstandard") &&
+                               !name.StartsWith("mscorlib");
+                    })
+                    .ToArray(); // Materialize to avoid re-evaluation
 
-        return types;
+                foreach (var assembly in assemblies)
+                {
+                    try
+                    {
+                        var assemblyTypes = assembly.GetTypes()
+                            .Where(t => t is { IsAbstract: false, IsInterface: false, IsClass: true })
+                            .Where(ShouldIncludeTypeInAnalysis) // Filter out internal implementation details
+                            .Where(type => ImplementsInterface(type, iType))
+                            .ToArray(); // Materialize to avoid re-evaluation
+
+                        types.AddRange(assemblyTypes);
+                    }
+                    catch (ReflectionTypeLoadException)
+                    {
+                        // Skip assemblies that can't be loaded
+                        continue;
+                    }
+                }
+            }
+            catch
+            {
+                // If scanning fails entirely, return empty list instead of crashing
+                return [];
+            }
+
+            return types;
+        });
     }
+
+    // Static cache to avoid repeated assembly scanning
+    private static readonly ConcurrentDictionary<Type, List<Type>> _typeCache = new();
 
     /// <summary>
     /// Determines whether a type should be included in statistics analysis.

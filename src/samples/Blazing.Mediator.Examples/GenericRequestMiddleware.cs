@@ -1,4 +1,5 @@
 using Blazing.Mediator.Abstractions;
+using System.Diagnostics;
 
 namespace Blazing.Mediator.Examples;
 
@@ -38,8 +39,15 @@ public class GenericRequestMiddleware<TRequest, TResponse> : IRequestMiddleware<
     /// <returns>The response from the pipeline.</returns>
     public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
+        var stopwatch = Stopwatch.StartNew();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - GenericRequestMiddleware starting for {typeof(TRequest).Name}");
+        
         await _writer.WriteLineAsync("-- Handling Request");
         var result = await next();
+        
+        stopwatch.Stop();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - GenericRequestMiddleware completed for {typeof(TRequest).Name} in {stopwatch.ElapsedMilliseconds}ms");
+        
         await _writer.WriteLineAsync("-- Finished Request");
         return result;
     }

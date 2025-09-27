@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Blazing.Mediator.Examples;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace Blazing.Mediator.Examples;
 /// This demonstrates multiple handlers for the same notification.
 /// Compare with MediatR version: uses Blazing.Mediator.INotificationHandler&lt;T&gt; instead of MediatR.INotificationHandler&lt;T&gt;.
 /// </summary>
-public class PingedAlsoHandler : INotificationSubscriber<Pinged>
+public class PingedAlsoHandler : INotificationHandler<Pinged>
 {
     private readonly TextWriter _writer;
 
@@ -24,8 +26,14 @@ public class PingedAlsoHandler : INotificationSubscriber<Pinged>
     /// <param name="notification">The pinged notification.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task OnNotification(Pinged notification, CancellationToken cancellationToken)
+    public async Task Handle(Pinged notification, CancellationToken cancellationToken)
     {
+        var stopwatch = Stopwatch.StartNew();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - PingedAlsoHandler starting");
+        
         await _writer.WriteLineAsync("Got pinged also async");
+        
+        stopwatch.Stop();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - PingedAlsoHandler completed in {stopwatch.ElapsedMilliseconds}ms");
     }
 }

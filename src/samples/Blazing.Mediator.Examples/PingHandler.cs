@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Blazing.Mediator.Examples;
 
 /// <summary>
@@ -26,7 +28,14 @@ public class PingHandler : IRequestHandler<Ping, Pong>
     /// <returns>A pong response.</returns>
     public async Task<Pong> Handle(Ping request, CancellationToken cancellationToken)
     {
+        var stopwatch = Stopwatch.StartNew();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - PingHandler starting");
+        
         await _writer.WriteLineAsync($"--- Handled Ping: {request.Message}");
+        
+        stopwatch.Stop();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - PingHandler completed in {stopwatch.ElapsedMilliseconds}ms");
+        
         return new Pong { Message = request.Message + " Pong" };
     }
 }

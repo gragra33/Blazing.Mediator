@@ -1,17 +1,12 @@
 namespace Blazing.Mediator.Tests;
 
 /// <summary>
-/// Interface for testing type constraints in generic commands.
+/// Simple test interface for testing generic constraint functionality.
+/// Used to verify that middleware with generic constraints work correctly.
+/// This is different from the removed constraint validation feature.
 /// </summary>
 public interface ITestConstraintEntity
 {
-    /// <summary>
-    /// Gets the entity identifier.
-    /// </summary>
-    int Id { get; }
-
-    /// <summary>
-    /// Gets the entity name.
-    /// </summary>
-    string Name { get; }
+    int Id { get; set; }
+    string Name { get; set; }
 }

@@ -245,6 +245,7 @@ public static class ServiceCollectionExtensions
             }
 
             config.WithMiddlewareDiscovery();
+            config.AddFromAssembly(typeof(Program).Assembly);
 
             //// Add tracing middleware first for full coverage
             //config.AddMiddleware(typeof(TracingMiddleware<,>));
@@ -264,7 +265,8 @@ public static class ServiceCollectionExtensions
             //config.AddMiddleware(typeof(LoggingMiddleware<>));
             //config.AddMiddleware(typeof(PerformanceMiddleware<,>));
             //config.AddMiddleware(typeof(PerformanceMiddleware<>));
-        }, typeof(Program).Assembly);
+            //}, typeof(Program).Assembly);
+        });
 
         return services;
     }

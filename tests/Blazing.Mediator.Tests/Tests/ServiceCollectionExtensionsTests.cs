@@ -1,6 +1,7 @@
 using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using Blazing.Mediator.Tests.Middleware;
 
 namespace Blazing.Mediator.Tests;
 
@@ -266,6 +267,77 @@ public class ServiceCollectionExtensionsTests
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IRequestHandler<TestInterfaceCommand>? handler = serviceProvider.GetService<IRequestHandler<TestInterfaceCommand>>();
         handler.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// Tests that AddMediator with configuration-based assembly registration works correctly.
+    /// </summary>
+    [Fact]
+    public void AddMediator_WithConfigurationBasedAssemblyRegistration_RegistersHandlers()
+    {
+        // Arrange
+        ServiceCollection services = new();
+
+        // Act - Using the new AddFromAssembly functionality
+        services.AddMediator(config =>
+        {
+            // Add notification middleware for cross-cutting concerns
+            config.AddNotificationMiddleware<NotificationLoggingMiddleware>();
+            config.AddNotificationMiddleware<NotificationMetricsMiddleware>();
+            config.AddNotificationMiddleware<NotificationErrorHandlingMiddleware>();
+
+            // Configure assemblies to scan for subscribers
+            config.AddFromAssembly(typeof(TestRegistrationCommand));
+            config.AddFromAssembly(typeof(ServiceCollectionExtensionsTests));
+        }, Array.Empty<Assembly>()); // Explicitly pass empty Assembly array to resolve ambiguity
+
+        // Assert
+        ServiceProvider serviceProvider = services.BuildServiceProvider();
+        IMediator? mediator = serviceProvider.GetService<IMediator>();
+        IRequestHandler<TestRegistrationCommand>? handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
+        MediatorConfiguration? configuration = serviceProvider.GetService<MediatorConfiguration>();
+
+        mediator.ShouldNotBeNull();
+        handler.ShouldNotBeNull();
+        configuration.ShouldNotBeNull();
+        configuration.Assemblies.Count.ShouldBeGreaterThan(0);
+        
+        // Verify the assemblies were registered
+        configuration.Assemblies.ShouldContain(typeof(TestRegistrationCommand).Assembly);
+        configuration.Assemblies.ShouldContain(typeof(ServiceCollectionExtensionsTests).Assembly);
+    }
+
+    /// <summary>
+    /// Tests that AddMediator merges configuration assemblies with parameter assemblies.
+    /// </summary>
+    [Fact]
+    public void AddMediator_WithConfigurationAndParameterAssemblies_MergesAssemblies()
+    {
+        // Arrange
+        ServiceCollection services = new();
+        var parameterAssembly = typeof(string).Assembly;
+
+        // Act - Use a more specific overload to avoid ambiguity
+        services.AddMediator(config =>
+        {
+            config.AddFromAssembly<TestRegistrationCommand>();
+        });
+
+        // Add the parameter assembly separately for clarity
+        services.AddMediator(parameterAssembly);
+
+        // Assert
+        ServiceProvider serviceProvider = services.BuildServiceProvider();
+        IMediator? mediator = serviceProvider.GetService<IMediator>();
+        IRequestHandler<TestRegistrationCommand>? handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
+        MediatorConfiguration? configuration = serviceProvider.GetService<MediatorConfiguration>();
+
+        mediator.ShouldNotBeNull();
+        handler.ShouldNotBeNull();
+        configuration.ShouldNotBeNull();
+        
+        // Should contain assemblies from both configuration and parameters
+        configuration.Assemblies.ShouldContain(typeof(TestRegistrationCommand).Assembly);
     }
 
     #region Middleware Auto-Discovery Tests

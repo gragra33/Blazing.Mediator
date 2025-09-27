@@ -1,14 +1,13 @@
-namespace Blazing.Mediator.Tests;
+using Blazing.Mediator.Abstractions;
+
+namespace Blazing.Mediator.Tests.Commands;
 
 /// <summary>
-/// Generic command with type constraints for testing constraint validation.
-/// Used to verify that generic commands with type constraints are handled correctly.
+/// Generic command for testing C# generic constraints functionality.
+/// This tests standard C# generic constraints, not the removed constraint validation feature.
 /// </summary>
-/// <typeparam name="T">The type parameter that must be a class implementing ITestConstraintEntity.</typeparam>
-public record GenericConstraintCommand<T> : IRequest where T : class, ITestConstraintEntity
+public class GenericConstraintCommand<TEntity> : IRequest
+    where TEntity : ITestConstraintEntity
 {
-    /// <summary>
-    /// Gets or initializes the data of type T.
-    /// </summary>
-    public T Data { get; init; } = default!;
+    public TEntity Data { get; set; } = default!;
 }

@@ -35,4 +35,8 @@
     <Using Include="Moq" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Performance\" />
+  </ItemGroup>
+
 </Project>

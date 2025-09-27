@@ -54,6 +54,7 @@ public static class ServiceCollectionExtensions
     /// <param name="options">Optional action to configure middleware pipeline.</param>  
     /// <param name="assemblies">Assemblies to scan for handlers.</param>  
     /// <returns>The service collection for chaining.</returns>  
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? options, params Assembly[]? assemblies)
     {
         return AddMediatorCore(services, options, false, false, false, assemblies, null);
@@ -66,6 +67,7 @@ public static class ServiceCollectionExtensions
     /// <param name="options">Optional action to configure middleware pipeline.</param>  
     /// <param name="assemblyMarkerTypes">Types used to identify assemblies to scan.</param>  
     /// <returns>The service collection for chaining.</returns>  
+    [OverloadResolutionPriority(0)]
     public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? options, params Type[]? assemblyMarkerTypes)
     {
         Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? [];
@@ -81,6 +83,7 @@ public static class ServiceCollectionExtensions
     /// <param name="enableStaticResourceCleanup">Whether to register a cleanup service for manual disposal of static resources.</param>
     /// <param name="assemblies">Assemblies to scan for handlers.</param>
     /// <returns>The service collection for chaining.</returns>
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediatorWithStaticCleanup(this IServiceCollection services, Action<MediatorConfiguration>? options, bool enableStaticResourceCleanup, params Assembly[]? assemblies)
     {
         // Register core mediator services
@@ -104,6 +107,7 @@ public static class ServiceCollectionExtensions
     /// <param name="enableStaticResourceCleanup">Whether to register a cleanup service for manual disposal of static resources.</param>
     /// <param name="assemblyMarkerTypes">Types from assemblies to scan for handlers.</param>
     /// <returns>The service collection for chaining.</returns>
+    [OverloadResolutionPriority(0)]
     public static IServiceCollection AddMediatorWithStaticCleanup(this IServiceCollection services, Action<MediatorConfiguration>? options, bool enableStaticResourceCleanup, params Type[]? assemblyMarkerTypes)
     {
         // Register core mediator services
@@ -130,6 +134,7 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblies">Assemblies to scan for handlers and middleware.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediator with configuration action and MediatorConfiguration.WithMiddlewareDiscovery() instead.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediator(this IServiceCollection services, bool discoverMiddleware, params Assembly[]? assemblies)
     {
         return AddMediatorCore(services, null, false, discoverMiddleware, discoverMiddleware, assemblies, null);
@@ -143,6 +148,7 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblyMarkerTypes">Types used to identify assemblies to scan.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediator with configuration action and MediatorConfiguration.WithMiddlewareDiscovery() instead.")]
+    [OverloadResolutionPriority(0)]
     public static IServiceCollection AddMediator(this IServiceCollection services, bool discoverMiddleware, params Type[]? assemblyMarkerTypes)
     {
         Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? [];
@@ -157,6 +163,7 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblies">Assemblies to scan for handlers and middleware.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediator with configuration action and MediatorConfiguration.WithNotificationMiddlewareDiscovery() instead.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediatorWithNotificationMiddleware(this IServiceCollection services, bool discoverNotificationMiddleware, params Assembly[]? assemblies)
     {
         return AddMediatorCore(services, null, false, false, discoverNotificationMiddleware, assemblies, null);
@@ -170,6 +177,7 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblyMarkerTypes">Types used to identify assemblies to scan.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediator with configuration action and MediatorConfiguration.WithNotificationMiddlewareDiscovery() instead.")]
+    [OverloadResolutionPriority(0)]
     public static IServiceCollection AddMediatorWithNotificationMiddleware(this IServiceCollection services, bool discoverNotificationMiddleware, params Type[]? assemblyMarkerTypes)
     {
         Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? [];
@@ -185,6 +193,7 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblies">Assemblies to scan for handlers.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediator with configuration action and MediatorConfiguration.WithStatisticsTracking() instead.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? options, bool enableStatisticsTracking, params Assembly[]? assemblies)
     {
         return AddMediatorCore(services, options, enableStatisticsTracking, false, false, assemblies, null);
@@ -199,6 +208,7 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblyMarkerTypes">Types used to identify assemblies to scan.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediator with configuration action and MediatorConfiguration.WithStatisticsTracking() instead.")]
+    [OverloadResolutionPriority(0)]
     public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? options, bool enableStatisticsTracking, params Type[]? assemblyMarkerTypes)
     {
         Assembly[] assemblies = assemblyMarkerTypes?.Select(t => t.Assembly).Distinct().ToArray() ?? [];
@@ -215,6 +225,7 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblies">Assemblies to scan for handlers and optionally middleware.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediator with configuration action and MediatorConfiguration fluent methods instead.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? options, bool? discoverMiddleware = null, bool? discoverNotificationMiddleware = null, params Assembly[]? assemblies)
     {
         return AddMediatorCore(services, options, false, discoverMiddleware, discoverNotificationMiddleware, assemblies, null);
@@ -231,6 +242,7 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblies">Assemblies to scan for handlers and optionally middleware.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediator with configuration action and MediatorConfiguration fluent methods ??.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorConfiguration>? options, bool enableStatisticsTracking, bool? discoverMiddleware = null, bool? discoverNotificationMiddleware = null, params Assembly[]? assemblies)
     {
         return AddMediatorCore(services, options, enableStatisticsTracking, discoverMiddleware, discoverNotificationMiddleware, assemblies, null);
@@ -245,6 +257,7 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblies">Assemblies to scan for handlers and optionally middleware.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediator with configuration action and MediatorConfiguration fluent methods ??.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediator(this IServiceCollection services, bool enableStatisticsTracking, bool discoverMiddleware, params Assembly[]? assemblies)
     {
         return AddMediatorCore(services, null, enableStatisticsTracking, discoverMiddleware, discoverMiddleware, assemblies, null);
@@ -267,24 +280,33 @@ public static class ServiceCollectionExtensions
         Assembly[]? assemblies,
         Assembly? callingAssembly)
     {
+        // Configure middleware if provided
+        var configuration = new MediatorConfiguration(services);
+        options?.Invoke(configuration);
+
         // Resolve assemblies based on what was provided
         Assembly[] targetAssemblies;
+        
+        // First, add assemblies from configuration if any
+        var configurationAssemblies = configuration.Assemblies.ToArray();
+        
+        // Then merge with assemblies passed as parameters
         if (assemblies is { Length: > 0 })
         {
-            targetAssemblies = assemblies;
+            targetAssemblies = configurationAssemblies.Concat(assemblies).Distinct().ToArray();
         }
         else if (callingAssembly != null)
         {
-            targetAssemblies = [callingAssembly];
+            targetAssemblies = configurationAssemblies.Concat([callingAssembly]).Distinct().ToArray();
+        }
+        else if (configurationAssemblies.Length > 0)
+        {
+            targetAssemblies = configurationAssemblies;
         }
         else
         {
             targetAssemblies = [];
         }
-
-        // Configure middleware if provided
-        var configuration = new MediatorConfiguration(services);
-        options?.Invoke(configuration);
 
         // Use the static registration service to handle the core logic
         return MediatorRegistrationService.RegisterMediatorServices(
@@ -332,6 +354,7 @@ public static class ServiceCollectionExtensions
     /// <param name="discoverMiddleware">[Obsolete] Whether to automatically discover and register middleware from the assembly. Use MediatorConfiguration.WithMiddlewareDiscovery() ??.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediatorFromCallingAssembly with configuration action and MediatorConfiguration.WithMiddlewareDiscovery() ??.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediatorFromCallingAssembly(this IServiceCollection services, bool discoverMiddleware)
     {
         Assembly callingAssembly = Assembly.GetCallingAssembly();
@@ -346,6 +369,7 @@ public static class ServiceCollectionExtensions
     /// <param name="discoverMiddleware">[Obsolete] Whether to automatically discover and register middleware from the assembly. Use MediatorConfiguration.WithMiddlewareDiscovery() ??.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediatorFromCallingAssembly with configuration action and MediatorConfiguration.WithMiddlewareDiscovery() ??.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediatorFromCallingAssembly(this IServiceCollection services, Action<MediatorConfiguration>? options, bool discoverMiddleware)
     {
         Assembly callingAssembly = Assembly.GetCallingAssembly();
@@ -362,6 +386,7 @@ public static class ServiceCollectionExtensions
     /// <param name="discoverNotificationMiddleware">[Obsolete] Whether to automatically discover and register notification middleware from the assembly. Use MediatorConfiguration.WithNotificationMiddlewareDiscovery() ??.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediatorFromCallingAssembly with configuration action and MediatorConfiguration fluent methods ??.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediatorFromCallingAssembly(this IServiceCollection services, Action<MediatorConfiguration>? options, bool enableStatisticsTracking, bool discoverMiddleware, bool discoverNotificationMiddleware)
     {
         Assembly callingAssembly = Assembly.GetCallingAssembly();
@@ -426,6 +451,7 @@ public static class ServiceCollectionExtensions
     /// <param name="discoverMiddleware">[Obsolete] Whether to automatically discover and register middleware from assemblies. Use MediatorConfiguration.WithMiddlewareDiscovery() ??.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediatorFromLoadedAssemblies with configuration action and MediatorConfiguration.WithMiddlewareDiscovery() ??.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediatorFromLoadedAssemblies(this IServiceCollection services, bool discoverMiddleware)
     {
         Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -441,6 +467,7 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblyFilter">Optional filter to include specific assemblies.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediatorFromLoadedAssemblies with configuration action and MediatorConfiguration.WithMiddlewareDiscovery() ??.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediatorFromLoadedAssemblies(this IServiceCollection services, Action<MediatorConfiguration>? options, bool discoverMiddleware, Func<Assembly, bool>? assemblyFilter = null)
     {
         Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -464,6 +491,7 @@ public static class ServiceCollectionExtensions
     /// <param name="assemblyFilter">Optional filter to include specific assemblies.</param>  
     /// <returns>The service collection for chaining.</returns>  
     [Obsolete("Use AddMediatorFromLoadedAssemblies with configuration action and MediatorConfiguration fluent methods ??.")]
+    [OverloadResolutionPriority(1)]
     public static IServiceCollection AddMediatorFromLoadedAssemblies(this IServiceCollection services, Action<MediatorConfiguration>? options, bool enableStatisticsTracking, bool discoverMiddleware, bool discoverNotificationMiddleware, Func<Assembly, bool>? assemblyFilter = null)
     {
         Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();

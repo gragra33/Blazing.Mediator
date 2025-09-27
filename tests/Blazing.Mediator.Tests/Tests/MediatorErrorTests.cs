@@ -3,6 +3,7 @@ using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using Blazing.Mediator.Tests.Handlers;
 
 namespace Blazing.Mediator.Tests
 {
@@ -710,29 +711,6 @@ namespace Blazing.Mediator.Tests
         #endregion
 
         #region Advanced Tests
-
-        /// <summary>
-        /// Tests that generic requests with type constraints are handled correctly.
-        /// </summary>
-        [Fact]
-        public async Task Send_WithGenericConstraints_HandlesCorrectly()
-        {
-            // Arrange
-            ServiceCollection services = new();
-            services.AddMediator(typeof(GenericConstraintHandler).Assembly);
-            ServiceProvider serviceProvider = services.BuildServiceProvider();
-            IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-
-            GenericConstraintCommand<TestConstraintEntity> command = new() { Data = new TestConstraintEntity { Id = 42, Name = "Generic Test" } };
-
-            // Act
-            await mediator.Send(command);
-
-            // Assert
-            GenericConstraintHandler.LastProcessedEntity.ShouldNotBeNull();
-            GenericConstraintHandler.LastProcessedEntity.Id.ShouldBe(42);
-            GenericConstraintHandler.LastProcessedEntity.Name.ShouldBe("Generic Test");
-        }
 
         /// <summary>
         /// Tests that inherited handlers execute the correct handler implementation.

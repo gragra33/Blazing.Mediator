@@ -267,12 +267,6 @@ internal static partial class MediatorDebugLogger
     #region Error and Warning Logging
 
     [LoggerMessage(
-        EventId = 9001,
-        Level = LogLevel.Warning,
-        Message = "[WARNING] Generic constraint validation failed for {MiddlewareType} with {RequestType}: {ConstraintDetails}")]
-    public static partial void GenericConstraintValidationFailed(this ILogger logger, string middlewareType, string requestType, string constraintDetails);
-
-    [LoggerMessage(
         EventId = 9002,
         Level = LogLevel.Warning,
         Message = "[WARNING] No handler found for {RequestType} during pipeline resolution")]

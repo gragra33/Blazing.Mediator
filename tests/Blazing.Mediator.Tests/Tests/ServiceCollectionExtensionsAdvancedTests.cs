@@ -4,6 +4,7 @@ using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using Blazing.Mediator.Tests.Handlers;
 
 namespace Blazing.Mediator.Tests.Tests
 {
@@ -387,7 +388,7 @@ namespace Blazing.Mediator.Tests.Tests
             ServiceCollection services = new();
 
             // Act
-            services.AddMediator(typeof(GenericConstraintHandler).Assembly);
+            services.AddMediator(typeof(GenericConstraintHandler<>).Assembly);
 
             // Assert
             ServiceProvider serviceProvider = services.BuildServiceProvider();

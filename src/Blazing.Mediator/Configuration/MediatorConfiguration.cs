@@ -8,6 +8,7 @@ namespace Blazing.Mediator.Configuration;
 public sealed class MediatorConfiguration
 {
     private readonly IServiceCollection? _services;
+    private readonly HashSet<Assembly> _assemblies = new();
 
     /// <summary>
     /// Gets the middleware pipeline builder.
@@ -18,6 +19,11 @@ public sealed class MediatorConfiguration
     /// Gets the notification middleware pipeline builder.
     /// </summary>
     public INotificationPipelineBuilder NotificationPipelineBuilder { get; } = new NotificationPipelineBuilder();
+
+    /// <summary>
+    /// Gets the assemblies configured for handler and middleware scanning.
+    /// </summary>
+    public IReadOnlyList<Assembly> Assemblies => _assemblies.ToList().AsReadOnly();
 
     /// <summary>
     /// Gets or sets whether statistics tracking is enabled for Send commands.
@@ -43,12 +49,6 @@ public sealed class MediatorConfiguration
     /// Provides granular control over what debug information is logged.
     /// </summary>
     public LoggingOptions? LoggingOptions { get; private set; }
-
-    /// <summary>
-    /// Gets the constraint validation options for type-constrained notification middleware.
-    /// Controls how strictly constraint compatibility is enforced during registration and execution.
-    /// </summary>
-    public ConstraintValidationOptions? ConstraintValidationOptions { get; private set; }
 
     /// <summary>
     /// Gets or sets whether to automatically discover and register request middleware from assemblies.
@@ -79,6 +79,143 @@ public sealed class MediatorConfiguration
     public MediatorConfiguration(IServiceCollection? services = null)
     {
         _services = services;
+    }
+
+    /// <summary>
+    /// Adds an assembly to scan for handlers and middleware using a marker type.
+    /// </summary>
+    /// <param name="assemblyMarkerType">A type from the assembly to scan.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when assemblyMarkerType is null.</exception>
+    public MediatorConfiguration AddFromAssembly(Type assemblyMarkerType)
+    {
+        ArgumentNullException.ThrowIfNull(assemblyMarkerType);
+        
+        var assembly = assemblyMarkerType.Assembly;
+        if (!_assemblies.Contains(assembly))
+        {
+            _assemblies.Add(assembly);
+        }
+        
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an assembly to scan for handlers and middleware using a marker type.
+    /// </summary>
+    /// <typeparam name="TAssemblyMarker">A type from the assembly to scan.</typeparam>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration AddFromAssembly<TAssemblyMarker>()
+    {
+        return AddFromAssembly(typeof(TAssemblyMarker));
+    }
+
+    /// <summary>
+    /// Adds an assembly to scan for handlers and middleware.
+    /// </summary>
+    /// <param name="assembly">The assembly to scan.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when assembly is null.</exception>
+    public MediatorConfiguration AddFromAssembly(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        
+        if (!_assemblies.Contains(assembly))
+        {
+            _assemblies.Add(assembly);
+        }
+        
+        return this;
+    }
+
+    /// <summary>
+    /// Adds multiple assemblies to scan for handlers and middleware using marker types.
+    /// </summary>
+    /// <param name="assemblyMarkerTypes">Types from assemblies to scan.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when assemblyMarkerTypes is null.</exception>
+    public MediatorConfiguration AddFromAssemblies(params Type[] assemblyMarkerTypes)
+    {
+        ArgumentNullException.ThrowIfNull(assemblyMarkerTypes);
+        
+        foreach (var markerType in assemblyMarkerTypes)
+        {
+            AddFromAssembly(markerType);
+        }
+        
+        return this;
+    }
+
+    /// <summary>
+    /// Adds multiple assemblies to scan for handlers and middleware.
+    /// </summary>
+    /// <param name="assemblies">The assemblies to scan.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when assemblies is null.</exception>
+    public MediatorConfiguration AddFromAssemblies(params Assembly[] assemblies)
+    {
+        ArgumentNullException.ThrowIfNull(assemblies);
+        
+        foreach (var assembly in assemblies)
+        {
+            AddFromAssembly(assembly);
+        }
+        
+        return this;
+    }
+
+    /// <summary>
+    /// Convenience alias for AddFromAssembly using a marker type.
+    /// </summary>
+    /// <param name="assemblyMarkerType">A type from the assembly to scan.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when assemblyMarkerType is null.</exception>
+    public MediatorConfiguration AddAssembly(Type assemblyMarkerType)
+    {
+        return AddFromAssembly(assemblyMarkerType);
+    }
+
+    /// <summary>
+    /// Convenience alias for AddFromAssembly using a marker type.
+    /// </summary>
+    /// <typeparam name="TAssemblyMarker">A type from the assembly to scan.</typeparam>
+    /// <returns>The configuration for chaining</returns>
+    public MediatorConfiguration AddAssembly<TAssemblyMarker>()
+    {
+        return AddFromAssembly<TAssemblyMarker>();
+    }
+
+    /// <summary>
+    /// Convenience alias for AddFromAssembly.
+    /// </summary>
+    /// <param name="assembly">The assembly to scan.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when assembly is null.</exception>
+    public MediatorConfiguration AddAssembly(Assembly assembly)
+    {
+        return AddFromAssembly(assembly);
+    }
+
+    /// <summary>
+    /// Convenience alias for AddFromAssemblies using marker types.
+    /// </summary>
+    /// <param name="assemblyMarkerTypes">Types from assemblies to scan.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when assemblyMarkerTypes is null.</exception>
+    public MediatorConfiguration AddAssemblies(params Type[] assemblyMarkerTypes)
+    {
+        return AddFromAssemblies(assemblyMarkerTypes);
+    }
+
+    /// <summary>
+    /// Convenience alias for AddFromAssemblies.
+    /// </summary>
+    /// <param name="assemblies">The assemblies to scan.</param>
+    /// <returns>The configuration for chaining</returns>
+    /// <exception cref="ArgumentNullException">Thrown when assemblies is null.</exception>
+    public MediatorConfiguration AddAssemblies(params Assembly[] assemblies)
+    {
+        return AddFromAssemblies(assemblies);
     }
 
     /// <summary>
@@ -224,69 +361,6 @@ public sealed class MediatorConfiguration
         }
 
         LoggingOptions = options;
-        return this;
-    }
-
-    /// <summary>
-    /// Enables constraint validation with default lenient configuration.
-    /// </summary>
-    /// <returns>The configuration for chaining</returns>
-    public MediatorConfiguration WithConstraintValidation()
-    {
-        ConstraintValidationOptions = ConstraintValidationOptions.CreateLenient();
-        return this;
-    }
-
-    /// <summary>
-    /// Enables constraint validation with granular configuration options.
-    /// </summary>
-    /// <param name="configure">Action to configure the constraint validation options.</param>
-    /// <returns>The configuration for chaining</returns>
-    /// <exception cref="ArgumentNullException">Thrown when configure is null.</exception>
-    public MediatorConfiguration WithConstraintValidation(Action<ConstraintValidationOptions> configure)
-    {
-        ArgumentNullException.ThrowIfNull(configure);
-
-        var options = ConstraintValidationOptions.CreateLenient();
-        configure(options);
-        options.ValidateAndThrow(); // Validate the configuration
-
-        ConstraintValidationOptions = options;
-        return this;
-    }
-
-    /// <summary>
-    /// Enables constraint validation with pre-configured options.
-    /// </summary>
-    /// <param name="options">The constraint validation options to use.</param>
-    /// <returns>The configuration for chaining</returns>
-    /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
-    public MediatorConfiguration WithConstraintValidation(ConstraintValidationOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-
-        options.ValidateAndThrow(); // Validate the configuration
-        ConstraintValidationOptions = options.Clone();
-        return this;
-    }
-
-    /// <summary>
-    /// Enables strict constraint validation (fails fast on any constraint issues).
-    /// </summary>
-    /// <returns>The configuration for chaining</returns>
-    public MediatorConfiguration WithStrictConstraintValidation()
-    {
-        ConstraintValidationOptions = ConstraintValidationOptions.CreateStrict();
-        return this;
-    }
-
-    /// <summary>
-    /// Disables constraint validation entirely.
-    /// </summary>
-    /// <returns>The configuration for chaining</returns>
-    public MediatorConfiguration WithoutConstraintValidation()
-    {
-        ConstraintValidationOptions = ConstraintValidationOptions.CreateDisabled();
         return this;
     }
 

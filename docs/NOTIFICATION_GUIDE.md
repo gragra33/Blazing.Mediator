@@ -1,130 +1,310 @@
-# Blazing.Mediator - Notification System Guide
+﻿# Blazing.Mediator - Advanced Notification Systems Guide
 
-## Overview
+## Introduction
 
-The Notification System in `Blazing.Mediator` implements the **Observer Pattern** to enable loosely coupled, event-driven communication between components. This powerful system allows multiple services to react to domain events without tight coupling, promoting scalability and maintainability.
+Blazing.Mediator implements two distinct yet complementary notification systems that enable sophisticated event-driven communication patterns within .NET applications. These dual systems provide developers with maximum flexibility to choose the most appropriate notification pattern for their specific architectural requirements, or to combine both approaches within the same application.
 
-The notification system is built on top of the mediator pattern and provides a clean way to publish domain events that can be handled by multiple subscribers. This is particularly useful for implementing cross-cutting concerns like logging, caching, email notifications, and business rule enforcement.
+The notification architecture supports full bidirectional middleware integration, allowing for comprehensive cross-cutting concerns such as logging, validation, error handling, and performance monitoring to be applied consistently across all notification processing.
 
-### Key Features
+### Dual Notification System Architecture
 
--   **Event-Driven Architecture**: Publish domain events and have multiple subscribers react to them
--   **Observer Pattern**: Multiple services can subscribe to the same notification without coupling
--   **Asynchronous Processing**: All notifications are processed asynchronously for better performance
--   **Middleware Support**: Add cross-cutting concerns like logging and metrics to notification processing
--   **Background Services**: Integrate with hosted services for long-running notification processing
--   **Built-in Metrics**: Track notification performance and success rates
--   **Type Safety**: Strongly typed notifications with compile-time checking
--   **Testable Design**: Easy to test notification publishers and subscribers
+#### Pattern 1: Manual Subscriber System (Observer Pattern)
 
-## Table of Contents
+The Manual Subscriber System implements the classic Observer Pattern, where notification consumers actively register their interest in specific notification types through explicit subscription calls. This system provides runtime flexibility, allowing subscribers to dynamically start and stop listening to notifications based on application state, user preferences, or business logic conditions.
 
-1. [Quick Start](#quick-start)
-2. [Core Concepts](#core-concepts)
-3. [Creating Notifications](#creating-notifications)
-4. [Implementing Subscribers](#implementing-subscribers)
-5. [Setup and Registration](#setup-and-registration)
-6. [Notification Middleware](#notification-middleware)
-7. [Background Services](#background-services)
-8. [Testing Notifications](#testing-notifications)
-9. [ECommerce.Api Implementation](#ecommerceapi-implementation)
-10. [Swagger Testing Guide](#swagger-testing-guide)
-11. [Automated Testing with PowerShell Script](#automated-testing-with-powershell-script)
-12. [Best Practices](#best-practices)
-13. [Troubleshooting](#troubleshooting)
+**Key Characteristics:**
 
-## Quick Start
+-   **Runtime Subscription Management**: Subscribers can join or leave notification streams during application execution
+-   **Explicit Control**: Clear, intentional subscribe and unsubscribe operations
+-   **Dynamic Behavior**: Subscription state can change based on runtime conditions
+-   **Observer Pattern Compliance**: Follows the traditional Gang of Four Observer Pattern implementation
+-   **Lifecycle Awareness**: Subscribers manage their own notification lifecycle
+-   **Client-Optimized**: Particularly well-suited for client applications like Blazor WebAssembly, MAUI, WPF, WinForms, Console applications, and other desktop/mobile scenarios where dynamic subscription management is essential
 
-Get started with notifications in under 5 minutes:
+#### Pattern 2: Automatic Handler System (Publish-Subscribe Pattern)
 
-### 1. Install the Package
+The Automatic Handler System implements a Publish-Subscribe Pattern with automatic handler discovery through the Dependency Injection container. This system provides a convention-based approach where notification handlers are automatically registered during application startup and invoked without explicit subscription management.
 
-```bash
-dotnet add package Blazing.Mediator
+**Key Characteristics:**
+
+-   **Automatic Discovery**: Handlers are discovered and registered through DI container scanning
+-   **Convention-Based**: Follows standard dependency injection registration patterns
+-   **Compile-Time Registration**: Handler relationships are established during application startup
+-   **Zero Configuration**: No manual subscription code required for basic scenarios
+-   **DI Integration**: Leverages existing dependency injection infrastructure and patterns
+-   **Server-Optimized**: Ideal for server applications like ASP.NET Core, Web API, Blazor Server, and microservices, but equally effective for client applications requiring structured, predictable notification handling
+
+### Middleware Integration Architecture
+
+Both notification systems seamlessly integrate with a sophisticated bidirectional middleware pipeline that supports comprehensive request and response processing. The middleware architecture provides:
+
+**Bidirectional Processing:**
+
+-   **Pre-notification Processing**: Middleware executes before notification delivery to subscribers/handlers
+-   **Post-notification Processing**: Middleware executes after notification processing completes
+-   **Exception Handling**: Comprehensive error handling and recovery mechanisms
+-   **State Management**: Maintaining context and state throughout the notification pipeline
+
+**Multiple Processor Support:**
+
+-   **Concurrent Processing**: Multiple subscribers and handlers can process the same notification simultaneously
+-   **Independent Execution**: Each processor operates independently with isolated error handling
+-   **Aggregated Results**: Middleware can collect and analyze results from multiple processors
+-   **Performance Monitoring**: Individual and aggregate performance metrics for all processors
+
+### Notification Flow Architecture
+
+The visual diagram below illustrates how notifications flow through the Blazing.Mediator system, showing the dual-pattern processing and bidirectional middleware pipeline that handles both subscriber and handler-based notifications.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                     Blazing.Mediator Dual Notification Flow                     │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+📢 Notification Published
+    │
+    ▼
+┌─────────────────┐
+│ Notification    │
+│ Middleware      │
+│ Pipeline        │
+│ (Bidirectional) │
+└─────────┬───────┘
+          │
+          │ Pre-processing
+          ▼
+    ┌──────────────────────────────────────────────────┐
+    │           Notification Dispatcher                │
+    │         (Processes Both Systems)                 │
+    └─────────────┬────────────────────────────────────┘
+                  │
+                  ├─── PATTERN 1: Manual Subscriber System ───┐
+                  │                                           │
+                  │    ┌─────────────────────────────────┐    │
+                  │    │     Registered Subscribers      │    │
+                  │    │   (Runtime Subscription)        │    │
+                  │    └─────────┬───────────────────────┘    │
+                  │              │                            │
+                  │              ├─ Specific Subscriber A     │
+                  │              ├─ Specific Subscriber B     │
+                  │              └─ Generic Subscriber C      │
+                  │                                           │
+                  └─── PATTERN 2: Automatic Handler System ───┤
+                                                              │
+                       ┌─────────────────────────────────┐    │
+                       │    DI Container Handlers        │    │
+                       │   (Compile-time Registration)   │    │
+                       └─────────┬───────────────────────┘    │
+                                 │                            │
+                                 ├─ Notification Handler A    │
+                                 ├─ Notification Handler B    │
+                                 └─ Notification Handler C    │
+                                                              │
+    ┌─────────────────────────────────────────────────────────┘
+    │
+    │ Concurrent Processing
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Parallel Processor Execution                   │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
+│  │ Processor 1 │  │ Processor 2 │  │ Processor N │  ...     │
+│  │ (Isolated)  │  │ (Isolated)  │  │ (Isolated)  │          │
+│  └─────────────┘  └─────────────┘  └─────────────┘          │
+│         │                 │                 │               │
+│         │ Individual      │ Individual      │ Individual    │
+│         │ Error           │ Error           │ Error         │
+│         │ Handling        │ Handling        │ Handling      │
+│         ▼                 ▼                 ▼               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
+│  │   Result    │  │   Result    │  │   Result    │          │
+│  │ (Success/   │  │ (Success/   │  │ (Success/   │          │
+│  │  Failure)   │  │  Failure)   │  │  Failure)   │          │
+│  └─────────────┘  └─────────────┘  └─────────────┘          │
+└─────────────────────────────────────────────────────────────┘
+    │
+    │ Post-processing & Aggregation
+    ▼
+┌─────────────────┐
+│ Notification    │
+│ Middleware      │
+│ Pipeline        │
+│ (Post-process)  │
+└─────────┬───────┘
+          │
+          │ Results & Metrics
+          ▼
+    ┌─────────────────┐
+    │ Telemetry &     │
+    │ Logging         │
+    │ • Success Count │
+    │ • Failure Count │
+    │ • Duration      │
+    │ • Error Details │
+    └─────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════
 ```
 
-### 2. Create Your First Notification
+#### System Characteristics:
 
-```csharp
-// Define a notification
-public class OrderCreatedNotification : INotification
-{
-    public int OrderId { get; }
-    public string CustomerEmail { get; }
-    public decimal TotalAmount { get; }
+-   ✅ Dual Pattern Support: Both Observer and Publish-Subscribe patterns available
+-   ✅ Bidirectional Middleware: Pre and post-processing capabilities
+-   ✅ Concurrent Processing: Multiple processors handle notifications simultaneously
+-   ✅ Independent Error Handling: Isolated failure handling per processor
+-   ✅ Comprehensive Telemetry: Detailed metrics and monitoring capabilities
+-   ✅ Flexible Architecture: Mix and match patterns based on requirements
 
-    public OrderCreatedNotification(int orderId, string customerEmail, decimal totalAmount)
-    {
-        OrderId = orderId;
-        CustomerEmail = customerEmail;
-        TotalAmount = totalAmount;
-    }
-}
+### System Integration Benefits
+
+The dual notification system architecture provides several key advantages:
+
+-   **Architectural Flexibility**: Choose the most appropriate pattern for each notification scenario, or combine both patterns within the same application for maximum flexibility.
+
+-   **Gradual Migration**: Existing applications can migrate from one pattern to another incrementally, supporting both systems during transition periods.
+
+-   **Performance Optimization**: Manual subscribers provide runtime control for performance-critical scenarios, while automatic handlers offer zero-configuration convenience.
+
+-   **Testing Strategies**: Each pattern supports different testing approaches - manual subscribers enable dynamic test scenarios, while automatic handlers support standard dependency injection testing patterns.
+
+-   **Scalability Options**: Different scaling strategies can be applied to each pattern based on specific performance and resource requirements.
+
+### Middleware Pipeline Features
+
+The notification middleware pipeline provides comprehensive processing capabilities:
+
+-   **Cross-Cutting Concerns**: Apply logging, validation, authorization, caching, and other cross-cutting concerns uniformly across all notifications.
+
+-   **Error Handling**: Sophisticated error handling with the ability to continue processing other subscribers/handlers even when individual processors fail.
+
+-   **Performance Monitoring**: Detailed telemetry and metrics collection for monitoring notification processing performance and success rates.
+
+-   **Conditional Processing**: Middleware can selectively process notifications based on type, content, or runtime conditions.
+
+-   **State Management**: Maintain processing context and state throughout the entire notification pipeline execution.
+
+### Outbox Pattern Integration
+
+Notification handlers, particularly the Automatic Handler System, provide an excellent foundation for implementing the **Outbox Pattern** in distributed systems. The Outbox Pattern is a critical microservices design pattern that ensures reliable message delivery and maintains data consistency across service boundaries by storing outbound messages in the same database transaction as business data changes.
+
+**Pattern Purpose:**
+The Outbox Pattern solves the dual-write problem in distributed systems, where applications need to atomically update their local database and publish messages to external systems. Without proper coordination, these operations can fail independently, leading to data inconsistencies and lost messages.
+
+**Integration Benefits with Blazing.Mediator:**
+Notification handlers serve as the perfect first step in the Outbox Pattern implementation. When domain events are published within a transaction, notification handlers can capture these events and store them in an outbox table within the same database transaction, ensuring atomicity between business data changes and message preparation.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    Outbox Pattern with Blazing.Mediator                         │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+📊 Business Operation (e.g., Create Order)
+    │
+    ├─── Database Transaction Begins ─────────────────────────────┐
+    │                                                             │
+    │    ┌─────────────────────────────────────────────────────┐  │
+    │    │              Business Logic Layer                   │  │
+    │    │                                                     │  │
+    │    │  1. Update Business Entities                        │  │
+    │    │     └─ Order Status = "Created"                     │  │
+    │    │     └─ Inventory Reduced                            │  │
+    │    │     └─ Customer Points Updated                      │  │
+    │    │                                                     │  │
+    │    │  2. Publish Domain Events                           │  │
+    │    │     └─ OrderCreatedNotification                     │  │
+    │    │     └─ InventoryReducedNotification                 │  │
+    │    │     └─ CustomerPointsUpdatedNotification            │  │
+    │    └─────────────────────────────────────────────────────┘  │
+    │                                   │                         │
+    │                                   ▼                         │
+    │    ┌─────────────────────────────────────────────────────┐  │
+    │    │        Blazing.Mediator Notification System         │  │
+    │    │                                                     │  │
+    │    │    ┌─────────────────────────────────────────┐      │  │
+    │    │    │     Outbox Notification Handler         │      │  │  ATOMIC
+    │    │    │   (INotificationHandler<OrderCreated>)  │      │  │ DATABASE
+    │    │    │                                         │      │  │ TRANSACTION
+    │    │    │  3. Store Messages in Outbox Table      │      │  │
+    │    │    │     └─ EventId: GUID                    │      │  │
+    │    │    │     └─ EventType: "OrderCreated"        │      │  │
+    │    │    │     └─ Payload: JSON Serialized         │      │  │
+    │    │    │     └─ Status: "Pending"                │      │  │
+    │    │    │     └─ CreatedAt: Timestamp             │      │  │
+    │    │    │     └─ RetryCount: 0                    │      │  │
+    │    │    └─────────────────────────────────────────┘      │  │
+    │    └─────────────────────────────────────────────────────┘  │
+    │                                                             │
+    ├─── Database Transaction Commits ────────────────────────────┘
+    │
+    │    ┌─────────────────────────────────────────────────────┐
+    │    │              Outbox Publisher                       │
+    │    │          (Background Service)                       │
+    │    │                                                     │
+    │    │  4. Poll Outbox Table                               │
+    │    │     └─ SELECT * FROM Outbox                         │
+    │    │       WHERE Status = 'Pending'                      │
+    │    │       ORDER BY CreatedAt                            │
+    │    │                                                     │
+    │    │  5. Process Pending Messages                        │
+    │    │     ├─ Deserialize Payload                          │
+    │    │     ├─ Publish to Message Broker                    │
+    │    │     │   └─ Service Bus / RabbitMQ / Kafka           │
+    │    │     ├─ Call External APIs                           │
+    │    │     └─ Send Webhooks                                │
+    │    │                                                     │
+    │    │  6. Update Message Status                           │
+    │    │     ├─ Success: Status = "Processed"                │
+    │    │     ├─ Failure: Status = "Failed"                   │
+    │    │     └─ RetryCount++                                 │
+    │    │                                                     │
+    │    │  7. Retry Logic & Dead Letter Handling              │
+    │    │     ├─ Exponential Backoff                          │
+    │    │     ├─ Maximum Retry Attempts                       │
+    │    │     └─ Dead Letter Queue for Failed Messages        │
+    │    └─────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│                External Systems                             │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
+│  │  Payment    │  │  Shipping   │  │   Email     │          │
+│  │  Service    │  │  Service    │  │  Service    │          │
+│  │             │  │             │  │             │          │
+│  │ • Process   │  │ • Create    │  │ • Send      │          │
+│  │   Payment   │  │   Shipment  │  │   Receipt   │          │
+│  │ • Update    │  │ • Track     │  │ • Notify    │          │
+│  │   Status    │  │   Package   │  │   Customer  │          │
+│  └─────────────┘  └─────────────┘  └─────────────┘          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 3. Create a Notification Subscriber
+#### Outbox Pattern Benefits:
 
-```csharp
-// Handle the notification
-public class EmailNotificationHandler : INotificationSubscriber<OrderCreatedNotification>
-{
-    private readonly ILogger<EmailNotificationHandler> _logger;
+-   ✅ Atomic Operations: Business data and message storage in single transaction
+-   ✅ Reliability: Guaranteed message delivery through persistent storage
+-   ✅ Consistency: Prevents dual-write problems and data inconsistencies
+-   ✅ Resilience: Built-in retry mechanisms and error handling
+-   ✅ Observability: Full audit trail of message processing
+-   ✅ Scalability: Asynchronous processing decoupled from business operations
 
-    public EmailNotificationHandler(ILogger<EmailNotificationHandler> logger)
-    {
-        _logger = logger;
-    }
+#### Implementation Considerations:
 
-    public async Task OnNotification(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
-    {
-        // Send email confirmation
-        _logger.LogInformation("📧 Sending order confirmation email to {Email} for order {OrderId}",
-            notification.CustomerEmail, notification.OrderId);
+-   🔧 Database Storage: Outbox table in same database as business data
+-   🔧 Background Processing: Separate service polls and processes messages
+-   🔧 Idempotency: Ensure message processing is idempotent
+-   🔧 Monitoring: Track message processing success rates and latency
+-   🔧 Cleanup: Regular cleanup of processed messages to prevent table growth
 
-        // Your email sending logic here
-        await Task.CompletedTask;
-    }
-}
-```
+## Pattern 1: Manual Subscriber System (Observer Pattern)
 
-### 4. Register Services
+The Manual Subscriber System provides runtime control over notification subscription and unsubscription. This pattern follows the classic Observer Pattern where subscribers explicitly register their interest in specific notification types. The system offers maximum flexibility for dynamic scenarios where subscription state needs to change based on runtime conditions.
 
-```csharp
-// Program.cs
-builder.Services.AddMediator(typeof(Program).Assembly);
-```
+### Core Components
 
-### 5. Publish Notifications
+#### Notification Interface
 
-```csharp
-// In your service or handler
-public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, int>
-{
-    private readonly IMediator _mediator;
-
-    public CreateOrderHandler(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
-
-    public async Task<int> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
-    {
-        // Create order logic...
-        var orderId = 123;
-
-        // Publish notification
-        await _mediator.Publish(new OrderCreatedNotification(orderId, request.CustomerEmail, request.TotalAmount), cancellationToken);
-
-        return orderId;
-    }
-}
-```
-
-## Core Concepts
-
-### Notifications
-
-**Notifications** are messages that represent something interesting that happened in your domain. They implement the `INotification` interface:
+All notifications must implement the `INotification` marker interface:
 
 ```csharp
 public interface INotification
@@ -133,9 +313,9 @@ public interface INotification
 }
 ```
 
-### Notification Subscribers
+#### Notification Subscriber Interface
 
-**Subscribers** handle notifications by implementing `INotificationSubscriber<TNotification>`:
+Subscribers implement `INotificationSubscriber<TNotification>`:
 
 ```csharp
 public interface INotificationSubscriber<in TNotification> : INotificationSubscriber
@@ -145,122 +325,64 @@ public interface INotificationSubscriber<in TNotification> : INotificationSubscr
 }
 ```
 
-### How Notifications Work
+### Implementation Examples
 
-The notification system follows the Observer pattern:
+These practical examples demonstrate how to implement the Manual Subscriber System using real-world business scenarios with .NET Core and Entity Framework. Each example shows complete working code that you can adapt to your own applications.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                          Notification System Flow                              │
-└─────────────────────────────────────────────────────────────────────────────────┘
+#### Basic Notification Definition
 
-                    ┌─────────────────┐
-                    │   Publisher     │
-                    │  (Command/Query │
-                    │   Handler)      │
-                    └─────────┬───────┘
-                              │
-                              │ 1. Publish Notification
-                              ▼
-                    ┌─────────────────┐
-                    │   IMediator     │
-                    │  (Dispatcher)   │
-                    └─────────┬───────┘
-                              │
-                              │ 2. Route to Subscribers
-                              ▼
-         ┌────────────────────┴────────────────────┐
-         │                                         │
-         ▼                                         ▼
-┌─────────────────┐                       ┌─────────────────┐
-│  Subscriber 1   │                       │  Subscriber 2   │
-│  (Email         │                       │  (Inventory     │
-│   Service)      │                       │   Service)      │
-│                 │                       │                 │
-│ OnNotification  │                       │ OnNotification  │
-│ (Async)         │                       │ (Async)         │
-└─────────┬───────┘                       └─────────┬───────┘
-          │                                         │
-          │ 3. Process Notification                 │ 3. Process Notification
-          ▼                                         ▼
-┌─────────────────┐                       ┌─────────────────┐
-│  Send Email     │                       │  Update Stock   │
-│  Confirmation   │                       │  Levels         │
-└─────────────────┘                       └─────────────────┘
-```
-
-## Creating Notifications
-
-### Basic Notification
+Notification classes carry data about business events and should contain all the information subscribers need to process the event effectively.
 
 ```csharp
+// Define a notification for order creation events
+public class OrderCreatedNotification : INotification
+{
+    public int OrderId { get; }
+    public string CustomerEmail { get; }
+    public decimal TotalAmount { get; }
+    public DateTime OrderDate { get; }
+
+    public OrderCreatedNotification(int orderId, string customerEmail, decimal totalAmount, DateTime orderDate)
+    {
+        OrderId = orderId;
+        CustomerEmail = customerEmail;
+        TotalAmount = totalAmount;
+        OrderDate = orderDate;
+    }
+}
+
+// Define a notification for user registration events
 public class UserRegisteredNotification : INotification
 {
     public int UserId { get; }
     public string Email { get; }
-    public DateTime RegisteredAt { get; }
+    public string UserName { get; }
+    public DateTime RegistrationDate { get; }
 
-    public UserRegisteredNotification(int userId, string email, DateTime registeredAt)
+    public UserRegisteredNotification(int userId, string email, string userName, DateTime registrationDate)
     {
         UserId = userId;
         Email = email;
-        RegisteredAt = registeredAt;
+        UserName = userName;
+        RegistrationDate = registrationDate;
     }
 }
 ```
 
-### Rich Notification with Complex Data
+#### Single Notification Subscriber
+
+Subscribers that focus on handling a single notification type are ideal when you need focused, specific processing for individual event types.
 
 ```csharp
-public class OrderCreatedNotification : INotification
-{
-    public int OrderId { get; }
-    public int CustomerId { get; }
-    public string CustomerEmail { get; }
-    public decimal TotalAmount { get; }
-    public List<OrderItem> Items { get; }
-    public DateTime CreatedAt { get; }
-
-    public OrderCreatedNotification(int orderId, int customerId, string customerEmail,
-        decimal totalAmount, List<OrderItem> items, DateTime createdAt)
-    {
-        OrderId = orderId;
-        CustomerId = customerId;
-        CustomerEmail = customerEmail;
-        TotalAmount = totalAmount;
-        Items = items;
-        CreatedAt = createdAt;
-    }
-}
-
-public class OrderItem
-{
-    public int ProductId { get; set; }
-    public string ProductName { get; set; }
-    public int Quantity { get; set; }
-    public decimal UnitPrice { get; set; }
-}
-```
-
-### Notification Naming Conventions
-
-Follow these naming conventions for clarity:
-
--   Use **past tense** for events that have already happened: `OrderCreated`, `UserRegistered`, `PaymentProcessed`
--   Use **present tense** for states: `StockLow`, `SystemBusy`
--   Always suffix with `Notification`: `OrderCreatedNotification`, `StockLowNotification`
-
-## Implementing Subscribers
-
-### Simple Subscriber
-
-```csharp
-public class OrderEmailHandler : INotificationSubscriber<OrderCreatedNotification>
+// Subscriber that handles order confirmation emails
+public class OrderEmailNotificationSubscriber : INotificationSubscriber<OrderCreatedNotification>
 {
     private readonly IEmailService _emailService;
-    private readonly ILogger<OrderEmailHandler> _logger;
+    private readonly ILogger<OrderEmailNotificationSubscriber> _logger;
 
-    public OrderEmailHandler(IEmailService emailService, ILogger<OrderEmailHandler> logger)
+    public OrderEmailNotificationSubscriber(
+        IEmailService emailService,
+        ILogger<OrderEmailNotificationSubscriber> logger)
     {
         _emailService = emailService;
         _logger = logger;
@@ -276,2104 +398,1116 @@ public class OrderEmailHandler : INotificationSubscriber<OrderCreatedNotificatio
                 notification.TotalAmount,
                 cancellationToken);
 
-            _logger.LogInformation("Order confirmation email sent for order {OrderId}", notification.OrderId);
+            _logger.LogInformation(
+                "✅ Order confirmation email sent for order {OrderId} to {CustomerEmail}",
+                notification.OrderId, notification.CustomerEmail);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send order confirmation email for order {OrderId}", notification.OrderId);
-            // Don't rethrow - we don't want to fail the entire notification pipeline
+            _logger.LogError(ex,
+                "❌ Failed to send order confirmation email for order {OrderId}",
+                notification.OrderId);
+            // Don't rethrow - we don't want to fail other subscribers
         }
     }
 }
 ```
 
-### Multiple Notification Subscriber
+#### Multi-Notification Subscriber
+
+Subscribers that handle multiple notification types by implementing multiple interfaces are useful when you need to apply the same processing logic across different event types, such as auditing or logging.
 
 ```csharp
-public class AuditService :
+// Subscriber that handles multiple notification types for auditing
+public class AuditNotificationSubscriber :
     INotificationSubscriber<OrderCreatedNotification>,
-    INotificationSubscriber<OrderStatusChangedNotification>,
     INotificationSubscriber<UserRegisteredNotification>
 {
-    private readonly IAuditRepository _auditRepository;
-    private readonly ILogger<AuditService> _logger;
+    private readonly IAuditService _auditService;
+    private readonly ILogger<AuditNotificationSubscriber> _logger;
 
-    public AuditService(IAuditRepository auditRepository, ILogger<AuditService> logger)
+    public AuditNotificationSubscriber(
+        IAuditService auditService,
+        ILogger<AuditNotificationSubscriber> logger)
     {
-        _auditRepository = auditRepository;
+        _auditService = auditService;
         _logger = logger;
     }
 
     public async Task OnNotification(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
     {
-        await _auditRepository.LogEventAsync("OrderCreated", notification.OrderId, notification, cancellationToken);
-        _logger.LogInformation("Audit logged for order creation {OrderId}", notification.OrderId);
-    }
+        await _auditService.LogEventAsync(
+            "OrderCreated",
+            notification.OrderId,
+            new { notification.CustomerEmail, notification.TotalAmount, notification.OrderDate },
+            cancellationToken);
 
-    public async Task OnNotification(OrderStatusChangedNotification notification, CancellationToken cancellationToken = default)
-    {
-        await _auditRepository.LogEventAsync("OrderStatusChanged", notification.OrderId, notification, cancellationToken);
-        _logger.LogInformation("Audit logged for order status change {OrderId}", notification.OrderId);
+        _logger.LogInformation("📋 Audit logged for order creation {OrderId}", notification.OrderId);
     }
 
     public async Task OnNotification(UserRegisteredNotification notification, CancellationToken cancellationToken = default)
     {
-        await _auditRepository.LogEventAsync("UserRegistered", notification.UserId, notification, cancellationToken);
-        _logger.LogInformation("Audit logged for user registration {UserId}", notification.UserId);
+        await _auditService.LogEventAsync(
+            "UserRegistered",
+            notification.UserId,
+            new { notification.Email, notification.UserName, notification.RegistrationDate },
+            cancellationToken);
+
+        _logger.LogInformation("📋 Audit logged for user registration {UserId}", notification.UserId);
     }
 }
 ```
 
-## Setup and Registration
+### Service Registration and Configuration
 
-### Basic Registration
+Configure the Manual Subscriber System in your application's dependency injection container and set up the necessary services for notification processing.
+
+#### Basic Registration
+
+The simplest way to get started is with automatic discovery, which scans your assembly and registers all subscribers automatically.
 
 ```csharp
-// Program.cs
+// Program.cs - Register mediator and automatically discover subscribers
 builder.Services.AddMediator(typeof(Program).Assembly);
+
+// Manually register specific subscribers if needed
+builder.Services.AddScoped<INotificationSubscriber<OrderCreatedNotification>, OrderEmailNotificationSubscriber>();
+builder.Services.AddScoped<INotificationSubscriber<UserRegisteredNotification>, AuditNotificationSubscriber>();
 ```
 
-### Advanced Registration with Configuration
+#### Advanced Registration with Configuration
+
+Configure additional middleware components that provide cross-cutting concerns like logging, metrics, and error handling for all notifications.
 
 ```csharp
-// Program.cs
+// Program.cs - Advanced configuration with middleware
 builder.Services.AddMediator(config =>
 {
-    // Add notification middleware
+    // Add notification middleware for cross-cutting concerns
     config.AddNotificationMiddleware<NotificationLoggingMiddleware>();
     config.AddNotificationMiddleware<NotificationMetricsMiddleware>();
+    config.AddNotificationMiddleware<NotificationErrorHandlingMiddleware>();
 
-    // Configure assemblies to scan
+    // Configure assemblies to scan for subscribers
     config.AddFromAssembly(typeof(Program).Assembly);
     config.AddFromAssembly(typeof(OrderCreatedNotification).Assembly);
 
 }, typeof(Program).Assembly);
 ```
 
-### Auto-Discovery for Notification Middleware (v1.6.0+)
+### Publishing Notifications
 
-Originally, `AddMediator` supported automatic discovery of both request and notification middleware only. Starting with v1.6.0, to give greater flexibility, you can enable now seperate the two middlewares and use automatic discovery of notification middleware via a new paramater setting:
+Publish notifications from various parts of your application to trigger all subscribed notification handlers through the mediator system.
 
-```csharp
-// Program.cs - Auto-discover notification middleware only
-builder.Services.AddMediatorWithNotificationMiddleware(
-    discoverNotificationMiddleware: true,
-    typeof(Program).Assembly
-);
+#### In Business Logic Services
 
-// Or use the main method with granular control
-builder.Services.AddMediator(
-    configureMiddleware: null,
-    discoverMiddleware: false,                    // Don't auto-discover request middleware
-    discoverNotificationMiddleware: true,         // Auto-discover notification middleware
-    typeof(Program).Assembly
-);
-```
-
-### Manual Subscriber Registration
+Here's how to publish notifications from your business services after completing business operations. The mediator will automatically deliver notifications to all subscribed handlers.
 
 ```csharp
-// If you need manual control over subscriber registration
-builder.Services.AddScoped<INotificationSubscriber<OrderCreatedNotification>, OrderEmailHandler>();
-builder.Services.AddScoped<INotificationSubscriber<OrderCreatedNotification>, OrderAuditHandler>();
-```
-
-## Notification Middleware
-
-Middleware allows you to add cross-cutting concerns to notification processing:
-
-### Logging Middleware
-
-```csharp
-public class NotificationLoggingMiddleware : INotificationMiddleware
+// Service that creates orders and publishes notifications
+public class OrderService
 {
-    private readonly ILogger<NotificationLoggingMiddleware> _logger;
-
-    public NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware> logger)
-    {
-        _logger = logger;
-    }
-
-    public async Task InvokeAsync<TNotification>(TNotification notification,
-        NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
-        where TNotification : INotification
-    {
-        var notificationName = typeof(TNotification).Name;
-        var startTime = DateTime.UtcNow;
-
-        _logger.LogInformation("🔔 Publishing notification: {NotificationName}", notificationName);
-
-        try
-        {
-            await next(notification, cancellationToken);
-
-            var duration = DateTime.UtcNow - startTime;
-            _logger.LogInformation("✅ Notification completed: {NotificationName} in {Duration}ms",
-                notificationName, duration.TotalMilliseconds);
-        }
-        catch (Exception ex)
-        {
-            var duration = DateTime.UtcNow - startTime;
-            _logger.LogError(ex, "❌ Notification failed: {NotificationName} after {Duration}ms",
-                notificationName, duration.TotalMilliseconds);
-            throw;
-        }
-    }
-}
-```
-
-### Metrics Middleware
-
-```csharp
-public class NotificationMetricsMiddleware : INotificationMiddleware
-{
-    private readonly ILogger<NotificationMetricsMiddleware> _logger;
-    private static readonly Dictionary<string, NotificationMetrics> _metrics = new();
-    private static readonly object _lock = new();
-
-    public NotificationMetricsMiddleware(ILogger<NotificationMetricsMiddleware> logger)
-    {
-        _logger = logger;
-    }
-
-    public async Task InvokeAsync<TNotification>(TNotification notification,
-        NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
-        where TNotification : INotification
-    {
-        var notificationName = typeof(TNotification).Name;
-        var startTime = DateTime.UtcNow;
-
-        try
-        {
-            await next(notification, cancellationToken);
-
-            var duration = DateTime.UtcNow - startTime;
-            UpdateMetrics(notificationName, duration, success: true);
-        }
-        catch (Exception)
-        {
-            var duration = DateTime.UtcNow - startTime;
-            UpdateMetrics(notificationName, duration, success: false);
-            throw;
-        }
-    }
-
-    private void UpdateMetrics(string notificationName, TimeSpan duration, bool success)
-    {
-        lock (_lock)
-        {
-            if (!_metrics.ContainsKey(notificationName))
-            {
-                _metrics[notificationName] = new NotificationMetrics();
-            }
-
-            var metrics = _metrics[notificationName];
-            metrics.TotalCount++;
-            metrics.TotalDuration += duration;
-
-            if (success)
-                metrics.SuccessCount++;
-            else
-                metrics.FailureCount++;
-
-            // Log metrics periodically
-            if (metrics.TotalCount % 10 == 0)
-            {
-                _logger.LogInformation("📊 Notification metrics for {NotificationName}: " +
-                    "Total: {Total}, Success: {Success}, Failures: {Failures}, Avg Duration: {AvgDuration}ms",
-                    notificationName, metrics.TotalCount, metrics.SuccessCount, metrics.FailureCount,
-                    metrics.AverageDuration.TotalMilliseconds);
-            }
-        }
-    }
-}
-
-public class NotificationMetrics
-{
-    public int TotalCount { get; set; }
-    public int SuccessCount { get; set; }
-    public int FailureCount { get; set; }
-    public TimeSpan TotalDuration { get; set; }
-    public TimeSpan AverageDuration => TotalCount > 0 ? TimeSpan.FromTicks(TotalDuration.Ticks / TotalCount) : TimeSpan.Zero;
-}
-```
-
-### Notification Pipeline Debugging and Monitoring
-
-Blazing.Mediator provides comprehensive debugging and monitoring capabilities for notification middleware through the `INotificationMiddlewarePipelineInspector` interface. This is essential for understanding notification middleware execution order, troubleshooting pipeline issues, and monitoring performance.
-
-#### Notification Pipeline Inspector Interface
-
-The `INotificationMiddlewarePipelineInspector` interface provides several methods for inspecting the notification middleware pipeline:
-
-```csharp
-public interface INotificationMiddlewarePipelineInspector
-{
-    // Get basic notification middleware types
-    IReadOnlyList<Type> GetRegisteredMiddleware();
-
-    // Get notification middleware with configuration
-    IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration();
-
-    // Get detailed notification middleware info with order values
-    IReadOnlyList<(Type Type, int Order, object? Configuration)> GetDetailedMiddlewareInfo(IServiceProvider? serviceProvider = null);
-
-    // NEW: Advanced notification middleware analysis
-    IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider);
-}
-```
-
-#### Using AnalyzeMiddleware for Notification Pipeline Debugging
-
-The new `AnalyzeMiddleware` method provides comprehensive notification pipeline analysis, returning detailed information about each notification middleware component:
-
-```csharp
-public class NotificationDebugService
-{
-    private readonly INotificationMiddlewarePipelineInspector _pipelineInspector;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<NotificationDebugService> _logger;
-
-    public NotificationDebugService(
-        INotificationMiddlewarePipelineInspector pipelineInspector,
-        IServiceProvider serviceProvider,
-        ILogger<NotificationDebugService> logger)
-    {
-        _pipelineInspector = pipelineInspector;
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-    }
-
-    public void AnalyzeNotificationPipeline()
-    {
-        // Get detailed notification middleware analysis
-        var middlewareAnalysis = _pipelineInspector.AnalyzeMiddleware(_serviceProvider);
-
-        _logger.LogInformation("🔔 Notification Middleware Pipeline Analysis");
-        _logger.LogInformation("═══════════════════════════════════════════════");
-
-        foreach (var middleware in middlewareAnalysis)
-        {
-            _logger.LogInformation(
-                "🔧 {Order,5} | {ClassName}{TypeParameters}",
-                middleware.OrderDisplay,
-                middleware.ClassName,
-                middleware.TypeParameters);
-        }
-
-        _logger.LogInformation("═══════════════════════════════════════════════");
-        _logger.LogInformation("📈 Total notification middleware components: {Count}", middlewareAnalysis.Count);
-    }
-}
-```
-
-#### Example Notification Pipeline Analysis Output
-
-```
-🔔 Notification Middleware Pipeline Analysis
-═══════════════════════════════════════════════
-🔧 int.MinValue | NotificationErrorHandlingMiddleware
-🔧    -1 | NotificationValidationMiddleware
-🔧     0 | NotificationLoggingMiddleware
-🔧     1 | NotificationMetricsMiddleware
-🔧    10 | NotificationCachingMiddleware
-🔧 int.MaxValue | NotificationFinalProcessingMiddleware
-═══════════════════════════════════════════════
-📈 Total notification middleware components: 6
-```
-
-#### Accessing the Notification Pipeline Inspector
-
-The notification pipeline inspector is automatically registered when you add Blazing.Mediator to your services:
-
-```csharp
-// In your service constructor
-public class MyNotificationService
-{
-    public MyNotificationService(INotificationMiddlewarePipelineInspector pipelineInspector)
-    {
-        // Inspector is automatically available
-    }
-}
-
-// Or resolve it directly from the service provider
-var inspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
-```
-
-#### Best Practices for Notification Pipeline Debugging
-
-1. **Development Monitoring**: Use pipeline analysis during development to understand notification middleware execution
-2. **Performance Tracking**: Monitor notification middleware order and execution for performance optimization
-3. **Troubleshooting**: Use when debugging unexpected notification middleware behavior or execution order
-4. **Health Checks**: Include notification pipeline analysis in health checks and monitoring dashboards
-5. **Documentation**: Generate notification pipeline documentation automatically using the analysis output
-
-## Background Services
-
-Integrate notifications with background services for long-running processing:
-
-### Email Notification Service
-
-```csharp
-public class EmailNotificationService : BackgroundService,
-    INotificationSubscriber<OrderCreatedNotification>,
-    INotificationSubscriber<OrderStatusChangedNotification>
-{
-    private readonly ILogger<EmailNotificationService> _logger;
-    private readonly IServiceProvider _serviceProvider;
-
-    public EmailNotificationService(ILogger<EmailNotificationService> logger, IServiceProvider serviceProvider)
-    {
-        _logger = logger;
-        _serviceProvider = serviceProvider;
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        // Subscribe to notifications
-        using var scope = _serviceProvider.CreateScope();
-        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-
-        mediator.Subscribe<OrderCreatedNotification>(this);
-        mediator.Subscribe<OrderStatusChangedNotification>(this);
-
-        // Keep the service running
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
-        }
-    }
-
-    public async Task OnNotification(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await Task.Delay(100, cancellationToken); // Simulate processing
-
-            _logger.LogInformation("📧 ORDER CONFIRMATION EMAIL SENT");
-            _logger.LogInformation("   To: {CustomerEmail}", notification.CustomerEmail);
-            _logger.LogInformation("   Order: #{OrderId}", notification.OrderId);
-            _logger.LogInformation("   Total: ${TotalAmount:F2}", notification.TotalAmount);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send order confirmation email for order {OrderId}", notification.OrderId);
-        }
-    }
-
-    public async Task OnNotification(OrderStatusChangedNotification notification, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await Task.Delay(100, cancellationToken); // Simulate processing
-
-            _logger.LogInformation("📧 ORDER STATUS UPDATE EMAIL SENT");
-            _logger.LogInformation("   To: {CustomerEmail}", notification.CustomerEmail);
-            _logger.LogInformation("   Order: #{OrderId}", notification.OrderId);
-            _logger.LogInformation("   Status: {Status}", notification.NewStatus);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send order status email for order {OrderId}", notification.OrderId);
-        }
-    }
-}
-```
-
-### Inventory Management Service
-
-```csharp
-public class InventoryManagementService : BackgroundService,
-    INotificationSubscriber<ProductStockLowNotification>,
-    INotificationSubscriber<ProductOutOfStockNotification>
-{
-    private readonly ILogger<InventoryManagementService> _logger;
-    private readonly IServiceProvider _serviceProvider;
-
-    public InventoryManagementService(ILogger<InventoryManagementService> logger, IServiceProvider serviceProvider)
-    {
-        _logger = logger;
-        _serviceProvider = serviceProvider;
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        using var scope = _serviceProvider.CreateScope();
-        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-
-        mediator.Subscribe<ProductStockLowNotification>(this);
-        mediator.Subscribe<ProductOutOfStockNotification>(this);
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
-        }
-    }
-
-    public async Task OnNotification(ProductStockLowNotification notification, CancellationToken cancellationToken = default)
-    {
-        _logger.LogWarning("⚠️  LOW STOCK ALERT");
-        _logger.LogWarning("   Product: {ProductName} (ID: {ProductId})", notification.ProductName, notification.ProductId);
-        _logger.LogWarning("   Current Stock: {CurrentStock}", notification.CurrentStock);
-        _logger.LogWarning("   Minimum Threshold: {MinimumThreshold}", notification.MinimumThreshold);
-
-        // Trigger reorder process
-        await TriggerReorderProcess(notification, cancellationToken);
-    }
-
-    public async Task OnNotification(ProductOutOfStockNotification notification, CancellationToken cancellationToken = default)
-    {
-        _logger.LogError("🚨 OUT OF STOCK ALERT - URGENT");
-        _logger.LogError("   Product: {ProductName} (ID: {ProductId})", notification.ProductName, notification.ProductId);
-        _logger.LogError("   Last Stock Update: {LastStockUpdate}", notification.LastStockUpdate);
-
-        // Trigger urgent reorder
-        await TriggerUrgentReorder(notification, cancellationToken);
-    }
-
-    private async Task TriggerReorderProcess(ProductStockLowNotification notification, CancellationToken cancellationToken)
-    {
-        // Simulate reorder logic
-        await Task.Delay(50, cancellationToken);
-        _logger.LogInformation("📋 REORDER NOTIFICATION SENT TO PURCHASING");
-        _logger.LogInformation("   Product: {ProductName}", notification.ProductName);
-        _logger.LogInformation("   Recommended Quantity: {ReorderQuantity}", notification.ReorderQuantity);
-    }
-
-    private async Task TriggerUrgentReorder(ProductOutOfStockNotification notification, CancellationToken cancellationToken)
-    {
-        // Simulate urgent reorder logic
-        await Task.Delay(50, cancellationToken);
-        _logger.LogError("🚨 URGENT REORDER INITIATED");
-        _logger.LogError("   Product: {ProductName}", notification.ProductName);
-        _logger.LogError("   Priority: URGENT");
-    }
-}
-```
-
-## Testing Notifications
-
-### Unit Testing Notification Subscribers
-
-```csharp
-[Test]
-public async Task OnNotification_OrderCreated_SendsEmail()
-{
-    // Arrange
-    var mockEmailService = new Mock<IEmailService>();
-    var mockLogger = new Mock<ILogger<OrderEmailHandler>>();
-    var handler = new OrderEmailHandler(mockEmailService.Object, mockLogger.Object);
-
-    var notification = new OrderCreatedNotification(
-        orderId: 123,
-        customerEmail: "test@example.com",
-        totalAmount: 99.99m,
-        items: new List<OrderItem>(),
-        createdAt: DateTime.UtcNow
-    );
-
-    // Act
-    await handler.OnNotification(notification);
-
-    // Assert
-    mockEmailService.Verify(x => x.SendOrderConfirmationAsync(
-        "test@example.com",
-        123,
-        99.99m,
-        It.IsAny<CancellationToken>()
-    ), Times.Once);
-}
-```
-
-### Integration Testing with Test Mediator
-
-```csharp
-[Test]
-public async Task CreateOrder_PublishesNotification()
-{
-    // Arrange
-    var services = new ServiceCollection();
-    services.AddMediator(typeof(CreateOrderHandler).Assembly);
-    services.AddScoped<INotificationSubscriber<OrderCreatedNotification>, TestOrderNotificationHandler>();
-
-    var serviceProvider = services.BuildServiceProvider();
-    var mediator = serviceProvider.GetRequiredService<IMediator>();
-
-    var command = new CreateOrderCommand
-    {
-        CustomerId = 1,
-        CustomerEmail = "test@example.com",
-        Items = new List<OrderItem>()
-    };
-
-    // Act
-    var orderId = await mediator.Send(command);
-
-    // Assert
-    Assert.That(orderId, Is.GreaterThan(0));
-    Assert.That(TestOrderNotificationHandler.NotificationsReceived, Is.EqualTo(1));
-}
-
-public class TestOrderNotificationHandler : INotificationSubscriber<OrderCreatedNotification>
-{
-    public static int NotificationsReceived { get; private set; }
-
-    public Task OnNotification(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
-    {
-        NotificationsReceived++;
-        return Task.CompletedTask;
-    }
-}
-```
-
-## ECommerce.Api Implementation
-
-The ECommerce.Api sample project provides a comprehensive demonstration of the notification system in action. It includes:
-
-### Notification Types
-
-1. **OrderCreatedNotification** - Published when a new order is created
-2. **OrderStatusChangedNotification** - Published when order status changes
-3. **ProductCreatedNotification** - Published when a new product is created
-4. **ProductUpdatedNotification** - Published when a product is updated
-5. **ProductStockLowNotification** - Published when product stock falls below threshold
-6. **ProductOutOfStockNotification** - Published when product is out of stock
-
-### Background Services
-
-1. **EmailNotificationService** - Handles email notifications
-2. **InventoryManagementService** - Manages inventory alerts and reordering
-
-### Middleware
-
-1. **NotificationLoggingMiddleware** - Logs all notifications
-2. **NotificationMetricsMiddleware** - Tracks notification performance
-
-### Example Notification Flow
-
-When an order is created, the following notifications are triggered:
-
-```csharp
-// In CreateOrderHandler
-public async Task<int> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
-{
-    // Create order logic...
-    var order = new Order(request.CustomerId, request.CustomerEmail);
-
-    // Add items and calculate total
-    foreach (var item in request.Items)
-    {
-        order.AddItem(item.ProductId, item.Quantity, item.UnitPrice);
-
-        // Check stock levels and publish stock notifications if needed
-        var product = await _context.Products.FindAsync(item.ProductId);
-        if (product != null)
-        {
-            product.ReduceStock(item.Quantity);
-
-            if (product.StockQuantity <= 10 && product.StockQuantity > 0)
-            {
-                await _mediator.Publish(new ProductStockLowNotification(
-                    product.Id, product.Name, product.StockQuantity, 10, 50
-                ), cancellationToken);
-            }
-            else if (product.StockQuantity <= 0)
-            {
-                await _mediator.Publish(new ProductOutOfStockNotification(
-                    product.Id, product.Name, DateTime.UtcNow
-                ), cancellationToken);
-            }
-        }
-    }
-
-    await _context.SaveChangesAsync(cancellationToken);
-
-    // Publish order created notification
-    await _mediator.Publish(new OrderCreatedNotification(
-        order.Id,
-        order.CustomerId,
-        order.CustomerEmail,
-        order.TotalAmount,
-        order.Items.Select(i => new OrderItem
-        {
-            ProductId = i.ProductId,
-            ProductName = i.ProductName,
-            Quantity = i.Quantity,
-            UnitPrice = i.UnitPrice
-        }).ToList(),
-        order.CreatedAt
-    ), cancellationToken);
-
-    return order.Id;
-}
-```
-
-This single operation can trigger multiple notifications:
-
--   OrderCreatedNotification → EmailNotificationService sends confirmation email
--   OrderCreatedNotification → InventoryManagementService tracks inventory
--   ProductStockLowNotification → InventoryManagementService triggers reorder
--   ProductOutOfStockNotification → InventoryManagementService triggers urgent reorder
-
-## Swagger Testing Guide
-
-The ECommerce.Api includes comprehensive Swagger documentation for testing the notification system. Here's how to use it:
-
-### 1. Start the Application
-
-```bash
-cd src/samples/ECommerce.Api
-dotnet run
-```
-
-### 2. Open Swagger UI
-
-Navigate to: `https://localhost:54336/swagger/index.html`
-
-### 3. Watch Console Output
-
-Keep the console window visible to see notification logs in real-time. Look for:
-
--   📧 Email notifications
--   📦 Inventory notifications
--   🔔 Notification middleware logs
-
-### 4. Recommended Testing Sequence
-
-#### Step 1: Create Test Product
-
-```http
-POST /api/products
-{
-  "name": "Notification Test Product",
-  "description": "Product for testing notifications",
-  "price": 99.99,
-  "stockQuantity": 20
-}
-```
-
-**Watch for:** ProductCreatedNotification
-
-#### Step 2: Create Order
-
-```http
-POST /api/orders
-{
-  "customerId": 1,
-  "customerEmail": "test@notifications.com",
-  "orderItems": [
-    {
-      "productId": 1,
-      "quantity": 15,
-      "unitPrice": 99.99
-    }
-  ]
-}
-```
-
-**Watch for:** OrderCreatedNotification, inventory tracking
-
-#### Step 3: Process Order Workflow
-
-```http
-POST /api/orders/1/process-workflow
-```
-
-**Watch for:** Multiple OrderStatusChangedNotifications (Confirmed → Processing → Shipped → Delivered)
-
-#### Step 4: Trigger Low Stock Alert
-
-```http
-POST /api/products/1/reduce-stock?quantity=8
-```
-
-**Watch for:** ProductStockLowNotification
-
-#### Step 5: Trigger Out of Stock Alert
-
-```http
-POST /api/products/1/simulate-bulk-order?orderQuantity=10
-```
-
-**Watch for:** OrderCreatedNotification, ProductOutOfStockNotification
-
-### 5. Available Notification Endpoints
-
-#### Email Notification Endpoints
-
--   `POST /api/orders` - Create Order (triggers OrderCreatedNotification)
--   `POST /api/orders/process` - Process Order (triggers OrderCreatedNotification + status changes)
--   `PUT /api/orders/{id}/status` - Update Order Status (triggers OrderStatusChangedNotification)
--   `POST /api/orders/{id}/cancel` - Cancel Order (triggers OrderStatusChangedNotification)
--   `POST /api/orders/{id}/complete` - Complete Order Workflow (triggers multiple OrderStatusChangedNotifications)
--   `POST /api/orders/{id}/process-workflow` - Full Order Workflow (triggers multiple OrderStatusChangedNotifications)
-
-#### Inventory Management Endpoints
-
--   `POST /api/products` - Create Product (triggers ProductCreatedNotification)
--   `PUT /api/products/{id}` - Update Product (triggers ProductUpdatedNotification)
--   `PUT /api/products/{id}/stock` - Update Stock (may trigger stock notifications)
--   `POST /api/products/{id}/deactivate` - Deactivate Product (triggers ProductUpdatedNotification)
--   `POST /api/products/{id}/reduce-stock?quantity={amount}` - Reduce Stock (triggers stock notifications)
--   `POST /api/products/{id}/simulate-bulk-order?orderQuantity={amount}` - Simulate Bulk Order (triggers multiple notifications)
-
-#### Monitoring Endpoints
-
--   `GET /api/products/{id}` - Get Product by ID
--   `GET /api/products` - Get Products (with filtering)
--   `GET /api/products/low-stock?threshold={number}` - Get Low Stock Products
--   `GET /api/orders/{id}` - Get Order by ID
--   `GET /api/orders` - Get Orders (with status filtering)
--   `GET /api/orders/customer/{customerId}` - Get Customer Orders
--   `GET /api/orders/statistics` - Get Order Statistics
-
-### 6. Console Output Examples
-
-When testing, you'll see output like:
-
-```
-🔔 NOTIFICATION PUBLISHING: OrderCreatedNotification
-📧 ORDER CONFIRMATION EMAIL SENT
-   To: test@notifications.com
-   Order: #123
-   Total: $99.99
-📦 INVENTORY TRACKING - Order #123
-   Product: Notification Test Product (ID: 1)
-   Quantity Ordered: 15
-   Remaining Stock: 5
-   Low stock alert threshold: 10
-✅ NOTIFICATION COMPLETED: OrderCreatedNotification
-
-⚠️ LOW STOCK ALERT
-   Product: Notification Test Product (ID: 1)
-   Current Stock: 5
-   Minimum Threshold: 10
-   Recommended Reorder: 50
-📋 REORDER NOTIFICATION SENT TO PURCHASING
-```
-
-### 7. Testing Error Scenarios
-
-Try these scenarios to test error handling:
-
-```http
-# Try to create order with invalid product
-POST /api/orders
-{
-  "customerId": 999,
-  "orderItems": [
-    {
-      "productId": 9999,
-      "quantity": 1,
-      "unitPrice": 99.99
-    }
-  ]
-}
-
-# Try to update non-existent order status
-PUT /api/orders/9999/status
-{
-  "orderId": 9999,
-  "status": 2,
-  "notes": "This should fail"
-}
-```
-
-## Automated Testing with PowerShell Script
-
-The `test-notifications-endpoints.ps1` script provides comprehensive automated testing of all notification endpoints and BackgroundService warnings in the ECommerce.Api.
-
-### What is test-notifications-endpoints.ps1?
-
-The `test-notifications-endpoints.ps1` script is a PowerShell automation tool that:
-
--   Tests all notification endpoints in a systematic workflow
--   Triggers every type of notification in the ECommerce.Api
--   Generates comprehensive BackgroundService activity
--   Provides detailed console output with emojis for easy monitoring
--   Performs stress testing with concurrent operations
--   Validates system state after each test phase
-
-### How to Use the Script
-
-#### Prerequisites:
-
-1. Start the ECommerce.Api project first:
-    ```bash
-    dotnet run --project src/samples/ECommerce.Api
-    ```
-2. Ensure the API is running on https://localhost:54336
-3. Open a PowerShell terminal in the Blazing.Mediator root directory
-
-#### Running the script:
-
-```powershell
-.\test-notifications-endpoints.ps1
-```
-
-The script will:
-
--   ✅ Automatically check if the API is running
--   ✅ Execute all test scenarios in sequence
--   ✅ Display colored progress messages
--   ✅ Show detailed results for each test
--   ✅ Provide final system status summary
-
-### Comprehensive Test Scenarios Performed
-
-#### PHASE 1: NOTIFICATION WORKFLOW DEMONSTRATION
-
-**🆕 Step 1: Product Creation**
-
--   Creates "Notification Demo Product" with 20 units stock
--   Triggers: `ProductCreatedNotification`
--   Expected: `🔔 NOTIFICATION PUBLISHING: ProductCreatedNotification`
-
-**📦 Step 2: Order Creation**
-
--   Creates order for 15 units of the demo product
--   Triggers: `OrderCreatedNotification` + `ProductStockLowNotification`
--   Expected: `🔔 NOTIFICATION PUBLISHING: OrderCreatedNotification`
--   Expected: `🔔 NOTIFICATION PUBLISHING: ProductStockLowNotification`
-
-**⚙️ Step 3: Complete Order Workflow**
-
--   Processes order through: Confirmed → Processing → Shipped → Delivered
--   Triggers: Multiple `OrderStatusChangedNotifications` (4 notifications)
--   Expected: `🔔 NOTIFICATION PUBLISHING: OrderStatusChangedNotification` (x4)
-
-**⚠️ Step 4: Low Stock Alert**
-
--   Creates additional order for 3 units
--   Reduces stock to critical levels (2 units remaining)
--   Triggers: `OrderCreatedNotification` + `ProductStockLowNotification`
--   Expected: `⚠️ LOW STOCK ALERT` messages in console
-
-**🚨 Step 5: Out of Stock Alert**
-
--   Reduces stock by 5 units using reduce-stock endpoint
--   Triggers stock to reach 0 (out of stock)
--   Triggers: `ProductOutOfStockNotification`
--   Expected: `🚨 OUT OF STOCK ALERT - URGENT` messages
-
-#### PHASE 2: ADVANCED NOTIFICATION TESTING SCENARIOS
-
-**🎯 Test 1: Bulk Order Simulation**
-
--   Creates dedicated product with 25 units stock
--   Simulates bulk order for 10 units
--   Triggers: `OrderCreatedNotification` + inventory tracking
--   Expected: Bulk order processing notifications
-
-**🆕 Test 2: Multiple Product Management**
-
--   Creates "Test Product 2" with 8 units stock
--   Sets up for additional testing scenarios
--   Triggers: `ProductCreatedNotification`
-
-**📈 Test 3: Manual Order Status Progression**
-
--   Creates order and manually progresses through each status
--   Tests: Processing → Shipped → Delivered transitions
--   Triggers: `OrderStatusChangedNotification` for each transition
--   Expected: Status-specific email notifications
-
-**🏁 Test 4: Quick Order Completion**
-
--   Uses the `/complete` endpoint for rapid status changes
--   Triggers: Multiple quick `OrderStatusChangedNotifications`
--   Expected: Rapid-fire notification processing
-
-**❌ Test 5: Order Cancellation**
-
--   Creates order and immediately cancels it
--   Tests cancellation notification workflow
--   Triggers: `OrderStatusChangedNotification` for cancellation
--   Expected: `📧 ORDER CANCELLATION EMAIL SENT`
-
-**🚀 Test 6: Concurrent Operations (Stress Test)**
-
--   Runs multiple bulk orders simultaneously
--   Tests notification system under concurrent load
--   Triggers: Multiple simultaneous notifications
--   Expected: Proper handling of concurrent notification processing
-
-#### PHASE 3: FINAL SYSTEM STATUS CHECK
-
-**📦 Low Stock Products Query**
-
--   Retrieves all products with stock below threshold (10 units)
--   Validates that previous tests properly affected inventory
--   Expected: List of products with low stock warnings
-
-**📈 Order Statistics Summary**
-
--   Retrieves comprehensive order statistics
--   Shows total orders, delivered orders, cancelled orders
--   Validates that all test orders were processed correctly
-
-### Expected Console Output Patterns
-
-When running the script, watch for these notification patterns in the ECommerce.Api console:
-
-#### 🔔 NOTIFICATION MIDDLEWARE LOGS:
-
-```
-info: ECommerce.Api.Application.Middleware.NotificationLoggingMiddleware[0]
-      🔔 NOTIFICATION PUBLISHING: ProductCreatedNotification
-info: ECommerce.Api.Application.Middleware.NotificationLoggingMiddleware[0]
-      ✅ NOTIFICATION COMPLETED: ProductCreatedNotification
-```
-
-#### 📧 EMAIL NOTIFICATION SERVICE LOGS:
-
-```
-info: ECommerce.Api.Application.Services.EmailNotificationService[0]
-      📧 ORDER CONFIRMATION EMAIL SENT - Customer: demo@notifications.com
-info: ECommerce.Api.Application.Services.EmailNotificationService[0]
-      📧 ORDER STATUS UPDATE EMAIL SENT - Order #X changed to Processing
-```
-
-#### 📦 INVENTORY MANAGEMENT SERVICE LOGS:
-
-```
-info: ECommerce.Api.Application.Services.InventoryManagementService[0]
-      📦 INVENTORY TRACKING - Order #X processed, stock updated
-info: ECommerce.Api.Application.Services.InventoryManagementService[0]
-      ⚠️ LOW STOCK ALERT - Product: Notification Demo Product (Stock: 2)
-info: ECommerce.Api.Application.Services.InventoryManagementService[0]
-      🚨 OUT OF STOCK ALERT - URGENT - Product: Notification Demo Product
-```
-
-#### 📊 NOTIFICATION METRICS (every 10th notification):
-
-```
-info: ECommerce.Api.Application.Middleware.NotificationMetricsMiddleware[0]
-      📊 NOTIFICATION METRICS: OrderCreatedNotification
-info: ECommerce.Api.Application.Middleware.NotificationMetricsMiddleware[0]
-         Total Count: 10
-info: ECommerce.Api.Application.Middleware.NotificationMetricsMiddleware[0]
-         Success Count: 10
-info: ECommerce.Api.Application.Middleware.NotificationMetricsMiddleware[0]
-         Success Rate: 100.0%
-```
-
-### Script Success Indicators
-
-The script will display these success messages:
-
--   ✅ ECommerce.Api is running
--   ✅ Created product with ID: X
--   ✅ Created order with ID: X
--   ✅ Order workflow completed: Order workflow completed successfully
--   ✅ Stock reduced: Stock reduced by 5 units
--   ✅ Bulk order simulated: Bulk order simulation completed
--   ✅ Order status updated to Processing/Shipped/Delivered
--   ✅ Order completed: Order completed successfully
--   ✅ Order cancelled: Order cancelled successfully
--   ✅ Concurrent bulk orders completed
--   ✅ Found X low stock products
--   ✅ Total orders: X
-
-#### Final success message:
-
-```
-🎉 NOTIFICATION TESTING COMPLETED SUCCESSFULLY!
-All notification endpoints have been tested and should have triggered:
-📧 Email notifications (OrderCreatedNotification, OrderStatusChangedNotification)
-📦 Inventory notifications (ProductStockLowNotification, ProductOutOfStockNotification)
-🆕 Product notifications (ProductCreatedNotification)
-```
-
-### Troubleshooting
-
-#### Common issues and solutions:
-
-**Issue: "ECommerce.Api is not running"**
-
--   Solution: Start the API first with: `dotnet run --project src/samples/ECommerce.Api`
-
-**Issue: "Insufficient stock" errors**
-
--   Solution: This is expected behavior - the script tests stock depletion scenarios
-
-**Issue: PowerShell execution policy errors**
-
--   Solution: Run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
-
-**Issue: SSL certificate errors**
-
--   Solution: The script uses `-SkipCertificateCheck`, but ensure HTTPS is working
-
-**Issue: Script stops with validation errors**
-
--   Solution: Check that all required fields are properly formatted in the script
-
-### Customization Options
-
-You can modify the script for different testing scenarios:
-
-#### Change base URL:
-
-```powershell
-$baseUrl = "https://localhost:YOUR_PORT"
-```
-
-#### Modify stock quantities:
-
-```powershell
-stockQuantity = 50  # Increase for more extensive testing
-```
-
-#### Adjust order quantities:
-
-```powershell
-quantity = 20  # Test with larger orders
-```
-
-#### Add more concurrent tests:
-
-Increase the number of `Start-Job` blocks in Test 6
-
-#### Change notification thresholds:
-
-```powershell
-/api/products/low-stock?threshold=5  # Lower threshold for testing
-```
-
-### Continuous Testing
-
-For continuous testing during development:
-
-1. Keep the ECommerce.Api running
-2. Run the script multiple times to generate ongoing notification activity
-3. Each run creates new products/orders, so data accumulates
-4. Monitor console output for notification patterns
-5. Use the script to validate notification system changes
-
-The script is designed to be run repeatedly without conflicts, making it perfect for ongoing development and testing workflows.
-
-## Best Practices
-
-### 1. Keep Notifications Immutable
-
-```csharp
-// ✅ Good - Immutable notification
-public class OrderCreatedNotification : INotification
-{
-    public int OrderId { get; }
-    public string CustomerEmail { get; }
-    public decimal TotalAmount { get; }
-
-    public OrderCreatedNotification(int orderId, string customerEmail, decimal totalAmount)
-    {
-        OrderId = orderId;
-        CustomerEmail = customerEmail;
-        TotalAmount = totalAmount;
-    }
-}
-
-// ❌ Bad - Mutable notification
-public class OrderCreatedNotification : INotification
-{
-    public int OrderId { get; set; }
-    public string CustomerEmail { get; set; }
-    public decimal TotalAmount { get; set; }
-}
-```
-
-### 2. Use Descriptive Notification Names
-
-```csharp
-// ✅ Good - Clear, descriptive names
-public class OrderShippedNotification : INotification { }
-public class PaymentProcessedNotification : INotification { }
-public class InventoryStockLowNotification : INotification { }
-
-// ❌ Bad - Vague names
-public class OrderNotification : INotification { }
-public class UpdateNotification : INotification { }
-public class AlertNotification : INotification { }
-```
-
-### 3. Handle Exceptions Gracefully
-
-```csharp
-// ✅ Good - Graceful error handling
-public async Task OnNotification(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
-{
-    try
-    {
-        await _emailService.SendOrderConfirmationAsync(notification.CustomerEmail, notification.OrderId);
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Failed to send order confirmation email for order {OrderId}", notification.OrderId);
-        // Don't rethrow unless you want to fail the entire notification pipeline
-    }
-}
-
-// ❌ Bad - Unhandled exceptions
-public async Task OnNotification(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
-{
-    // This can crash the entire notification pipeline
-    await _emailService.SendOrderConfirmationAsync(notification.CustomerEmail, notification.OrderId);
-}
-```
-
-### 4. Use Structured Logging
-
-```csharp
-// ✅ Good - Structured logging
-_logger.LogInformation("Order confirmation email sent for order {OrderId} to {CustomerEmail}",
-    notification.OrderId, notification.CustomerEmail);
-
-// ❌ Bad - String concatenation
-_logger.LogInformation($"Order confirmation email sent for order {notification.OrderId} to {notification.CustomerEmail}");
-```
-
-### 5. Implement Idempotency
-
-```csharp
-// ✅ Good - Idempotent notification handler
-public async Task OnNotification(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
-{
-    // Check if we've already processed this notification
-    var existingEmail = await _emailRepository.GetByOrderIdAsync(notification.OrderId);
-    if (existingEmail != null)
-    {
-        _logger.LogInformation("Order confirmation email already sent for order {OrderId}", notification.OrderId);
-        return;
-    }
-
-    // Process the notification
-    await _emailService.SendOrderConfirmationAsync(notification.CustomerEmail, notification.OrderId);
-
-    // Record that we've processed this notification
-    await _emailRepository.SaveAsync(new EmailRecord(notification.OrderId, notification.CustomerEmail));
-}
-```
-
-### 6. Use Cancellation Tokens
-
-```csharp
-// ✅ Good - Respects cancellation
-public async Task OnNotification(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
-{
-    await _emailService.SendOrderConfirmationAsync(
-        notification.CustomerEmail,
-        notification.OrderId,
-        cancellationToken);
-}
-
-// ❌ Bad - Ignores cancellation
-public async Task OnNotification(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
-{
-    await _emailService.SendOrderConfirmationAsync(notification.CustomerEmail, notification.OrderId);
-}
-```
-
-### 7. Keep Notifications Lightweight
-
-```csharp
-// ✅ Good - Contains essential data only
-public class OrderCreatedNotification : INotification
-{
-    public int OrderId { get; }
-    public int CustomerId { get; }
-    public string CustomerEmail { get; }
-    public decimal TotalAmount { get; }
-
-    // Constructor...
-}
-
-// ❌ Bad - Contains too much data
-public class OrderCreatedNotification : INotification
-{
-    public Order CompleteOrder { get; }
-    public Customer CompleteCustomer { get; }
-    public List<Product> AllProducts { get; }
-    public PaymentDetails PaymentDetails { get; }
-
-    // Constructor...
-}
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. Notifications Not Being Received
-
-**Problem:** Notification subscribers are not being called.
-
-**Solutions:**
-
--   Ensure subscribers are registered in DI container
--   Check that notification is being published with correct type
--   Verify assembly scanning is configured correctly
-
-```csharp
-// Make sure this is called
-builder.Services.AddMediator(typeof(Program).Assembly);
-
-// And that your subscriber is properly registered
-builder.Services.AddScoped<INotificationSubscriber<OrderCreatedNotification>, OrderEmailHandler>();
-```
-
-#### 2. Notifications Failing Silently
-
-**Problem:** Exceptions in notification handlers are not being logged.
-
-**Solutions:**
-
--   Add try-catch blocks in notification handlers
--   Use notification middleware for centralized error handling
--   Check your logging configuration
-
-```csharp
-public async Task OnNotification(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
-{
-    try
-    {
-        // Your logic here
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Failed to process notification {NotificationType}", typeof(OrderCreatedNotification).Name);
-        // Don't rethrow unless you want to fail the entire pipeline
-    }
-}
-```
-
-#### 3. Performance Issues
-
-**Problem:** Notification processing is slow.
-
-**Solutions:**
-
--   Make notification handlers asynchronous
--   Use background services for heavy processing
--   Implement proper cancellation token usage
--   Consider using a message queue for high-volume notifications
-
-```csharp
-// Use background services for heavy processing
-public class HeavyProcessingService : BackgroundService, INotificationSubscriber<OrderCreatedNotification>
-{
-    private readonly Channel<OrderCreatedNotification> _channel;
-
-    public async Task OnNotification(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
-    {
-        // Queue the notification for background processing
-        await _channel.Writer.WriteAsync(notification, cancellationToken);
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        await foreach (var notification in _channel.Reader.ReadAllAsync(stoppingToken))
-        {
-            // Process the notification in the background
-            await ProcessNotificationAsync(notification, stoppingToken);
-        }
-    }
-}
-```
-
-#### 4. Memory Leaks
-
-**Problem:** Memory usage increases over time.
-
-**Solutions:**
-
--   Properly dispose of resources in notification handlers
--   Use scoped services where appropriate
--   Unsubscribe from notifications when no longer needed
-
-```csharp
-public class NotificationService : IDisposable
-{
+    private readonly IOrderRepository _orderRepository;
     private readonly IMediator _mediator;
+    private readonly ILogger<OrderService> _logger;
 
-    public NotificationService(IMediator mediator)
+    public OrderService(
+        IOrderRepository orderRepository,
+        IMediator mediator,
+        ILogger<OrderService> logger)
     {
+        _orderRepository = orderRepository;
         _mediator = mediator;
-        _mediator.Subscribe<OrderCreatedNotification>(this);
+        _logger = logger;
     }
 
-    public void Dispose()
+    public async Task<int> CreateOrderAsync(CreateOrderRequest request, CancellationToken cancellationToken = default)
     {
-        _mediator.Unsubscribe<OrderCreatedNotification>(this);
+        // Create and save the order
+        var order = new Order
+        {
+            CustomerEmail = request.CustomerEmail,
+            TotalAmount = request.TotalAmount,
+            OrderDate = DateTime.UtcNow,
+            Status = OrderStatus.Created
+        };
+
+        await _orderRepository.AddAsync(order, cancellationToken);
+        await _orderRepository.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("📦 Order {OrderId} created for {CustomerEmail}",
+            order.Id, order.CustomerEmail);
+
+        // Publish notification to all subscribers
+        var notification = new OrderCreatedNotification(
+            order.Id,
+            order.CustomerEmail,
+            order.TotalAmount,
+            order.OrderDate);
+
+        await _mediator.Publish(notification, cancellationToken);
+
+        return order.Id;
     }
 }
 ```
 
-### Debugging Tips
+#### In Command Handlers
 
-1. **Enable Debug Logging** - Set logging level to Debug to see detailed notification flow
-2. **Use Notification Middleware** - Add logging middleware to trace notification execution
-3. **Monitor Performance** - Use metrics middleware to track notification performance
-4. **Test in Isolation** - Unit test notification handlers individually
-5. **Check Registration** - Verify all subscribers are properly registered in DI container
-
-### Getting Help
-
-If you're still having issues:
-
-1. Check the [sample projects](../src/samples/) for working examples
-2. Review the [main documentation](MEDIATOR_PATTERN_GUIDE.md) for general guidance
-3. Look at the [tests](../tests/) for usage patterns
-4. Create an issue on the GitHub repository with a minimal reproduction
-
-## Conclusion
-
-The Blazing.Mediator notification system provides a powerful, flexible way to implement event-driven architecture in your .NET applications. By following the patterns and best practices outlined in this guide, you can build scalable, maintainable applications that respond to domain events in a loosely coupled manner.
-
-The ECommerce.Api sample project demonstrates all these concepts in action, providing a comprehensive reference implementation that you can study and adapt for your own projects.
-
-Remember to:
-
--   Keep notifications immutable and lightweight
--   Handle exceptions gracefully
--   Use structured logging
--   Implement proper cancellation token support
--   Test your notification handlers thoroughly
-
-With these practices, you'll be able to build robust, event-driven applications that scale with your business needs.
-
-## Type-Constrained Notification Middleware _**(NEW in v1.7.0!)**_
-
-Type-constrained notification middleware allows you to restrict middleware execution to specific notification types using generic type constraints. This provides compile-time safety and performance optimization by ensuring middleware only processes appropriate notification types.
-
-### Basic Type-Constrained Middleware
-
-The new `INotificationMiddleware<TNotification>` interface provides compile-time type safety and automatic middleware skipping for non-matching notification types:
+Publish notifications from CQRS command handlers to enable clean separation between command processing and event notifications.
 
 ```csharp
-// Order-specific notification middleware using the new generic interface
-public class OrderNotificationMiddleware : INotificationMiddleware<IOrderNotification>
+// Command handler that publishes notifications
+public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, int>
 {
-    private readonly ILogger<OrderNotificationMiddleware> _logger;
-    private readonly IOrderService _orderService;
+    private readonly IOrderRepository _orderRepository;
+    private readonly IMediator _mediator;
+    private readonly ILogger<CreateOrderCommandHandler> _logger;
 
-    public OrderNotificationMiddleware(ILogger<OrderNotificationMiddleware> logger, IOrderService orderService)
+    public CreateOrderCommandHandler(
+        IOrderRepository orderRepository,
+        IMediator mediator,
+        ILogger<CreateOrderCommandHandler> logger)
     {
+        _orderRepository = orderRepository;
+        _mediator = mediator;
         _logger = logger;
-        _orderService = orderService;
     }
 
-    public int Order => 50;
-
-    // Type-constrained InvokeAsync - automatically called only for IOrderNotification types
-    public async Task InvokeAsync(IOrderNotification notification, NotificationDelegate<IOrderNotification> next, CancellationToken cancellationToken)
+    public async Task<int> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        // Compile-time guaranteed that notification implements IOrderNotification
-        _logger.LogInformation("🛒 Processing order notification for Order {OrderId}", notification.OrderId);
-        
-        // Order-specific preprocessing - no runtime type checking needed!
-        await _orderService.ValidateOrderAsync(notification.OrderId, cancellationToken);
-        
-        // Continue to next middleware and handlers
-        await next(notification, cancellationToken);
-        
-        // Order-specific postprocessing - executes after all handlers complete
-        await _orderService.UpdateOrderMetricsAsync(notification.OrderId, cancellationToken);
-        _logger.LogInformation("✅ Completed order notification processing for Order {OrderId}", notification.OrderId);
-    }
+        // Business logic
+        var order = Order.Create(request.CustomerEmail, request.Items);
+        await _orderRepository.AddAsync(order, cancellationToken);
 
-    // The base interface implementation is handled automatically by the pipeline
-    Task INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
-    {
-        // This is handled by the pipeline execution engine automatically
-        throw new InvalidOperationException("This should be handled by pipeline execution logic");
-    }
-}
+        // Publish domain event
+        await _mediator.Publish(new OrderCreatedNotification(
+            order.Id,
+            order.CustomerEmail,
+            order.TotalAmount,
+            order.CreatedDate), cancellationToken);
 
-// Customer-specific middleware with generic constraints
-public class CustomerNotificationMiddleware : INotificationMiddleware<ICustomerNotification>
-{
-    private readonly ILogger<CustomerNotificationMiddleware> _logger;
-    private readonly ICustomerService _customerService;
+        _logger.LogInformation("🎯 Order {OrderId} created and notification published", order.Id);
 
-    public CustomerNotificationMiddleware(ILogger<CustomerNotificationMiddleware> logger, ICustomerService customerService)
-    {
-        _logger = logger;
-        _customerService = customerService;
-    }
-
-    public int Order => 60;
-
-    public async Task InvokeAsync(ICustomerNotification notification, NotificationDelegate<ICustomerNotification> next, CancellationToken cancellationToken)
-    {
-        // Compile-time guaranteed access to CustomerId property
-        _logger.LogInformation("👤 Processing customer notification for Customer {CustomerId}", notification.CustomerId);
-        
-        // Customer-specific preprocessing
-        await _customerService.ValidateCustomerAsync(notification.CustomerId, cancellationToken);
-        
-        await next(notification, cancellationToken);
-        
-        // Customer-specific postprocessing
-        await _customerService.UpdateCustomerMetricsAsync(notification.CustomerId, cancellationToken);
-    }
-
-    Task INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
-    {
-        throw new InvalidOperationException("This should be handled by pipeline execution logic");
-    }
-}
-
-// Audit middleware for auditable notifications using generic constraints
-public class AuditNotificationMiddleware : INotificationMiddleware<IAuditableNotification>
-{
-    private readonly ILogger<AuditNotificationMiddleware> _logger;
-    private readonly IAuditService _auditService;
-
-    public AuditNotificationMiddleware(ILogger<AuditNotificationMiddleware> logger, IAuditService auditService)
-    {
-        _logger = logger;
-        _auditService = auditService;
-    }
-
-    public int Order => 100;
-
-    public async Task InvokeAsync(IAuditableNotification notification, NotificationDelegate<IAuditableNotification> next, CancellationToken cancellationToken)
-    {
-        // Compile-time guaranteed access to audit properties
-        _logger.LogInformation("📋 Auditing notification: {Action} on {EntityId}", notification.Action, notification.EntityId);
-        
-        // Audit preprocessing
-        await _auditService.BeginAuditAsync(notification.EntityId, notification.Action, notification.Timestamp, cancellationToken);
-        
-        await next(notification, cancellationToken);
-        
-        // Audit postprocessing
-        await _auditService.CompleteAuditAsync(notification.EntityId, notification.Action, cancellationToken);
-    }
-
-    Task INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
-    {
-        throw new InvalidOperationException("This should be handled by pipeline execution logic");
+        return order.Id;
     }
 }
 ```
 
-### Notification Interface Constraints
+### Pattern 1 Benefits and Use Cases
 
-Define marker interfaces for type constraints to enable compile-time safety:
+The Manual Subscriber System provides key advantages in scenarios requiring runtime flexibility and explicit control over notification processing.
+
+**Benefits:**
+
+-   **Runtime Flexibility**: Subscribe and unsubscribe dynamically based on conditions
+-   **Explicit Control**: Clear, intentional subscription management
+-   **Testability**: Easy to mock and test individual subscribers
+-   **Loose Coupling**: Publishers don't know about specific subscribers
+-   **Error Isolation**: Failed subscribers don't affect others
+
+**Ideal Use Cases:**
+
+-   **Dynamic Subscription Requirements**: When subscription state changes based on user preferences, application state, or business rules
+-   **Client Applications**: Desktop (WPF, WinForms), mobile (MAUI), and web client applications (Blazor WebAssembly)
+-   **Interactive Scenarios**: Real-time notifications, user interface updates, event-driven workflows
+-   **Conditional Processing**: When notifications should only be processed under certain conditions
+-   **Plugin Architectures**: Where modules can dynamically register for specific events
+
+### Complete ECommerce Example
+
+A comprehensive e-commerce order processing workflow demonstrates how multiple subscribers can handle different aspects of order processing independently using the Manual Subscriber System.
 
 ```csharp
-// Marker interface for order-related notifications
+// Domain Models
+public class Order
+{
+    public int Id { get; set; }
+    public string CustomerEmail { get; set; } = string.Empty;
+    public decimal TotalAmount { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public OrderStatus Status { get; set; }
+}
+
+public enum OrderStatus
+{
+    Created,
+    Paid,
+    Shipped,
+    Delivered,
+    Cancelled
+}
+
+// Repository Pattern
+public interface IOrderRepository
+{
+    Task AddAsync(Order order, CancellationToken cancellationToken = default);
+    Task<Order?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
+}
+
+public class OrderRepository : IOrderRepository
+{
+    private readonly ApplicationDbContext _context;
+
+    public OrderRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task AddAsync(Order order, CancellationToken cancellationToken = default)
+    {
+        _context.Orders.Add(order);
+    }
+
+    public async Task<Order?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Orders.FindAsync([id], cancellationToken);
+    }
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+}
+
+// Email Service
+public interface IEmailService
+{
+    Task SendOrderConfirmationAsync(string email, int orderId, decimal amount, CancellationToken cancellationToken = default);
+}
+
+public class EmailService : IEmailService
+{
+    private readonly ILogger<EmailService> _logger;
+
+    public EmailService(ILogger<EmailService> logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task SendOrderConfirmationAsync(string email, int orderId, decimal amount, CancellationToken cancellationToken = default)
+    {
+        // Simulate email sending
+        await Task.Delay(100, cancellationToken);
+
+        _logger.LogInformation("📧 Email sent to {Email}: Order {OrderId} confirmed for ${Amount:F2}",
+            email, orderId, amount);
+    }
+}
+
+// Complete setup in Program.cs
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<OrderService>();
+
+// Register Blazing.Mediator with automatic subscriber discovery
+builder.Services.AddMediator(typeof(Program).Assembly);
+```
+
+## Pattern 2: Automatic Handler System (Publish-Subscribe Pattern)
+
+The Automatic Handler System implements a Publish-Subscribe Pattern with automatic handler discovery through the Dependency Injection container. This system provides a convention-based approach where notification handlers are automatically registered during application startup and invoked without explicit subscription management. Handlers are discovered through assembly scanning and registered automatically, requiring zero configuration for basic scenarios.
+
+### Core Components
+
+The fundamental interfaces and types that make up the Automatic Handler System include the handler interface and three types of middleware for cross-cutting concerns.
+
+#### Notification Handler Interface
+
+The primary interface that all automatic handlers must implement to receive notifications from the mediator.
+
+Handlers implement `INotificationHandler<TNotification>`:
+
+```csharp
+public interface INotificationHandler<in TNotification> : INotificationHandler
+    where TNotification : INotification
+{
+    Task Handle(TNotification notification, CancellationToken cancellationToken = default);
+}
+```
+
+#### Notification Middleware Interface
+
+The system supports three distinct types of notification middleware, each providing different levels of type safety and scope control:
+
+##### 1. Standard Generic Middleware
+
+Generic middleware that processes all notifications implementing `INotification`:
+
+```csharp
+// Processes all notifications in the system
+public interface INotificationMiddleware<in TNotification> : INotificationMiddleware
+    where TNotification : INotification
+{
+    Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default);
+}
+
+// Non-generic interface for all notifications
+public interface INotificationMiddleware
+{
+    Task InvokeAsync(INotification notification, NotificationDelegate next, CancellationToken cancellationToken = default);
+}
+```
+
+##### 2. Type-Constrained Middleware
+
+Middleware constrained to specific notification types or base interfaces:
+
+```csharp
+// Example: Middleware that only processes order-related notifications
 public interface IOrderNotification : INotification
 {
     int OrderId { get; }
+    DateTime OrderDate { get; }
 }
 
-// Marker interface for customer-related notifications
-public interface ICustomerNotification : INotification
+public class OrderNotificationMiddleware : INotificationMiddleware<IOrderNotification>
 {
-    int CustomerId { get; }
-}
-
-// Marker interface for auditable notifications
-public interface IAuditableNotification : INotification
-{
-    string EntityId { get; }
-    string Action { get; }
-    DateTime Timestamp { get; }
-}
-
-// Marker interface for email notifications
-public interface IEmailNotification : INotification
-{
-    string RecipientEmail { get; }
-    string Subject { get; }
-}
-
-// Marker interface for inventory notifications
-public interface IInventoryNotification : INotification
-{
-    string ProductId { get; }
-    int OldQuantity { get; }
-    int NewQuantity { get; }
+    public async Task InvokeAsync(IOrderNotification notification, NotificationDelegate<IOrderNotification> next, CancellationToken cancellationToken = default)
+    {
+        // Process only order notifications
+        await next(notification, cancellationToken);
+    }
 }
 ```
 
-### Implementing Constrained Notifications
+##### 3. Generic Type Constraints
 
-Notifications can implement multiple constraint interfaces for maximum flexibility:
+Middleware with complex generic type constraints for advanced scenarios:
 
 ```csharp
-// Order notification implementing multiple constraint interfaces
-public class OrderCreatedNotification : IOrderNotification, IAuditableNotification, IEmailNotification
+// Middleware with multiple interface constraints
+public class ComplexNotificationMiddleware<TNotification> : INotificationMiddleware<TNotification>
+    where TNotification : INotification, IOrderNotification
+{
+    public async Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+    {
+        // Process notifications that implement both INotification and IOrderNotification
+        await next(notification, cancellationToken);
+    }
+}
+```
+
+### Implementation Examples
+
+Comprehensive examples demonstrate how to implement the Automatic Handler System with all three middleware types, showing real-world scenarios with complete working code that integrates with .NET Core and Entity Framework.
+
+#### Basic Notification Definitions
+
+Notification classes and interfaces used throughout the Pattern 2 examples establish a consistent foundation for all handler demonstrations.
+
+```csharp
+// Base order notification interface
+public interface IOrderNotification : INotification
+{
+    int OrderId { get; }
+    DateTime OrderDate { get; }
+}
+
+// Specific order notifications
+public class OrderCreatedNotification : IOrderNotification
 {
     public int OrderId { get; }
+    public DateTime OrderDate { get; }
     public int CustomerId { get; }
-    public string CustomerEmail { get; }
     public decimal TotalAmount { get; }
-    public DateTime CreatedAt { get; }
-    public string CustomerName { get; }
     public List<OrderItem> Items { get; }
 
-    // IAuditableNotification implementation
-    public string EntityId => OrderId.ToString();
-    public string Action => "OrderCreated";
-    public DateTime Timestamp => CreatedAt;
-
-    // IEmailNotification implementation
-    public string RecipientEmail => CustomerEmail;
-    public string Subject => $"Order Confirmation #{OrderId}";
-
-    public OrderCreatedNotification(int orderId, int customerId, string customerEmail, decimal totalAmount, 
-        DateTime createdAt, string customerName, List<OrderItem> items)
+    public OrderCreatedNotification(int orderId, int customerId, decimal totalAmount, List<OrderItem> items)
     {
         OrderId = orderId;
         CustomerId = customerId;
-        CustomerEmail = customerEmail;
         TotalAmount = totalAmount;
-        CreatedAt = createdAt;
-        CustomerName = customerName;
-        Items = items;
+        Items = items ?? new List<OrderItem>();
+        OrderDate = DateTime.UtcNow;
     }
 }
 
-// Customer notification implementing multiple interfaces
-public class CustomerRegisteredNotification : ICustomerNotification, IAuditableNotification, IEmailNotification
+public class OrderShippedNotification : IOrderNotification
 {
-    public int CustomerId { get; }
-    public string CustomerName { get; }
-    public string CustomerEmail { get; }
-    public DateTime RegisteredAt { get; }
+    public int OrderId { get; }
+    public DateTime OrderDate { get; }
+    public string TrackingNumber { get; }
+    public DateTime ShippedDate { get; }
+    public string ShippingCarrier { get; }
 
-    // IAuditableNotification implementation
-    public string EntityId => CustomerId.ToString();
-    public string Action => "CustomerRegistered";
-    public DateTime Timestamp => RegisteredAt;
-
-    // IEmailNotification implementation
-    public string RecipientEmail => CustomerEmail;
-    public string Subject => "Welcome to Our Service!";
-
-    public CustomerRegisteredNotification(int customerId, string customerName, string customerEmail, DateTime registeredAt)
+    public OrderShippedNotification(int orderId, DateTime orderDate, string trackingNumber, string shippingCarrier)
     {
-        CustomerId = customerId;
-        CustomerName = customerName;
-        CustomerEmail = customerEmail;
-        RegisteredAt = registeredAt;
+        OrderId = orderId;
+        OrderDate = orderDate;
+        TrackingNumber = trackingNumber;
+        ShippingCarrier = shippingCarrier;
+        ShippedDate = DateTime.UtcNow;
     }
 }
 
-// Inventory notification implementing constraint interface
-public class InventoryUpdatedNotification : IInventoryNotification, IAuditableNotification
+public class UserRegisteredNotification : INotification
 {
-    public string ProductId { get; }
-    public string ProductName { get; }
-    public int OldQuantity { get; }
-    public int NewQuantity { get; }
-    public DateTime UpdatedAt { get; }
-    public int ChangeAmount => NewQuantity - OldQuantity;
+    public int UserId { get; }
+    public string Email { get; }
+    public string FirstName { get; }
+    public string LastName { get; }
+    public DateTime RegistrationDate { get; }
 
-    // IAuditableNotification implementation
-    public string EntityId => ProductId;
-    public string Action => "InventoryUpdated";
-    public DateTime Timestamp => UpdatedAt;
-
-    public InventoryUpdatedNotification(string productId, string productName, int oldQuantity, int newQuantity, DateTime updatedAt)
+    public UserRegisteredNotification(int userId, string email, string firstName, string lastName)
     {
-        ProductId = productId;
-        ProductName = productName;
-        OldQuantity = oldQuantity;
-        NewQuantity = newQuantity;
-        UpdatedAt = updatedAt;
-    }
-}
-
-// Simple notification with no constraints (works with general middleware only)
-public class SimpleNotification : INotification
-{
-    public string Message { get; }
-    public DateTime CreatedAt { get; }
-
-    public SimpleNotification(string message, DateTime createdAt)
-    {
-        Message = message;
-        CreatedAt = createdAt;
+        UserId = userId;
+        Email = email;
+        FirstName = firstName;
+        LastName = lastName;
+        RegistrationDate = DateTime.UtcNow;
     }
 }
 ```
 
-### Registration with Constraint Validation
+### Pattern 2 Handler Examples
 
-The new constraint validation system provides three strictness levels for enhanced control:
+Three complete example sets demonstrate different middleware types with their corresponding notification handlers, showing how each approach handles type safety and processing scope differently.
 
-```csharp
-// Program.cs - Basic type-constrained middleware registration
-builder.Services.AddMediator(config =>
-{
-    // Enable constraint validation (lenient mode by default)
-    config.WithConstraintValidation();
+#### Example Set 1: Standard Generic Middleware
 
-    // General middleware for all notifications
-    config.AddNotificationMiddleware<NotificationLoggingMiddleware>();
+Middleware that processes all notifications in the system is ideal for cross-cutting concerns like logging, validation, and performance monitoring that should apply to every notification type.
 
-    // Type-constrained middleware (automatically discovers constraint types)
-    config.AddNotificationMiddleware<OrderNotificationMiddleware>();
-    config.AddNotificationMiddleware<CustomerNotificationMiddleware>();
-    config.AddNotificationMiddleware<AuditNotificationMiddleware>();
-    config.AddNotificationMiddleware<EmailNotificationMiddleware>();
-    config.AddNotificationMiddleware<InventoryNotificationMiddleware>();
+**Notification Handler:**
 
-}, typeof(Program).Assembly);
-
-// Advanced configuration with strict constraint validation
-builder.Services.AddMediator(config =>
-{
-    // Strict mode: fails fast on any constraint violations
-    config.WithStrictConstraintValidation();
-
-    // Add middleware with automatic constraint validation
-    config.AddNotificationMiddleware<OrderNotificationMiddleware>();
-    config.AddNotificationMiddleware<CustomerNotificationMiddleware>();
-
-}, typeof(Program).Assembly);
-
-// Custom constraint validation configuration
-builder.Services.AddMediator(config =>
-{
-    // Custom constraint validation settings
-    config.WithConstraintValidation(options =>
-    {
-        options.Strictness = ConstraintValidationOptions.ValidationStrictness.Lenient;
-        options.EnableConstraintCaching = true;
-        options.MaxConstraintInheritanceDepth = 15;
-        options.ValidateCircularDependencies = true;
-        options.EnableDetailedLogging = true;
-        
-        // Custom validation rule
-        options.CustomValidationRules[typeof(IOrderNotification)] = (middlewareType, notificationType) =>
-        {
-            // Custom logic: Order middleware only works on weekdays
-            return DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday;
-        };
-        
-        // Exclude problematic types from validation
-        options.ExcludedTypes.Add(typeof(LegacyMiddleware));
-    });
-
-    config.AddNotificationMiddleware<OrderNotificationMiddleware>();
-
-}, typeof(Program).Assembly);
-
-// Auto-discovery with constraint validation
-builder.Services.AddMediator(config =>
-{
-    config.WithConstraintValidation(); // Enable constraint validation
-    config.WithNotificationMiddlewareDiscovery(); // Auto-discover constrained middleware
-}, typeof(Program).Assembly);
-```
-
-### Pipeline Execution Flow with Type Constraints
-
-Here's how the pipeline executes with type-constrained middleware:
+Clean, focused processing of specific notification types with proper dependency injection and error handling patterns.
 
 ```csharp
-// Example execution flow for OrderCreatedNotification
-// (implements IOrderNotification, IAuditableNotification, IEmailNotification)
-
-/*
-Middleware Pipeline Execution Flow:
-1. NotificationLoggingMiddleware (Order: 0) ✅ Preprocessing (all notifications)
-2. OrderNotificationMiddleware (Order: 50) ✅ Preprocessing (constraint matches IOrderNotification)
-3. CustomerNotificationMiddleware ❌ Skipped (constraint doesn't match)
-4. AuditNotificationMiddleware (Order: 100) ✅ Preprocessing (constraint matches IAuditableNotification)
-5. EmailNotificationMiddleware (Order: 200) ✅ Preprocessing (constraint matches IEmailNotification)
-6. ──── HANDLERS EXECUTE HERE (One-to-Many) ────
-   │   EmailNotificationHandler ✅ (runs to completion)
-   │   OrderConfirmationHandler ✅ (runs to completion)
-   │   AuditNotificationHandler ✅ (runs to completion)
-   └─── ALL HANDLERS COMPLETE ────
-7. EmailNotificationMiddleware (Order: 200) ✅ Postprocessing
-8. AuditNotificationMiddleware (Order: 100) ✅ Postprocessing
-9. OrderNotificationMiddleware (Order: 50) ✅ Postprocessing
-10. NotificationLoggingMiddleware (Order: 0) ✅ Postprocessing
-*/
-
-await _mediator.Publish(new OrderCreatedNotification(
-    orderId: 123, 
-    customerId: 456, 
-    customerEmail: "customer@example.com", 
-    totalAmount: 99.99m, 
-    createdAt: DateTime.UtcNow,
-    customerName: "John Doe",
-    items: orderItems
-));
-```
-
-### Advanced Type-Constrained Middleware Examples
-
-#### Email Processing Middleware
-
-```csharp
-public class EmailNotificationMiddleware : INotificationMiddleware<IEmailNotification>
+// Handler for order created events
+public class OrderCreatedHandler : INotificationHandler<OrderCreatedNotification>
 {
-    private readonly IEmailService _emailService;
-    private readonly ITemplateService _templateService;
-    private readonly ILogger<EmailNotificationMiddleware> _logger;
-
-    public EmailNotificationMiddleware(IEmailService emailService, ITemplateService templateService, ILogger<EmailNotificationMiddleware> logger)
-    {
-        _emailService = emailService;
-        _templateService = templateService;
-        _logger = logger;
-    }
-
-    public int Order => 200;
-
-    public async Task InvokeAsync(IEmailNotification notification, NotificationDelegate<IEmailNotification> next, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("📧 Processing email notification: {Subject}", notification.Subject);
-        
-        // Pre-process email template
-        var emailTemplate = await _templateService.GetTemplateAsync(notification.GetType().Name, cancellationToken);
-        var emailData = new EmailData
-        {
-            To = notification.RecipientEmail,
-            Subject = notification.Subject,
-            Template = emailTemplate,
-            Data = notification,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Continue to handlers first
-        await next(notification, cancellationToken);
-        
-        // Send email after handlers complete successfully
-        await _emailService.SendEmailAsync(emailData, cancellationToken);
-        _logger.LogInformation("📧 Email sent successfully to {RecipientEmail}", notification.RecipientEmail);
-    }
-
-    Task INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
-    {
-        throw new InvalidOperationException("This should be handled by pipeline execution logic");
-    }
-}
-```
-
-#### Inventory Management Middleware
-
-```csharp
-public class InventoryNotificationMiddleware : INotificationMiddleware<IInventoryNotification>
-{
+    private readonly IOrderRepository _orderRepository;
     private readonly IInventoryService _inventoryService;
-    private readonly ILogger<InventoryNotificationMiddleware> _logger;
+    private readonly ILogger<OrderCreatedHandler> _logger;
 
-    public InventoryNotificationMiddleware(IInventoryService inventoryService, ILogger<InventoryNotificationMiddleware> logger)
+    public OrderCreatedHandler(
+        IOrderRepository orderRepository,
+        IInventoryService inventoryService,
+        ILogger<OrderCreatedHandler> logger)
     {
+        _orderRepository = orderRepository;
         _inventoryService = inventoryService;
         _logger = logger;
     }
 
-    public int Order => 75;
-
-    public async Task InvokeAsync(IInventoryNotification notification, NotificationDelegate<IInventoryNotification> next, CancellationToken cancellationToken)
+    public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("📦 Processing inventory notification for Product {ProductId}: {OldQuantity} → {NewQuantity}", 
-            notification.ProductId, notification.OldQuantity, notification.NewQuantity);
-        
-        // Pre-process inventory validation
-        await _inventoryService.ValidateInventoryChangeAsync(notification.ProductId, notification.OldQuantity, notification.NewQuantity, cancellationToken);
-        
-        // Check for reorder triggers
-        if (notification.NewQuantity <= 10 && notification.NewQuantity > 0)
+        _logger.LogInformation("Processing order created event for Order {OrderId}", notification.OrderId);
+
+        // Reserve inventory for order items
+        foreach (var item in notification.Items)
         {
-            await _inventoryService.TriggerReorderAlertAsync(notification.ProductId, notification.NewQuantity, cancellationToken);
-            _logger.LogWarning("⚠️ Low stock alert triggered for Product {ProductId}", notification.ProductId);
-        }
-        else if (notification.NewQuantity <= 0)
-        {
-            await _inventoryService.TriggerOutOfStockAlertAsync(notification.ProductId, cancellationToken);
-            _logger.LogError("🚨 Out of stock alert triggered for Product {ProductId}", notification.ProductId);
+            await _inventoryService.ReserveInventoryAsync(item.ProductId, item.Quantity, cancellationToken);
         }
 
-        await next(notification, cancellationToken);
-        
-        // Post-process inventory metrics
-        await _inventoryService.UpdateInventoryMetricsAsync(notification.ProductId, notification.ChangeAmount, cancellationToken);
-    }
+        // Update order status
+        await _orderRepository.UpdateOrderStatusAsync(notification.OrderId, OrderStatus.Confirmed, cancellationToken);
 
-    Task INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
-    {
-        throw new InvalidOperationException("This should be handled by pipeline execution logic");
+        _logger.LogInformation("Order {OrderId} processing completed successfully", notification.OrderId);
     }
 }
-```
 
-### Pipeline Analysis and Debugging
-
-Use the enhanced pipeline inspector to analyze constraint-based execution:
-
-```csharp
-public class NotificationPipelineAnalyzer
+// Handler for user registration events
+public class UserRegisteredHandler : INotificationHandler<UserRegisteredNotification>
 {
-    private readonly INotificationMiddlewarePipelineInspector _inspector;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<NotificationPipelineAnalyzer> _logger;
+    private readonly IEmailService _emailService;
+    private readonly IUserRepository _userRepository;
+    private readonly ILogger<UserRegisteredHandler> _logger;
 
-    public NotificationPipelineAnalyzer(INotificationMiddlewarePipelineInspector inspector, IServiceProvider serviceProvider, ILogger<NotificationPipelineAnalyzer> logger)
+    public UserRegisteredHandler(
+        IEmailService emailService,
+        IUserRepository userRepository,
+        ILogger<UserRegisteredHandler> logger)
     {
-        _inspector = inspector;
-        _serviceProvider = serviceProvider;
+        _emailService = emailService;
+        _userRepository = userRepository;
         _logger = logger;
     }
 
-    public void AnalyzeConstraints()
+    public async Task Handle(UserRegisteredNotification notification, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("🔍 CONSTRAINT ANALYSIS REPORT");
-        _logger.LogInformation("═══════════════════════════════════════════");
+        _logger.LogInformation("Processing user registration for User {UserId}", notification.UserId);
 
-        // Overall pipeline analysis
-        var pipelineAnalysis = _inspector.AnalyzePipelineConstraints(_serviceProvider);
-        _logger.LogInformation("📊 Pipeline Statistics:");
-        _logger.LogInformation("   Total Middleware: {Total}", pipelineAnalysis.TotalMiddlewareCount);
-        _logger.LogInformation("   General Middleware: {General}", pipelineAnalysis.GeneralMiddlewareCount);
-        _logger.LogInformation("   Constrained Middleware: {Constrained}", pipelineAnalysis.ConstrainedMiddlewareCount);
-        _logger.LogInformation("   Unique Constraint Types: {UniqueConstraints}", pipelineAnalysis.UniqueConstraintTypes);
+        // Send welcome email
+        await _emailService.SendWelcomeEmailAsync(notification.Email, notification.FirstName, cancellationToken);
 
-        // Constraint usage mapping
-        var constraintUsageMap = _inspector.GetConstraintUsageMap(_serviceProvider);
-        _logger.LogInformation("\n🎯 Constraint Usage Map:");
-        foreach (var constraint in constraintUsageMap)
-        {
-            _logger.LogInformation("   {ConstraintType}:", constraint.Key.Name);
-            foreach (var middleware in constraint.Value)
-            {
-                _logger.LogInformation("     └── {MiddlewareType}", middleware.Name);
-            }
-        }
+        // Update user status
+        await _userRepository.UpdateUserStatusAsync(notification.UserId, UserStatus.Active, cancellationToken);
 
-        // Analyze specific notification types
-        _logger.LogInformation("\n📋 Notification Type Analysis:");
-        AnalyzeNotificationType<OrderCreatedNotification>("Order Created");
-        AnalyzeNotificationType<CustomerRegisteredNotification>("Customer Registered");
-        AnalyzeNotificationType<InventoryUpdatedNotification>("Inventory Updated");
-        AnalyzeNotificationType<SimpleNotification>("Simple Notification");
-
-        // Show optimization recommendations
-        if (pipelineAnalysis.OptimizationRecommendations.Any())
-        {
-            _logger.LogInformation("\n💡 Optimization Recommendations:");
-            foreach (var recommendation in pipelineAnalysis.OptimizationRecommendations)
-            {
-                _logger.LogInformation("   • {Recommendation}", recommendation);
-            }
-        }
-    }
-
-    private void AnalyzeNotificationType<TNotification>(string displayName) where TNotification : INotification
-    {
-        var analysis = _inspector.AnalyzeConstraints<TNotification>(_serviceProvider);
-        _logger.LogInformation("   {DisplayName}:", displayName);
-        _logger.LogInformation("     Applicable Middleware: {Count} of {Total} ({Efficiency:P})", 
-            analysis.ApplicableMiddleware.Count, analysis.TotalMiddlewareCount, analysis.ExecutionEfficiency);
-        
-        foreach (var middleware in analysis.ApplicableMiddleware)
-        {
-            _logger.LogInformation("       ✅ {MiddlewareType}", middleware.Name);
-        }
-        
-        foreach (var skipped in analysis.SkippedMiddleware)
-        {
-            _logger.LogInformation("       ❌ {MiddlewareType} - {Reason}", skipped.Key.Name, skipped.Value);
-        }
-    }
-
-    public void AnalyzeExecutionPath(INotification notification)
-    {
-        var executionPath = _inspector.AnalyzeExecutionPath(notification, _serviceProvider);
-        
-        _logger.LogInformation("🚀 EXECUTION PATH ANALYSIS");
-        _logger.LogInformation("Notification: {NotificationType}", executionPath.NotificationType.Name);
-        _logger.LogInformation("Total Middleware: {Total} | Executing: {Executing} | Skipping: {Skipping}", 
-            executionPath.TotalMiddlewareCount, executionPath.ExecutingMiddlewareCount, executionPath.SkippingMiddlewareCount);
-        _logger.LogInformation("Estimated Duration: {Duration:F2}ms", executionPath.EstimatedTotalDurationMs);
-        
-        foreach (var step in executionPath.ExecutionSteps)
-        {
-            var status = step.WillExecute ? "✅" : "⏭️";
-            _logger.LogInformation("{Status} {Order,3} | {MiddlewareType} - {Reason} ({Duration:F1}ms)", 
-                status, step.Order, step.MiddlewareType.Name, step.Reason, step.EstimatedDurationMs);
-        }
-    }
-}
-
-// Usage in your service
-public class MyNotificationService
-{
-    private readonly NotificationPipelineAnalyzer _analyzer;
-
-    public MyNotificationService(NotificationPipelineAnalyzer analyzer)
-    {
-        _analyzer = analyzer;
-    }
-
-    public async Task PublishWithAnalysis<TNotification>(TNotification notification) where TNotification : INotification
-    {
-        // Analyze execution path before publishing
-        _analyzer.AnalyzeExecutionPath(notification);
-        
-        // Publish the notification
-        await _mediator.Publish(notification);
+        _logger.LogInformation("User {UserId} registration processing completed", notification.UserId);
     }
 }
 ```
 
-### Performance Benefits
+**Standard Generic Middleware:**
 
-The type-constrained middleware system provides significant performance benefits:
+Cross-cutting concerns that apply to all notifications can be implemented using both the generic and non-generic interfaces for maximum flexibility.
 
 ```csharp
-// Before: Runtime type checking in every middleware
-public class OldStyleOrderMiddleware : INotificationMiddleware
+// Middleware that processes ALL notifications in the system
+public class LoggingNotificationMiddleware : INotificationMiddleware<INotification>
 {
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
-        where TNotification : INotification
+    private readonly ILogger<LoggingNotificationMiddleware> _logger;
+
+    public LoggingNotificationMiddleware(ILogger<LoggingNotificationMiddleware> logger)
     {
-        // Runtime type checking required for every notification
-        if (notification is OrderCreatedNotification orderNotification)
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(INotification notification, NotificationDelegate<INotification> next, CancellationToken cancellationToken = default)
+    {
+        var notificationType = notification.GetType().Name;
+        _logger.LogInformation("Processing notification: {NotificationType}", notificationType);
+
+        var stopwatch = Stopwatch.StartNew();
+
+        try
         {
-            // Process order notification - executed even for non-order notifications
-            await ProcessOrder(orderNotification, cancellationToken);
+            await next(notification, cancellationToken);
+            stopwatch.Stop();
+            _logger.LogInformation("Notification {NotificationType} processed successfully in {ElapsedMs}ms",
+                notificationType, stopwatch.ElapsedMilliseconds);
         }
-        
-        await next(notification, cancellationToken);
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "Error processing notification {NotificationType} after {ElapsedMs}ms",
+                notificationType, stopwatch.ElapsedMilliseconds);
+            throw;
+        }
     }
 }
 
-// After: Compile-time constraints with automatic middleware skipping
-public class NewStyleOrderMiddleware : INotificationMiddleware<IOrderNotification>
+// Non-generic middleware alternative
+public class ValidationNotificationMiddleware : INotificationMiddleware
 {
-    public async Task InvokeAsync(IOrderNotification notification, NotificationDelegate<IOrderNotification> next, CancellationToken cancellationToken)
+    private readonly ILogger<ValidationNotificationMiddleware> _logger;
+
+    public ValidationNotificationMiddleware(ILogger<ValidationNotificationMiddleware> logger)
     {
-        // Only executes for order notifications - zero overhead for other notifications
-        // Pipeline engine handles the constraint checking, not the middleware itself
-        await ProcessOrder(notification, cancellationToken);
-        await next(notification, cancellationToken);
-        await PostProcessOrder(notification, cancellationToken); // Postprocessing is possible!
+        _logger = logger;
     }
 
-    Task INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    public async Task InvokeAsync(INotification notification, NotificationDelegate next, CancellationToken cancellationToken = default)
     {
-        throw new InvalidOperationException("This should be handled by pipeline execution logic");
+        // Basic validation for all notifications
+        if (notification == null)
+        {
+            _logger.LogError("Received null notification");
+            throw new ArgumentNullException(nameof(notification));
+        }
+
+        var notificationType = notification.GetType();
+        _logger.LogDebug("Validating notification: {NotificationType}", notificationType.Name);
+
+        // Perform basic validation
+        var validationResults = ValidateNotification(notification);
+        if (validationResults.Any())
+        {
+            _logger.LogWarning("Validation failed for {NotificationType}: {ValidationErrors}",
+                notificationType.Name, string.Join(", ", validationResults));
+            throw new ValidationException($"Notification validation failed: {string.Join(", ", validationResults)}");
+        }
+
+        await next(notification, cancellationToken);
+    }
+
+    private List<string> ValidateNotification(INotification notification)
+    {
+        var errors = new List<string>();
+
+        // Add common validation logic here
+        var properties = notification.GetType().GetProperties();
+        foreach (var property in properties)
+        {
+            var value = property.GetValue(notification);
+            if (property.PropertyType == typeof(string) && value == null)
+            {
+                errors.Add($"Property {property.Name} cannot be null");
+            }
+        }
+
+        return errors;
     }
 }
-
-// Performance comparison:
-// SimpleNotification published with 5 middleware (1 general + 4 constrained):
-// - Old approach: All 5 middleware execute with runtime type checking
-// - New approach: Only 1 general middleware executes (4 automatically skipped)
-// Result: 80% reduction in middleware execution for non-matching notifications
 ```
 
-### Integration with Existing Middleware
+#### Example Set 2: Type-Constrained Middleware
 
-Type-constrained middleware works seamlessly alongside existing general middleware:
+Middleware that only processes notifications implementing specific interfaces provides type-safe, domain-focused processing for related notification groups.
+
+**Notification Handler:**
+
+Processing order shipping events with customer notification and proper error handling for missing entities demonstrates robust event handling patterns.
 
 ```csharp
-// Mixed middleware pipeline registration
+// Handler for order shipped events
+public class OrderShippedHandler : INotificationHandler<OrderShippedNotification>
+{
+    private readonly IEmailService _emailService;
+    private readonly ICustomerRepository _customerRepository;
+    private readonly IOrderRepository _orderRepository;
+    private readonly ILogger<OrderShippedHandler> _logger;
+
+    public OrderShippedHandler(
+        IEmailService emailService,
+        ICustomerRepository customerRepository,
+        IOrderRepository orderRepository,
+        ILogger<OrderShippedHandler> logger)
+    {
+        _emailService = emailService;
+        _customerRepository = customerRepository;
+        _orderRepository = orderRepository;
+        _logger = logger;
+    }
+
+    public async Task Handle(OrderShippedNotification notification, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Processing order shipped event for Order {OrderId}", notification.OrderId);
+
+        // Get order details
+        var order = await _orderRepository.GetOrderAsync(notification.OrderId, cancellationToken);
+        if (order == null)
+        {
+            _logger.LogWarning("Order {OrderId} not found", notification.OrderId);
+            return;
+        }
+
+        // Get customer details
+        var customer = await _customerRepository.GetCustomerAsync(order.CustomerId, cancellationToken);
+        if (customer == null)
+        {
+            _logger.LogWarning("Customer {CustomerId} not found for Order {OrderId}", order.CustomerId, notification.OrderId);
+            return;
+        }
+
+        // Send shipping notification email
+        await _emailService.SendShippingNotificationAsync(
+            customer.Email,
+            customer.FirstName,
+            notification.OrderId,
+            notification.TrackingNumber,
+            notification.ShippingCarrier,
+            cancellationToken);
+
+        _logger.LogInformation("Shipping notification sent for Order {OrderId}", notification.OrderId);
+    }
+}
+```
+
+**Type-Constrained Middleware:**
+
+Domain-specific processing that only applies to notifications implementing a particular interface enables targeted business logic and auditing.
+
+```csharp
+// Middleware that ONLY processes order-related notifications
+public class OrderNotificationMiddleware : INotificationMiddleware<IOrderNotification>
+{
+    private readonly IOrderAuditService _auditService;
+    private readonly ILogger<OrderNotificationMiddleware> _logger;
+
+    public OrderNotificationMiddleware(
+        IOrderAuditService auditService,
+        ILogger<OrderNotificationMiddleware> logger)
+    {
+        _auditService = auditService;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(IOrderNotification notification, NotificationDelegate<IOrderNotification> next, CancellationToken cancellationToken = default)
+    {
+        var notificationType = notification.GetType().Name;
+        _logger.LogInformation("Processing order notification: {NotificationType} for Order {OrderId}",
+            notificationType, notification.OrderId);
+
+        // Audit order event
+        await _auditService.LogOrderEventAsync(
+            notification.OrderId,
+            notificationType,
+            notification.OrderDate,
+            cancellationToken);
+
+        // Validate order-specific business rules
+        if (notification.OrderDate > DateTime.UtcNow.AddDays(1))
+        {
+            _logger.LogWarning("Future-dated order notification detected: {OrderId}", notification.OrderId);
+        }
+
+        try
+        {
+            await next(notification, cancellationToken);
+
+            // Log successful processing
+            await _auditService.LogOrderEventCompletionAsync(
+                notification.OrderId,
+                notificationType,
+                true,
+                null,
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing order notification {NotificationType} for Order {OrderId}",
+                notificationType, notification.OrderId);
+
+            // Log failed processing
+            await _auditService.LogOrderEventCompletionAsync(
+                notification.OrderId,
+                notificationType,
+                false,
+                ex.Message,
+                cancellationToken);
+
+            throw;
+        }
+    }
+}
+```
+
+#### Example Set 3: Generic Type Constraints
+
+Advanced handlers and middleware with complex generic constraints enable sophisticated type safety and reusable processing logic across multiple notification types.
+
+**Notification Handler:**
+
+Generic handlers show how to create reusable processing logic that works with any notification meeting specific interface requirements, with concrete implementations for type safety.
+
+```csharp
+// Handler that processes any notification implementing both INotification and IOrderNotification
+public class ComplexOrderHandler<TNotification> : INotificationHandler<TNotification>
+    where TNotification : INotification, IOrderNotification
+{
+    private readonly IOrderService _orderService;
+    private readonly INotificationHistoryService _historyService;
+    private readonly ILogger<ComplexOrderHandler<TNotification>> _logger;
+
+    public ComplexOrderHandler(
+        IOrderService orderService,
+        INotificationHistoryService historyService,
+        ILogger<ComplexOrderHandler<TNotification>> logger)
+    {
+        _orderService = orderService;
+        _historyService = historyService;
+        _logger = logger;
+    }
+
+    public async Task Handle(TNotification notification, CancellationToken cancellationToken = default)
+    {
+        var notificationType = typeof(TNotification).Name;
+        _logger.LogInformation("Processing complex order notification: {NotificationType} for Order {OrderId}",
+            notificationType, notification.OrderId);
+
+        // Record notification history
+        await _historyService.RecordNotificationAsync(
+            notification.OrderId,
+            notificationType,
+            notification.OrderDate,
+            cancellationToken);
+
+        // Perform order-specific processing
+        await _orderService.ProcessOrderEventAsync(notification.OrderId, notificationType, cancellationToken);
+
+        _logger.LogInformation("Complex order notification {NotificationType} processed for Order {OrderId}",
+            notificationType, notification.OrderId);
+    }
+}
+
+// Concrete implementations for specific types
+public class ConcreteOrderCreatedHandler : ComplexOrderHandler<OrderCreatedNotification>
+{
+    public ConcreteOrderCreatedHandler(
+        IOrderService orderService,
+        INotificationHistoryService historyService,
+        ILogger<ComplexOrderHandler<OrderCreatedNotification>> logger)
+        : base(orderService, historyService, logger)
+    {
+    }
+}
+
+public class ConcreteOrderShippedHandler : ComplexOrderHandler<OrderShippedNotification>
+{
+    public ConcreteOrderShippedHandler(
+        IOrderService orderService,
+        INotificationHistoryService historyService,
+        ILogger<ComplexOrderHandler<OrderShippedNotification>> logger)
+        : base(orderService, historyService, logger)
+    {
+    }
+}
+```
+
+**Generic Type Constraints Middleware:**
+
+Advanced middleware with multiple generic constraints implements sophisticated processing logic for complex validation, security, and monitoring scenarios while maintaining type safety.
+
+```csharp
+// Middleware with complex generic constraints
+public class AdvancedOrderMiddleware<TNotification> : INotificationMiddleware<TNotification>
+    where TNotification : INotification, IOrderNotification
+{
+    private readonly IOrderValidationService _validationService;
+    private readonly IPerformanceMonitoringService _monitoringService;
+    private readonly ILogger<AdvancedOrderMiddleware<TNotification>> _logger;
+
+    public AdvancedOrderMiddleware(
+        IOrderValidationService validationService,
+        IPerformanceMonitoringService monitoringService,
+        ILogger<AdvancedOrderMiddleware<TNotification>> logger)
+    {
+        _validationService = validationService;
+        _monitoringService = monitoringService;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+    {
+        var notificationType = typeof(TNotification).Name;
+        var performanceContext = _monitoringService.StartMonitoring($"OrderNotification_{notificationType}", notification.OrderId);
+
+        _logger.LogInformation("Advanced processing for {NotificationType} - Order {OrderId}",
+            notificationType, notification.OrderId);
+
+        try
+        {
+            // Perform advanced order validation
+            var validationResult = await _validationService.ValidateOrderNotificationAsync(
+                notification.OrderId,
+                notification.OrderDate,
+                cancellationToken);
+
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Order validation failed for {OrderId}: {ValidationErrors}",
+                    notification.OrderId, string.Join(", ", validationResult.Errors));
+                throw new InvalidOperationException($"Order validation failed: {string.Join(", ", validationResult.Errors)}");
+            }
+
+            // Process the notification
+            await next(notification, cancellationToken);
+
+            performanceContext.RecordSuccess();
+            _logger.LogInformation("Advanced processing completed for {NotificationType} - Order {OrderId}",
+                notificationType, notification.OrderId);
+        }
+        catch (Exception ex)
+        {
+            performanceContext.RecordFailure(ex);
+            _logger.LogError(ex, "Advanced processing failed for {NotificationType} - Order {OrderId}",
+                notificationType, notification.OrderId);
+            throw;
+        }
+        finally
+        {
+            performanceContext.Dispose();
+        }
+    }
+}
+
+// Multi-constraint middleware
+public class SecurityOrderMiddleware<TNotification> : INotificationMiddleware<TNotification>
+    where TNotification : class, INotification, IOrderNotification
+{
+    private readonly ISecurityService _securityService;
+    private readonly ILogger<SecurityOrderMiddleware<TNotification>> _logger;
+
+    public SecurityOrderMiddleware(
+        ISecurityService securityService,
+        ILogger<SecurityOrderMiddleware<TNotification>> logger)
+    {
+        _securityService = securityService;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+    {
+        // Security validation for order notifications
+        var isAuthorized = await _securityService.ValidateOrderAccessAsync(
+            notification.OrderId,
+            typeof(TNotification).Name,
+            cancellationToken);
+
+        if (!isAuthorized)
+        {
+            _logger.LogWarning("Unauthorized access attempt for Order {OrderId} with notification {NotificationType}",
+                notification.OrderId, typeof(TNotification).Name);
+            throw new UnauthorizedAccessException($"Unauthorized access to order {notification.OrderId}");
+        }
+
+        await next(notification, cancellationToken);
+    }
+}
+```
+
+### Service Registration and Configuration
+
+Configure the Automatic Handler System in your application's dependency injection container with examples for both basic and advanced scenarios.
+
+#### Basic Registration
+
+The simplest configuration automatically discovers and registers all handlers and middleware from your assembly, requiring minimal setup code.
+
+```csharp
+// Program.cs - Register mediator and automatically discover handlers
+builder.Services.AddMediator(typeof(Program).Assembly);
+
+// The following are automatically registered:
+// - OrderCreatedHandler
+// - OrderShippedHandler
+// - UserRegisteredHandler
+// - All middleware implementations
+```
+
+#### Advanced Registration with Middleware
+
+Advanced configuration provides maximum control over the processing pipeline by explicitly registering all three types of middleware alongside automatic handler discovery.
+
+```csharp
+// Program.cs - Advanced configuration with all middleware types
 builder.Services.AddMediator(config =>
 {
-    config.WithConstraintValidation();
+    // Register Standard Generic Middleware
+    config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
+    config.AddNotificationMiddleware<ValidationNotificationMiddleware>();
 
-    // General middleware (executes for ALL notifications)
-    config.AddNotificationMiddleware<NotificationLoggingMiddleware>();      // Order: 0
-    config.AddNotificationMiddleware<NotificationMetricsMiddleware>();      // Order: 10
+    // Register Type-Constrained Middleware
+    config.AddNotificationMiddleware<OrderNotificationMiddleware>();
 
-    // Type-constrained middleware (executes only for matching notifications)
-    config.AddNotificationMiddleware<OrderNotificationMiddleware>();        // Order: 50 (IOrderNotification only)
-    config.AddNotificationMiddleware<CustomerNotificationMiddleware>();     // Order: 60 (ICustomerNotification only)
-    config.AddNotificationMiddleware<AuditNotificationMiddleware>();        // Order: 100 (IAuditableNotification only)
+    // Register Generic Type Constraints Middleware
+    config.AddNotificationMiddleware(typeof(AdvancedOrderMiddleware<>));
+    config.AddNotificationMiddleware(typeof(SecurityOrderMiddleware<>));
 
-    // More general middleware
-    config.AddNotificationMiddleware<NotificationFinalizationMiddleware>(); // Order: 1000
+    // Scan for handlers and other middleware
+    config.AddFromAssembly(typeof(Program).Assembly);
 
 }, typeof(Program).Assembly);
 
-// Execution for OrderCreatedNotification (implements IOrderNotification, IAuditableNotification):
-// 1. NotificationLoggingMiddleware ✅ (general)
-// 2. NotificationMetricsMiddleware ✅ (general)
-// 3. OrderNotificationMiddleware ✅ (matches IOrderNotification)
-// 4. CustomerNotificationMiddleware ❌ (skipped - doesn't match ICustomerNotification)
-// 5. AuditNotificationMiddleware ✅ (matches IAuditableNotification)
-// 6. NotificationFinalizationMiddleware ✅ (general)
-
-// Execution for SimpleNotification (implements only INotification):
-// 1. NotificationLoggingMiddleware ✅ (general)
-// 2. NotificationMetricsMiddleware ✅ (general)
-// 3. OrderNotificationMiddleware ❌ (skipped)
-// 4. CustomerNotificationMiddleware ❌ (skipped)
-// 5. AuditNotificationMiddleware ❌ (skipped)
-// 6. NotificationFinalizationMiddleware ✅ (general)
+// Register supporting services
+builder.Services.AddScoped<IOrderAuditService, OrderAuditService>();
+builder.Services.AddScoped<IOrderValidationService, OrderValidationService>();
+builder.Services.AddScoped<IPerformanceMonitoringService, PerformanceMonitoringService>();
+builder.Services.AddScoped<ISecurityService, SecurityService>();
 ```
 
-### Best Practices for Type-Constrained Middleware
+### Publishing Notifications
 
-1. **Use Meaningful Constraint Interfaces**
-   ```csharp
-   // ✅ Good - Clear, specific constraint
-   public interface IOrderNotification : INotification
-   {
-       int OrderId { get; }
-   }
+Publish notifications from your business logic to automatically trigger all registered handlers through the mediator without explicit subscription management.
 
-   // ❌ Bad - Too generic
-   public interface IEntityNotification : INotification
-   {
-       int Id { get; }
-   }
-   ```
+#### In Business Logic Services
 
-2. **Keep Constraint Interfaces Focused**
-   ```csharp
-   // ✅ Good - Single responsibility
-   public interface IEmailNotification : INotification
-   {
-       string RecipientEmail { get; }
-       string Subject { get; }
-   }
+Publishing notifications from business services automatically invokes handlers through the mediator without explicit subscription management, maintaining clean separation of concerns.
 
-   // ❌ Bad - Too many concerns
-   public interface IComplexNotification : INotification
-   {
-       string Email { get; }
-       int UserId { get; }
-       string OrderData { get; }
-       decimal Amount { get; }
-   }
-   ```
+```csharp
+public class OrderService
+{
+    private readonly IOrderRepository _orderRepository;
+    private readonly IMediator _mediator;
 
-3. **Use Constraint Validation Appropriately**
-   ```csharp
-   // Development/Testing: Use strict validation
-   #if DEBUG
-   config.WithStrictConstraintValidation();
-   #else
-   config.WithConstraintValidation(); // Lenient in production
-   #endif
-   ```
+    public OrderService(IOrderRepository orderRepository, IMediator mediator)
+    {
+        _orderRepository = orderRepository;
+        _mediator = mediator;
+    }
 
-4. **Combine Multiple Constraints Thoughtfully**
-   ```csharp
-   // ✅ Good - Logical combination
-   public class OrderCreatedNotification : IOrderNotification, IAuditableNotification, IEmailNotification
-   {
-       // Implementation that satisfies all three constraints logically
-   }
+    public async Task<int> CreateOrderAsync(CreateOrderRequest request, CancellationToken cancellationToken = default)
+    {
+        // Create the order
+        var order = new Order
+        {
+            CustomerId = request.CustomerId,
+            TotalAmount = request.TotalAmount,
+            Items = request.Items,
+            CreatedDate = DateTime.UtcNow
+        };
 
-   // ❌ Questionable - Unrelated constraints
-   public class WeirdNotification : IOrderNotification, IInventoryNotification
-   {
-       // Unclear why this would need both order and inventory constraints
-   }
-   ```
+        await _orderRepository.AddOrderAsync(order, cancellationToken);
 
-This type-constrained middleware system provides a powerful way to build efficient, maintainable notification processing pipelines while maintaining full backward compatibility with existing code.
+        // Publish notification - handlers will be invoked automatically
+        var notification = new OrderCreatedNotification(
+            order.Id,
+            order.CustomerId,
+            order.TotalAmount,
+            order.Items);
+
+        await _mediator.Publish(notification, cancellationToken);
+
+        return order.Id;
+    }
+
+    public async Task ShipOrderAsync(int orderId, string trackingNumber, string carrier, CancellationToken cancellationToken = default)
+    {
+        var order = await _orderRepository.GetOrderAsync(orderId, cancellationToken);
+        if (order == null)
+            throw new InvalidOperationException($"Order {orderId} not found");
+
+        // Update order status
+        order.Status = OrderStatus.Shipped;
+        order.ShippedDate = DateTime.UtcNow;
+        order.TrackingNumber = trackingNumber;
+
+        await _orderRepository.UpdateOrderAsync(order, cancellationToken);
+
+        // Publish notification - handlers will be invoked automatically
+        var notification = new OrderShippedNotification(
+            orderId,
+            order.CreatedDate,
+            trackingNumber,
+            carrier);
+
+        await _mediator.Publish(notification, cancellationToken);
+    }
+}
+```
+
+### Handler Type Comparison
+
+Choose the right middleware type for your specific requirements by understanding the key differences in scope, use cases, type safety, and registration approaches.
+
+#### Standard Generic Middleware
+
+-   **Scope**: Processes ALL notifications in the system
+-   **Use Case**: Cross-cutting concerns like logging, validation, performance monitoring
+-   **Type Safety**: Works with `INotification` base interface
+-   **Registration**: `INotificationMiddleware<INotification>` or `INotificationMiddleware`
+
+#### Type-Constrained Middleware
+
+-   **Scope**: Processes notifications implementing specific interfaces or base types
+-   **Use Case**: Domain-specific logic for related notification groups
+-   **Type Safety**: Strongly typed to specific interfaces (e.g., `IOrderNotification`)
+-   **Registration**: `INotificationMiddleware<IOrderNotification>`
+
+#### Generic Type Constraints
+
+-   **Scope**: Processes notifications meeting complex generic constraints
+-   **Use Case**: Advanced scenarios requiring multiple interface implementations
+-   **Type Safety**: Multiple generic constraints with `where` clauses
+-   **Registration**: Open generic types like `typeof(AdvancedOrderMiddleware<>)`
+
+### Pattern 2 Benefits and Use Cases
+
+Key advantages of the Automatic Handler System and scenarios where convention-based approaches provide the most value for enterprise and server applications.
+
+**Benefits:**
+
+-   **Zero Configuration**: Handlers are discovered and registered automatically
+-   **Convention-Based**: Follows standard DI patterns and conventions
+-   **Type Safety**: Strongly typed handler interfaces with compile-time checking
+-   **Separation of Concerns**: Each handler focuses on a single notification type
+-   **Testability**: Easy to unit test individual handlers in isolation
+-   **Scalability**: Automatic registration scales with application growth
+-   **Middleware Integration**: Seamless integration with sophisticated middleware pipeline
+-   **Multiple Handler Support**: Multiple handlers can process the same notification type
+
+**Ideal Use Cases:**
+
+-   **Server Applications**: ASP.NET Core, Web API, Blazor Server, microservices
+-   **Background Services**: Worker services, scheduled tasks, message processors
+-   **Event-Driven Architecture**: Domain events, integration events, system events
+-   **CQRS Implementation**: Command and query responsibility separation
+-   **Clean Architecture**: Domain layer event handling and cross-cutting concerns
+
+═══════════════════════════════════════════════════════════════════════════════════

@@ -214,19 +214,29 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         _logger?.LogDebug("Executing request middleware pipeline with {ApplicableMiddlewareCount} applicable middleware components", applicableMiddleware.Count);
 
         // Sort middleware by order (lower numbers execute first), then by registration order
+        // Pre-calculate registration indices to avoid O(n²) FindIndex calls
+        var registrationIndices = new Dictionary<Type, int>();
+        for (int i = 0; i < _middlewareInfos.Count; i++)
+        {
+            var info = _middlewareInfos[i];
+            registrationIndices[info.Type] = i;
+            
+            // Also store generic type definition for generic types
+            if (info.Type.IsGenericTypeDefinition)
+            {
+                registrationIndices[info.Type] = i;
+            }
+        }
+
         applicableMiddleware.Sort((a, b) =>
         {
             int orderComparison = a.Order.CompareTo(b.Order);
             if (orderComparison != 0) return orderComparison;
 
-            // If orders are equal, maintain registration order
-            return _middlewareInfos.FindIndex(info =>
-                info.Type == a.Type ||
-                (info.Type.IsGenericTypeDefinition && a.Type.IsGenericType && info.Type == a.Type.GetGenericTypeDefinition())
-            ).CompareTo(_middlewareInfos.FindIndex(info =>
-                info.Type == b.Type ||
-                (info.Type.IsGenericTypeDefinition && b.Type.IsGenericType && info.Type == b.Type.GetGenericTypeDefinition())
-            ));
+            // Use pre-calculated indices instead of expensive FindIndex calls
+            int indexA = GetRegistrationIndex(a.Type, registrationIndices);
+            int indexB = GetRegistrationIndex(b.Type, registrationIndices);
+            return indexA.CompareTo(indexB);
         });
 
         // Build pipeline in reverse order so the first middleware in the sorted list runs first
@@ -342,19 +352,29 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
 
 
         // Sort middleware by order (lower numbers execute first), then by registration order
+        // Pre-calculate registration indices to avoid O(n²) FindIndex calls
+        var registrationIndices = new Dictionary<Type, int>();
+        for (int i = 0; i < _middlewareInfos.Count; i++)
+        {
+            var info = _middlewareInfos[i];
+            registrationIndices[info.Type] = i;
+            
+            // Also store generic type definition for generic types
+            if (info.Type.IsGenericTypeDefinition)
+            {
+                registrationIndices[info.Type] = i;
+            }
+        }
+
         applicableMiddleware.Sort((a, b) =>
         {
             int orderComparison = a.Order.CompareTo(b.Order);
             if (orderComparison != 0) return orderComparison;
 
-            // If orders are equal, maintain registration order
-            return _middlewareInfos.FindIndex(info =>
-                info.Type == a.Type ||
-                (info.Type.IsGenericTypeDefinition && a.Type.IsGenericType && info.Type == a.Type.GetGenericTypeDefinition())
-            ).CompareTo(_middlewareInfos.FindIndex(info =>
-                info.Type == b.Type ||
-                (info.Type.IsGenericTypeDefinition && b.Type.IsGenericType && info.Type == b.Type.GetGenericTypeDefinition())
-            ));
+            // Use pre-calculated indices instead of expensive FindIndex calls
+            int indexA = GetRegistrationIndex(a.Type, registrationIndices);
+            int indexB = GetRegistrationIndex(b.Type, registrationIndices);
+            return indexA.CompareTo(indexB);
         });
 
         // Build pipeline in reverse order so the first middleware in the sorted list runs first
@@ -483,19 +503,29 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         }
 
         // Sort middleware by order (lower numbers execute first), then by registration order
+        // Pre-calculate registration indices to avoid O(n²) FindIndex calls
+        var registrationIndices = new Dictionary<Type, int>();
+        for (int i = 0; i < _middlewareInfos.Count; i++)
+        {
+            var info = _middlewareInfos[i];
+            registrationIndices[info.Type] = i;
+            
+            // Also store generic type definition for generic types
+            if (info.Type.IsGenericTypeDefinition)
+            {
+                registrationIndices[info.Type] = i;
+            }
+        }
+
         applicableMiddleware.Sort((a, b) =>
         {
             int orderComparison = a.Order.CompareTo(b.Order);
             if (orderComparison != 0) return orderComparison;
 
-            // If orders are equal, maintain registration order
-            return _middlewareInfos.FindIndex(info =>
-                info.Type == a.Type ||
-                (info.Type.IsGenericTypeDefinition && a.Type.IsGenericType && info.Type == a.Type.GetGenericTypeDefinition())
-            ).CompareTo(_middlewareInfos.FindIndex(info =>
-                info.Type == b.Type ||
-                (info.Type.IsGenericTypeDefinition && b.Type.IsGenericType && info.Type == b.Type.GetGenericTypeDefinition())
-            ));
+            // Use pre-calculated indices instead of expensive FindIndex calls
+            int indexA = GetRegistrationIndex(a.Type, registrationIndices);
+            int indexB = GetRegistrationIndex(b.Type, registrationIndices);
+            return indexA.CompareTo(indexB);
         });
 
         // Build pipeline in reverse order so the first middleware in the sorted list runs first
@@ -704,7 +734,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             concreteType = genericTypeDefinition.MakeGenericType(typeArguments);
             return true;
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
             // Constraints were not satisfied
             return false;
@@ -989,6 +1019,29 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         int unorderedCount = _middlewareInfos.Count(m => m.Order >= unorderedMiddlewareBaseOrder);
 
         return unorderedMiddlewareBaseOrder + unorderedCount;
+    }
+
+    /// <summary>
+    /// Fast lookup for registration index using pre-calculated dictionary.
+    /// </summary>
+    private static int GetRegistrationIndex(Type middlewareType, Dictionary<Type, int> registrationIndices)
+    {
+        if (registrationIndices.TryGetValue(middlewareType, out int index))
+        {
+            return index;
+        }
+
+        // For generic types, try to find by generic type definition
+        if (middlewareType.IsGenericType)
+        {
+            var genericTypeDef = middlewareType.GetGenericTypeDefinition();
+            if (registrationIndices.TryGetValue(genericTypeDef, out int genericIndex))
+            {
+                return genericIndex;
+            }
+        }
+
+        return int.MaxValue; // Fallback for not found
     }
 
     #endregion

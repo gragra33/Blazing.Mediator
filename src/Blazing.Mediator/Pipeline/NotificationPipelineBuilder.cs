@@ -188,25 +188,21 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
                 actualMiddlewareType = middlewareType;
             }
 
+            // Optimize interface checking - avoid multiple GetInterfaces() calls
+            var interfaces = actualMiddlewareType.GetInterfaces();
+            
             bool isCompatible = typeof(INotificationMiddleware).IsAssignableFrom(actualMiddlewareType);
             if (!isCompatible)
             {
                 continue;
             }
 
-            var constrainedInterfaces = actualMiddlewareType.GetInterfaces()
-                .Where(i => i.IsGenericType && 
-                           i.GetGenericTypeDefinition() == typeof(INotificationMiddleware<>))
-                .ToArray();
+            // Cache constrained interfaces lookup
+            var constrainedInterfaces = GetConstrainedNotificationInterfaces(interfaces);
 
             if (constrainedInterfaces.Length > 0)
             {
-                bool hasCompatibleConstraint = constrainedInterfaces.Any(constrainedInterface =>
-                {
-                    var constraintType = constrainedInterface.GetGenericArguments()[0];
-                    return constraintType.IsAssignableFrom(actualNotificationType);
-                });
-
+                bool hasCompatibleConstraint = HasCompatibleConstraint(constrainedInterfaces, actualNotificationType);
                 if (!hasCompatibleConstraint)
                 {
                     continue;
@@ -217,12 +213,28 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
             applicableMiddleware.Add((actualMiddlewareType, actualOrder));
         }
 
+        // Pre-calculate registration indices to avoid O(n²) operations
+        var registrationIndices = new Dictionary<Type, int>();
+        for (int i = 0; i < _middlewareInfos.Count; i++)
+        {
+            var info = _middlewareInfos[i];
+            registrationIndices[info.Type] = i;
+            
+            // Also store generic type definition for generic types
+            if (info.Type.IsGenericTypeDefinition)
+            {
+                registrationIndices[info.Type] = i;
+            }
+        }
+
         applicableMiddleware.Sort((a, b) =>
         {
             int orderComparison = a.Order.CompareTo(b.Order);
             if (orderComparison != 0) return orderComparison;
-            int indexA = GetOriginalRegistrationIndex(a.Type);
-            int indexB = GetOriginalRegistrationIndex(b.Type);
+            
+            // Use pre-calculated indices instead of expensive operations
+            int indexA = GetOriginalRegistrationIndexOptimized(a.Type, registrationIndices);
+            int indexB = GetOriginalRegistrationIndexOptimized(b.Type, registrationIndices);
             return indexA.CompareTo(indexB);
         });
 
@@ -393,18 +405,21 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
         Type actualNotificationType)
         where TNotification : INotification
     {
-        var constrainedInterfaces = middleware.GetType().GetInterfaces()
-            .Where(i => i.IsGenericType && 
-                       i.GetGenericTypeDefinition() == typeof(INotificationMiddleware<>))
-            .ToArray();
+        // Cache interface lookup to avoid repeated reflection
+        var interfaces = middleware.GetType().GetInterfaces();
+        var constrainedInterfaces = GetConstrainedNotificationInterfaces(interfaces);
+        
         if (constrainedInterfaces.Length == 0)
         {
             return false;
         }
-        foreach (var constrainedInterface in constrainedInterfaces)
+        
+        for (int i = 0; i < constrainedInterfaces.Length; i++)
         {
+            var constrainedInterface = constrainedInterfaces[i];
             var constraintType = constrainedInterface.GetGenericArguments()[0];
             bool isCompatible = constraintType.IsAssignableFrom(actualNotificationType);
+            
             if (isCompatible)
             {
                 var constrainedMethod = constrainedInterface.GetMethod("InvokeAsync");
@@ -433,18 +448,17 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
 
     private static bool IsTypeConstrainedMiddleware(INotificationMiddleware middleware, Type notificationType, object notification)
     {
-        var middlewareType = middleware.GetType();
-        var genericMiddlewareInterfaces = middlewareType.GetInterfaces()
-            .Where(i => i.IsGenericType && 
-                       i.GetGenericTypeDefinition() == typeof(INotificationMiddleware<>))
-            .ToArray();
+        var interfaces = middleware.GetType().GetInterfaces();
+        var genericMiddlewareInterfaces = GetConstrainedNotificationInterfaces(interfaces);
+        
         if (genericMiddlewareInterfaces.Length == 0)
         {
             return false;
         }
-        foreach (var constrainedInterface in genericMiddlewareInterfaces)
+        
+        for (int i = 0; i < genericMiddlewareInterfaces.Length; i++)
         {
-            var constraintType = constrainedInterface.GetGenericArguments()[0];
+            var constraintType = genericMiddlewareInterfaces[i].GetGenericArguments()[0];
             if (constraintType.IsAssignableFrom(notificationType))
             {
                 return false;
@@ -534,53 +548,58 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
              info.Type == middlewareType.GetGenericTypeDefinition()));
     }
 
+    /// <summary>
+    /// Fast lookup for registration index using pre-calculated dictionary.
+    /// </summary>
+    private static int GetOriginalRegistrationIndexOptimized(Type middlewareType, Dictionary<Type, int> registrationIndices)
+    {
+        if (registrationIndices.TryGetValue(middlewareType, out int index))
+        {
+            return index;
+        }
+
+        // For generic types, try to find by generic type definition
+        if (middlewareType.IsGenericType)
+        {
+            var genericTypeDef = middlewareType.GetGenericTypeDefinition();
+            if (registrationIndices.TryGetValue(genericTypeDef, out int genericIndex))
+            {
+                return genericIndex;
+            }
+        }
+
+        return int.MaxValue; // Fallback for not found
+    }
+
     private static Type? TryCreateConcreteNotificationMiddlewareType(Type middlewareTypeDefinition)
     {
         if (!middlewareTypeDefinition.IsGenericTypeDefinition)
             return middlewareTypeDefinition;
+            
         var genericParams = middlewareTypeDefinition.GetGenericArguments();
         if (genericParams.Length != 1)
             return null;
-        var candidateTypes = new List<Type>();
-        try
-        {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies()
-                .Where(a => !a.IsDynamic)
-                .OrderBy(a =>
-                {
-                    var name = a.FullName ?? "";
-                    if (name.Contains("Test")) return 0;
-                    if (!name.StartsWith("System") && !name.StartsWith("Microsoft")) return 1;
-                    return 2;
-                })
-                .ToArray();
-            foreach (var assembly in assemblies)
-            {
-                try
-                {
-                    var types = assembly.GetTypes()
-                        .Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericTypeDefinition && t.IsPublic)
-                        .Where(t => typeof(INotification).IsAssignableFrom(t))
-                        .Where(t => t.GetConstructor(Type.EmptyTypes) != null);
-                    candidateTypes.AddRange(types);
-                }
-                catch
-                {
-                    continue;
-                }
-            }
-        }
-        catch
-        {
-            candidateTypes.AddRange([typeof(MinimalNotification)]);
-        }
-        foreach (var notificationType in candidateTypes)
+
+        // Use fast fallback types instead of expensive assembly scanning
+        // This significantly improves performance by avoiding AppDomain.CurrentDomain.GetAssemblies() 
+        // and assembly.GetTypes() calls which can take 30+ seconds
+        var fastFallbackTypes = new[] 
+        { 
+            typeof(MinimalNotification),
+            typeof(object)
+        };
+
+        // Try fast fallback types as notification type arguments
+        foreach (var notificationType in fastFallbackTypes)
         {
             if (TryMakeGenericType(middlewareTypeDefinition, [notificationType], out var concreteType))
             {
                 return concreteType;
             }
         }
+
+        // If fast fallback fails, return null instead of expensive assembly scanning
+        // The middleware order will use the cached registration-time value
         return null;
     }
 
@@ -661,6 +680,39 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
     }
 
     private sealed class MinimalNotification : INotification { }
+
+    /// <summary>
+    /// Fast helper method to get constrained notification interfaces.
+    /// </summary>
+    private static Type[] GetConstrainedNotificationInterfaces(Type[] interfaces)
+    {
+        var result = new List<Type>();
+        for (int i = 0; i < interfaces.Length; i++)
+        {
+            var iface = interfaces[i];
+            if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(INotificationMiddleware<>))
+            {
+                result.Add(iface);
+            }
+        }
+        return result.ToArray();
+    }
+
+    /// <summary>
+    /// Fast helper method to check compatible constraints.
+    /// </summary>
+    private static bool HasCompatibleConstraint(Type[] constrainedInterfaces, Type actualNotificationType)
+    {
+        for (int i = 0; i < constrainedInterfaces.Length; i++)
+        {
+            var constraintType = constrainedInterfaces[i].GetGenericArguments()[0];
+            if (constraintType.IsAssignableFrom(actualNotificationType))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     #endregion
 }

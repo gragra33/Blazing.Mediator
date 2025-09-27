@@ -1,9 +1,5 @@
 using System.Diagnostics;
-using System.Collections.Concurrent;
-using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Blazing.Mediator.Abstractions;
+using static Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder;
 
 namespace Blazing.Mediator.Statistics;
 
@@ -12,13 +8,22 @@ namespace Blazing.Mediator.Statistics;
 /// </summary>
 public sealed class MediatorStatistics : IDisposable
 {
+    // Constants to avoid magic strings
+    private const string QueryNamePattern = "Query";
+    private const string CommandNamePattern = "Command";
+    private const string ResultNamePattern = "Result";
+    private const string PipelineNamespacePart = "Pipeline";
+    private const string PlaceholderSuffix = "Placeholder";
+    private const string SimplePrefix = "Simple";
+    private const string BlazingMediatorAssembly = "Blazing.Mediator";
+    private const string AspNetCoreIResultFullName = "Microsoft.AspNetCore.Http.IResult";
+    private const string IResultInterfaceName = "IResult";
+
     private readonly ConcurrentDictionary<string, long> _queryCounts = new();
     private readonly ConcurrentDictionary<string, long> _commandCounts = new();
     private readonly ConcurrentDictionary<string, long> _notificationCounts = new();
     private readonly IStatisticsRenderer _renderer;
     private readonly StatisticsOptions _options;
-    private readonly ILogger<MediatorStatistics>? _logger;
-
     // Performance counters (only used when EnablePerformanceCounters is true)
     private readonly ConcurrentDictionary<string, List<long>> _executionTimes = new();
     private readonly ConcurrentDictionary<string, long> _totalExecutions = new();
@@ -51,11 +56,10 @@ public sealed class MediatorStatistics : IDisposable
     /// <param name="renderer">The renderer to use for statistics output.</param>
     /// <param name="options">The statistics tracking options. If null, uses default options.</param>
     /// <param name="logger">Optional logger for debug-level logging of analysis operations.</param>
-    public MediatorStatistics(IStatisticsRenderer renderer, StatisticsOptions? options = null, ILogger<MediatorStatistics>? logger = null)
+    public MediatorStatistics(IStatisticsRenderer renderer, StatisticsOptions? options = null)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _options = options ?? new StatisticsOptions();
-        _logger = logger;
 
         // Initialize cleanup timer if retention period is configured
         if (_options.MetricsRetentionPeriod > TimeSpan.Zero)
@@ -510,7 +514,7 @@ public sealed class MediatorStatistics : IDisposable
 
         // Also include IRequest<T> types that look like queries (contain "Query" in name)
         var requestWithResponseTypes = FindTypesImplementingInterface(typeof(IRequest<>))
-            .Where(t => t.Name.Contains("Query", StringComparison.OrdinalIgnoreCase));
+            .Where(t => t.Name.Contains(QueryNamePattern, StringComparison.OrdinalIgnoreCase));
 
         var allQueryTypes = queryTypes.Concat(requestWithResponseTypes).Distinct().ToList();
 
@@ -540,11 +544,11 @@ public sealed class MediatorStatistics : IDisposable
         // Also include IRequest types (void commands) that look like commands
         var voidRequestTypes = FindTypesImplementingInterface(typeof(IRequest))
             .Where(t => !t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>))) // Exclude IRequest<T>
-            .Where(t => t.Name.Contains("Command", StringComparison.OrdinalIgnoreCase));
+            .Where(t => t.Name.Contains(CommandNamePattern, StringComparison.OrdinalIgnoreCase));
 
         // Include IRequest<T> types that look like commands (contain "Command" in name)
         var requestWithResponseTypes = FindTypesImplementingInterface(typeof(IRequest<>))
-            .Where(t => t.Name.Contains("Command", StringComparison.OrdinalIgnoreCase));
+            .Where(t => t.Name.Contains(CommandNamePattern, StringComparison.OrdinalIgnoreCase));
 
         var allCommandTypes = commandTypes.Concat(voidRequestTypes).Concat(requestWithResponseTypes).Distinct().ToList();
 
@@ -574,6 +578,7 @@ public sealed class MediatorStatistics : IDisposable
 
     /// <summary>
     /// Finds all types in loaded assemblies that implement the specified interface.
+    /// Filters out internal implementation details from the Blazing.Mediator assembly.
     /// </summary>
     private static List<Type> FindTypesImplementingInterface(Type interfaceType)
     {
@@ -590,6 +595,7 @@ public sealed class MediatorStatistics : IDisposable
             {
                 var assemblyTypes = assembly.GetTypes()
                     .Where(t => t is { IsAbstract: false, IsInterface: false, IsClass: true })
+                    .Where(t => ShouldIncludeTypeInAnalysis(t)) // Filter out internal implementation details
                     .ToList();
 
                 types.AddRange(assemblyTypes.Where(type => ImplementsInterface(type, interfaceType)));
@@ -601,6 +607,45 @@ public sealed class MediatorStatistics : IDisposable
         }
 
         return types;
+    }
+
+    /// <summary>
+    /// Determines whether a type should be included in statistics analysis.
+    /// Filters out internal implementation details from the Blazing.Mediator assembly.
+    /// </summary>
+    private static bool ShouldIncludeTypeInAnalysis(Type type)
+    {
+        // Always include types from user assemblies (non-Blazing.Mediator assemblies)
+        var assemblyName = type.Assembly.GetName().Name;
+        if (assemblyName != BlazingMediatorAssembly)
+        {
+            return true;
+        }
+
+        // For types in the Blazing.Mediator assembly, exclude internal implementation details
+        var typeName = type.Name;
+        var typeFullName = type.FullName ?? string.Empty;
+
+        // Exclude internal placeholder types used for constraint satisfaction
+        if (typeName is nameof(InternalCommandPlaceholder) or nameof(InternalRequestPlaceholder))
+        {
+            return false;
+        }
+
+        // Exclude types that are clearly internal implementation details
+        if (typeFullName.Contains(PipelineNamespacePart + ".") && (typeName.StartsWith(SimplePrefix) || typeName.EndsWith(PlaceholderSuffix)))
+        {
+            return false;
+        }
+
+        // Exclude nested private/internal classes
+        if (type is { IsNested: true, IsNestedPublic: false })
+        {
+            return false;
+        }
+
+        // Include other public types from Blazing.Mediator (like test types in unit test assemblies)
+        return type.IsPublic;
     }
 
     /// <summary>
@@ -971,9 +1016,9 @@ public sealed class MediatorStatistics : IDisposable
             if (isDetailed && responseType != null)
             {
                 // Check for IResult interface (Microsoft.AspNetCore.Http.IResult)
-                isResultType = responseType.GetInterfaces().Any(i => i.Name == "IResult") ||
-                              responseType.Name.Contains("Result") ||
-                              responseType.FullName?.Contains("Microsoft.AspNetCore.Http.IResult") == true;
+                isResultType = responseType.GetInterfaces().Any(i => i.Name == IResultInterfaceName) ||
+                              responseType.Name.Contains(ResultNamePattern) ||
+                              responseType.FullName?.Contains(AspNetCoreIResultFullName) == true;
             }
 
             analysisResults.Add(new QueryCommandAnalysis(

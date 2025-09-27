@@ -679,7 +679,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         catch
         {
             // If assembly scanning fails, fall back to simple types
-            candidateTypes.AddRange([typeof(SimpleRequest), typeof(SimpleCommand), typeof(string), typeof(object)]);
+            candidateTypes.AddRange([typeof(InternalRequestPlaceholder), typeof(InternalCommandPlaceholder), typeof(string), typeof(object)]);
         }
 
         // Try different combinations of candidate types as type arguments
@@ -1023,14 +1023,16 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
     #region Placeholder Types for Constraint Satisfaction
 
     /// <summary>
-    /// Simple command that satisfies IRequest constraints.
+    /// Internal command placeholder that satisfies IRequest constraints.
+    /// This type is used internally for type constraint validation and should never be exposed to users.
     /// </summary>
-    private sealed class SimpleCommand : IRequest { }
+    internal sealed class InternalCommandPlaceholder : IRequest { }
 
     /// <summary>
-    /// Simple request that satisfies IRequest{T} constraints.
+    /// Internal request placeholder that satisfies IRequest{T} constraints.
+    /// This type is used internally for type constraint validation and should never be exposed to users.
     /// </summary>
-    private sealed class SimpleRequest : IRequest<object> { }
+    internal sealed class InternalRequestPlaceholder : IRequest<object> { }
 
     #endregion
 

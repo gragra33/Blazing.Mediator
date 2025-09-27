@@ -1,6 +1,4 @@
-using Blazing.Mediator.OpenTelemetry;
 using Blazing.Mediator.Services;
-using Blazing.Mediator.Statistics;
 using Blazing.Mediator.Registration;
 using System.Runtime.CompilerServices;
 
@@ -280,42 +278,15 @@ public static class ServiceCollectionExtensions
         Assembly[]? assemblies,
         Assembly? callingAssembly)
     {
-        // Configure middleware if provided
-        var configuration = new MediatorConfiguration(services);
-        options?.Invoke(configuration);
-
-        // Resolve assemblies based on what was provided
-        Assembly[] targetAssemblies;
-        
-        // First, add assemblies from configuration if any
-        var configurationAssemblies = configuration.Assemblies.ToArray();
-        
-        // Then merge with assemblies passed as parameters
-        if (assemblies is { Length: > 0 })
-        {
-            targetAssemblies = configurationAssemblies.Concat(assemblies).Distinct().ToArray();
-        }
-        else if (callingAssembly != null)
-        {
-            targetAssemblies = configurationAssemblies.Concat([callingAssembly]).Distinct().ToArray();
-        }
-        else if (configurationAssemblies.Length > 0)
-        {
-            targetAssemblies = configurationAssemblies;
-        }
-        else
-        {
-            targetAssemblies = [];
-        }
-
-        // Use the static registration service to handle the core logic
+        // Delegate all logic to the MediatorRegistrationService
         return MediatorRegistrationService.RegisterMediatorServices(
             services,
-            configuration,
+            options,
             enableStatisticsTracking,
             discoverMiddleware,
             discoverNotificationMiddleware,
-            targetAssemblies);
+            assemblies,
+            callingAssembly);
     }
 
     #endregion

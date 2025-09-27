@@ -1,7 +1,5 @@
-using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Blazing.Mediator.OpenTelemetry;
-using System.Reflection;
 
 namespace Blazing.Mediator.Registration;
 
@@ -12,6 +10,100 @@ namespace Blazing.Mediator.Registration;
 internal static class MediatorRegistrationService
 {
     /// <summary>
+    /// Core implementation for all AddMediator methods to prevent recursion.
+    /// Handles configuration creation, assembly resolution, and service registration.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="options">Optional action to configure middleware pipeline.</param>
+    /// <param name="enableStatisticsTracking">Legacy parameter for statistics tracking (use configuration.StatisticsOptions instead).</param>
+    /// <param name="discoverMiddleware">Legacy parameter for middleware discovery (use configuration.DiscoverMiddleware instead).</param>
+    /// <param name="discoverNotificationMiddleware">Legacy parameter for notification middleware discovery (use configuration.DiscoverNotificationMiddleware instead).</param>
+    /// <param name="assemblies">Assemblies to scan for handlers.</param>
+    /// <param name="callingAssembly">Optional calling assembly to include in scanning.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection RegisterMediatorServices(
+        IServiceCollection services,
+        Action<MediatorConfiguration>? options,
+        bool enableStatisticsTracking,
+        bool? discoverMiddleware,
+        bool? discoverNotificationMiddleware,
+        Assembly[]? assemblies,
+        Assembly? callingAssembly)
+    {
+        // Check if there's already a MediatorConfiguration registered
+        var existingConfigurationDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(MediatorConfiguration));
+        MediatorConfiguration configuration;
+
+        if (existingConfigurationDescriptor != null)
+        {
+            // Get the existing configuration instance
+            if (existingConfigurationDescriptor.ImplementationInstance is MediatorConfiguration existingConfig)
+            {
+                configuration = existingConfig;
+            }
+            else
+            {
+                // If it's not an instance registration, create a new one and merge later
+                configuration = new MediatorConfiguration(services);
+            }
+        }
+        else
+        {
+            // Create new configuration
+            configuration = new MediatorConfiguration(services);
+        }
+
+        // Apply configuration options if provided
+        options?.Invoke(configuration);
+
+        // Resolve assemblies based on what was provided
+        Assembly[] targetAssemblies;
+        
+        // First, add assemblies from configuration if any
+        var configurationAssemblies = configuration.Assemblies.ToArray();
+        
+        // Then merge with assemblies passed as parameters
+        if (assemblies is { Length: > 0 })
+        {
+            targetAssemblies = configurationAssemblies.Concat(assemblies).Distinct().ToArray();
+        }
+        else if (callingAssembly != null)
+        {
+            targetAssemblies = configurationAssemblies.Concat([callingAssembly]).Distinct().ToArray();
+        }
+        else if (configurationAssemblies.Length > 0)
+        {
+            targetAssemblies = configurationAssemblies;
+        }
+        else
+        {
+            targetAssemblies = [];
+        }
+
+        // Add any additional assemblies from the parameters to the configuration
+        if (assemblies is { Length: > 0 })
+        {
+            foreach (var assembly in assemblies)
+            {
+                configuration.AddFromAssembly(assembly);
+            }
+        }
+        else if (callingAssembly != null)
+        {
+            configuration.AddFromAssembly(callingAssembly);
+        }
+
+        // Register the mediator services using the resolved configuration and assemblies
+        return RegisterMediatorServicesCore(
+            services,
+            configuration,
+            enableStatisticsTracking,
+            discoverMiddleware,
+            discoverNotificationMiddleware,
+            targetAssemblies);
+    }
+
+    /// <summary>
     /// Registers the core mediator services in the dependency injection container.
     /// </summary>
     /// <param name="services">The service collection.</param>
@@ -21,7 +113,7 @@ internal static class MediatorRegistrationService
     /// <param name="discoverNotificationMiddleware">Legacy parameter for notification middleware discovery (use configuration.DiscoverNotificationMiddleware instead).</param>
     /// <param name="assemblies">Assemblies to scan for handlers.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection RegisterMediatorServices(
+    private static IServiceCollection RegisterMediatorServicesCore(
         IServiceCollection services,
         MediatorConfiguration configuration,
         bool enableStatisticsTracking,
@@ -62,7 +154,7 @@ internal static class MediatorRegistrationService
         RegisterTelemetryOptions(services, configuration, hasTelemetryOptions);
         RegisterLoggingOptions(services, configuration, hasLoggingOptions);
         RegisterStatistics(services, configuration, shouldRegisterStatistics, hasStatisticsOptions);
-        RegisterMediator(services, shouldRegisterStatistics, hasTelemetryOptions, hasLoggingOptions);
+        RegisterMediator(services, shouldRegisterStatistics);
         RegisterMiddleware(services, configuration, assemblies, finalDiscoverMiddleware, finalDiscoverNotificationMiddleware);
         RegisterPipelineComponents(services, configuration);
         RegisterHandlers(services, assemblies, configuration.DiscoverNotificationHandlers);
@@ -116,19 +208,23 @@ internal static class MediatorRegistrationService
     /// <summary>
     /// Registers Mediator with conditional statistics dependency.
     /// </summary>
-    private static void RegisterMediator(IServiceCollection services, bool shouldRegisterStatistics, bool hasTelemetryOptions, bool hasLoggingOptions)
+    private static void RegisterMediator(IServiceCollection services, bool shouldRegisterStatistics)
     {
-        services.AddScoped<IMediator>(provider =>
+        // Only register IMediator if it's not already registered
+        if (services.All(s => s.ServiceType != typeof(IMediator)))
         {
-            var pipelineBuilder = provider.GetRequiredService<IMiddlewarePipelineBuilder>();
-            var notificationPipelineBuilder = provider.GetRequiredService<INotificationPipelineBuilder>();
-            var statistics = shouldRegisterStatistics ? provider.GetRequiredService<MediatorStatistics>() : null;
-            var telemetryOptions = provider.GetService<MediatorTelemetryOptions>();
-            var baseLogger = provider.GetService<ILogger<Mediator>>();
-            var loggingOptions = provider.GetService<LoggingOptions>();
-            var granularLogger = baseLogger != null ? new MediatorLogger(baseLogger, loggingOptions) : null;
-            return new Mediator(provider, pipelineBuilder, notificationPipelineBuilder, statistics, telemetryOptions, granularLogger);
-        });
+            services.AddScoped<IMediator>(provider =>
+            {
+                var pipelineBuilder = provider.GetRequiredService<IMiddlewarePipelineBuilder>();
+                var notificationPipelineBuilder = provider.GetRequiredService<INotificationPipelineBuilder>();
+                var statistics = shouldRegisterStatistics ? provider.GetRequiredService<MediatorStatistics>() : null;
+                var telemetryOptions = provider.GetService<MediatorTelemetryOptions>();
+                var baseLogger = provider.GetService<ILogger<Mediator>>();
+                var loggingOptions = provider.GetService<LoggingOptions>();
+                var granularLogger = baseLogger != null ? new MediatorLogger(baseLogger, loggingOptions) : null;
+                return new Mediator(provider, pipelineBuilder, notificationPipelineBuilder, statistics, telemetryOptions, granularLogger);
+            });
+        }
     }
 
     /// <summary>
@@ -153,30 +249,46 @@ internal static class MediatorRegistrationService
     /// </summary>
     private static void RegisterPipelineComponents(IServiceCollection services, MediatorConfiguration configuration)
     {
-        services.AddSingleton(configuration);
-
-        // Register the configured pipeline builder as the scoped pipeline builder
-        services.AddScoped(provider =>
-            provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
-
-        // Register the configured notification pipeline builder as the scoped notification pipeline builder with constraint validation
-        services.AddScoped(provider =>
+        // Only register the configuration if it's not already registered
+        if (services.All(s => s.ServiceType != typeof(MediatorConfiguration)))
         {
-            var config = provider.GetRequiredService<MediatorConfiguration>();
-            var notificationPipelineBuilder = config.NotificationPipelineBuilder;
-            
-            return notificationPipelineBuilder;
-        });
+            services.AddSingleton(configuration);
+        }
+
+        // Only register pipeline builder if not already registered
+        if (services.All(s => s.ServiceType != typeof(IMiddlewarePipelineBuilder)))
+        {
+            services.AddScoped(provider =>
+                provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
+        }
+
+        // Only register notification pipeline builder if not already registered
+        if (services.All(s => s.ServiceType != typeof(INotificationPipelineBuilder)))
+        {
+            services.AddScoped(provider =>
+            {
+                var config = provider.GetRequiredService<MediatorConfiguration>();
+                var notificationPipelineBuilder = config.NotificationPipelineBuilder;
+                
+                return notificationPipelineBuilder;
+            });
+        }
 
         // Register pipeline inspector for debugging (same instance as pipeline builder)
-        services.AddScoped(provider =>
-            provider.GetRequiredService<IMiddlewarePipelineBuilder>() as IMiddlewarePipelineInspector
-            ?? throw new InvalidOperationException("Pipeline builder must implement IMiddlewarePipelineInspector"));
+        if (services.All(s => s.ServiceType != typeof(IMiddlewarePipelineInspector)))
+        {
+            services.AddScoped(provider =>
+                provider.GetRequiredService<IMiddlewarePipelineBuilder>() as IMiddlewarePipelineInspector
+                ?? throw new InvalidOperationException("Pipeline builder must implement IMiddlewarePipelineInspector"));
+        }
 
         // Register notification pipeline inspector for debugging (same instance as notification pipeline builder)
-        services.AddScoped(provider =>
-            provider.GetRequiredService<INotificationPipelineBuilder>() as INotificationMiddlewarePipelineInspector
-            ?? throw new InvalidOperationException("Notification pipeline builder must implement INotificationMiddlewarePipelineInspector"));
+        if (services.All(s => s.ServiceType != typeof(INotificationMiddlewarePipelineInspector)))
+        {
+            services.AddScoped(provider =>
+                provider.GetRequiredService<INotificationPipelineBuilder>() as INotificationMiddlewarePipelineInspector
+                ?? throw new InvalidOperationException("Notification pipeline builder must implement INotificationMiddlewarePipelineInspector"));
+        }
     }
 
     /// <summary>
@@ -254,7 +366,7 @@ internal static class MediatorRegistrationService
             // Skip assemblies that can't be loaded completely
             // This can happen with reference assemblies or incomplete dependencies
             throw new InvalidOperationException($"Failed to load types from assembly '{assembly.FullName}'. " +
-                $"Loader exceptions: {string.Join(", ", ex.LoaderExceptions?.Select(e => e?.Message) ?? [])}", ex);
+                $"Loader exceptions: {string.Join(", ", ex.LoaderExceptions.Select(e => e?.Message))}", ex);
         }
 
         return;
@@ -311,7 +423,7 @@ internal static class MediatorRegistrationService
             // Skip assemblies that can't be loaded completely
             // This can happen with reference assemblies or incomplete dependencies
             throw new InvalidOperationException($"Failed to load types from assembly '{assembly.FullName}' during handler discovery. " +
-                $"Loader exceptions: {string.Join(", ", ex.LoaderExceptions?.Select(e => e?.Message) ?? [])}", ex);
+                $"Loader exceptions: {string.Join(", ", ex.LoaderExceptions.Select(e => e?.Message))}", ex);
         }
         catch (Exception ex)
         {
@@ -336,14 +448,14 @@ internal static class MediatorRegistrationService
             {
                 // Always register notification handlers - multiple handlers per notification are allowed
                 // Use factory pattern for better performance and DI integration
-                services.AddScoped(interfaceType, serviceProvider => (object)serviceProvider.GetRequiredService(handlerType));
+                services.AddScoped(interfaceType, serviceProvider => serviceProvider.GetRequiredService(handlerType));
             }
             else
             {
                 // For request handlers, register only if no implementation exists (single handler per request)
                 if (services.All(s => s.ServiceType != interfaceType))
                 {
-                    services.AddScoped(interfaceType, serviceProvider => (object)serviceProvider.GetRequiredService(handlerType));
+                    services.AddScoped(interfaceType, serviceProvider => serviceProvider.GetRequiredService(handlerType));
                 }
             }
         }

@@ -1,8 +1,3 @@
-using Blazing.Mediator.Abstractions;
-using Blazing.Mediator.Configuration;
-using Blazing.Mediator.Exceptions;
-using System.Reflection;
-
 namespace Blazing.Mediator.Pipeline;
 
 /// <summary>
@@ -265,7 +260,7 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
                     await currentPipeline(notif, ct).ConfigureAwait(false);
                     return;
                 }
-                bool executionSuccessful = false;
+
                 try
                 {
                     bool invokedConstrainedMethod = await TryInvokeConstrainedMethodAsync(middleware, notif, currentPipeline, ct, actualNotificationType);
@@ -273,7 +268,7 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
                     {
                         await middleware.InvokeAsync(notif, currentPipeline, ct).ConfigureAwait(false);
                     }
-                    executionSuccessful = true;
+
                     executedCount++;
                 }
                 catch (OperationCanceledException)
@@ -282,7 +277,6 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
                 }
                 catch
                 {
-                    executionSuccessful = false;
                     throw;
                 }
                 finally
@@ -345,6 +339,7 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
             }
             catch
             {
+                 //
             }
             result.Add((middlewareInfo.Type, actualOrder, middlewareInfo.Configuration));
         }
@@ -356,6 +351,8 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
     {
         var middlewareInfos = GetDetailedMiddlewareInfo(serviceProvider);
         var analysisResults = new List<MiddlewareAnalysis>();
+        var detailed = isDetailed ?? true;
+
         foreach (var (type, order, configuration) in middlewareInfos.OrderBy(m => m.Order))
         {
             var orderDisplay = order == int.MaxValue ? "Default" : order.ToString();
@@ -363,9 +360,9 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
             var typeParameters = type.IsGenericType ?
                 $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>" :
                 string.Empty;
-            var detailed = isDetailed ?? true;
             var genericConstraints = detailed ? GetGenericConstraints(type) : string.Empty;
             var handlerInfo = detailed ? configuration : null;
+
             analysisResults.Add(new MiddlewareAnalysis(
                 Type: type,
                 Order: order,
@@ -379,10 +376,9 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
         return analysisResults;
     }
 
-    /// <inheritdoc />
     public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider)
     {
-        return AnalyzeMiddleware(serviceProvider, true);
+        return AnalyzeMiddleware(serviceProvider, true); // Call the other overload directly
     }
 
     #endregion

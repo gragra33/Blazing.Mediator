@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace Blazing.Mediator.Logging;
 
 /// <summary>
@@ -43,6 +45,12 @@ public sealed partial class MediatorLogger
     /// </summary>
     private bool IsPerformanceLoggingEnabled => 
         _loggingOptions?.EnablePerformanceTiming ?? false;
+
+    /// <summary>
+    /// Gets whether request middleware logging is enabled based on options.
+    /// </summary>
+    private bool IsRequestMiddlewareLoggingEnabled => 
+        _loggingOptions?.EnableRequestMiddleware ?? true;
 
     #region Send Operation Logging
 
@@ -275,6 +283,245 @@ public sealed partial class MediatorLogger
     }
     #endregion
 
+    #region Request Middleware Pipeline Logging
+
+    /// <summary>
+    /// Logs the start of a request middleware pipeline execution.
+    /// </summary>
+    /// <param name="requestType">The name of the request type.</param>
+    /// <param name="middlewareCount">The number of middleware components in the pipeline.</param>
+    public void MiddlewarePipelineStarted(string requestType, int middlewareCount)
+    {
+        if (!IsDebugLoggingEnabled || !IsRequestMiddlewareLoggingEnabled) return;
+        LogMiddlewarePipelineStarted(_logger, requestType, middlewareCount, null);
+    }
+
+    /// <summary>
+    /// Logs middleware compatibility checking.
+    /// </summary>
+    /// <param name="middlewareName">The name of the middleware being checked.</param>
+    /// <param name="requestType">The name of the request type.</param>
+    public void MiddlewareCompatibilityCheck(string middlewareName, string requestType)
+    {
+        if (!IsDebugLoggingEnabled || !IsRequestMiddlewareLoggingEnabled) return;
+        LogMiddlewareCompatibilityCheck(_logger, middlewareName, requestType, null);
+    }
+
+    /// <summary>
+    /// Logs when middleware is not compatible with the request type.
+    /// </summary>
+    /// <param name="middlewareName">The name of the incompatible middleware.</param>
+    /// <param name="requestType">The name of the request type.</param>
+    /// <param name="order">The order of the middleware.</param>
+    public void MiddlewareIncompatible(string middlewareName, string requestType, int order)
+    {
+        if (!IsDebugLoggingEnabled || !IsRequestMiddlewareLoggingEnabled) return;
+        LogMiddlewareIncompatible(_logger, middlewareName, requestType, order, null);
+    }
+
+    /// <summary>
+    /// Logs when middleware is compatible with the request type.
+    /// </summary>
+    /// <param name="middlewareName">The name of the compatible middleware.</param>
+    /// <param name="requestType">The name of the request type.</param>
+    /// <param name="order">The order of the middleware.</param>
+    public void MiddlewareCompatible(string middlewareName, string requestType, int order)
+    {
+        if (!IsDebugLoggingEnabled || !IsRequestMiddlewareLoggingEnabled) return;
+        LogMiddlewareCompatible(_logger, middlewareName, requestType, order, null);
+    }
+
+    /// <summary>
+    /// Logs pipeline execution information.
+    /// </summary>
+    /// <param name="applicableMiddlewareCount">The number of applicable middleware components.</param>
+    public void PipelineExecution(int applicableMiddlewareCount)
+    {
+        if (!IsDebugLoggingEnabled || !IsRequestMiddlewareLoggingEnabled) return;
+        LogPipelineExecution(_logger, applicableMiddlewareCount, null);
+    }
+
+    #endregion
+
+    #region Statistics Logging
+
+    /// <summary>
+    /// Logs query increment.
+    /// </summary>
+    /// <param name="queryType">The query type.</param>
+    public void QueryIncremented(string queryType)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogQueryIncremented(_logger, queryType, null);
+    }
+
+    /// <summary>
+    /// Logs command increment.
+    /// </summary>
+    /// <param name="commandType">The command type.</param>
+    public void CommandIncremented(string commandType)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogCommandIncremented(_logger, commandType, null);
+    }
+
+    /// <summary>
+    /// Logs notification increment.
+    /// </summary>
+    /// <param name="notificationType">The notification type.</param>
+    public void NotificationIncremented(string notificationType)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogNotificationIncremented(_logger, notificationType, null);
+    }
+
+    /// <summary>
+    /// Logs execution time recording.
+    /// </summary>
+    /// <param name="requestType">The request type.</param>
+    /// <param name="executionTimeMs">The execution time in milliseconds.</param>
+    /// <param name="successful">Whether the execution was successful.</param>
+    public void ExecutionTimeRecorded(string requestType, long executionTimeMs, bool successful)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogExecutionTimeRecorded(_logger, requestType, executionTimeMs, successful, null);
+    }
+
+    /// <summary>
+    /// Logs memory allocation recording.
+    /// </summary>
+    /// <param name="bytesAllocated">The bytes allocated.</param>
+    public void MemoryAllocationRecorded(long bytesAllocated)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogMemoryAllocationRecorded(_logger, bytesAllocated, null);
+    }
+
+    /// <summary>
+    /// Logs middleware execution recording.
+    /// </summary>
+    /// <param name="middlewareType">The middleware type.</param>
+    /// <param name="executionTimeMs">The execution time in milliseconds.</param>
+    /// <param name="successful">Whether the execution was successful.</param>
+    public void MiddlewareExecutionRecorded(string middlewareType, long executionTimeMs, bool successful)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogMiddlewareExecutionRecorded(_logger, middlewareType, executionTimeMs, successful, null);
+    }
+
+    /// <summary>
+    /// Logs execution pattern recording.
+    /// </summary>
+    /// <param name="requestType">The request type.</param>
+    /// <param name="executionTime">The execution time.</param>
+    public void ExecutionPatternRecorded(string requestType, DateTime executionTime)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogExecutionPatternRecorded(_logger, requestType, executionTime, null);
+    }
+
+    /// <summary>
+    /// Logs statistics report start.
+    /// </summary>
+    public void StatisticsReportStarted()
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogStatisticsReportStarted(_logger, null);
+    }
+
+    /// <summary>
+    /// Logs statistics report completion.
+    /// </summary>
+    public void StatisticsReportCompleted()
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogStatisticsReportCompleted(_logger, null);
+    }
+
+    /// <summary>
+    /// Logs analysis start.
+    /// </summary>
+    /// <param name="analysisType">The analysis type.</param>
+    public void AnalysisStarted(string analysisType)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogAnalysisStarted(_logger, analysisType, null);
+    }
+
+    /// <summary>
+    /// Logs analysis completion.
+    /// </summary>
+    /// <param name="analysisType">The analysis type.</param>
+    /// <param name="resultCount">The result count.</param>
+    public void AnalysisCompleted(string analysisType, int resultCount)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogAnalysisCompleted(_logger, analysisType, resultCount, null);
+    }
+
+    /// <summary>
+    /// Logs cleanup start.
+    /// </summary>
+    /// <param name="expiredEntries">The expired entries count.</param>
+    public void CleanupStarted(int expiredEntries)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogCleanupStarted(_logger, expiredEntries, null);
+    }
+
+    /// <summary>
+    /// Logs cleanup completion.
+    /// </summary>
+    /// <param name="removedEntries">The removed entries count.</param>
+    public void CleanupCompleted(int removedEntries)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogCleanupCompleted(_logger, removedEntries, null);
+    }
+
+    /// <summary>
+    /// Logs statistics disposal.
+    /// </summary>
+    public void StatisticsDisposed()
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogStatisticsDisposed(_logger, null);
+    }
+
+    #endregion
+
+    #region Cleanup Service Logging
+
+    /// <summary>
+    /// Logs cleanup service started.
+    /// </summary>
+    public void CleanupServiceStarted()
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogCleanupServiceStarted(_logger, null);
+    }
+
+    /// <summary>
+    /// Logs cleanup service completed.
+    /// </summary>
+    public void CleanupServiceCompleted()
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogCleanupServiceCompleted(_logger, null);
+    }
+
+    /// <summary>
+    /// Logs cleanup service error.
+    /// </summary>
+    /// <param name="exception">The exception that occurred.</param>
+    public void CleanupServiceError(Exception exception)
+    {
+        if (!IsDebugLoggingEnabled) return;
+        LogCleanupServiceError(_logger, exception);
+    }
+
+    #endregion
+
     #region Source-Generated Log Messages
     [LoggerMessage(1001, LogLevel.Debug, "Send operation started for {RequestType}")]
     private static partial void LogSendOperationStarted(ILogger logger, string requestType, Exception? exception);
@@ -338,8 +585,77 @@ public sealed partial class MediatorLogger
     [LoggerMessage(3008, LogLevel.Debug, "Publish operation completed for {NotificationType} in {DurationMs:F2}ms (Success: {Successful}, Processors: {TotalProcessors})")]
     private static partial void LogPublishOperationCompletedWithPerformance(ILogger logger, string notificationType, double durationMs, bool successful, int totalProcessors, Exception? exception);
 
-    [LoggerMessage(3009, LogLevel.Debug, "?? Notification pipeline started for {NotificationType} with {TotalMiddleware} middleware components [Pipeline: {PipelineId}]")]
+    [LoggerMessage(3009, LogLevel.Debug, "Notification pipeline started for {NotificationType} with {TotalMiddleware} middleware components [Pipeline: {PipelineId}]")]
     private static partial void LogNotificationPipelineStarted(ILogger logger, string notificationType, int totalMiddleware, string pipelineId, Exception? exception);
+
+    // Request Middleware Pipeline Log Messages
+    [LoggerMessage(4001, LogLevel.Debug, "Request middleware pipeline started for {RequestType} with {MiddlewareCount} middleware components")]
+    private static partial void LogMiddlewarePipelineStarted(ILogger logger, string requestType, int middlewareCount, Exception? exception);
+
+    [LoggerMessage(4002, LogLevel.Debug, "Checking middleware compatibility: {MiddlewareName} with request {RequestType}")]
+    private static partial void LogMiddlewareCompatibilityCheck(ILogger logger, string middlewareName, string requestType, Exception? exception);
+
+    [LoggerMessage(4003, LogLevel.Debug, "Middleware {MiddlewareName} is not compatible with request {RequestType}, order: {Order}")]
+    private static partial void LogMiddlewareIncompatible(ILogger logger, string middlewareName, string requestType, int order, Exception? exception);
+
+    [LoggerMessage(4004, LogLevel.Debug, "Middleware {MiddlewareName} is compatible with request {RequestType}, order: {Order}")]
+    private static partial void LogMiddlewareCompatible(ILogger logger, string middlewareName, string requestType, int order, Exception? exception);
+
+    [LoggerMessage(4005, LogLevel.Debug, "Executing request middleware pipeline with {ApplicableMiddlewareCount} applicable middleware components")]
+    private static partial void LogPipelineExecution(ILogger logger, int applicableMiddlewareCount, Exception? exception);
+
+    // Statistics Log Messages
+    [LoggerMessage(5001, LogLevel.Debug, "Query count incremented for {QueryType}")]
+    private static partial void LogQueryIncremented(ILogger logger, string queryType, Exception? exception);
+
+    [LoggerMessage(5002, LogLevel.Debug, "Command count incremented for {CommandType}")]
+    private static partial void LogCommandIncremented(ILogger logger, string commandType, Exception? exception);
+
+    [LoggerMessage(5003, LogLevel.Debug, "Notification count incremented for {NotificationType}")]
+    private static partial void LogNotificationIncremented(ILogger logger, string notificationType, Exception? exception);
+
+    [LoggerMessage(5004, LogLevel.Debug, "Execution time recorded for {RequestType}: {ExecutionTimeMs}ms (Successful: {Successful})")]
+    private static partial void LogExecutionTimeRecorded(ILogger logger, string requestType, long executionTimeMs, bool successful, Exception? exception);
+
+    [LoggerMessage(5005, LogLevel.Debug, "Memory allocation recorded: {BytesAllocated} bytes")]
+    private static partial void LogMemoryAllocationRecorded(ILogger logger, long bytesAllocated, Exception? exception);
+
+    [LoggerMessage(5006, LogLevel.Debug, "Middleware execution recorded for {MiddlewareType}: {ExecutionTimeMs}ms (Successful: {Successful})")]
+    private static partial void LogMiddlewareExecutionRecorded(ILogger logger, string middlewareType, long executionTimeMs, bool successful, Exception? exception);
+
+    [LoggerMessage(5007, LogLevel.Debug, "Execution pattern recorded for {RequestType} at {ExecutionTime}")]
+    private static partial void LogExecutionPatternRecorded(ILogger logger, string requestType, DateTime executionTime, Exception? exception);
+
+    [LoggerMessage(5008, LogLevel.Debug, "Statistics report started")]
+    private static partial void LogStatisticsReportStarted(ILogger logger, Exception? exception);
+
+    [LoggerMessage(5009, LogLevel.Debug, "Statistics report completed")]
+    private static partial void LogStatisticsReportCompleted(ILogger logger, Exception? exception);
+
+    [LoggerMessage(5010, LogLevel.Debug, "Analysis started for {AnalysisType}")]
+    private static partial void LogAnalysisStarted(ILogger logger, string analysisType, Exception? exception);
+
+    [LoggerMessage(5011, LogLevel.Debug, "Analysis completed for {AnalysisType} with {ResultCount} results")]
+    private static partial void LogAnalysisCompleted(ILogger logger, string analysisType, int resultCount, Exception? exception);
+
+    [LoggerMessage(5012, LogLevel.Debug, "Statistics cleanup started: {ExpiredEntries} expired entries found")]
+    private static partial void LogCleanupStarted(ILogger logger, int expiredEntries, Exception? exception);
+
+    [LoggerMessage(5013, LogLevel.Debug, "Statistics cleanup completed: {RemovedEntries} entries removed")]
+    private static partial void LogCleanupCompleted(ILogger logger, int removedEntries, Exception? exception);
+
+    [LoggerMessage(5014, LogLevel.Debug, "MediatorStatistics disposed")]
+    private static partial void LogStatisticsDisposed(ILogger logger, Exception? exception);
+
+    // Cleanup Service Log Messages
+    [LoggerMessage(6001, LogLevel.Debug, "Disposing static Mediator resources")]
+    private static partial void LogCleanupServiceStarted(ILogger logger, Exception? exception);
+
+    [LoggerMessage(6002, LogLevel.Debug, "Static Mediator resources disposed successfully")]
+    private static partial void LogCleanupServiceCompleted(ILogger logger, Exception? exception);
+
+    [LoggerMessage(6003, LogLevel.Warning, "Error disposing static Mediator resources")]
+    private static partial void LogCleanupServiceError(ILogger logger, Exception exception);
 
     #endregion
 }

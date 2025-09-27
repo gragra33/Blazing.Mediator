@@ -3,20 +3,20 @@ namespace Blazing.Mediator.Pipeline;
 /// <summary>
 /// This is part of the core Blazing.Mediator infrastructure and contains no business logic.
 /// </summary>
-public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddlewarePipelineInspector
+public sealed partial class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMiddlewarePipelineInspector
 {
     private readonly List<MiddlewareInfo> _middlewareInfos = [];
-    private readonly ILogger<MiddlewarePipelineBuilder>? _logger;
+    private readonly MediatorLogger? _mediatorLogger;
 
     private sealed record MiddlewareInfo(Type Type, int Order, object? Configuration = null);
 
     /// <summary>
     /// Initializes a new instance of the MiddlewarePipelineBuilder class.
     /// </summary>
-    /// <param name="logger">Optional logger for debug-level logging of pipeline operations.</param>
-    public MiddlewarePipelineBuilder(ILogger<MiddlewarePipelineBuilder>? logger = null)
+    /// <param name="mediatorLogger">Optional MediatorLogger for debug-level logging of pipeline operations.</param>
+    public MiddlewarePipelineBuilder(MediatorLogger? mediatorLogger = null)
     {
-        _logger = logger;
+        _mediatorLogger = mediatorLogger;
     }
 
     #region AddMiddleware overloads
@@ -110,7 +110,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         Type actualRequestType = request.GetType();
 
         // Debug logging: Pipeline started
-        _logger?.LogDebug("Request middleware pipeline started for {RequestType} with {MiddlewareCount} middleware components", actualRequestType.Name, _middlewareInfos.Count);
+        _mediatorLogger?.MiddlewarePipelineStarted(actualRequestType.Name, _middlewareInfos.Count);
 
         _ = Guid.NewGuid().ToString("N")[..8];
 
@@ -122,7 +122,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
         foreach (MiddlewareInfo middlewareInfo in _middlewareInfos)
         {
             // Debug logging: Checking middleware compatibility
-            _logger?.LogDebug("Checking middleware compatibility: {MiddlewareName} with request {RequestType}", middlewareInfo.Type.Name, actualRequestType.Name);
+            _mediatorLogger?.MiddlewareCompatibilityCheck(middlewareInfo.Type.Name, actualRequestType.Name);
 
             Type middlewareType = middlewareInfo.Type;
 
@@ -177,7 +177,7 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             if (!isCompatible)
             {
                 // Debug logging: Middleware not compatible
-                _logger?.LogDebug("Middleware {MiddlewareName} is not compatible with request {RequestType}, order: {Order}", actualMiddlewareType.Name, actualRequestType.Name, middlewareInfo.Order);
+                _mediatorLogger?.MiddlewareIncompatible(actualMiddlewareType.Name, actualRequestType.Name, middlewareInfo.Order);
 
                 // This middleware doesn't handle this request type, skip it
                 continue;
@@ -207,11 +207,11 @@ public sealed class MiddlewarePipelineBuilder : IMiddlewarePipelineBuilder, IMid
             applicableMiddleware.Add((actualMiddlewareType, actualOrder));
 
             // Debug logging: Middleware successfully added
-            _logger?.LogDebug("Middleware {MiddlewareName} is compatible with request {RequestType}, order: {Order}", actualMiddlewareType.Name, actualRequestType.Name, actualOrder);
+            _mediatorLogger?.MiddlewareCompatible(actualMiddlewareType.Name, actualRequestType.Name, actualOrder);
         }
 
         // Debug logging: Pipeline execution info
-        _logger?.LogDebug("Executing request middleware pipeline with {ApplicableMiddlewareCount} applicable middleware components", applicableMiddleware.Count);
+        _mediatorLogger?.PipelineExecution(applicableMiddleware.Count);
 
         // Sort middleware by order (lower numbers execute first), then by registration order
         // Pre-calculate registration indices to avoid O(n²) FindIndex calls

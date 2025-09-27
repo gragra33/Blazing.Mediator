@@ -1,5 +1,4 @@
 using Blazing.Mediator.Services;
-using Blazing.Mediator.Registration;
 using System.Runtime.CompilerServices;
 
 namespace Blazing.Mediator;

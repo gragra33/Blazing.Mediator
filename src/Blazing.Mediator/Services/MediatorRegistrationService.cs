@@ -1,7 +1,7 @@
 using Blazing.Mediator.Statistics;
 using Blazing.Mediator.OpenTelemetry;
 
-namespace Blazing.Mediator.Registration;
+namespace Blazing.Mediator.Services;
 
 /// <summary>
 /// Static service responsible for registering mediator services, handlers, and middleware in the dependency injection container.
@@ -200,7 +200,10 @@ internal static class MediatorRegistrationService
             {
                 var renderer = provider.GetRequiredService<IStatisticsRenderer>();
                 var statisticsOptions = hasStatisticsOptions ? configuration.StatisticsOptions : null;
-                return new MediatorStatistics(renderer, statisticsOptions);
+                var baseLogger = provider.GetService<ILogger<Mediator>>();
+                var loggingOptions = provider.GetService<LoggingOptions>();
+                var mediatorLogger = baseLogger != null ? new MediatorLogger(baseLogger, loggingOptions) : null;
+                return new MediatorStatistics(renderer, statisticsOptions, mediatorLogger);
             });
         }
     }
@@ -258,17 +261,72 @@ internal static class MediatorRegistrationService
         // Only register pipeline builder if not already registered
         if (services.All(s => s.ServiceType != typeof(IMiddlewarePipelineBuilder)))
         {
-            services.AddScoped(provider =>
-                provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
+            services.AddScoped<IMiddlewarePipelineBuilder>(provider =>
+            {
+                var config = provider.GetRequiredService<MediatorConfiguration>();
+                var baseLogger = provider.GetService<ILogger<Mediator>>();
+                var loggingOptions = provider.GetService<LoggingOptions>();
+                var mediatorLogger = baseLogger != null ? new MediatorLogger(baseLogger, loggingOptions) : null;
+                
+                // Create a new instance with the logger instead of using the config's cached instance
+                var pipelineBuilder = new MiddlewarePipelineBuilder(mediatorLogger);
+                
+                // Copy middleware registrations from the config's pipeline builder
+                if (config.PipelineBuilder is IMiddlewarePipelineInspector configPipelineBuilder)
+                {
+                    var middlewareInfos = configPipelineBuilder.GetDetailedMiddlewareInfo();
+                    foreach (var (type, _, o) in middlewareInfos)
+                    {
+                        if (o != null)
+                        {
+                            // Use reflection to call the generic method with configuration
+                            var addMethod = typeof(MiddlewarePipelineBuilder).GetMethod("AddMiddleware", [typeof(object)]);
+                            var genericMethod = addMethod?.MakeGenericMethod(type);
+                            genericMethod?.Invoke(pipelineBuilder, [o]);
+                        }
+                        else
+                        {
+                            pipelineBuilder.AddMiddleware(type);
+                        }
+                    }
+                }
+                
+                return pipelineBuilder;
+            });
         }
 
         // Only register notification pipeline builder if not already registered
         if (services.All(s => s.ServiceType != typeof(INotificationPipelineBuilder)))
         {
-            services.AddScoped(provider =>
+            services.AddScoped<INotificationPipelineBuilder>(provider =>
             {
                 var config = provider.GetRequiredService<MediatorConfiguration>();
-                var notificationPipelineBuilder = config.NotificationPipelineBuilder;
+                var baseLogger = provider.GetService<ILogger<Mediator>>();
+                var loggingOptions = provider.GetService<LoggingOptions>();
+                var mediatorLogger = baseLogger != null ? new MediatorLogger(baseLogger, loggingOptions) : null;
+                
+                // Create a new instance with the logger instead of using the config's cached instance
+                var notificationPipelineBuilder = new NotificationPipelineBuilder(mediatorLogger);
+                
+                // Copy middleware registrations from the config's notification pipeline builder
+                if (config.NotificationPipelineBuilder is INotificationMiddlewarePipelineInspector configNotificationPipelineBuilder)
+                {
+                    var middlewareInfos = configNotificationPipelineBuilder.GetDetailedMiddlewareInfo();
+                    foreach (var (type, _, o) in middlewareInfos)
+                    {
+                        if (o != null)
+                        {
+                            // Use reflection to call the generic method with configuration
+                            var addMethod = typeof(NotificationPipelineBuilder).GetMethod("AddMiddleware", [typeof(object)]);
+                            var genericMethod = addMethod?.MakeGenericMethod(type);
+                            genericMethod?.Invoke(notificationPipelineBuilder, [o]);
+                        }
+                        else
+                        {
+                            notificationPipelineBuilder.AddMiddleware(type);
+                        }
+                    }
+                }
                 
                 return notificationPipelineBuilder;
             });
@@ -420,7 +478,7 @@ internal static class MediatorRegistrationService
         catch (ReflectionTypeLoadException ex)
         {
             // Enhanced error handling for assembly scanning
-            // Skip assemblies that can't be loaded completely
+            // Skip assemblies that can't be loaded
             // This can happen with reference assemblies or incomplete dependencies
             throw new InvalidOperationException($"Failed to load types from assembly '{assembly.FullName}' during handler discovery. " +
                 $"Loader exceptions: {string.Join(", ", ex.LoaderExceptions.Select(e => e?.Message))}", ex);

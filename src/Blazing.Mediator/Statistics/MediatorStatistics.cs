@@ -24,6 +24,8 @@ public sealed class MediatorStatistics : IDisposable
     private readonly ConcurrentDictionary<string, long> _notificationCounts = new();
     private readonly IStatisticsRenderer _renderer;
     private readonly StatisticsOptions _options;
+    private readonly MediatorLogger? _mediatorLogger;
+    
     // Performance counters (only used when EnablePerformanceCounters is true)
     private readonly ConcurrentDictionary<string, List<long>> _executionTimes = new();
     private readonly ConcurrentDictionary<string, long> _totalExecutions = new();
@@ -55,11 +57,12 @@ public sealed class MediatorStatistics : IDisposable
     /// </summary>
     /// <param name="renderer">The renderer to use for statistics output.</param>
     /// <param name="options">The statistics tracking options. If null, uses default options.</param>
-    /// <param name="logger">Optional logger for debug-level logging of analysis operations.</param>
-    public MediatorStatistics(IStatisticsRenderer renderer, StatisticsOptions? options = null)
+    /// <param name="mediatorLogger">Optional MediatorLogger for debug-level logging of analysis operations.</param>
+    public MediatorStatistics(IStatisticsRenderer renderer, StatisticsOptions? options = null, MediatorLogger? mediatorLogger = null)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _options = options ?? new StatisticsOptions();
+        _mediatorLogger = mediatorLogger;
 
         // Initialize cleanup timer if retention period is configured
         if (_options.MetricsRetentionPeriod > TimeSpan.Zero)
@@ -82,6 +85,8 @@ public sealed class MediatorStatistics : IDisposable
 
         _queryCounts.AddOrUpdate(queryType, 1, (_, count) => count + 1);
         UpdateMetricTimestamp(queryType);
+        
+        LogQueryIncrementedImpl(queryType);
     }
 
     /// <summary>
@@ -97,6 +102,8 @@ public sealed class MediatorStatistics : IDisposable
 
         _commandCounts.AddOrUpdate(commandType, 1, (_, count) => count + 1);
         UpdateMetricTimestamp(commandType);
+        
+        LogCommandIncrementedImpl(commandType);
     }
 
     /// <summary>
@@ -112,6 +119,8 @@ public sealed class MediatorStatistics : IDisposable
 
         _notificationCounts.AddOrUpdate(notificationType, 1, (_, count) => count + 1);
         UpdateMetricTimestamp(notificationType);
+        
+        LogNotificationIncrementedImpl(notificationType);
     }
 
     /// <summary>
@@ -153,6 +162,8 @@ public sealed class MediatorStatistics : IDisposable
         {
             _failedExecutions.AddOrUpdate(requestType, 1, (_, count) => count + 1);
         }
+        
+        LogExecutionTimeRecordedImpl(requestType, executionTimeMs, successful);
     }
 
     /// <summary>
@@ -170,6 +181,8 @@ public sealed class MediatorStatistics : IDisposable
         {
             _totalMemoryAllocated += bytesAllocated;
         }
+        
+        LogMemoryAllocationRecordedImpl(bytesAllocated);
     }
 
     /// <summary>
@@ -194,6 +207,8 @@ public sealed class MediatorStatistics : IDisposable
         }
 
         UpdateMetricTimestamp($"middleware_{middlewareType}");
+        
+        LogMiddlewareExecutionRecordedImpl(middlewareType, executionTimeMs, successful);
     }
 
     /// <summary>
@@ -236,6 +251,8 @@ public sealed class MediatorStatistics : IDisposable
         _hourlyExecutionCounts.AddOrUpdate(hourKey, 1, (_, count) => count + 1);
 
         UpdateMetricTimestamp($"pattern_{requestType}");
+        
+        LogExecutionPatternRecordedImpl(requestType, executionTime);
     }
 
     /// <summary>
@@ -351,6 +368,8 @@ public sealed class MediatorStatistics : IDisposable
     /// </summary>
     public void ReportStatistics()
     {
+        LogStatisticsReportStartedImpl();
+        
         _renderer.Render("Mediator Statistics:");
         _renderer.Render($"Queries: {_queryCounts.Count}");
         _renderer.Render($"Commands: {_commandCounts.Count}");
@@ -373,6 +392,8 @@ public sealed class MediatorStatistics : IDisposable
                 _renderer.Render($"Unique Request Types: {summaryValue.UniqueRequestTypes}");
             }
         }
+        
+        LogStatisticsReportCompletedImpl();
     }
 
     /// <summary>
@@ -405,6 +426,8 @@ public sealed class MediatorStatistics : IDisposable
                 }
             }
 
+            LogCleanupStartedImpl(keysToRemove.Count);
+
             // Remove expired metrics
             foreach (var key in keysToRemove)
             {
@@ -416,6 +439,8 @@ public sealed class MediatorStatistics : IDisposable
             {
                 LimitMetricEntries();
             }
+            
+            LogCleanupCompletedImpl(keysToRemove.Count);
         }
     }
 
@@ -494,6 +519,8 @@ public sealed class MediatorStatistics : IDisposable
 
             _disposed = true;
             _cleanupTimer?.Dispose();
+            
+            LogStatisticsDisposedImpl();
         }
     }
 
@@ -506,6 +533,8 @@ public sealed class MediatorStatistics : IDisposable
     /// <returns>Read-only list of query analysis information grouped by assembly with namespace.</returns>
     public IReadOnlyList<QueryCommandAnalysis> AnalyzeQueries(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
+        LogAnalysisStartedImpl("queries");
+        
         // Use the parameter if provided, otherwise use the options setting
         bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
 
@@ -520,6 +549,7 @@ public sealed class MediatorStatistics : IDisposable
 
         var results = CreateAnalysisResults(allQueryTypes, serviceProvider, true, useDetailedAnalysis);
 
+        LogAnalysisCompletedImpl("queries", results.Count);
         return results;
     }
 
@@ -532,6 +562,8 @@ public sealed class MediatorStatistics : IDisposable
     /// <returns>Read-only list of command analysis information grouped by assembly with namespace.</returns>
     public IReadOnlyList<QueryCommandAnalysis> AnalyzeCommands(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
+        LogAnalysisStartedImpl("commands");
+        
         // Use the parameter if provided, otherwise use the options setting
         bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
 
@@ -554,6 +586,7 @@ public sealed class MediatorStatistics : IDisposable
 
         var results = CreateAnalysisResults(allCommandTypes, serviceProvider, false, useDetailedAnalysis);
 
+        LogAnalysisCompletedImpl("commands", results.Count);
         return results;
     }
 
@@ -565,6 +598,8 @@ public sealed class MediatorStatistics : IDisposable
     /// <returns>Read-only list of notification analysis information.</returns>
     public IReadOnlyList<NotificationAnalysis> AnalyzeNotifications(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
+        LogAnalysisStartedImpl("notifications");
+        
         // Use the parameter if provided, otherwise use the options setting
         bool useDetailedAnalysis = isDetailed ?? _options.EnableDetailedAnalysis;
 
@@ -573,6 +608,7 @@ public sealed class MediatorStatistics : IDisposable
 
         var results = CreateNotificationAnalysisResults(notificationTypes, serviceProvider, useDetailedAnalysis);
 
+        LogAnalysisCompletedImpl("notifications", results.Count);
         return results;
     }
 
@@ -891,7 +927,7 @@ public sealed class MediatorStatistics : IDisposable
                     // Iterate through the subscribers dictionary to find matches
                     foreach (var key in subscribersDict.Keys)
                     {
-                        if (key?.ToString()?.Contains(typeKey) == true)
+                        if (key.Contains(typeKey))
                         {
                             hasSubscribers = true;
                             estimatedCount++;
@@ -1065,6 +1101,80 @@ public sealed class MediatorStatistics : IDisposable
 
         return analysisResults;
     }
+
+    #region Source Generated Logging Methods
+
+    private void LogQueryIncrementedImpl(string queryType)
+    {
+        _mediatorLogger?.QueryIncremented(queryType);
+    }
+
+    private void LogCommandIncrementedImpl(string commandType)
+    {
+        _mediatorLogger?.CommandIncremented(commandType);
+    }
+
+    private void LogNotificationIncrementedImpl(string notificationType)
+    {
+        _mediatorLogger?.NotificationIncremented(notificationType);
+    }
+
+    private void LogExecutionTimeRecordedImpl(string requestType, long executionTimeMs, bool successful)
+    {
+        _mediatorLogger?.ExecutionTimeRecorded(requestType, executionTimeMs, successful);
+    }
+
+    private void LogMemoryAllocationRecordedImpl(long bytesAllocated)
+    {
+        _mediatorLogger?.MemoryAllocationRecorded(bytesAllocated);
+    }
+
+    private void LogMiddlewareExecutionRecordedImpl(string middlewareType, long executionTimeMs, bool successful)
+    {
+        _mediatorLogger?.MiddlewareExecutionRecorded(middlewareType, executionTimeMs, successful);
+    }
+
+    private void LogExecutionPatternRecordedImpl(string requestType, DateTime executionTime)
+    {
+        _mediatorLogger?.ExecutionPatternRecorded(requestType, executionTime);
+    }
+
+    private void LogStatisticsReportStartedImpl()
+    {
+        _mediatorLogger?.StatisticsReportStarted();
+    }
+
+    private void LogStatisticsReportCompletedImpl()
+    {
+        _mediatorLogger?.StatisticsReportCompleted();
+    }
+
+    private void LogAnalysisStartedImpl(string analysisType)
+    {
+        _mediatorLogger?.AnalysisStarted(analysisType);
+    }
+
+    private void LogAnalysisCompletedImpl(string analysisType, int resultCount)
+    {
+        _mediatorLogger?.AnalysisCompleted(analysisType, resultCount);
+    }
+
+    private void LogCleanupStartedImpl(int expiredEntries)
+    {
+        _mediatorLogger?.CleanupStarted(expiredEntries);
+    }
+
+    private void LogCleanupCompletedImpl(int removedEntries)
+    {
+        _mediatorLogger?.CleanupCompleted(removedEntries);
+    }
+
+    private void LogStatisticsDisposedImpl()
+    {
+        _mediatorLogger?.StatisticsDisposed();
+    }
+
+    #endregion
 }
 
 // Extension method to help with concurrent collections

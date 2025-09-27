@@ -4,19 +4,19 @@ namespace Blazing.Mediator.Services;
 /// Service that provides cleanup functionality for static Mediator resources.
 /// This service can be manually called during application shutdown to dispose static resources.
 /// </summary>
-public sealed class MediatorCleanupService
+public sealed partial class MediatorCleanupService
 {
-    private readonly ILogger<MediatorCleanupService>? _logger;
+    private readonly MediatorLogger? _mediatorLogger;
     private static bool _staticResourcesDisposed;
-    private static readonly object _disposalLock = new();
+    private static readonly Lock _disposalLock = new();
 
     /// <summary>
     /// Initializes a new instance of the MediatorCleanupService.
     /// </summary>
-    /// <param name="logger">Optional logger for cleanup operations.</param>
-    public MediatorCleanupService(ILogger<MediatorCleanupService>? logger = null)
+    /// <param name="mediatorLogger">Optional MediatorLogger for cleanup operations.</param>
+    public MediatorCleanupService(MediatorLogger? mediatorLogger = null)
     {
-        _logger = logger;
+        _mediatorLogger = mediatorLogger;
     }
 
     /// <summary>
@@ -32,14 +32,14 @@ public sealed class MediatorCleanupService
 
             try
             {
-                _logger?.LogDebug("Disposing static Mediator resources");
+                LogCleanupStarted();
                 //Mediator.DisposeStaticResources();
                 SetStaticResourcesDisposed();
-                _logger?.LogDebug("Static Mediator resources disposed successfully");
+                LogCleanupCompleted();
             }
             catch (Exception ex)
             {
-                _logger?.LogWarning(ex, "Error disposing static Mediator resources");
+                LogCleanupError(ex);
                 // Don't rethrow - we don't want to prevent application shutdown
             }
         }
@@ -57,4 +57,23 @@ public sealed class MediatorCleanupService
     /// Gets whether static resources have been disposed.
     /// </summary>
     public static bool AreStaticResourcesDisposed => _staticResourcesDisposed;
+
+    #region Source Generated Logging Methods
+
+    private void LogCleanupStarted()
+    {
+        _mediatorLogger?.CleanupServiceStarted();
+    }
+
+    private void LogCleanupCompleted()
+    {
+        _mediatorLogger?.CleanupServiceCompleted();
+    }
+
+    private void LogCleanupError(Exception ex)
+    {
+        _mediatorLogger?.CleanupServiceError(ex);
+    }
+
+    #endregion
 }

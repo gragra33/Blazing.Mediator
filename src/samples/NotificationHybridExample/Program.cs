@@ -31,7 +31,7 @@ var host = Host.CreateDefaultBuilder(args)
                 .AddExampleAnalysis();
 
         // Register the demo runner service
-        services.AddScoped<DemoRunner>();
+        services.AddScoped<Runner>();
     })
     .Build();
 
@@ -90,7 +90,7 @@ Console.WriteLine("  >> Middleware pipeline configured for unified processing");
 Console.WriteLine();
 
 // Run the demo
-var runner = services.GetRequiredService<DemoRunner>();
+var runner = services.GetRequiredService<Runner>();
 
 await runner.RunAsync();
 

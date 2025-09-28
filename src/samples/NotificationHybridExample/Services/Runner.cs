@@ -7,9 +7,9 @@ namespace NotificationHybridExample.Services;
 /// Demo runner service that demonstrates the hybrid notification pattern.
 /// Shows both automatic handlers and manual subscribers working together.
 /// </summary>
-public class DemoRunner(
+public class Runner(
     IMediator mediator,
-    ILogger<DemoRunner> logger,
+    ILogger<Runner> logger,
     ExampleAnalysisService analysisService,
     IServiceProvider serviceProvider)
 {

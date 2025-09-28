@@ -278,20 +278,11 @@ BenchmarkDotNet=v0.15.2, OS=Windows 11
 AMD Ryzen 7 3700X, 1 CPU, 16 logical and 8 physical cores
 .NET 9.0.9
 
-| Method                    | Mean       | Error     | StdDev    | Allocated |
-|---------------------------|------------|-----------|-----------|-----------|
-| [-] Send Query            | 15.68 ms   | 0.264 ms  | 0.221 ms  | 4.93 KB   |
-| [+] Send Query            | 15.77 ms   | 0.096 ms  | 0.090 ms  | 4.93 KB   |
-| [-] Send Command          | 15.46 ms   | 0.229 ms  | 0.214 ms  | 4.30 KB   |
-| [+] Send Command          | 15.79 ms   | 0.058 ms  | 0.054 ms  | 4.30 KB   |
-| [-] Publish Notification  | 15.77 ms   | 0.145 ms  | 0.135 ms  | 4.12 KB   |
-| [+] Publish Notification  | 15.76 ms   | 0.152 ms  | 0.142 ms  | 4.12 KB   |
-| [-] Send Stream           | 157.76 ms  | 0.922 ms  | 0.862 ms  | 13.68 KB  |
-| [+] Send Stream           | 157.72 ms  | 0.584 ms  | 0.546 ms  | 13.68 KB  |
-| [-] Bulk Commands (1000)  | 1,581.72 ms| 3.402 ms  | 3.016 ms  | 414.06 KB |
-| [+] Bulk Commands (1000)  | 1,581.80 ms| 3.610 ms  | 3.377 ms  | 414.06 KB |
-| [-] Bulk Notifications    | 1,570.96 ms| 23.314 ms | 21.808 ms | 403.52 KB |
-| [+] Bulk Notifications    | 1,581.93 ms| 4.456 ms  | 4.168 ms  | 403.52 KB |
+| Method                  | Mean     | Error     | StdDev    | Gen0   | Allocated |
+|------------------------ |---------:|----------:|----------:|-------:|----------:|
+| SendingRequests         | 2.281 us | 0.0453 us | 0.0445 us | 0.2823 |   2.32 KB |
+| PublishingNotifications | 1.912 us | 0.0373 us | 0.0430 us | 0.2537 |   2.08 KB |
+
 ```
 
 **Legend:** `[-]` = Without OpenTelemetry | `[+]` = With OpenTelemetry enabled
@@ -628,7 +619,7 @@ The library includes nine comprehensive sample projects demonstrating different 
     - Comprehensive examples showing how type constraints improve performance and maintainability
     - Perfect demonstration of selective middleware execution based on interface types
 
-4. **SimpleNotificationExample** _**(NEW!)**_ - Console application demonstrating recommended scoped notification patterns
+4. **NotificationSubscriberExample** _**(NEW!)**_ - Console application demonstrating recommended scoped notification patterns
 
     - Recommended approach using default scoped `IMediator` registration (not singleton) for proper resource management
     - Simple, straightforward notification subscribers
@@ -638,7 +629,7 @@ The library includes nine comprehensive sample projects demonstrating different 
     - Clear documentation showing why this is the preferred pattern over complex background service approaches
     - Perfect starting point for understanding notification patterns in Blazing.Mediator
 
-5. **TypedSimpleNotificationExample** _**(NEW!)**_ - Console application demonstrating type-constrained notification middleware with interface-based categorization
+5. **TypedNotificationSubscriberExample** _**(NEW!)**_ - Console application demonstrating type-constrained notification middleware with interface-based categorization
 
     - Type-constrained notification middleware processing only specific notification categories (Order, Customer, Inventory)
     - Interface-based notification categorization with `IOrderNotification`, `ICustomerNotification`, and `IInventoryNotification`

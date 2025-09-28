@@ -1,9 +1,9 @@
 namespace TypedNotificationHybridExample.Notifications;
 
 // Base notification interfaces for type constraints
-public interface IOrderNotification : INotification { }
-public interface ICustomerNotification : INotification { }
-public interface IInventoryNotification : INotification { }
+public interface IOrderNotification : INotification;
+public interface ICustomerNotification : INotification;
+public interface IInventoryNotification : INotification;
 
 /// <summary>
 /// Notification published when an order is successfully created.

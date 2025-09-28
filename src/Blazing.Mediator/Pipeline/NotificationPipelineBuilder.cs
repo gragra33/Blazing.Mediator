@@ -3,28 +3,24 @@ namespace Blazing.Mediator.Pipeline;
 /// <summary>
 /// This is part of the core Blazing.Mediator infrastructure and contains no business logic.
 /// Builds and executes notification middleware pipelines with support for generic types and conditional execution.
+/// Enhanced with BasePipelineBuilder for optimal performance and shared functionality.
 /// </summary>
-public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, INotificationMiddlewarePipelineInspector
+public sealed class NotificationPipelineBuilder
+    : BasePipelineBuilder<NotificationPipelineBuilder>, INotificationPipelineBuilder, INotificationMiddlewarePipelineInspector
 {
     private const string OrderPropertyName = "Order";
-    private readonly List<NotificationMiddlewareInfo> _middlewareInfos = [];
-    private readonly MediatorLogger? _mediatorLogger;
 
     /// <summary>
-    /// Information about registered notification middleware.
+    /// CRTP pattern implementation for fluent API.
     /// </summary>
-    /// <param name="Type">The middleware type</param>
-    /// <param name="Order">The execution order</param>
-    /// <param name="Configuration">Optional configuration object</param>
-    private sealed record NotificationMiddlewareInfo(Type Type, int Order, object? Configuration = null);
+    protected override NotificationPipelineBuilder Self => this;
 
     /// <summary>
-    /// Initializes a new instance of the NotificationPipelineBuilder with optional logging.
+    /// Initializes a new instance of the <see cref="NotificationPipelineBuilder"/> class with optional logging.
     /// </summary>
-    /// <param name="mediatorLogger">Optional MediatorLogger for enhanced logging.</param>
-    public NotificationPipelineBuilder(MediatorLogger? mediatorLogger = null)
+    /// <param name="mediatorLogger">Optional <see cref="MediatorLogger"/> for enhanced logging.</param>
+    public NotificationPipelineBuilder(MediatorLogger? mediatorLogger = null) : base(mediatorLogger)
     {
-        _mediatorLogger = mediatorLogger;
     }
 
     #region AddMiddleware overloads
@@ -34,25 +30,21 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
         where TMiddleware : class, INotificationMiddleware
     {
         var middlewareType = typeof(TMiddleware);
-        var order = GetMiddlewareOrder(middlewareType);
-        _middlewareInfos.Add(new NotificationMiddlewareInfo(middlewareType, order));
-
+        AddMiddlewareCore(middlewareType);
         return this;
     }
 
     /// <summary>
     /// Adds notification middleware with configuration to the pipeline.
     /// </summary>
-    /// <typeparam name="TMiddleware">The middleware type that implements INotificationMiddleware.</typeparam>
+    /// <typeparam name="TMiddleware">The middleware type that implements <see cref="INotificationMiddleware"/>.</typeparam>
     /// <param name="configuration">Optional configuration object for the middleware.</param>
     /// <returns>The pipeline builder for chaining.</returns>
     public INotificationPipelineBuilder AddMiddleware<TMiddleware>(object? configuration)
         where TMiddleware : class, INotificationMiddleware
     {
         var middlewareType = typeof(TMiddleware);
-        var order = GetMiddlewareOrder(middlewareType);
-        _middlewareInfos.Add(new NotificationMiddlewareInfo(middlewareType, order, configuration));
-
+        AddMiddlewareCore(middlewareType, configuration);
         return this;
     }
 
@@ -64,10 +56,38 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
             throw new ArgumentException($"Type {middlewareType.Name} does not implement INotificationMiddleware", nameof(middlewareType));
         }
 
-        var order = GetMiddlewareOrder(middlewareType);
-        _middlewareInfos.Add(new NotificationMiddlewareInfo(middlewareType, order));
-
+        AddMiddlewareCore(middlewareType);
         return this;
+    }
+
+    #endregion
+
+    #region Fallback Types Override
+
+    /// <summary>
+    /// Gets fallback types specific to notification middleware for concrete type creation.
+    /// </summary>
+    /// <returns>An array of fallback types for notification middleware.</returns>
+    protected override Type[] GetFallbackTypes()
+    {
+        return [
+            typeof(MinimalNotification),
+            typeof(object)
+        ];
+    }
+
+    #endregion
+
+    #region Additional Inspector Method Override
+
+    /// <summary>
+    /// Analyzes the registered middleware in the pipeline using the provided <see cref="IServiceProvider"/>.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider for middleware resolution.</param>
+    /// <returns>A read-only list of <see cref="MiddlewareAnalysis"/> results.</returns>
+    public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider)
+    {
+        return AnalyzeMiddleware(serviceProvider, true); // Call the base implementation with detailed=true
     }
 
     #endregion
@@ -88,6 +108,10 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
     /// <summary>
     /// Legacy build method for backward compatibility.
     /// </summary>
+    /// <typeparam name="TNotification">The notification type.</typeparam>
+    /// <param name="serviceProvider">The service provider for middleware resolution.</param>
+    /// <param name="finalHandler">The final handler to execute after all middleware.</param>
+    /// <returns>A delegate that executes the complete pipeline.</returns>
     private NotificationDelegate<TNotification> BuildLegacyPipeline<TNotification>(
         IServiceProvider serviceProvider,
         NotificationDelegate<TNotification> finalHandler)
@@ -133,12 +157,12 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
     /// Executes the notification middleware pipeline with enhanced support for generic types, 
     /// conditional execution, and comprehensive logging.
     /// </summary>
-    /// <typeparam name="TNotification">The type of notification being processed</typeparam>
-    /// <param name="notification">The notification to process</param>
-    /// <param name="serviceProvider">Service provider for middleware resolution</param>
-    /// <param name="finalHandler">Final handler to execute after all middleware</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Task representing the asynchronous operation</returns>
+    /// <typeparam name="TNotification">The type of notification being processed.</typeparam>
+    /// <param name="notification">The notification to process.</param>
+    /// <param name="serviceProvider">Service provider for middleware resolution.</param>
+    /// <param name="finalHandler">Final handler to execute after all middleware.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task ExecutePipeline<TNotification>(
         TNotification notification,
         IServiceProvider serviceProvider,
@@ -155,13 +179,15 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
         NotificationDelegate<TNotification> pipeline = finalHandler;
         List<(Type Type, int Order)> applicableMiddleware = [];
 
-        foreach (NotificationMiddlewareInfo middlewareInfo in _middlewareInfos)
+        foreach (MiddlewareInfo middlewareInfo in _middlewareInfos)
         {
             Type middlewareType = middlewareInfo.Type;
-            Type actualMiddlewareType;
-            if (middlewareType.IsGenericTypeDefinition)
+            Type? actualMiddlewareType;
+            // Use cached generic type check for better performance
+            if (PipelineUtilities.IsGenericTypeCached(middlewareType) && PipelineUtilities.IsGenericTypeDefinitionCached(middlewareType))
             {
-                var genericParams = middlewareType.GetGenericArguments();
+                // Use cached generic arguments lookup
+                var genericParams = PipelineUtilities.GetGenericArgumentsCached(middlewareType);
                 switch (genericParams)
                 {
                     case { Length: 1 }:
@@ -170,11 +196,7 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
                         {
                             continue;
                         }
-                        try
-                        {
-                            actualMiddlewareType = middlewareType.MakeGenericType(actualNotificationType);
-                        }
-                        catch (ArgumentException)
+                        if (!PipelineUtilities.TryMakeGenericType(middlewareType, [actualNotificationType], out actualMiddlewareType))
                         {
                             continue;
                         }
@@ -188,8 +210,8 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
                 actualMiddlewareType = middlewareType;
             }
 
-            // Optimize interface checking - avoid multiple GetInterfaces() calls
-            var interfaces = actualMiddlewareType.GetInterfaces();
+            // Use cached interfaces lookup to optimize interface checking
+            var interfaces = PipelineUtilities.GetInterfacesCached(actualMiddlewareType!);
             
             bool isCompatible = typeof(INotificationMiddleware).IsAssignableFrom(actualMiddlewareType);
             if (!isCompatible)
@@ -209,23 +231,12 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
                 }
             }
 
-            int actualOrder = GetActualMiddlewareOrder(middlewareInfo, actualMiddlewareType, serviceProvider);
-            applicableMiddleware.Add((actualMiddlewareType, actualOrder));
+            int actualOrder = GetRuntimeOrder(middlewareInfo, serviceProvider);
+            applicableMiddleware.Add((actualMiddlewareType, actualOrder)!);
         }
 
-        // Pre-calculate registration indices to avoid O(n²) operations
-        var registrationIndices = new Dictionary<Type, int>();
-        for (int i = 0; i < _middlewareInfos.Count; i++)
-        {
-            var info = _middlewareInfos[i];
-            registrationIndices[info.Type] = i;
-            
-            // Also store generic type definition for generic types
-            if (info.Type.IsGenericTypeDefinition)
-            {
-                registrationIndices[info.Type] = i;
-            }
-        }
+        // Use pre-calculated registration indices for fast sorting operations
+        var registrationIndices = CreateRegistrationIndices();
 
         applicableMiddleware.Sort((a, b) =>
         {
@@ -233,8 +244,8 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
             if (orderComparison != 0) return orderComparison;
             
             // Use pre-calculated indices instead of expensive operations
-            int indexA = GetOriginalRegistrationIndexOptimized(a.Type, registrationIndices);
-            int indexB = GetOriginalRegistrationIndexOptimized(b.Type, registrationIndices);
+            int indexA = PipelineUtilities.GetRegistrationIndex(a.Type, registrationIndices);
+            int indexB = PipelineUtilities.GetRegistrationIndex(b.Type, registrationIndices);
             return indexA.CompareTo(indexB);
         });
 
@@ -304,99 +315,18 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
 
     #endregion
 
-    #region Inspector Methods
+    #region Helper Methods Specific to Notification Middleware
 
-    /// <inheritdoc />
-    public IReadOnlyList<Type> GetRegisteredMiddleware()
-    {
-        return _middlewareInfos.Select(info => info.Type).ToList();
-    }
-
-    /// <inheritdoc />
-    public IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration()
-    {
-        return _middlewareInfos.Select(info => (info.Type, info.Configuration)).ToList();
-    }
-
-    /// <inheritdoc />
-    public IReadOnlyList<(Type Type, int Order, object? Configuration)> GetDetailedMiddlewareInfo(IServiceProvider? serviceProvider = null)
-    {
-        if (serviceProvider == null)
-        {
-            return _middlewareInfos.Select(info => (info.Type, info.Order, info.Configuration)).ToList();
-        }
-        var result = new List<(Type Type, int Order, object? Configuration)>();
-        foreach (var middlewareInfo in _middlewareInfos)
-        {
-            int actualOrder = middlewareInfo.Order;
-            try
-            {
-                if (middlewareInfo.Type.IsGenericTypeDefinition)
-                {
-                    var genericParams = middlewareInfo.Type.GetGenericArguments();
-                    Type? actualMiddlewareType = null;
-                    if (genericParams.Length == 1)
-                    {
-                        actualMiddlewareType = TryCreateConcreteNotificationMiddlewareType(middlewareInfo.Type);
-                    }
-                    if (actualMiddlewareType != null)
-                    {
-                        actualOrder = GetActualMiddlewareOrder(middlewareInfo, actualMiddlewareType, serviceProvider);
-                    }
-                }
-                else
-                {
-                    actualOrder = GetActualMiddlewareOrder(middlewareInfo, middlewareInfo.Type, serviceProvider);
-                }
-            }
-            catch
-            {
-                 //
-            }
-            result.Add((middlewareInfo.Type, actualOrder, middlewareInfo.Configuration));
-        }
-        return result;
-    }
-
-    /// <inheritdoc />
-    public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider, bool? isDetailed = true)
-    {
-        var middlewareInfos = GetDetailedMiddlewareInfo(serviceProvider);
-        var analysisResults = new List<MiddlewareAnalysis>();
-        var detailed = isDetailed ?? true;
-
-        foreach (var (type, order, configuration) in middlewareInfos.OrderBy(m => m.Order))
-        {
-            var orderDisplay = order == int.MaxValue ? "Default" : order.ToString();
-            var className = GetCleanTypeName(type);
-            var typeParameters = type.IsGenericType ?
-                $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>" :
-                string.Empty;
-            var genericConstraints = detailed ? GetGenericConstraints(type) : string.Empty;
-            var handlerInfo = detailed ? configuration : null;
-
-            analysisResults.Add(new MiddlewareAnalysis(
-                Type: type,
-                Order: order,
-                OrderDisplay: orderDisplay,
-                ClassName: className,
-                TypeParameters: detailed ? typeParameters : string.Empty,
-                GenericConstraints: genericConstraints,
-                Configuration: handlerInfo
-            ));
-        }
-        return analysisResults;
-    }
-
-    public IReadOnlyList<MiddlewareAnalysis> AnalyzeMiddleware(IServiceProvider serviceProvider)
-    {
-        return AnalyzeMiddleware(serviceProvider, true); // Call the other overload directly
-    }
-
-    #endregion
-
-    #region Helper Methods
-
+    /// <summary>
+    /// Attempts to invoke a type-constrained <see cref="INotificationMiddleware{TNotification}"/> method if available.
+    /// </summary>
+    /// <typeparam name="TNotification">The notification type.</typeparam>
+    /// <param name="middleware">The middleware instance.</param>
+    /// <param name="notification">The notification instance.</param>
+    /// <param name="next">The next delegate in the pipeline.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="actualNotificationType">The actual notification type.</param>
+    /// <returns>True if a constrained method was invoked; otherwise, false.</returns>
     private async Task<bool> TryInvokeConstrainedMethodAsync<TNotification>(
         INotificationMiddleware middleware, 
         TNotification notification, 
@@ -405,8 +335,8 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
         Type actualNotificationType)
         where TNotification : INotification
     {
-        // Cache interface lookup to avoid repeated reflection
-        var interfaces = middleware.GetType().GetInterfaces();
+        // Use cached interface lookup to avoid repeated reflection
+        var interfaces = PipelineUtilities.GetInterfacesCached(middleware.GetType());
         var constrainedInterfaces = GetConstrainedNotificationInterfaces(interfaces);
         
         if (constrainedInterfaces.Length == 0)
@@ -414,9 +344,8 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
             return false;
         }
         
-        for (int i = 0; i < constrainedInterfaces.Length; i++)
+        foreach (Type constrainedInterface in constrainedInterfaces)
         {
-            var constrainedInterface = constrainedInterfaces[i];
             var constraintType = constrainedInterface.GetGenericArguments()[0];
             bool isCompatible = constraintType.IsAssignableFrom(actualNotificationType);
             
@@ -446,9 +375,17 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
         return false;
     }
 
+    /// <summary>
+    /// Determines if the middleware is type-constrained and not compatible with the given notification type.
+    /// </summary>
+    /// <param name="middleware">The middleware instance.</param>
+    /// <param name="notificationType">The notification type.</param>
+    /// <param name="notification">The notification instance.</param>
+    /// <returns>True if the middleware is type-constrained and not compatible; otherwise, false.</returns>
     private static bool IsTypeConstrainedMiddleware(INotificationMiddleware middleware, Type notificationType, object notification)
     {
-        var interfaces = middleware.GetType().GetInterfaces();
+        // Use cached interface lookup to avoid repeated reflection
+        var interfaces = PipelineUtilities.GetInterfacesCached(middleware.GetType());
         var genericMiddlewareInterfaces = GetConstrainedNotificationInterfaces(interfaces);
         
         if (genericMiddlewareInterfaces.Length == 0)
@@ -456,9 +393,9 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
             return false;
         }
         
-        for (int i = 0; i < genericMiddlewareInterfaces.Length; i++)
+        foreach (Type t in genericMiddlewareInterfaces)
         {
-            var constraintType = genericMiddlewareInterfaces[i].GetGenericArguments()[0];
+            var constraintType = t.GetGenericArguments()[0];
             if (constraintType.IsAssignableFrom(notificationType))
             {
                 return false;
@@ -467,229 +404,16 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
         return true;
     }
 
-    private int GetMiddlewareOrder(Type middlewareType)
-    {
-        var orderProperty = middlewareType.GetProperty("Order", BindingFlags.Public | BindingFlags.Static);
-        if (orderProperty != null && orderProperty.PropertyType == typeof(int))
-        {
-            int staticOrder = (int)orderProperty.GetValue(null)!;
-            return staticOrder;
-        }
-        var orderField = middlewareType.GetField("Order", BindingFlags.Public | BindingFlags.Static);
-        if (orderField != null && orderField.FieldType == typeof(int))
-        {
-            int staticOrder = (int)orderField.GetValue(null)!;
-            return staticOrder;
-        }
-        var orderAttribute = middlewareType.GetCustomAttributes(false)
-            .FirstOrDefault(attr => attr.GetType().Name == "OrderAttribute");
-        if (orderAttribute != null)
-        {
-            var orderProp = orderAttribute.GetType().GetProperty("Order");
-            if (orderProp != null && orderProp.PropertyType == typeof(int))
-            {
-                int attrOrder = (int)orderProp.GetValue(orderAttribute)!;
-                return attrOrder;
-            }
-        }
-        var instanceOrderProperty = middlewareType.GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
-        if (instanceOrderProperty != null && instanceOrderProperty.PropertyType == typeof(int))
-        {
-            if (middlewareType.IsGenericTypeDefinition)
-            {
-                return int.MaxValue - 1000000;
-            }
-            else
-            {
-                try
-                {
-                    object? instance = Activator.CreateInstance(middlewareType);
-                    if (instance != null)
-                    {
-                        int orderValue = (int)instanceOrderProperty.GetValue(instance)!;
-                        return orderValue;
-                    }
-                }
-                catch
-                {
-                }
-            }
-        }
-        int unorderedCount = _middlewareInfos.Count(m => m.Order >= 1 && m.Order < 100);
-        return unorderedCount + 1;
-    }
-
-    private int GetActualMiddlewareOrder(NotificationMiddlewareInfo middlewareInfo, Type actualMiddlewareType, IServiceProvider serviceProvider)
-    {
-        int actualOrder = middlewareInfo.Order;
-        try
-        {
-            var instance = serviceProvider.GetService(actualMiddlewareType);
-            if (instance != null)
-            {
-                var orderProperty = instance.GetType().GetProperty("Order", BindingFlags.Public | BindingFlags.Instance);
-                if (orderProperty != null && orderProperty.PropertyType == typeof(int))
-                {
-                    actualOrder = (int)orderProperty.GetValue(instance)!;
-                }
-            }
-        }
-        catch
-        {
-        }
-        return actualOrder;
-    }
-
-    private int GetOriginalRegistrationIndex(Type middlewareType)
-    {
-        return _middlewareInfos.FindIndex(info =>
-            info.Type == middlewareType ||
-            (info.Type.IsGenericTypeDefinition && middlewareType.IsGenericType && 
-             info.Type == middlewareType.GetGenericTypeDefinition()));
-    }
-
-    /// <summary>
-    /// Fast lookup for registration index using pre-calculated dictionary.
-    /// </summary>
-    private static int GetOriginalRegistrationIndexOptimized(Type middlewareType, Dictionary<Type, int> registrationIndices)
-    {
-        if (registrationIndices.TryGetValue(middlewareType, out int index))
-        {
-            return index;
-        }
-
-        // For generic types, try to find by generic type definition
-        if (middlewareType.IsGenericType)
-        {
-            var genericTypeDef = middlewareType.GetGenericTypeDefinition();
-            if (registrationIndices.TryGetValue(genericTypeDef, out int genericIndex))
-            {
-                return genericIndex;
-            }
-        }
-
-        return int.MaxValue; // Fallback for not found
-    }
-
-    private static Type? TryCreateConcreteNotificationMiddlewareType(Type middlewareTypeDefinition)
-    {
-        if (!middlewareTypeDefinition.IsGenericTypeDefinition)
-            return middlewareTypeDefinition;
-            
-        var genericParams = middlewareTypeDefinition.GetGenericArguments();
-        if (genericParams.Length != 1)
-            return null;
-
-        // Use fast fallback types instead of expensive assembly scanning
-        // This significantly improves performance by avoiding AppDomain.CurrentDomain.GetAssemblies() 
-        // and assembly.GetTypes() calls which can take 30+ seconds
-        var fastFallbackTypes = new[] 
-        { 
-            typeof(MinimalNotification),
-            typeof(object)
-        };
-
-        // Try fast fallback types as notification type arguments
-        foreach (var notificationType in fastFallbackTypes)
-        {
-            if (TryMakeGenericType(middlewareTypeDefinition, [notificationType], out var concreteType))
-            {
-                return concreteType;
-            }
-        }
-
-        // If fast fallback fails, return null instead of expensive assembly scanning
-        // The middleware order will use the cached registration-time value
-        return null;
-    }
-
-    private static bool TryMakeGenericType(Type genericTypeDefinition, Type[] typeArguments, out Type? concreteType)
-    {
-        concreteType = null;
-        try
-        {
-            concreteType = genericTypeDefinition.MakeGenericType(typeArguments);
-            return true;
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static string GetGenericConstraints(Type type)
-    {
-        if (!type.IsGenericTypeDefinition)
-            return string.Empty;
-        var genericParameters = type.GetGenericArguments();
-        if (genericParameters.Length == 0)
-            return string.Empty;
-        var constraintParts = new List<string>();
-        foreach (var parameter in genericParameters)
-        {
-            var parameterConstraints = new List<string>();
-            if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.ReferenceTypeConstraint))
-            {
-                parameterConstraints.Add("class");
-            }
-            if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.NotNullableValueTypeConstraint))
-            {
-                parameterConstraints.Add("struct");
-            }
-            var typeConstraints = parameter.GetGenericParameterConstraints();
-            parameterConstraints.AddRange(typeConstraints
-                .Where(constraint => constraint.IsInterface || constraint.IsClass)
-                .Select(FormatTypeName));
-            if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
-            {
-                parameterConstraints.Add("new()");
-            }
-            if (parameterConstraints.Count > 0)
-            {
-                var constraintText = $"where {parameter.Name} : {string.Join(", ", parameterConstraints)}";
-                constraintParts.Add(constraintText);
-            }
-        }
-        return constraintParts.Count > 0 ? string.Join(" ", constraintParts) : string.Empty;
-    }
-
-    private static string FormatTypeName(Type type)
-    {
-        if (!type.IsGenericType)
-            return type.Name;
-        var genericTypeName = type.Name;
-        var backtickIndex = genericTypeName.IndexOf('`');
-        if (backtickIndex > 0)
-        {
-            genericTypeName = genericTypeName[..backtickIndex];
-        }
-        var genericArgs = type.GetGenericArguments();
-        var genericArgNames = genericArgs.Select(arg => arg.IsGenericParameter ? arg.Name : FormatTypeName(arg));
-        return $"{genericTypeName}<{string.Join(", ", genericArgNames)}>`";
-    }
-
-    private static string GetCleanTypeName(Type type)
-    {
-        var typeName = type.Name;
-        var backtickIndex = typeName.IndexOf('`');
-        return backtickIndex > 0 ? typeName[..backtickIndex] : typeName;
-    }
-
-    private sealed class MinimalNotification : INotification { }
-
     /// <summary>
     /// Fast helper method to get constrained notification interfaces.
     /// </summary>
+    /// <param name="interfaces">The interfaces to analyze.</param>
+    /// <returns>An array of constrained notification interfaces.</returns>
     private static Type[] GetConstrainedNotificationInterfaces(Type[] interfaces)
     {
         var result = new List<Type>();
-        for (int i = 0; i < interfaces.Length; i++)
+        foreach (Type iface in interfaces)
         {
-            var iface = interfaces[i];
             if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(INotificationMiddleware<>))
             {
                 result.Add(iface);
@@ -701,17 +425,43 @@ public sealed class NotificationPipelineBuilder : INotificationPipelineBuilder, 
     /// <summary>
     /// Fast helper method to check compatible constraints.
     /// </summary>
+    /// <param name="constrainedInterfaces">The constrained interfaces to check.</param>
+    /// <param name="actualNotificationType">The actual notification type.</param>
+    /// <returns>True if a compatible constraint is found; otherwise, false.</returns>
     private static bool HasCompatibleConstraint(Type[] constrainedInterfaces, Type actualNotificationType)
     {
-        for (int i = 0; i < constrainedInterfaces.Length; i++)
+        foreach (Type t in constrainedInterfaces)
         {
-            var constraintType = constrainedInterfaces[i].GetGenericArguments()[0];
+            var constraintType = t.GetGenericArguments()[0];
             if (constraintType.IsAssignableFrom(actualNotificationType))
             {
                 return true;
             }
         }
+
         return false;
+    }
+
+    /// <summary>
+    /// Minimal notification for concrete type creation fallback.
+    /// </summary>
+    private sealed class MinimalNotification : INotification { }
+
+    #endregion
+
+    #region Core Middleware Addition Override
+
+    /// <summary>
+    /// Core method for adding middleware to the pipeline with base class optimizations.
+    /// Uses the enhanced <see cref="BasePipelineBuilder{TBuilder}"/> order calculation with context-aware caching.
+    /// </summary>
+    /// <param name="middlewareType">The middleware type to add.</param>
+    /// <param name="configuration">Optional configuration object.</param>
+    protected new void AddMiddlewareCore(Type middlewareType, object? configuration = null)
+    {
+        // Use base class order calculation with context-aware caching for optimal performance
+        // This ensures consistent behavior across both pipeline types while maintaining performance
+        base.AddMiddlewareCore(middlewareType, configuration);
     }
 
     #endregion

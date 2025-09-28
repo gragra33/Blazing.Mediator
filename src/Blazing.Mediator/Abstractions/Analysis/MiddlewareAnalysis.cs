@@ -1,4 +1,4 @@
-namespace Blazing.Mediator.Abstractions;
+namespace Blazing.Mediator;
 
 /// <summary>
 /// Represents detailed analysis information about a middleware component in the pipeline.

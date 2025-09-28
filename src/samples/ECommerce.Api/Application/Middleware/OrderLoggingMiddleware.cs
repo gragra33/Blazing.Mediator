@@ -1,5 +1,5 @@
 using Blazing.Mediator;
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
 using System.Text.Json;
 
 namespace ECommerce.Api.Application.Middleware;

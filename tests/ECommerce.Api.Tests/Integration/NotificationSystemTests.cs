@@ -58,13 +58,13 @@ public class NotificationSystemTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal("Test Product", product.Name);
         Assert.Equal(5, product.StockQuantity);
 
-        _output.WriteLine($"✅ Product created successfully with ID: {result}");
-        _output.WriteLine($"🔔 ProductCreatedNotification should have been published");
+        _output.WriteLine($"- Product created successfully with ID: {result}");
+        _output.WriteLine("- ProductCreatedNotification should have been published");
 
         // If stock is low (< 10), low stock notification should also be published
         if (product.StockQuantity < 10)
         {
-            _output.WriteLine($"⚠️  ProductStockLowNotification should have been published (stock: {product.StockQuantity})");
+            _output.WriteLine($"- ProductStockLowNotification should have been published (stock: {product.StockQuantity})");
         }
     }
 
@@ -91,9 +91,9 @@ public class NotificationSystemTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         // The notification middleware should have logged the notification
         // This test verifies that the notification pipeline is working
-        _output.WriteLine($"✅ Notification published successfully");
-        _output.WriteLine($"🔔 NotificationLoggingMiddleware should have logged the notification");
-        _output.WriteLine($"📊 NotificationMetricsMiddleware should have tracked the metrics");
+        _output.WriteLine("- Notification published successfully");
+        _output.WriteLine("- NotificationLoggingMiddleware should have logged the notification");
+        _output.WriteLine("- NotificationMetricsMiddleware should have tracked the metrics");
     }
 
     /// <summary>
@@ -113,8 +113,8 @@ public class NotificationSystemTests : IClassFixture<WebApplicationFactory<Progr
         Assert.NotNull(emailService);
         Assert.NotNull(inventoryService);
 
-        _output.WriteLine($"✅ EmailNotificationService is registered as a background service");
-        _output.WriteLine($"✅ InventoryManagementService is registered as a background service");
+        _output.WriteLine("- EmailNotificationService is registered as a background service");
+        _output.WriteLine("- InventoryManagementService is registered as a background service");
     }
 
     /// <summary>
@@ -130,8 +130,8 @@ public class NotificationSystemTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         Assert.NotNull(mediator);
 
-        _output.WriteLine($"✅ Mediator is properly registered and configured");
-        _output.WriteLine($"🔔 NotificationLoggingMiddleware should be in the pipeline");
-        _output.WriteLine($"📊 NotificationMetricsMiddleware should be in the pipeline");
+        _output.WriteLine("- Mediator is properly registered and configured");
+        _output.WriteLine("- NotificationLoggingMiddleware should be in the pipeline");
+        _output.WriteLine("- NotificationMetricsMiddleware should be in the pipeline");
     }
 }

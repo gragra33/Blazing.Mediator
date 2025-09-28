@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Logging;
-
 namespace Blazing.Mediator.Logging;
 
 /// <summary>
@@ -21,6 +19,16 @@ public sealed partial class MediatorLogger
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _loggingOptions = loggingOptions;
     }
+
+    /// <summary>
+    /// Gets the underlying logger instance.
+    /// </summary>
+    public ILogger<Mediator> Logger => _logger;
+
+    /// <summary>
+    /// Gets the logging options configuration.
+    /// </summary>
+    public LoggingOptions? LoggingOptions => _loggingOptions;
 
     /// <summary>
     /// Gets whether debug logging is enabled based on options and logger configuration.
@@ -351,7 +359,7 @@ public sealed partial class MediatorLogger
     /// <param name="queryType">The query type.</param>
     public void QueryIncremented(string queryType)
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogQueryIncremented(_logger, queryType, null);
     }
 
@@ -361,7 +369,7 @@ public sealed partial class MediatorLogger
     /// <param name="commandType">The command type.</param>
     public void CommandIncremented(string commandType)
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogCommandIncremented(_logger, commandType, null);
     }
 
@@ -371,7 +379,7 @@ public sealed partial class MediatorLogger
     /// <param name="notificationType">The notification type.</param>
     public void NotificationIncremented(string notificationType)
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogNotificationIncremented(_logger, notificationType, null);
     }
 
@@ -383,7 +391,7 @@ public sealed partial class MediatorLogger
     /// <param name="successful">Whether the execution was successful.</param>
     public void ExecutionTimeRecorded(string requestType, long executionTimeMs, bool successful)
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogExecutionTimeRecorded(_logger, requestType, executionTimeMs, successful, null);
     }
 
@@ -393,7 +401,7 @@ public sealed partial class MediatorLogger
     /// <param name="bytesAllocated">The bytes allocated.</param>
     public void MemoryAllocationRecorded(long bytesAllocated)
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogMemoryAllocationRecorded(_logger, bytesAllocated, null);
     }
 
@@ -405,7 +413,7 @@ public sealed partial class MediatorLogger
     /// <param name="successful">Whether the execution was successful.</param>
     public void MiddlewareExecutionRecorded(string middlewareType, long executionTimeMs, bool successful)
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogMiddlewareExecutionRecorded(_logger, middlewareType, executionTimeMs, successful, null);
     }
 
@@ -416,7 +424,7 @@ public sealed partial class MediatorLogger
     /// <param name="executionTime">The execution time.</param>
     public void ExecutionPatternRecorded(string requestType, DateTime executionTime)
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogExecutionPatternRecorded(_logger, requestType, executionTime, null);
     }
 
@@ -425,7 +433,7 @@ public sealed partial class MediatorLogger
     /// </summary>
     public void StatisticsReportStarted()
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogStatisticsReportStarted(_logger, null);
     }
 
@@ -434,7 +442,7 @@ public sealed partial class MediatorLogger
     /// </summary>
     public void StatisticsReportCompleted()
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogStatisticsReportCompleted(_logger, null);
     }
 
@@ -444,7 +452,7 @@ public sealed partial class MediatorLogger
     /// <param name="analysisType">The analysis type.</param>
     public void AnalysisStarted(string analysisType)
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogAnalysisStarted(_logger, analysisType, null);
     }
 
@@ -455,7 +463,7 @@ public sealed partial class MediatorLogger
     /// <param name="resultCount">The result count.</param>
     public void AnalysisCompleted(string analysisType, int resultCount)
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogAnalysisCompleted(_logger, analysisType, resultCount, null);
     }
 
@@ -465,7 +473,7 @@ public sealed partial class MediatorLogger
     /// <param name="expiredEntries">The expired entries count.</param>
     public void CleanupStarted(int expiredEntries)
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogCleanupStarted(_logger, expiredEntries, null);
     }
 
@@ -475,7 +483,7 @@ public sealed partial class MediatorLogger
     /// <param name="removedEntries">The removed entries count.</param>
     public void CleanupCompleted(int removedEntries)
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogCleanupCompleted(_logger, removedEntries, null);
     }
 
@@ -484,7 +492,7 @@ public sealed partial class MediatorLogger
     /// </summary>
     public void StatisticsDisposed()
     {
-        if (!IsDebugLoggingEnabled) return;
+        if (!IsDebugLoggingEnabled || !(_loggingOptions?.EnableStatistics ?? true)) return;
         LogStatisticsDisposed(_logger, null);
     }
 

@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 
 namespace Blazing.Mediator.Tests.Middleware;
@@ -235,7 +234,7 @@ public class TrackingMiddlewarePipelineBuilder(IMiddlewareExecutionTracker execu
 
             // Check if this middleware type implements IRequestMiddleware<TRequest>
             var genericMiddlewareType = typeof(IRequestMiddleware<>).MakeGenericType(typeof(TRequest));
-            if (!actualMiddlewareType.GetInterfaces().Any(i => i == genericMiddlewareType))
+            if (actualMiddlewareType.GetInterfaces().All(i => i != genericMiddlewareType))
             {
                 continue;
             }

@@ -18,6 +18,25 @@ public sealed class MediatorStatistics : IDisposable
     private const string BlazingMediatorAssembly = "Blazing.Mediator";
     private const string AspNetCoreIResultFullName = "Microsoft.AspNetCore.Http.IResult";
     private const string IResultInterfaceName = "IResult";
+    private const string NoHandlersRegistered = "No handlers registered";
+    private const string NoHandlers = "No handlers";
+    private const string HandlerFound = "Handler found";
+    private const string IQueryGeneric = "IQuery<{0}>";
+    private const string IRequestGeneric = "IRequest<{0}>";
+    private const string IRequest = "IRequest";
+    private const string ICommand = "ICommand";
+    private const string ICommandGeneric = "ICommand<{0}>";
+    private const string PatternPrefix = "pattern_";
+    private const string RequestTypeLabel = "RequestType";
+    private const string HandlerTypeLabel = "HandlerType";
+    private const string ExceptionTypeLabel = "ExceptionType";
+    private const string PipelineStageLabel = "PipelineStage";
+    private const string NoHandlersMessage = "No handlers registered for request type: ";
+    private const string MultipleHandlersMessage = "Multiple handlers registered for request type: ";
+    private const string ExceptionMessage = "Exception occurred while handling request of type: ";
+    private const string PipelineExceptionMessage = "Exception occurred in pipeline stage: ";
+    private const string StreamingExceptionMessage = "Exception occurred in streaming handler for request type: ";
+    private const string NotificationExceptionMessage = "Exception occurred in notification handler for request type: ";
 
     private readonly ConcurrentDictionary<string, long> _queryCounts = new();
     private readonly ConcurrentDictionary<string, long> _commandCounts = new();
@@ -35,7 +54,7 @@ public sealed class MediatorStatistics : IDisposable
 
     // Memory usage tracking (when performance counters enabled)
     private long _totalMemoryAllocated;
-    private readonly object _memoryLock = new();
+    private readonly Lock _memoryLock = new();
 
     // Middleware metrics (only used when EnableMiddlewareMetrics is true)
     private readonly ConcurrentDictionary<string, long> _middlewareExecutionCounts = new();
@@ -49,8 +68,11 @@ public sealed class MediatorStatistics : IDisposable
     // Metrics retention and cleanup
     private readonly ConcurrentDictionary<string, DateTime> _metricTimestamps = new();
     private readonly Timer? _cleanupTimer;
-    private readonly object _cleanupLock = new();
+    private readonly Lock _cleanupLock = new();
     private bool _disposed;
+
+    // Static cache to avoid repeated assembly scanning
+    private static readonly ConcurrentDictionary<Type, List<Type>> _typeCache = new();
 
     /// <summary>
     /// Initializes a new instance of the MediatorStatistics class.
@@ -250,7 +272,7 @@ public sealed class MediatorStatistics : IDisposable
         var hourKey = $"{requestType}_{executionTime:yyyy-MM-dd-HH}";
         _hourlyExecutionCounts.AddOrUpdate(hourKey, 1, (_, count) => count + 1);
 
-        UpdateMetricTimestamp($"pattern_{requestType}");
+        UpdateMetricTimestamp($"{PatternPrefix}{requestType}");
         
         LogExecutionPatternRecordedImpl(requestType, executionTime);
     }
@@ -668,9 +690,6 @@ public sealed class MediatorStatistics : IDisposable
             return types;
         });
     }
-
-    // Static cache to avoid repeated assembly scanning
-    private static readonly ConcurrentDictionary<Type, List<Type>> _typeCache = new();
 
     /// <summary>
     /// Determines whether a type should be included in statistics analysis.
@@ -1151,11 +1170,43 @@ public sealed class MediatorStatistics : IDisposable
 
     private void LogAnalysisStartedImpl(string analysisType)
     {
+        // Get the logger and logging options from the MediatorLogger
+        if (_mediatorLogger?.Logger != null)
+        {
+            var logger = _mediatorLogger.Logger;
+            var loggingOptions = _mediatorLogger.LoggingOptions;
+
+            if (analysisType == "queries")
+            {
+                logger.AnalyzeQueriesStarted(loggingOptions, "Statistics Analysis");
+            }
+            else if (analysisType == "commands")
+            {
+                logger.AnalyzeCommandsStarted(loggingOptions, "Statistics Analysis");
+            }
+        }
+            
         _mediatorLogger?.AnalysisStarted(analysisType);
     }
 
     private void LogAnalysisCompletedImpl(string analysisType, int resultCount)
     {
+        // Get the logger and logging options from the MediatorLogger
+        if (_mediatorLogger?.Logger != null)
+        {
+            var logger = _mediatorLogger.Logger;
+            var loggingOptions = _mediatorLogger.LoggingOptions;
+
+            if (analysisType == "queries")
+            {
+                logger.AnalyzeQueriesCompleted(loggingOptions, resultCount, _options.EnableDetailedAnalysis);
+            }
+            else if (analysisType == "commands")
+            {
+                logger.AnalyzeCommandsCompleted(loggingOptions, resultCount, _options.EnableDetailedAnalysis);
+            }
+        }
+        
         _mediatorLogger?.AnalysisCompleted(analysisType, resultCount);
     }
 
@@ -1195,7 +1246,7 @@ public static class CollectionExtensions
 public class ConcurrentHashSet<T> : IEnumerable<T>
 {
     private readonly HashSet<T> _hashSet = new();
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     public void Add(T item)
     {
@@ -1221,14 +1272,6 @@ public class ConcurrentHashSet<T> : IEnumerable<T>
             {
                 return _hashSet.Count;
             }
-        }
-    }
-
-    public IEnumerable<T> Union(IEnumerable<T> other)
-    {
-        lock (_lock)
-        {
-            return _hashSet.Union(other);
         }
     }
 

@@ -140,5 +140,5 @@ internal sealed class GetUsersHandler(ApplicationDbContext context, ILogger<GetU
         LoggerMessage.Define<Exception>(
             LogLevel.Error,
             new EventId(10, nameof(LogError)),
-            "Error occurred while processing GetUsersQuery");
+            "Error occurred while processing GetUsersQuery: {Exception}");
 }

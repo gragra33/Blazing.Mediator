@@ -1,4 +1,4 @@
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
 
 /// <summary>
 /// Auto-discovery test middleware with instance Order property.

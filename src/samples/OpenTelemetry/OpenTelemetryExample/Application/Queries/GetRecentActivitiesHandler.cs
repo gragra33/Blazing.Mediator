@@ -83,5 +83,5 @@ internal sealed class GetRecentActivitiesHandler(ApplicationDbContext context, I
         LoggerMessage.Define<Exception>(
             LogLevel.Error,
             new EventId(3, nameof(LogActivitiesError)),
-            "Error retrieving recent activities");
+            "Error retrieving recent activities: {Exception}");
 }

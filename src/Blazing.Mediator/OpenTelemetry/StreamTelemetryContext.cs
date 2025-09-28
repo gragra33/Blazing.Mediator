@@ -18,6 +18,78 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
     private Activity? _activity; // Store reference to the activity
     private long _totalPacketProcessingTime;
 
+    // Telemetry tag constants
+    private const string RequestNameTag = "request_name";
+    private const string RequestTypeTag = "request_type";
+    private const string ResponseTypeTag = "response_type";
+    private const string MiddlewarePipelineTag = "middleware.pipeline";
+    private const string HandlerTypeTag = "handler.type";
+    private const string PacketNumberTag = "packet_number";
+    private const string PacketTimestampMsTag = "packet.timestamp_ms";
+    private const string PacketProcessingTimeMsTag = "packet.processing_time_ms";
+    private const string PacketInterPacketTimeMsTag = "packet.inter_packet_time_ms";
+    private const string PacketIsFirstTag = "packet.is_first";
+    private const string StreamTotalPacketsTag = "stream.total_packets";
+    private const string MediatorOperationTag = "mediator.operation";
+    private const string MediatorRequestTypeTag = "mediator.request_type";
+    private const string OtelLibraryNameTag = "otel.library.name";
+    private const string OtelLibraryVersionTag = "otel.library.version";
+    private const string PacketSizeBytesTag = "packet.size_bytes";
+    private const string PacketTypeTag = "packet.type";
+    private const string ExceptionTypeTag = "exception.type";
+    private const string ExceptionMessageTag = "exception.message";
+    private const string StreamItemsCountTag = "stream.items_count";
+    private const string DurationMsTag = "duration_ms";
+    private const string StreamThroughputItemsPerSecTag = "stream.throughput_items_per_sec";
+    private const string StreamTtfbMsTag = "stream.ttfb_ms";
+    private const string StreamAvgInterPacketTimeMsTag = "stream.avg_inter_packet_time_ms";
+    private const string StreamMinInterPacketTimeMsTag = "stream.min_inter_packet_time_ms";
+    private const string StreamMaxInterPacketTimeMsTag = "stream.max_inter_packet_time_ms";
+    private const string StreamAvgPacketProcessingTimeMsTag = "stream.avg_packet_processing_time_ms";
+    private const string StreamTotalProcessingTimeMsTag = "stream.total_processing_time_ms";
+    private const string StreamConsistentThroughputTag = "stream.consistent_throughput";
+    private const string StreamJitterMsTag = "stream.jitter_ms";
+    private const string StreamPerformanceClassTag = "stream.performance_class";
+    private const string StreamPacketCountTag = "stream.packet.count";
+    private const string StreamPacketLevelTelemetryEnabledTag = "stream.packet_level_telemetry_enabled";
+    private const string StreamBatchSizeTag = "stream.batch_size";
+    private const string OperationTag = "operation";
+
+    // Activity event tag constants
+    private const string BatchStartTag = "batch_start";
+    private const string BatchEndTag = "batch_end";
+    private const string BatchSizeTag = "batch_size";
+    private const string AvgInterPacketTimeMsTag = "avg_inter_packet_time_ms";
+    private const string AvgProcessingTimeMsTag = "avg_processing_time_ms";
+    private const string StreamOperationTag = "stream.operation";
+    private const string TimestampMsTag = "timestamp_ms";
+    private const string ProcessingTimeMsTag = "processing_time_ms";
+    private const string InterPacketTimeMsTag = "inter_packet_time_ms";
+    private const string IsFirstPacketTag = "is_first_packet";
+    private const string PacketNumberEventTag = "packet_number";
+
+    // String literals and values
+    private const string StreamRequestType = "stream";
+    private const string StreamPacketRequestType = "stream_packet";
+    private const string SendStreamPacketOperation = "SendStreamPacket";
+    private const string BlazingMediatorLibraryName = "Blazing.Mediator";
+    private const string DefaultLibraryVersion = "1.0.0";
+    private const string PacketBatchOperation = "packet_batch";
+    private const string PacketOperation = "packet";
+    private const string SendStreamOperation = "send_stream";
+    private const string ExcellentPerformance = "excellent";
+    private const string GoodPerformance = "good";
+    private const string FairPerformance = "fair";
+    private const string PoorPerformance = "poor";
+    private const string MiddlewareReplacement = "Middleware";
+    private const string MiddlewareLowerReplacement = "middleware";
+    private const string EllipsisEnding = "...";
+    private const string CommaDelimiter = ",";
+    private const string ActivityNamePrefix = "Mediator.SendStream:";
+    private const string PacketSuffix = ".packet_";
+    private const string StreamPacketBatchPrefix = "stream_packet_batch_";
+    private const string StreamPacketPrefix = "stream_packet_";
+
     public string RequestTypeName { get; } = SanitizeTypeName(request.GetType().Name);
     public string ResponseTypeName { get; } = SanitizeTypeName(typeof(TResponse).Name);
     public int ItemCount => _itemCount; // Expose item count for telemetry
@@ -41,9 +113,9 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
             return;
         }
 
-        activity.SetTag("request_name", RequestTypeName);
-        activity.SetTag("request_type", "stream");
-        activity.SetTag("response_type", ResponseTypeName);
+        activity.SetTag(RequestNameTag, RequestTypeName);
+        activity.SetTag(RequestTypeTag, StreamRequestType);
+        activity.SetTag(ResponseTypeTag, ResponseTypeName);
 
         // Get middleware pipeline information
         if (pipelineBuilder is IMiddlewarePipelineInspector inspector)
@@ -55,7 +127,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
                 .Select(m => SanitizeMiddlewareName(m.Type.Name))
                 .ToList();
 
-            activity.SetTag("middleware.pipeline", string.Join(",", allMiddleware));
+            activity.SetTag(MiddlewarePipelineTag, string.Join(CommaDelimiter, allMiddleware));
         }
 
         // Get handler information
@@ -64,7 +136,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
         var handler = handlers.FirstOrDefault();
         if (handler != null)
         {
-            activity.SetTag("handler.type", SanitizeTypeName(handler.GetType().Name));
+            activity.SetTag(HandlerTypeTag, SanitizeTypeName(handler.GetType().Name));
         }
     }
 
@@ -98,9 +170,9 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
         // Record packet-level metrics
         var packetTags = new TagList
         {
-            { "request_name", RequestTypeName },
-            { "response_type", ResponseTypeName },
-            { "packet_number", _itemCount }
+            { RequestNameTag, RequestTypeName },
+            { ResponseTypeTag, ResponseTypeName },
+            { PacketNumberTag, _itemCount }
         };
 
         Mediator.StreamPacketCounter.Add(1, packetTags);
@@ -114,34 +186,34 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
         // Create child span for packet if packet-level telemetry is enabled
         if (IsPacketLevelTelemetryEnabled && _activity != null)
         {
-            using var packetActivity = Mediator.ActivitySource.StartActivity($"Mediator.SendStream:{RequestTypeName}.packet_{_itemCount}", ActivityKind.Internal, _activity.Context);
+            using var packetActivity = Mediator.ActivitySource.StartActivity($"{ActivityNamePrefix}{RequestTypeName}{PacketSuffix}{_itemCount}", ActivityKind.Internal, _activity.Context);
             if (packetActivity != null)
             {
-                packetActivity.SetTag("packet.number", _itemCount);
-                packetActivity.SetTag("packet.timestamp_ms", currentTime);
-                packetActivity.SetTag("packet.processing_time_ms", packetProcessingTimeMs);
-                packetActivity.SetTag("packet.inter_packet_time_ms", interPacketTime);
-                packetActivity.SetTag("packet.is_first", _itemCount == 1);
-                packetActivity.SetTag("stream.total_packets", _itemCount);
-                packetActivity.SetTag("request_name", RequestTypeName);
-                packetActivity.SetTag("request_type", "stream_packet");
-                packetActivity.SetTag("mediator.operation", "SendStreamPacket");
-                packetActivity.SetTag("mediator.request_type", "stream_packet");
-                packetActivity.SetTag("otel.library.name", "Blazing.Mediator");
-                packetActivity.SetTag("otel.library.version", typeof(Mediator).Assembly.GetName().Version?.ToString() ?? "1.0.0");
+                packetActivity.SetTag(PacketNumberTag, _itemCount);
+                packetActivity.SetTag(PacketTimestampMsTag, currentTime);
+                packetActivity.SetTag(PacketProcessingTimeMsTag, packetProcessingTimeMs);
+                packetActivity.SetTag(PacketInterPacketTimeMsTag, interPacketTime);
+                packetActivity.SetTag(PacketIsFirstTag, _itemCount == 1);
+                packetActivity.SetTag(StreamTotalPacketsTag, _itemCount);
+                packetActivity.SetTag(RequestNameTag, RequestTypeName);
+                packetActivity.SetTag(RequestTypeTag, StreamPacketRequestType);
+                packetActivity.SetTag(MediatorOperationTag, SendStreamPacketOperation);
+                packetActivity.SetTag(MediatorRequestTypeTag, StreamPacketRequestType);
+                packetActivity.SetTag(OtelLibraryNameTag, BlazingMediatorLibraryName);
+                packetActivity.SetTag(OtelLibraryVersionTag, typeof(Mediator).Assembly.GetName().Version?.ToString() ?? DefaultLibraryVersion);
 
                 // Add packet size if available (attempt to serialize for size estimation)
                 try
                 {
                     if (item is string str)
                     {
-                        packetActivity.SetTag("packet.size_bytes", System.Text.Encoding.UTF8.GetByteCount(str));
+                        packetActivity.SetTag(PacketSizeBytesTag, System.Text.Encoding.UTF8.GetByteCount(str));
                     }
                     else if (item != null)
                     {
                         // Rough estimation based on type
                         var typeName = item.GetType().Name;
-                        packetActivity.SetTag("packet.type", SanitizeTypeName(typeName));
+                        packetActivity.SetTag(PacketTypeTag, SanitizeTypeName(typeName));
                     }
                 }
                 catch
@@ -169,27 +241,27 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
                 var recentInterPacketTimes = _interPacketTimes.TakeLast(Mediator.PacketTelemetryBatchSize - 1);
 
                 var interPacketTimes = recentInterPacketTimes as double[] ?? recentInterPacketTimes.ToArray();
-                _activity.AddEvent(new ActivityEvent($"stream_packet_batch_{_itemCount}", DateTimeOffset.UtcNow, new ActivityTagsCollection
+                _activity.AddEvent(new ActivityEvent($"{StreamPacketBatchPrefix}{_itemCount}", DateTimeOffset.UtcNow, new ActivityTagsCollection
                 {
-                    ["batch_start"] = batchStart,
-                    ["batch_end"] = _itemCount,
-                    ["batch_size"] = Math.Min(Mediator.PacketTelemetryBatchSize, _itemCount),
-                    ["avg_inter_packet_time_ms"] = interPacketTimes.Any() ? interPacketTimes.Average() : 0,
-                    ["avg_processing_time_ms"] = _packetProcessingTimes.TakeLast(Mediator.PacketTelemetryBatchSize).Average(),
-                    ["stream.operation"] = "packet_batch"
+                    [BatchStartTag] = batchStart,
+                    [BatchEndTag] = _itemCount,
+                    [BatchSizeTag] = Math.Min(Mediator.PacketTelemetryBatchSize, _itemCount),
+                    [AvgInterPacketTimeMsTag] = interPacketTimes.Any() ? interPacketTimes.Average() : 0,
+                    [AvgProcessingTimeMsTag] = _packetProcessingTimes.TakeLast(Mediator.PacketTelemetryBatchSize).Average(),
+                    [StreamOperationTag] = PacketBatchOperation
                 }));
             }
             else
             {
                 // Individual packet event
-                _activity.AddEvent(new ActivityEvent($"stream_packet_{_itemCount}", DateTimeOffset.UtcNow, new ActivityTagsCollection
+                _activity.AddEvent(new ActivityEvent($"{StreamPacketPrefix}{_itemCount}", DateTimeOffset.UtcNow, new ActivityTagsCollection
                 {
-                    ["packet_number"] = _itemCount,
-                    ["timestamp_ms"] = currentTime,
-                    ["processing_time_ms"] = packetProcessingTimeMs,
-                    ["inter_packet_time_ms"] = interPacketTime,
-                    ["is_first_packet"] = _itemCount == 1,
-                    ["stream.operation"] = "packet"
+                    [PacketNumberEventTag] = _itemCount,
+                    [TimestampMsTag] = currentTime,
+                    [ProcessingTimeMsTag] = packetProcessingTimeMs,
+                    [InterPacketTimeMsTag] = interPacketTime,
+                    [IsFirstPacketTag] = _itemCount == 1,
+                    [StreamOperationTag] = PacketOperation
                 }));
             }
         }
@@ -211,8 +283,8 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
         if (!IsTelemetryEnabled) return;
 
         activity?.SetStatus(ActivityStatusCode.Error, SanitizeExceptionMessage(ex.Message));
-        activity?.SetTag("exception.type", SanitizeTypeName(ex.GetType().Name));
-        activity?.SetTag("exception.message", SanitizeExceptionMessage(ex.Message));
+        activity?.SetTag(ExceptionTypeTag, SanitizeTypeName(ex.GetType().Name));
+        activity?.SetTag(ExceptionMessageTag, SanitizeExceptionMessage(ex.Message));
     }
 
     /// <summary>
@@ -241,22 +313,22 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
         // Set comprehensive activity tags
         if (activity != null)
         {
-            activity.SetTag("stream.items_count", _itemCount);
-            activity.SetTag("duration_ms", totalDuration.TotalMilliseconds);
-            activity.SetTag("stream.throughput_items_per_sec", throughputItemsPerSec);
-            activity.SetTag("stream.ttfb_ms", _timeToFirstByte.TotalMilliseconds);
-            activity.SetTag("stream.avg_inter_packet_time_ms", avgInterPacketTime);
-            activity.SetTag("stream.min_inter_packet_time_ms", minInterPacketTime);
-            activity.SetTag("stream.max_inter_packet_time_ms", maxInterPacketTime);
-            activity.SetTag("stream.avg_packet_processing_time_ms", avgPacketProcessingTime);
-            activity.SetTag("stream.total_processing_time_ms", _totalPacketProcessingTime);
+            activity.SetTag(StreamItemsCountTag, _itemCount);
+            activity.SetTag(DurationMsTag, totalDuration.TotalMilliseconds);
+            activity.SetTag(StreamThroughputItemsPerSecTag, throughputItemsPerSec);
+            activity.SetTag(StreamTtfbMsTag, _timeToFirstByte.TotalMilliseconds);
+            activity.SetTag(StreamAvgInterPacketTimeMsTag, avgInterPacketTime);
+            activity.SetTag(StreamMinInterPacketTimeMsTag, minInterPacketTime);
+            activity.SetTag(StreamMaxInterPacketTimeMsTag, maxInterPacketTime);
+            activity.SetTag(StreamAvgPacketProcessingTimeMsTag, avgPacketProcessingTime);
+            activity.SetTag(StreamTotalProcessingTimeMsTag, _totalPacketProcessingTime);
 
             // Advanced streaming metrics
             if (_itemCount > 1)
             {
                 var isConsistentThroughput = (maxInterPacketTime - minInterPacketTime) < (avgInterPacketTime * 0.5);
-                activity.SetTag("stream.consistent_throughput", isConsistentThroughput);
-                activity.SetTag("stream.jitter_ms", jitter);
+                activity.SetTag(StreamConsistentThroughputTag, isConsistentThroughput);
+                activity.SetTag(StreamJitterMsTag, jitter);
 
                 // Performance classification using configurable thresholds
                 if (telemetryOptions?.EnableStreamingPerformanceClassification == true)
@@ -265,34 +337,34 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
                     var goodThreshold = telemetryOptions.GoodPerformanceThreshold;
                     var fairThreshold = telemetryOptions.FairPerformanceThreshold;
 
-                    var performance = jitter < avgInterPacketTime * excellentThreshold ? "excellent" :
-                        jitter < avgInterPacketTime * goodThreshold ? "good" :
-                        jitter < avgInterPacketTime * fairThreshold ? "fair" : "poor";
-                    activity.SetTag("stream.performance_class", performance);
+                    var performance = jitter < avgInterPacketTime * excellentThreshold ? ExcellentPerformance :
+                        jitter < avgInterPacketTime * goodThreshold ? GoodPerformance :
+                        jitter < avgInterPacketTime * fairThreshold ? FairPerformance : PoorPerformance;
+                    activity.SetTag(StreamPerformanceClassTag, performance);
                 }
                 else
                 {
                     // Fallback to default thresholds when classification is disabled
-                    var performance = jitter < avgInterPacketTime * 0.1 ? "excellent" :
-                        jitter < avgInterPacketTime * 0.3 ? "good" :
-                        jitter < avgInterPacketTime * 0.5 ? "fair" : "poor";
-                    activity.SetTag("stream.performance_class", performance);
+                    var performance = jitter < avgInterPacketTime * 0.1 ? ExcellentPerformance :
+                        jitter < avgInterPacketTime * 0.3 ? GoodPerformance :
+                        jitter < avgInterPacketTime * 0.5 ? FairPerformance : PoorPerformance;
+                    activity.SetTag(StreamPerformanceClassTag, performance);
                 }
             }
 
             // OpenTelemetry semantic conventions
-            activity.SetTag("stream.packet.count", _itemCount);
-            activity.SetTag("stream.packet_level_telemetry_enabled", IsPacketLevelTelemetryEnabled);
-            activity.SetTag("stream.batch_size", telemetryOptions?.PacketTelemetryBatchSize ?? 10);
+            activity.SetTag(StreamPacketCountTag, _itemCount);
+            activity.SetTag(StreamPacketLevelTelemetryEnabledTag, IsPacketLevelTelemetryEnabled);
+            activity.SetTag(StreamBatchSizeTag, telemetryOptions?.PacketTelemetryBatchSize ?? 10);
         }
 
         // Record OpenTelemetry metrics
         var tags = new TagList
         {
-            { "request_name", RequestTypeName },
-            { "request_type", "stream" },
-            { "response_type", ResponseTypeName },
-            { "stream.items_count", _itemCount }
+            { RequestNameTag, RequestTypeName },
+            { RequestTypeTag, StreamRequestType },
+            { ResponseTypeTag, ResponseTypeName },
+            { StreamItemsCountTag, _itemCount }
         };
 
         // Enhanced streaming metrics
@@ -315,13 +387,13 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
         }
         else
         {
-            tags.Add("exception.type", SanitizeTypeName(exception.GetType().Name));
-            tags.Add("exception.message", SanitizeExceptionMessage(exception.Message));
+            tags.Add(ExceptionTypeTag, SanitizeTypeName(exception.GetType().Name));
+            tags.Add(ExceptionMessageTag, SanitizeExceptionMessage(exception.Message));
             Mediator.StreamFailureCounter.Add(1, tags);
         }
 
         // Health check counter
-        Mediator.TelemetryHealthCounter.Add(1, new TagList { { "operation", "send_stream" } });
+        Mediator.TelemetryHealthCounter.Add(1, new TagList { { OperationTag, SendStreamOperation } });
     }
 
     /// <summary>

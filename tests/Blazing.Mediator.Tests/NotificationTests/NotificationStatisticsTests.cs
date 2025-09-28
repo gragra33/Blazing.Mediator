@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Statistics;
 
 namespace Blazing.Mediator.Tests.NotificationTests;
@@ -70,7 +69,7 @@ public class NotificationStatisticsTests
     public class ErrorStatisticsHandler : INotificationHandler<OrderNotification>
     {
         public int CallCount { get; private set; }
-        public bool ShouldThrow { get; set; } = false; // Changed from true to false by default
+        public bool ShouldThrow { get; set; } // Changed from true to false by default
 
         public Task Handle(OrderNotification notification, CancellationToken cancellationToken = default)
         {

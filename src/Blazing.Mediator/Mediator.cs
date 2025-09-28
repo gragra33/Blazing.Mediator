@@ -1,4 +1,4 @@
-using Blazing.Mediator.OpenTelemetry;
+    using Blazing.Mediator.OpenTelemetry;
 using Blazing.Mediator.Statistics;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
@@ -6,12 +6,11 @@ using System.Diagnostics.Metrics;
 namespace Blazing.Mediator;
 
 /// <summary>
-/// Implementation of the Mediator pattern that dispatches requests to their corresponding handlers.
+/// Implementation of the Mediator pattern that dispatches requests to their corresponding handlers and publishes notifications to handlers & subscribers.
 /// </summary>
 /// <remarks>
-/// The Mediator class serves as a centralized request dispatcher that decouples the request sender
-/// from the request handler. It uses dependency injection to resolve handlers at runtime and
-/// supports both void and typed responses.
+/// The Mediator class serves as a centralized dispatcher that decouples senders from receivers for both requests (commands, queries, streams) and notifications.
+/// It uses dependency injection to resolve handlers and subscribers at runtime, supporting request/response, streaming, and publish/subscribe patterns.
 /// </remarks>
 public sealed class Mediator : IMediator
 {
@@ -29,12 +28,12 @@ public sealed class Mediator : IMediator
     /// <summary>
     /// The static OpenTelemetry Meter for Mediator metrics.
     /// </summary>
-    public static readonly Meter Meter = new("Blazing.Mediator", typeof(Mediator).Assembly.GetName().Version?.ToString() ?? "1.0.0");
+    public static readonly Meter Meter = new(BlazingMediatorName, typeof(Mediator).Assembly.GetName().Version?.ToString() ?? DefaultVersion);
 
     /// <summary>
     /// The static OpenTelemetry ActivitySource for Mediator tracing.
     /// </summary>
-    public static readonly ActivitySource ActivitySource = new("Blazing.Mediator");
+    public static readonly ActivitySource ActivitySource = new(BlazingMediatorName);
 
     /// <summary>
     /// Configuration for enabling/disabling telemetry (metrics/tracing).
@@ -55,31 +54,112 @@ public sealed class Mediator : IMediator
     public static int PacketTelemetryBatchSize { get; set; } = 10;
 
     // Pre-create metrics for performance and thread safety
-    private static readonly Histogram<double> SendDurationHistogram = Meter.CreateHistogram<double>("mediator.send.duration", unit: "ms", description: "Duration of mediator send operations");
-    private static readonly Counter<long> SendSuccessCounter = Meter.CreateCounter<long>("mediator.send.success", description: "Number of successful mediator send operations");
-    private static readonly Counter<long> SendFailureCounter = Meter.CreateCounter<long>("mediator.send.failure", description: "Number of failed mediator send operations");
-    private static readonly Histogram<double> PublishDurationHistogram = Meter.CreateHistogram<double>("mediator.publish.duration", unit: "ms", description: "Duration of mediator publish operations");
-    private static readonly Counter<long> PublishSuccessCounter = Meter.CreateCounter<long>("mediator.publish.success", description: "Number of successful mediator publish operations");
-    private static readonly Counter<long> PublishFailureCounter = Meter.CreateCounter<long>("mediator.publish.failure", description: "Number of failed mediator publish operations");
-    private static readonly Histogram<double> PublishSubscriberDurationHistogram = Meter.CreateHistogram<double>("mediator.publish.subscriber.duration", unit: "ms", description: "Duration of individual subscriber notification processing");
-    private static readonly Counter<long> PublishSubscriberSuccessCounter = Meter.CreateCounter<long>("mediator.publish.subscriber.success", description: "Number of successful subscriber notifications");
-    private static readonly Counter<long> PublishSubscriberFailureCounter = Meter.CreateCounter<long>("mediator.publish.subscriber.failure", description: "Number of failed subscriber notifications");
+    private static readonly Histogram<double> SendDurationHistogram = Meter.CreateHistogram<double>(SendDurationMetric, unit: MillisecondsUnit, description: SendDurationDescription);
+    private static readonly Counter<long> SendSuccessCounter = Meter.CreateCounter<long>(SendSuccessMetric, description: SendSuccessDescription);
+    private static readonly Counter<long> SendFailureCounter = Meter.CreateCounter<long>(SendFailureMetric, description: SendFailureDescription);
+    private static readonly Histogram<double> PublishDurationHistogram = Meter.CreateHistogram<double>(PublishDurationMetric, unit: MillisecondsUnit, description: PublishDurationDescription);
+    private static readonly Counter<long> PublishSuccessCounter = Meter.CreateCounter<long>(PublishSuccessMetric, description: PublishSuccessDescription);
+    private static readonly Counter<long> PublishFailureCounter = Meter.CreateCounter<long>(PublishFailureMetric, description: PublishFailureDescription);
+    private static readonly Histogram<double> PublishSubscriberDurationHistogram = Meter.CreateHistogram<double>(PublishSubscriberDurationMetric, unit: MillisecondsUnit, description: PublishSubscriberDurationDescription);
+    private static readonly Counter<long> PublishSubscriberSuccessCounter = Meter.CreateCounter<long>(PublishSubscriberSuccessMetric, description: PublishSubscriberSuccessDescription);
+    private static readonly Counter<long> PublishSubscriberFailureCounter = Meter.CreateCounter<long>(PublishSubscriberFailureMetric, description: PublishSubscriberFailureDescription);
 
     // Streaming metrics (internal for StreamTelemetryContext access)
-    internal static readonly Histogram<double> StreamDurationHistogram = Meter.CreateHistogram<double>("mediator.stream.duration", unit: "ms", description: "Duration of mediator stream operations");
-    internal static readonly Counter<long> StreamSuccessCounter = Meter.CreateCounter<long>("mediator.stream.success", description: "Number of successful mediator stream operations");
-    internal static readonly Counter<long> StreamFailureCounter = Meter.CreateCounter<long>("mediator.stream.failure", description: "Number of failed mediator stream operations");
-    internal static readonly Histogram<double> StreamThroughputHistogram = Meter.CreateHistogram<double>("mediator.stream.throughput", unit: "items/sec", description: "Throughput of mediator stream operations");
-    internal static readonly Histogram<double> StreamTtfbHistogram = Meter.CreateHistogram<double>("mediator.stream.ttfb", unit: "ms", description: "Time to first byte for mediator stream operations");
+    internal static readonly Histogram<double> StreamDurationHistogram = Meter.CreateHistogram<double>(StreamDurationMetric, unit: MillisecondsUnit, description: StreamDurationDescription);
+    internal static readonly Counter<long> StreamSuccessCounter = Meter.CreateCounter<long>(StreamSuccessMetric, description: StreamSuccessDescription);
+    internal static readonly Counter<long> StreamFailureCounter = Meter.CreateCounter<long>(StreamFailureMetric, description: StreamFailureDescription);
+    internal static readonly Histogram<double> StreamThroughputHistogram = Meter.CreateHistogram<double>(StreamThroughputMetric, unit: ItemsPerSecondUnit, description: StreamThroughputDescription);
+    internal static readonly Histogram<double> StreamTtfbHistogram = Meter.CreateHistogram<double>(StreamTtfbMetric, unit: MillisecondsUnit, description: StreamTtfbDescription);
 
     // Enhanced packet-level streaming metrics
-    internal static readonly Counter<long> StreamPacketCounter = Meter.CreateCounter<long>("mediator.stream.packet.count", description: "Number of packets processed in stream operations");
-    internal static readonly Histogram<double> StreamPacketProcessingTimeHistogram = Meter.CreateHistogram<double>("mediator.stream.packet.processing_time", unit: "ms", description: "Processing time for individual stream packets");
-    internal static readonly Histogram<double> StreamInterPacketTimeHistogram = Meter.CreateHistogram<double>("mediator.stream.inter_packet_time", unit: "ms", description: "Time between consecutive stream packets");
-    internal static readonly Histogram<double> StreamPacketJitterHistogram = Meter.CreateHistogram<double>("mediator.stream.packet.jitter", unit: "ms", description: "Jitter in stream packet timing");
+    internal static readonly Counter<long> StreamPacketCounter = Meter.CreateCounter<long>(StreamPacketCountMetric, description: StreamPacketCountDescription);
+    internal static readonly Histogram<double> StreamPacketProcessingTimeHistogram = Meter.CreateHistogram<double>(StreamPacketProcessingTimeMetric, unit: MillisecondsUnit, description: StreamPacketProcessingTimeDescription);
+    internal static readonly Histogram<double> StreamInterPacketTimeHistogram = Meter.CreateHistogram<double>(StreamInterPacketTimeMetric, unit: MillisecondsUnit, description: StreamInterPacketTimeDescription);
+    internal static readonly Histogram<double> StreamPacketJitterHistogram = Meter.CreateHistogram<double>(StreamPacketJitterMetric, unit: MillisecondsUnit, description: StreamPacketJitterDescription);
 
     // Health check metrics (internal for StreamTelemetryContext access)
-    internal static readonly Counter<long> TelemetryHealthCounter = Meter.CreateCounter<long>("mediator.telemetry.health", description: "Health check counter for telemetry system");
+    internal static readonly Counter<long> TelemetryHealthCounter = Meter.CreateCounter<long>(TelemetryHealthMetric, description: TelemetryHealthDescription);
+
+    // String constants
+    private const string BlazingMediatorName = "Blazing.Mediator";
+    private const string DefaultVersion = "1.0.0";
+    private const string MillisecondsUnit = "ms";
+    private const string ItemsPerSecondUnit = "items/sec";
+    private const string HandleMethodName = "Handle";
+    private const string SendOperation = "send";
+    private const string PublishOperation = "publish";
+    private const string StreamOperation = "stream";
+    private const string MediatorOperation = "mediator.operation";
+    private const string ExecutePipelineActivity = "ExecutePipeline";
+    private const string ExecuteStreamPipelineActivity = "ExecuteStreamPipeline";
+    private const string HandlerNotFoundFormat = "No handler found for request type {0}";
+    private const string StreamHandlerNotFoundFormat = "No handler found for stream request type {0}";
+    private const string MultipleHandlersFoundFormat = "Multiple handlers found for request type {0}. Only one handler per request type is allowed.";
+    private const string MultipleStreamHandlersFoundFormat = "Multiple handlers found for stream request type {0}. Only one handler per request type is allowed.";
+    private const string HandlerReturnedNullFormat = "Handler for {0} returned null";
+    private const string HandleMethodNotFoundFormat = "Handle method not found on {0}";
+    private const string ArgumentNullExceptionType = "ArgumentNullException";
+    private const string InvalidOperationExceptionType = "InvalidOperationException";
+    private const string RequestType = "request_type";
+    private const string ResponseType = "response_type";
+    private const string HandlerType = "handler.type";
+    private const string NotificationType = "notification_type";
+    private const string SubscriberType = "subscriber_type";
+    private const string ExceptionType = "exception.type";
+    private const string ExceptionMessage = "exception.message";
+    private const string ExceptionStackTrace = "exception.stack_trace";
+    private const string DurationMs = "duration_ms";
+    private const string Success = "success";
+    private const string HandlerCount = "handler_count";
+    private const string SubscriberCount = "subscriber_count";
+    private const string ItemsProcessed = "items_processed";
+    
+    // Metric names
+    private const string SendDurationMetric = "mediator.send.duration";
+    private const string SendSuccessMetric = "mediator.send.success";
+    private const string SendFailureMetric = "mediator.send.failure";
+    private const string PublishDurationMetric = "mediator.publish.duration";
+    private const string PublishSuccessMetric = "mediator.publish.success";
+    private const string PublishFailureMetric = "mediator.publish.failure";
+    private const string PublishSubscriberDurationMetric = "mediator.publish.subscriber.duration";
+    private const string PublishSubscriberSuccessMetric = "mediator.publish.subscriber.success";
+    private const string PublishSubscriberFailureMetric = "mediator.publish.subscriber.failure";
+    private const string StreamDurationMetric = "mediator.stream.duration";
+    private const string StreamSuccessMetric = "mediator.stream.success";
+    private const string StreamFailureMetric = "mediator.stream.failure";
+    private const string StreamThroughputMetric = "mediator.stream.throughput";
+    private const string StreamTtfbMetric = "mediator.stream.ttfb";
+    private const string StreamPacketCountMetric = "mediator.stream.packet.count";
+    private const string StreamPacketProcessingTimeMetric = "mediator.stream.packet.processing_time";
+    private const string StreamInterPacketTimeMetric = "mediator.stream.inter_packet_time";
+    private const string StreamPacketJitterMetric = "mediator.stream.packet.jitter";
+    private const string TelemetryHealthMetric = "mediator.telemetry.health";
+    
+    // Activity/operation names
+    private const string MediatorPublishActivityPrefix = "Mediator.Publish.";
+    private const string MediatorSendActivity = "Mediator.Send:";
+    private const string MediatorSendStreamActivity = "Mediator.SendStream:";
+    
+    // Descriptions
+    private const string SendDurationDescription = "Duration of mediator send operations";
+    private const string SendSuccessDescription = "Number of successful mediator send operations";
+    private const string SendFailureDescription = "Number of failed mediator send operations";
+    private const string PublishDurationDescription = "Duration of mediator publish operations";
+    private const string PublishSuccessDescription = "Number of successful mediator publish operations";
+    private const string PublishFailureDescription = "Number of failed mediator publish operations";
+    private const string PublishSubscriberDurationDescription = "Duration of individual subscriber notification processing";
+    private const string PublishSubscriberSuccessDescription = "Number of successful subscriber notifications";
+    private const string PublishSubscriberFailureDescription = "Number of failed subscriber notifications";
+    private const string StreamDurationDescription = "Duration of mediator stream operations";
+    private const string StreamSuccessDescription = "Number of successful mediator stream operations";
+    private const string StreamFailureDescription = "Number of failed mediator stream operations";
+    private const string StreamThroughputDescription = "Throughput of mediator stream operations";
+    private const string StreamTtfbDescription = "Time to first byte for mediator stream operations";
+    private const string StreamPacketCountDescription = "Number of packets processed in stream operations";
+    private const string StreamPacketProcessingTimeDescription = "Processing time for individual stream packets";
+    private const string StreamInterPacketTimeDescription = "Time between consecutive stream packets";
+    private const string StreamPacketJitterDescription = "Jitter in stream packet timing";
+    private const string TelemetryHealthDescription = "Health check counter for telemetry system";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Mediator"/> class.
@@ -91,21 +171,27 @@ public sealed class Mediator : IMediator
     /// <param name="telemetryOptions">The telemetry options for configuring OpenTelemetry integration. Can be null if telemetry is disabled.</param>
     /// <param name="logger">Optional granular logger for debug-level logging of mediator operations. Can be null if debug logging is disabled.</param>
     /// <exception cref="ArgumentNullException">Thrown when serviceProvider, pipelineBuilder, or notificationPipelineBuilder is null.</exception>
-    public Mediator(IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, INotificationPipelineBuilder notificationPipelineBuilder, MediatorStatistics? statistics, MediatorTelemetryOptions? telemetryOptions = null, MediatorLogger? logger = null)
+    public Mediator(
+        IServiceProvider serviceProvider,
+        IMiddlewarePipelineBuilder pipelineBuilder,
+        INotificationPipelineBuilder notificationPipelineBuilder,
+        MediatorStatistics? statistics,
+        MediatorTelemetryOptions? telemetryOptions = null,
+        MediatorLogger? logger = null)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _pipelineBuilder = pipelineBuilder ?? throw new ArgumentNullException(nameof(pipelineBuilder));
         _notificationPipelineBuilder = notificationPipelineBuilder ?? throw new ArgumentNullException(nameof(notificationPipelineBuilder));
-        _statistics = statistics; // Statistics can be null if tracking is disabled
-        _telemetryOptions = telemetryOptions; // Telemetry options can be null if telemetry is disabled
-        _logger = logger; // Logger can be null if debug logging is disabled
+        _statistics = statistics;               // Statistics can be null if tracking is disabled
+        _telemetryOptions = telemetryOptions;   // Telemetry options can be null if telemetry is disabled
+        _logger = logger;                       // Logger can be null if debug logging is disabled
     }
 
     /// <summary>
     /// Gets whether telemetry is enabled based on static property override or options configuration.
     /// The static TelemetryEnabled property takes precedence when explicitly set to false.
     /// </summary>
-    private bool IsTelemetryEnabled => !TelemetryEnabled ? false : (_telemetryOptions?.Enabled ?? true);
+    private bool IsTelemetryEnabled => TelemetryEnabled && (_telemetryOptions?.Enabled ?? true);
 
     /// <summary>
     /// Gets whether packet-level telemetry is enabled based on options or static property fallback.
@@ -148,16 +234,6 @@ public sealed class Mediator : IMediator
     private int MaxStackTraceLines => _telemetryOptions?.MaxStackTraceLines ?? 3;
 
     /// <summary>
-    /// Gets whether streaming metrics are enabled based on options (default true).
-    /// </summary>
-    private bool AreStreamingMetricsEnabled => _telemetryOptions?.EnableStreamingMetrics ?? true;
-
-    /// <summary>
-    /// Gets whether packet size should be captured based on options (default false).
-    /// </summary>
-    private bool ShouldCapturePacketSize => _telemetryOptions?.CapturePacketSize ?? false;
-
-    /// <summary>
     /// Gets the sensitive data patterns for filtering telemetry data.
     /// </summary>
     private List<string> SensitiveDataPatterns => _telemetryOptions?.SensitiveDataPatterns ??
@@ -172,7 +248,7 @@ public sealed class Mediator : IMediator
     /// <exception cref="InvalidOperationException">Thrown when no handler is found for the request type</exception>
     public async Task Send(IRequest request, CancellationToken cancellationToken = default)
     {
-        using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"Mediator.Send:{request.GetType().Name}") : null;
+        using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"{MediatorSendActivity}{request.GetType().Name}") : null;
         activity?.SetStatus(ActivityStatusCode.Ok);
 
         var stopwatch = Stopwatch.StartNew();
@@ -223,17 +299,17 @@ public sealed class Mediator : IMediator
                 {
                     case { Length: 0 }:
                         _logger?.NoHandlerFoundWarning(requestType.Name);
-                        throw new InvalidOperationException($"No handler found for request type {requestType.Name}");
+                        throw new InvalidOperationException(string.Format(HandlerNotFoundFormat, requestType.Name));
                     case { Length: > 1 }:
                         _logger?.MultipleHandlersFoundWarning(requestType.Name, string.Join(", ", handlerArray.Select(h => h.GetType().Name)));
-                        throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
+                        throw new InvalidOperationException(string.Format(MultipleHandlersFoundFormat, requestType.Name));
                 }
                 object handler = handlerArray[0];
 
                 // Debug logging: Handler found
                 _logger?.SendHandlerFound(handler.GetType().Name, requestType.Name);
 
-                MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
+                MethodInfo method = handlerType.GetMethod(HandleMethodName) ?? throw new InvalidOperationException(string.Format(HandleMethodNotFoundFormat, handlerType.Name));
                 try
                 {
                     if (IsTelemetryEnabled && ShouldCaptureHandlerDetails)
@@ -254,7 +330,7 @@ public sealed class Mediator : IMediator
             }
 
             // Execute through middleware pipeline with enhanced tracking
-            await ExecuteWithMiddlewareTracking(request, FinalHandler, executedMiddleware, cancellationToken).ConfigureAwait(false);
+            await ExecuteWithMiddlewareTracking(request, FinalHandler, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -380,7 +456,7 @@ public sealed class Mediator : IMediator
     /// <exception cref="InvalidOperationException">Thrown when no handler is found for the request type or the handler returns null</exception>
     public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
-        using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"Mediator.Send:{request.GetType().Name}") : null;
+        using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"{MediatorSendActivity}{request.GetType().Name}") : null;
         activity?.SetStatus(ActivityStatusCode.Ok);
 
         var stopwatch = Stopwatch.StartNew();
@@ -443,17 +519,17 @@ public sealed class Mediator : IMediator
                 {
                     case { Length: 0 }:
                         _logger?.NoHandlerFoundWarning(requestType.Name);
-                        throw new InvalidOperationException($"No handler found for request type {requestType.Name}");
+                        throw new InvalidOperationException(string.Format(HandlerNotFoundFormat, requestType.Name));
                     case { Length: > 1 }:
                         _logger?.MultipleHandlersFoundWarning(requestType.Name, string.Join(", ", handlerArray.Select(h => h.GetType().Name)));
-                        throw new InvalidOperationException($"Multiple handlers found for request type {requestType.Name}. Only one handler per request type is allowed.");
+                        throw new InvalidOperationException(string.Format(MultipleHandlersFoundFormat, requestType.Name));
                 }
                 object handler = handlerArray[0];
 
                 // Debug logging: Handler found
                 _logger?.SendHandlerFound(handler.GetType().Name, requestType.Name);
 
-                MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
+                MethodInfo method = handlerType.GetMethod(HandleMethodName) ?? throw new InvalidOperationException(string.Format(HandleMethodNotFoundFormat, handlerType.Name));
                 try
                 {
                     if (IsTelemetryEnabled && ShouldCaptureHandlerDetails)
@@ -467,7 +543,7 @@ public sealed class Mediator : IMediator
                     {
                         return await task.ConfigureAwait(false);
                     }
-                    throw new InvalidOperationException($"Handler for {requestType.Name} returned null");
+                    throw new InvalidOperationException(string.Format(HandlerReturnedNullFormat, requestType.Name));
                 }
                 catch (TargetInvocationException ex) when (ex.InnerException != null)
                 {
@@ -476,7 +552,7 @@ public sealed class Mediator : IMediator
             }
 
             // Execute through middleware pipeline with enhanced tracking
-            return await ExecuteWithMiddlewareTracking(request, FinalHandler, executedMiddleware, cancellationToken).ConfigureAwait(false);
+            return await ExecuteWithMiddlewareTracking(request, FinalHandler, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -617,10 +693,10 @@ public sealed class Mediator : IMediator
             {
                 case { Length: 0 }:
                     _logger?.NoHandlerFoundWarning(requestType.Name);
-                    throw new InvalidOperationException($"No handler found for stream request type {requestType.Name}");
+                    throw new InvalidOperationException(string.Format(StreamHandlerNotFoundFormat, requestType.Name));
                 case { Length: > 1 }:
                     _logger?.MultipleHandlersFoundWarning(requestType.Name, string.Join(", ", handlerArray.Select(h => h.GetType().Name)));
-                    throw new InvalidOperationException($"Multiple handlers found for stream request type {requestType.Name}. Only one handler per request type is allowed.");
+                    throw new InvalidOperationException(string.Format(MultipleStreamHandlersFoundFormat, requestType.Name));
             }
 
             object handler = handlerArray[0];
@@ -628,12 +704,12 @@ public sealed class Mediator : IMediator
             // Debug logging: Stream handler found
             _logger?.SendStreamHandlerFound(handler.GetType().Name, requestType.Name);
 
-            MethodInfo method = handlerType.GetMethod("Handle") ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
+            MethodInfo method = handlerType.GetMethod(HandleMethodName) ?? throw new InvalidOperationException(string.Format(HandleMethodNotFoundFormat, handlerType.Name));
 
             try
             {
                 IAsyncEnumerable<TResponse>? result = (IAsyncEnumerable<TResponse>?)method.Invoke(handler, [request, cancellationToken]);
-                return result ?? throw new InvalidOperationException($"Handler for {requestType.Name} returned null");
+                return result ?? throw new InvalidOperationException(string.Format(HandlerReturnedNullFormat, requestType.Name));
             }
             catch (TargetInvocationException ex) when (ex.InnerException != null)
             {
@@ -700,7 +776,7 @@ public sealed class Mediator : IMediator
         StreamTelemetryContext<TResponse> context,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"Mediator.SendStream:{context.RequestTypeName}") : null;
+        using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"{MediatorSendStreamActivity}{context.RequestTypeName}") : null;
 
         // Ensure the activity is started and marked as active for proper telemetry propagation
         if (activity != null)
@@ -820,7 +896,7 @@ public sealed class Mediator : IMediator
 
         _logger?.PublishOperationStarted(typeof(TNotification).Name, IsTelemetryEnabled);
 
-        using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"Mediator.Publish.{typeof(TNotification).Name}") : null;
+        using var activity = IsTelemetryEnabled ? ActivitySource.StartActivity($"{MediatorPublishActivityPrefix}{typeof(TNotification).Name}") : null;
         // Only set status if activity was actually created
         if (activity != null && IsTelemetryEnabled)
         {
@@ -852,7 +928,7 @@ public sealed class Mediator : IMediator
             // Execute through notification middleware
             async Task SubscriberAndHandlerProcessor(TNotification n, CancellationToken ct)
             {
-                // === PATTERN 1: Manual Subscribers (existing pattern) ===
+                // PATTERN 1: Manual Subscribers (existing pattern) ===
                 var subscribers = new List<INotificationSubscriber<TNotification>>();
                 if (_specificSubscribers.TryGetValue(typeof(TNotification), out var specific))
                 {
@@ -862,7 +938,7 @@ public sealed class Mediator : IMediator
                 // Add generic subscribers that can handle any notification
                 var genericSubscriberList = _genericSubscribers.ToList();
 
-                // === PATTERN 2: Automatic Handlers (new pattern) ===
+                // PATTERN 2: Automatic Handlers (new pattern) ===
                 // Discover handlers from DI container (including covariant handlers)
                 var handlers = GetCovariantNotificationHandlers<TNotification>(n).ToList();
 
@@ -874,7 +950,7 @@ public sealed class Mediator : IMediator
                 
                 var processingExceptions = new List<Exception>();
 
-                // === PROCESS MANUAL SUBSCRIBERS ===
+                // Process manual subscribers
                 foreach (var subscriber in subscribers)
                 {
                     var subType = SanitizeTypeName(subscriber.GetType().Name);
@@ -917,7 +993,7 @@ public sealed class Mediator : IMediator
                     }
                 }
 
-                // === PROCESS GENERIC SUBSCRIBERS ===
+                // Process generic subscribers
                 foreach (var genericSubscriber in genericSubscriberList)
                 {
                     var subType = SanitizeTypeName(genericSubscriber.GetType().Name);
@@ -960,7 +1036,7 @@ public sealed class Mediator : IMediator
                     }
                 }
 
-                // === PROCESS AUTOMATIC HANDLERS ===
+                // Process automatic handlers
                 foreach (var handler in handlers)
                 {
                     var handlerTypeName = SanitizeTypeName(handler.GetType().Name);
@@ -1512,27 +1588,6 @@ public sealed class Mediator : IMediator
         }
     }
 
-    /// <summary>
-    /// Gets telemetry health status using instance configuration.
-    /// </summary>
-    /// <returns>True if telemetry is enabled and working.</returns>
-    public bool GetInstanceTelemetryHealth()
-    {
-        try
-        {
-            if (!IsTelemetryEnabled || !AreHealthChecksEnabled)
-                return false;
-
-            // Test if we can record a metric
-            TelemetryHealthCounter.Add(1, new TagList { { "operation", "instance_health_check" } });
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
     #endregion
 
     #region Enhanced Statistics Integration
@@ -1543,7 +1598,6 @@ public sealed class Mediator : IMediator
     private async Task ExecuteWithMiddlewareTracking<TRequest>(
         TRequest request,
         Func<Task> finalHandler,
-        List<string> executedMiddleware,
         CancellationToken cancellationToken)
         where TRequest : IRequest
     {
@@ -1580,7 +1634,6 @@ public sealed class Mediator : IMediator
     private async Task<TResponse> ExecuteWithMiddlewareTracking<TRequest, TResponse>(
         TRequest request,
         Func<Task<TResponse>> finalHandler,
-        List<string> executedMiddleware,
         CancellationToken cancellationToken)
         where TRequest : IRequest<TResponse>
     {
@@ -1618,7 +1671,7 @@ public sealed class Mediator : IMediator
     {
         return _statistics?.GetType()
             .GetField("_options", BindingFlags.NonPublic | BindingFlags.Instance)?
-            .GetValue(_statistics) is Configuration.StatisticsOptions options && options.EnablePerformanceCounters;
+            .GetValue(_statistics) is StatisticsOptions { EnablePerformanceCounters: true };
     }
 
     /// <summary>
@@ -1628,7 +1681,7 @@ public sealed class Mediator : IMediator
     {
         return _statistics?.GetType()
             .GetField("_options", BindingFlags.NonPublic | BindingFlags.Instance)?
-            .GetValue(_statistics) is Configuration.StatisticsOptions options && options.EnableDetailedAnalysis;
+            .GetValue(_statistics) is StatisticsOptions { EnableDetailedAnalysis: true };
     }
 
     /// <summary>
@@ -1638,7 +1691,7 @@ public sealed class Mediator : IMediator
     {
         return _statistics?.GetType()
             .GetField("_options", BindingFlags.NonPublic | BindingFlags.Instance)?
-            .GetValue(_statistics) is Configuration.StatisticsOptions options && options.EnableMiddlewareMetrics;
+            .GetValue(_statistics) is StatisticsOptions { EnableMiddlewareMetrics: true };
     }
 
     #endregion

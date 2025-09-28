@@ -244,30 +244,16 @@ public static class ServiceCollectionExtensions
                 });
             }
 
-            // example of the new fluent configuration API simplifying middleware registration
+            // Example of manually adding critical middleware to ensure they're registered
+            config.AddMiddleware(typeof(ValidationMiddleware<,>));
+            config.AddMiddleware(typeof(ValidationMiddleware<>));
+            config.AddMiddleware(typeof(ErrorHandlingMiddleware<,>));
+            config.AddMiddleware(typeof(ErrorHandlingMiddleware<>));
+
+            // Use middleware discovery for additional middleware
             config.WithMiddlewareDiscovery();
 
-            //// Add tracing middleware first for full coverage
-            //config.AddMiddleware(typeof(TracingMiddleware<,>));
-            //config.AddMiddleware(typeof(TracingMiddleware<>));
-
-            //// Add streaming-specific middleware
-            //config.AddMiddleware(typeof(StreamingTracingMiddleware<,>));
-            //config.AddMiddleware(typeof(StreamingPerformanceMiddleware<,>));
-            //config.AddMiddleware(typeof(StreamingLoggingMiddleware<,>));
-
-            //// Add middleware pipeline in order of execution
-            //config.AddMiddleware(typeof(ErrorHandlingMiddleware<,>));
-            //config.AddMiddleware(typeof(ErrorHandlingMiddleware<>));
-            //config.AddMiddleware(typeof(ValidationMiddleware<,>));
-            //config.AddMiddleware(typeof(ValidationMiddleware<>));
-            //config.AddMiddleware(typeof(LoggingMiddleware<,>));
-            //config.AddMiddleware(typeof(LoggingMiddleware<>));
-            //config.AddMiddleware(typeof(PerformanceMiddleware<,>));
-            //config.AddMiddleware(typeof(PerformanceMiddleware<>));
-
             config.AddFromAssembly(typeof(Program).Assembly);
-            //}, typeof(Program).Assembly);
         });
 
         return services;

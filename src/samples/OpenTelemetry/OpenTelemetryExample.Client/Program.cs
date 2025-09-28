@@ -101,11 +101,11 @@ static string GetApiBaseUrl(IConfiguration configuration, IWebAssemblyHostEnviro
     // 3. Environment-specific defaults
     if (environment.IsDevelopment())
     {
-        // In development, try the port that's currently shown in your Swagger UI
-        var developmentUrl = aspireHttpsUrl;
+        // In development, use the configured fallback URL
+        var developmentUrl = "https://localhost:64688";
         Console.WriteLine($"[*] ? Using development API URL: {developmentUrl}");
         Console.WriteLine("[!] Note: If API server is on a different port, update appsettings.Development.json");
-        return developmentUrl ?? "https://localhost:64688";
+        return developmentUrl;
     }
 
     // 4. Production default

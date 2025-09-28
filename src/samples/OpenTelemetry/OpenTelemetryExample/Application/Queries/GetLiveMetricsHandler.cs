@@ -124,5 +124,5 @@ internal sealed class GetLiveMetricsHandler(ApplicationDbContext context, ILogge
         LoggerMessage.Define<Exception>(
             LogLevel.Error,
             new EventId(3, nameof(LogError)),
-            "Error retrieving live metrics");
+            "Error retrieving live metrics: {Exception}");
 }

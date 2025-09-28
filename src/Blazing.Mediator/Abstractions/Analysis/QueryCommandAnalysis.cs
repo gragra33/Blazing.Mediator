@@ -1,4 +1,4 @@
-namespace Blazing.Mediator.Abstractions;
+namespace Blazing.Mediator;
 
 /// <summary>
 /// Represents analysis information for a query or command type, including handler details.

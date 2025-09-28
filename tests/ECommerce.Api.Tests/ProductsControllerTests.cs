@@ -47,7 +47,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         ProductDto? product = JsonSerializer.Deserialize<ProductDto>(content, _jsonOptions);
 
         product.ShouldNotBeNull();
-        product!.Id.ShouldBe(1);
+        product.Id.ShouldBe(1);
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         PagedResult<ProductDto>? result = JsonSerializer.Deserialize<PagedResult<ProductDto>>(content, _jsonOptions);
 
         result.ShouldNotBeNull();
-        result!.Items.ShouldNotBeNull();
+        result.Items.ShouldNotBeNull();
         result.TotalCount.ShouldBeGreaterThan(0);
         result.Page.ShouldBe(1);
         result.PageSize.ShouldBe(10);
@@ -86,7 +86,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         PagedResult<ProductDto>? result = JsonSerializer.Deserialize<PagedResult<ProductDto>>(content, _jsonOptions);
 
         result.ShouldNotBeNull();
-        result!.Page.ShouldBe(1);
+        result.Page.ShouldBe(1);
         result.PageSize.ShouldBe(5);
     }
 
@@ -105,7 +105,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         List<ProductDto>? products = JsonSerializer.Deserialize<List<ProductDto>>(content, _jsonOptions);
 
         products.ShouldNotBeNull();
-        products!.ShouldAllBe(p => p.StockQuantity <= 10);
+        products.ShouldAllBe(p => p.StockQuantity <= 10);
     }
 
     /// <summary>
@@ -123,7 +123,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         List<ProductDto>? products = JsonSerializer.Deserialize<List<ProductDto>>(content, _jsonOptions);
 
         products.ShouldNotBeNull();
-        products!.ShouldAllBe(p => p.StockQuantity <= 5);
+        products.ShouldAllBe(p => p.StockQuantity <= 5);
     }
 
     /// <summary>
@@ -366,7 +366,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
 
         errors.ShouldNotBeNull();
-        errors!.ShouldContain("Product name is required");
+        errors.ShouldContain("Product name is required");
         errors.ShouldContain("Price must be greater than 0");
         errors.ShouldContain("Stock quantity must be 0 or greater");
     }
@@ -397,7 +397,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
 
         errors.ShouldNotBeNull();
-        errors!.ShouldContain("Product name is required");
+        errors.ShouldContain("Product name is required");
     }
 
     /// <summary>
@@ -426,7 +426,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
 
         errors.ShouldNotBeNull();
-        errors!.ShouldContain("Product name is required");
+        errors.ShouldContain("Product name is required");
         errors.ShouldContain("Product price must be greater than 0");
         errors.ShouldContain("Stock quantity cannot be negative");
     }
@@ -480,7 +480,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         string[]? errors = JsonSerializer.Deserialize<string[]>(responseContent, _jsonOptions);
 
         errors.ShouldNotBeNull();
-        errors!.ShouldContain("Stock quantity cannot be negative");
+        errors.ShouldContain("Stock quantity cannot be negative");
     }
 
     /// <summary>

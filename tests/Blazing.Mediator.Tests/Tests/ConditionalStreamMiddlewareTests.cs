@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Tests.Tests;

@@ -1,4 +1,4 @@
-namespace Blazing.Mediator.Tests;
+namespace Blazing.Mediator.Abstractions.Middleware;
 
 /// <summary>
 /// Simple OrderAttribute for testing.

@@ -1,4 +1,4 @@
-global using Blazing.Mediator.Abstractions;
+global using Blazing.Mediator;
 global using Blazing.Mediator.Configuration;
 global using Blazing.Mediator.Pipeline;
 global using Blazing.Mediator.Logging;

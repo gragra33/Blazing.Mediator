@@ -1,4 +1,4 @@
-namespace Blazing.Mediator.Abstractions;
+namespace Blazing.Mediator;
 
 /// <summary>
 /// Conditional notification middleware that can determine whether it should execute

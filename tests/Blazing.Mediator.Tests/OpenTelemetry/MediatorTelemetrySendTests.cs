@@ -12,11 +12,11 @@ namespace Blazing.Mediator.Tests.OpenTelemetry;
 [Collection("OpenTelemetry")]
 public class MediatorTelemetrySendTests : IDisposable
 {
-    private ServiceProvider _serviceProvider;
-    private IMediator _mediator;
+    private readonly ServiceProvider _serviceProvider;
+    private readonly IMediator _mediator;
     private List<KeyValuePair<string, object?>>? _recordedMetrics;
-    private List<Activity>? _recordedActivities;
-    private ActivityListener? _activityListener;
+    private readonly List<Activity>? _recordedActivities;
+    private readonly ActivityListener? _activityListener;
 
     public MediatorTelemetrySendTests()
     {
@@ -174,7 +174,7 @@ public class MediatorTelemetrySendTests : IDisposable
             });
         }, typeof(SendTestCommand).Assembly);
 
-        using var serviceProvider = services.BuildServiceProvider();
+        await using var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var command = new SendTestCommand { Value = "test" };

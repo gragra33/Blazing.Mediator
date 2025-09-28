@@ -61,7 +61,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act & Assert - Should not throw
-        services.AddMediator(Array.Empty<Type>());
+        services.AddMediator([]);
         services.AddMediator(config => { }, Array.Empty<Type>());
     }
 

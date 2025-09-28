@@ -14,7 +14,6 @@ namespace UserManagement.Api.Tests;
 /// </summary>
 public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _jsonOptions;
 
@@ -25,8 +24,8 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
     /// <param name="factory">The web application factory for creating test clients.</param>
     public UsersControllerTests(WebApplicationFactory<Program> factory)
     {
-        _factory = factory;
-        _client = _factory.CreateClient();
+        WebApplicationFactory<Program> factory1 = factory;
+        _client = factory1.CreateClient();
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase

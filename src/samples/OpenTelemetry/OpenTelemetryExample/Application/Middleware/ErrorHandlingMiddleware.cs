@@ -1,5 +1,5 @@
 using Blazing.Mediator;
-using Blazing.Mediator.Abstractions;
+using OpenTelemetryExample.Exceptions;
 using System.Diagnostics;
 
 namespace OpenTelemetryExample.Application.Middleware;

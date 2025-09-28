@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -16,8 +15,8 @@ namespace Blazing.Mediator.Tests.Tests
         /// </summary>
         private class TestStatisticsRenderer : IStatisticsRenderer
         {
-            public List<string> Messages { get; } = new();
-            public void Render(string message) => Messages.Add(message);
+            private List<string> _messages { get; } = [];
+            public void Render(string message) => _messages.Add(message);
         }
 
         #region AddMediator Basic Overloads Tests

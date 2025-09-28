@@ -18,7 +18,7 @@ public class NotificationHandlerDiscoveryTests
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
-        var handlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
+        var handlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>().ToArray();
         Assert.NotNull(handlers);
         Assert.Equal(2, handlers.Count());
 
@@ -71,7 +71,7 @@ public class NotificationHandlerDiscoveryTests
 
         // Assert
         var handlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
-        Assert.True(handlers.Count() > 0);
+        Assert.True(handlers.Any());
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class TestNotification : INotification
 /// </summary>
 public class FirstTestNotificationHandler : INotificationHandler<TestNotification>
 {
-    public static int CallCount = 0;
+    public static int CallCount;
 
     public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
     {
@@ -136,7 +136,7 @@ public class FirstTestNotificationHandler : INotificationHandler<TestNotificatio
 /// </summary>
 public class SecondTestNotificationHandler : INotificationHandler<TestNotification>
 {
-    public static int CallCount = 0;
+    public static int CallCount;
 
     public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
     {

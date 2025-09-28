@@ -2,15 +2,12 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Order;
-using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Engines;
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Reflection;
 
 namespace Blazing.Mediator.Benchmarks;
 
@@ -159,6 +156,7 @@ public class PerformanceBottleneckBenchmarks
         var interfaces = type.GetInterfaces();
         
         // Original expensive LINQ approach
+        // ReSharper disable once ReplaceWithSingleCallToCount
         var count = interfaces
             .Where(i => i.IsGenericType)
             .Where(i => i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>))
@@ -226,7 +224,7 @@ public class PerformanceBottleneckBenchmarks
         // Fast O(1) lookups
         foreach (var type in middlewareTypes)
         {
-            var index = registrationIndices.TryGetValue(type, out var idx) ? idx : -1;
+            var index = registrationIndices.GetValueOrDefault(type, -1);
         }
     }
 

@@ -488,7 +488,3 @@ public class MediatorComprehensiveTests
 
     #endregion
 }
-
-#region Test Helper Classes
-
-#endregion

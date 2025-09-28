@@ -1,4 +1,4 @@
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
 
 /// <summary>
 /// Conditional query middleware for testing conditional execution.

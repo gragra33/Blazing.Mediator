@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
@@ -358,7 +357,7 @@ namespace Blazing.Mediator.Tests.Tests
         /// Tests conditional interface registration prevention
         /// </summary>
         [Fact]
-        public void RegisterHandlers_ConditionalInterfaceRegistration_PreventseDuplicates()
+        public void RegisterHandlers_ConditionalInterfaceRegistration_PreventsDuplicates()
         {
             // Arrange
             ServiceCollection services = new();

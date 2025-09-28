@@ -190,7 +190,7 @@ public class CovariantNotificationHandlerTests
         var method = mediatorType.GetMethod("GetCovariantNotificationHandlers", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         Assert.NotNull(method);
 
-        var genericMethod = method!.MakeGenericMethod(typeof(DerivedTestNotification));
+        var genericMethod = method.MakeGenericMethod(typeof(DerivedTestNotification));
         var handlers = (IEnumerable<object>)genericMethod.Invoke(mediator, [notification])!;
         var handlerList = handlers.ToList();
 
@@ -209,8 +209,8 @@ public class CovariantNotificationHandlerTests
     /// </summary>
     private static IMediator CreateMediatorWithDependencies(IServiceProvider serviceProvider)
     {
-        var pipelineBuilder = new Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder();
-        var notificationPipelineBuilder = new Blazing.Mediator.Pipeline.NotificationPipelineBuilder();
+        var pipelineBuilder = new Pipeline.MiddlewarePipelineBuilder();
+        var notificationPipelineBuilder = new Pipeline.NotificationPipelineBuilder();
         return new Mediator(serviceProvider, pipelineBuilder, notificationPipelineBuilder, null);
     }
 }
@@ -277,8 +277,8 @@ public class MultiInterfaceNotification : BaseTestNotification, ITestInterface, 
 /// </summary>
 public class BaseNotificationHandler : INotificationHandler<BaseTestNotification>
 {
-    public static int CallCount = 0;
-    public static BaseTestNotification? LastNotification = null;
+    public static int CallCount;
+    public static BaseTestNotification? LastNotification;
 
     public Task Handle(BaseTestNotification notification, CancellationToken cancellationToken = default)
     {
@@ -293,8 +293,8 @@ public class BaseNotificationHandler : INotificationHandler<BaseTestNotification
 /// </summary>
 public class InterfaceNotificationHandler : INotificationHandler<ITestInterface>
 {
-    public static int CallCount = 0;
-    public static ITestInterface? LastNotification = null;
+    public static int CallCount;
+    public static ITestInterface? LastNotification;
 
     public Task Handle(ITestInterface notification, CancellationToken cancellationToken = default)
     {
@@ -309,8 +309,8 @@ public class InterfaceNotificationHandler : INotificationHandler<ITestInterface>
 /// </summary>
 public class SpecificNotificationHandler : INotificationHandler<DerivedTestNotification>
 {
-    public static int CallCount = 0;
-    public static DerivedTestNotification? LastNotification = null;
+    public static int CallCount;
+    public static DerivedTestNotification? LastNotification;
 
     public Task Handle(DerivedTestNotification notification, CancellationToken cancellationToken = default)
     {
@@ -325,8 +325,8 @@ public class SpecificNotificationHandler : INotificationHandler<DerivedTestNotif
 /// </summary>
 public class AnotherInterfaceHandler : INotificationHandler<IAnotherTestInterface>
 {
-    public static int CallCount = 0;
-    public static IAnotherTestInterface? LastNotification = null;
+    public static int CallCount;
+    public static IAnotherTestInterface? LastNotification;
 
     public Task Handle(IAnotherTestInterface notification, CancellationToken cancellationToken = default)
     {
@@ -341,8 +341,8 @@ public class AnotherInterfaceHandler : INotificationHandler<IAnotherTestInterfac
 /// </summary>
 public class DeeplyDerivedHandler : INotificationHandler<DeeplyDerivedNotification>
 {
-    public static int CallCount = 0;
-    public static DeeplyDerivedNotification? LastNotification = null;
+    public static int CallCount;
+    public static DeeplyDerivedNotification? LastNotification;
 
     public Task Handle(DeeplyDerivedNotification notification, CancellationToken cancellationToken = default)
     {
@@ -357,8 +357,8 @@ public class DeeplyDerivedHandler : INotificationHandler<DeeplyDerivedNotificati
 /// </summary>
 public class MultiInterfaceHandler : INotificationHandler<MultiInterfaceNotification>
 {
-    public static int CallCount = 0;
-    public static MultiInterfaceNotification? LastNotification = null;
+    public static int CallCount;
+    public static MultiInterfaceNotification? LastNotification;
 
     public Task Handle(MultiInterfaceNotification notification, CancellationToken cancellationToken = default)
     {
@@ -373,8 +373,8 @@ public class MultiInterfaceHandler : INotificationHandler<MultiInterfaceNotifica
 /// </summary>
 public class ExceptionThrowingHandler : INotificationHandler<DerivedTestNotification>
 {
-    public static int CallCount = 0;
-    public static bool ShouldThrow = false;
+    public static int CallCount;
+    public static bool ShouldThrow;
 
     public Task Handle(DerivedTestNotification notification, CancellationToken cancellationToken = default)
     {

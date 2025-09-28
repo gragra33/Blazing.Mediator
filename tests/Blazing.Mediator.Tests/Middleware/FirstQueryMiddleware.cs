@@ -1,4 +1,4 @@
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
 
 /// <summary>
 /// First query middleware for testing execution order.

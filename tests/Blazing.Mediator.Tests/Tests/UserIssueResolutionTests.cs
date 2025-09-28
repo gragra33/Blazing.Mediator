@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -206,14 +205,6 @@ public class UserIssueResolutionTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Act - The user's original comment was:
-        // "can we support this set of params?"
-        // services.AddMediator(
-        //     enableStatisticsTracking: true,
-        //     discoverNotificationMiddleware: true,         // DO discover notification middleware
-        //     Assembly.GetExecutingAssembly()
-        // );
-
         // This works now with the new configuration approach:
         services.AddMediator(config =>
         {
@@ -241,7 +232,5 @@ public class UserIssueResolutionTests
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
         requestMiddleware.Count.ShouldBe(0);
-
-        // Success! The user's original goal is now achievable! ?
     }
 }

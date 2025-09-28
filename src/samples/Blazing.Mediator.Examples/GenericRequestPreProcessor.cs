@@ -1,4 +1,4 @@
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
 using System.Diagnostics;
 
 namespace Blazing.Mediator.Examples;

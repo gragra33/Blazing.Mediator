@@ -11,7 +11,7 @@ using System.Diagnostics;
 
 namespace Blazing.Mediator.Benchmarks;
 
-[System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 internal sealed class DotTraceDiagnoserAttribute : Attribute, IConfigSource
 {
     public DotTraceDiagnoserAttribute()

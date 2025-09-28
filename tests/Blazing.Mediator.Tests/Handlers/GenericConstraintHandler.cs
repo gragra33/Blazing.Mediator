@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Tests.Commands;
 
 namespace Blazing.Mediator.Tests.Handlers;

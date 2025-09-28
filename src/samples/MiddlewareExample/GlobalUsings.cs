@@ -1,5 +1,5 @@
 global using Blazing.Mediator;
-global using Blazing.Mediator.Abstractions;
+global using Blazing.Mediator;
 global using FluentValidation;
 global using FluentValidation.Results;
 global using Microsoft.Extensions.DependencyInjection;

@@ -77,6 +77,13 @@ public sealed class LoggingOptions
     public bool EnableCommandAnalyzer { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets whether to enable statistics logging.
+    /// When enabled, logs statistics collection, analysis, cleanup, and reporting operations.
+    /// Default: true.
+    /// </summary>
+    public bool EnableStatistics { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets whether to log detailed request type classification.
     /// When enabled, provides additional details about request type determination.
     /// Default: false.
@@ -165,6 +172,7 @@ public sealed class LoggingOptions
             EnableWarnings = EnableWarnings,
             EnableQueryAnalyzer = EnableQueryAnalyzer,
             EnableCommandAnalyzer = EnableCommandAnalyzer,
+            EnableStatistics = EnableStatistics,
             EnableDetailedTypeClassification = EnableDetailedTypeClassification,
             EnableDetailedHandlerInfo = EnableDetailedHandlerInfo,
             EnableMiddlewareExecutionOrder = EnableMiddlewareExecutionOrder,
@@ -194,6 +202,7 @@ public sealed class LoggingOptions
             EnableWarnings = true, // Keep warnings enabled even in minimal mode
             EnableQueryAnalyzer = false,
             EnableCommandAnalyzer = false,
+            EnableStatistics = false,
             EnableDetailedTypeClassification = false,
             EnableDetailedHandlerInfo = false,
             EnableMiddlewareExecutionOrder = false,
@@ -223,6 +232,7 @@ public sealed class LoggingOptions
             EnableWarnings = true,
             EnableQueryAnalyzer = true,
             EnableCommandAnalyzer = true,
+            EnableStatistics = true,
             EnableDetailedTypeClassification = true,
             EnableDetailedHandlerInfo = true,
             EnableMiddlewareExecutionOrder = true,
@@ -252,6 +262,7 @@ public sealed class LoggingOptions
             EnableWarnings = true,
             EnableQueryAnalyzer = false,
             EnableCommandAnalyzer = false,
+            EnableStatistics = false,
             EnableDetailedTypeClassification = false,
             EnableDetailedHandlerInfo = false,
             EnableMiddlewareExecutionOrder = true,

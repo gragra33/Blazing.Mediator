@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
@@ -1081,7 +1080,7 @@ public class SecondTestCommandHandler : IRequestHandler<TestCommand>
 /// </summary>
 public class TestStatisticsRenderer : IStatisticsRenderer
 {
-    public List<string> Messages { get; } = new List<string>();
+    public List<string> Messages { get; } = [];
 
     public void Render(string message)
     {

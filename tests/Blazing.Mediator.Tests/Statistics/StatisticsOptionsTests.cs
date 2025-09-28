@@ -434,7 +434,3 @@ public class StatisticsOptionsTests : IDisposable
         original.EnableRequestMetrics.ShouldBeFalse(); // Original should not be affected
     }
 }
-
-// Test model classes
-
-// Test handlers

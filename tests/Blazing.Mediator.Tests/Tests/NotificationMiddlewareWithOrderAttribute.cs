@@ -1,4 +1,4 @@
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator.Abstractions.Middleware;
 
 namespace Blazing.Mediator.Tests;
 

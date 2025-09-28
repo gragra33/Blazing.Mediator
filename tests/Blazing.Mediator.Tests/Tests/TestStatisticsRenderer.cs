@@ -7,7 +7,7 @@ namespace Blazing.Mediator.Tests;
 /// </summary>
 public class TestStatisticsRenderer : IStatisticsRenderer
 {
-    public List<string> Messages { get; } = new List<string>();
+    public List<string> Messages { get; } = [];
 
     public void Render(string message)
     {

@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
@@ -13,13 +12,14 @@ namespace Blazing.Mediator.Tests.OpenTelemetry;
 [Collection("OpenTelemetry")]
 public class MediatorTelemetryMiddlewareTests : IDisposable
 {
-    private ServiceProvider _serviceProvider = null!;
-    private IMediator _mediator = null!;
-    private List<Activity>? _recordedActivities;
-    private TestMiddleware _testMiddleware = null!;
-    private TestMiddlewareWithException _exceptionMiddleware = null!;
-    private TestConditionalMiddleware _conditionalMiddleware = null!;
-    private ActivityListener? _activityListener;
+    private readonly ServiceProvider _serviceProvider;
+    private readonly IMediator _mediator;
+    private readonly List<Activity>? _recordedActivities;
+    private readonly TestMiddleware _testMiddleware;
+    private readonly TestMiddlewareWithException _exceptionMiddleware;
+    private readonly TestConditionalMiddleware _conditionalMiddleware;
+    private readonly ActivityListener? _activityListener;
+    private bool _disposed;
 
     public MediatorTelemetryMiddlewareTests()
     {
@@ -69,8 +69,22 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
 
     public void Dispose()
     {
-        _activityListener?.Dispose();
-        _serviceProvider.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            _activityListener?.Dispose();
+            _serviceProvider.Dispose();
+        }
+
+        _disposed = true;
     }
 
     [Fact]

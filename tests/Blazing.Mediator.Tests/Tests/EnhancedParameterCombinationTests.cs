@@ -1,7 +1,6 @@
-using Blazing.Mediator.Abstractions;
+using System.Reflection;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 namespace Blazing.Mediator.Tests;
 
@@ -133,7 +132,7 @@ public class EnhancedParameterCombinationTests
         services.AddMediator(config =>
         {
             // No configuration needed - default behavior
-        }, Array.Empty<Assembly>());
+        });
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -226,7 +225,7 @@ public class EnhancedParameterCombinationTests
         {
             config.WithMiddlewareDiscovery()
                   .WithNotificationMiddlewareDiscovery();
-        }, Array.Empty<Assembly>());
+        });
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();

@@ -1,5 +1,3 @@
-using Blazing.Mediator.Abstractions;
-
 namespace Blazing.Mediator.Benchmarks;
 
 // Pre-processing logic integrated into a middleware component

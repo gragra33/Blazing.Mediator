@@ -36,5 +36,4 @@ public class Benchmarks
     {
         return _mediator.Publish(_notification);
     }
-    // All constraint validation and constraint checking performance benchmarks have been removed as per NOTIFICATION_CONSTRAINT_VALIDATION_REMOVAL.md
 }

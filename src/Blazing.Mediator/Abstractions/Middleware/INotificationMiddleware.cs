@@ -1,4 +1,4 @@
-namespace Blazing.Mediator.Abstractions;
+namespace Blazing.Mediator;
 
 /// <summary>
 /// Middleware interface for processing notifications in the pipeline.

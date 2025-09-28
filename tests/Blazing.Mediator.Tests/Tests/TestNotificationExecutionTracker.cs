@@ -5,7 +5,7 @@ namespace Blazing.Mediator.Tests;
 /// </summary>
 public static class TestNotificationExecutionTracker
 {
-    public static List<string> ExecutionOrder { get; } = new List<string>();
+    public static List<string> ExecutionOrder { get; } = [];
 
     public static void Reset()
     {

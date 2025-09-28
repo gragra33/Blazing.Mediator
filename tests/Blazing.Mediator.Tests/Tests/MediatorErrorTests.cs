@@ -1,9 +1,7 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using Blazing.Mediator.Tests.Handlers;
 
 namespace Blazing.Mediator.Tests
 {
@@ -508,10 +506,10 @@ namespace Blazing.Mediator.Tests
             var analysis = inspector.AnalyzeMiddleware(serviceProvider);
 
             // Debug: Print what middleware is actually registered
-            foreach (var middleware in analysis)
-            {
-                Console.WriteLine($"Middleware: {middleware.ClassName}, Order: {middleware.Order}, Type: {middleware.Type.Name}");
-            }
+            //foreach (var middleware in analysis)
+            //{
+            //    Console.WriteLine($"Middleware: {middleware.ClassName}, Order: {middleware.Order}, Type: {middleware.Type.Name}");
+            //}
 
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 

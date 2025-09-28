@@ -3,26 +3,23 @@ namespace Streaming.Api.Tests.Integration;
 /// <summary>
 /// Integration tests for Contact streaming endpoints
 /// </summary>
-public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFactory>
+public class ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
+    : IClassFixture<StreamingApiWebApplicationFactory>
 {
-    private readonly HttpClient _client;
-    private readonly StreamingApiWebApplicationFactory _factory;
+    private readonly HttpClient _client = factory.CreateClient();
+    private readonly StreamingApiWebApplicationFactory _factory = factory;
 
-    public ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _client = factory.CreateClient();
-    }
+    private const int ExpectedTotalContacts = 50; // Total contacts in test Mock_Contacts.json
 
     [Fact]
     public async Task GetContactCount_ReturnsValidCount()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/count");
+        var response = await _client.GetAsync("/api/contacts/count").ConfigureAwait(false);
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         var result = JsonSerializer.Deserialize<dynamic>(content);
 
         // Should return a count object
@@ -33,20 +30,20 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
     public async Task GetAllContacts_ReturnsBulkContactData()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/all");
+        var response = await _client.GetAsync("/api/contacts/all").ConfigureAwait(false);
 
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
 
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         contacts.ShouldNotBeNull();
-        contacts.Length.ShouldBeGreaterThan(0);
+        contacts.Length.ShouldBe(ExpectedTotalContacts); // Expect exactly 50 contacts from test data
 
         // Verify contact structure
         var firstContact = contacts.First();
@@ -60,17 +57,18 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
     public async Task GetAllContacts_WithSearchTerm_ReturnsFilteredResults()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/all?search=john");
+        var response = await _client.GetAsync("/api/contacts/all?search=john").ConfigureAwait(false);
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         contacts.ShouldNotBeNull();
+        contacts.Length.ShouldBeLessThanOrEqualTo(ExpectedTotalContacts); // Filtered results should be within total
         // Verify filtering worked (assuming test data contains contacts with "john")
         if (contacts.Length > 0)
         {
@@ -85,20 +83,20 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
     public async Task StreamContacts_ReturnsJsonStreamData()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/stream");
+        var response = await _client.GetAsync("/api/contacts/stream").ConfigureAwait(false);
 
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
 
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         contacts.ShouldNotBeNull();
-        contacts.Length.ShouldBeGreaterThan(0);
+        contacts.Length.ShouldBe(ExpectedTotalContacts); // Expect exactly 50 contacts from test data
 
         // Verify contact structure
         var firstContact = contacts.First();
@@ -112,17 +110,18 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
     public async Task StreamContacts_WithSearchTerm_ReturnsFilteredStream()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/stream?search=doe");
+        var response = await _client.GetAsync("/api/contacts/stream?search=doe").ConfigureAwait(false);
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         contacts.ShouldNotBeNull();
+        contacts.Length.ShouldBeLessThanOrEqualTo(ExpectedTotalContacts); // Filtered results should be within total
         // Verify filtering worked
         if (contacts.Length > 0)
         {
@@ -137,13 +136,13 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
     public async Task StreamContactsSSE_ReturnsServerSentEvents()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/stream/sse");
+        var response = await _client.GetAsync("/api/contacts/stream/sse").ConfigureAwait(false);
 
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("text/event-stream");
 
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
         // Verify SSE format
         content.ShouldContain("event: start");
@@ -163,7 +162,7 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
             }
         }
 
-        contactDataLines.Count.ShouldBeGreaterThan(0);
+        contactDataLines.Count.ShouldBe(ExpectedTotalContacts); // Should stream all 50 contacts
 
         // Verify at least one contact data line can be parsed
         var firstDataLine = contactDataLines.First();
@@ -181,13 +180,13 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
     public async Task StreamContactsSSE_WithSearchTerm_ReturnsFilteredSSE()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/stream/sse?search=china");
+        var response = await _client.GetAsync("/api/contacts/stream/sse?search=china").ConfigureAwait(false);
 
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("text/event-stream");
 
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
         // Verify SSE format and filtering
         content.ShouldContain("event: start");
@@ -205,6 +204,8 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
                 contactDataLines.Add(lines[i + 1]);
             }
         }
+
+        contactDataLines.Count.ShouldBeLessThanOrEqualTo(ExpectedTotalContacts); // Filtered should be within total
 
         if (contactDataLines.Count > 0)
         {
@@ -235,19 +236,19 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
     public async Task StreamContactsSSE_IncludesProgressEvents()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/stream/sse");
+        var response = await _client.GetAsync("/api/contacts/stream/sse").ConfigureAwait(false);
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-        // Should include progress events for large datasets
+        // Should include progress events for datasets with batch processing
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var progressLines = lines.Where(line => line.StartsWith("event: progress")).ToArray();
 
-        // If we have enough data, there should be progress events
+        // With 50 contacts and batch processing every 10, we should have progress events
         var dataLines = lines.Where(line => line.StartsWith("data: {")).ToArray();
-        if (dataLines.Length >= 50)
+        if (dataLines.Length >= 10)
         {
             progressLines.Length.ShouldBeGreaterThan(0);
 
@@ -271,7 +272,7 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
             tasks.Add(_client.GetAsync("/api/contacts/stream"));
         }
 
-        var responses = await Task.WhenAll(tasks);
+        var responses = await Task.WhenAll(tasks).ConfigureAwait(false);
 
         // Assert
         responses.ShouldAllBe(r => r.IsSuccessStatusCode);
@@ -292,7 +293,7 @@ public class ContactEndpointsTests : IClassFixture<StreamingApiWebApplicationFac
         foreach (var testCase in testCases)
         {
             // Act
-            var response = await _client.GetAsync(testCase);
+            var response = await _client.GetAsync(testCase).ConfigureAwait(false);
 
             // Assert
             response.EnsureSuccessStatusCode();

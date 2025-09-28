@@ -1,4 +1,4 @@
-namespace Blazing.Mediator.Abstractions;
+namespace Blazing.Mediator;
 
 /// <summary>
 /// Generic middleware interface for processing requests in the mediator pipeline.

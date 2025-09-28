@@ -2,11 +2,9 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
-using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Engines;
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -77,12 +75,7 @@ public class NanosecondPrecisionBenchmarks
         var middlewareType = typeof(UltraFastMiddleware);
         
         // This simulates our GetRegistrationIndex optimization
-        if (_preCalculatedIndices!.TryGetValue(middlewareType, out int index))
-        {
-            return index;
-        }
-        
-        return int.MaxValue; // Fallback
+        return _preCalculatedIndices!.GetValueOrDefault(middlewareType, int.MaxValue); // Fallback
     }
 
     /// <summary>
@@ -183,12 +176,12 @@ public class NanosecondPrecisionBenchmarks
     public async Task<string> EndToEndPipelineExecution()
     {
         var request = new SimpleRequest { Data = "test" };
-        RequestHandlerDelegate<string> finalHandler = () => Task.FromResult("result");
-        
+        Task<string> FinalHandler() => Task.FromResult("result");
+
         return await _middlewarePipelineBuilder!.ExecutePipeline(
             request,
             _serviceProvider!,
-            finalHandler,
+            FinalHandler,
             CancellationToken.None);
     }
 

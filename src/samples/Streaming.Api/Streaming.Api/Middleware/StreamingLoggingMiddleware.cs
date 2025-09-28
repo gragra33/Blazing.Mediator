@@ -1,5 +1,5 @@
 using Blazing.Mediator;
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
 using System.Text.Json;
 
 namespace Streaming.Api.Middleware;
@@ -9,16 +9,11 @@ namespace Streaming.Api.Middleware;
 /// </summary>
 /// <typeparam name="TRequest">The stream request type</typeparam>
 /// <typeparam name="TResponse">The response type</typeparam>
-public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMiddleware<TRequest, TResponse>
+public class StreamingLoggingMiddleware<TRequest, TResponse>(
+    ILogger<StreamingLoggingMiddleware<TRequest, TResponse>> logger)
+    : IStreamRequestMiddleware<TRequest, TResponse>
     where TRequest : IStreamRequest<TResponse>
 {
-    private readonly ILogger<StreamingLoggingMiddleware<TRequest, TResponse>> _logger;
-
-    public StreamingLoggingMiddleware(ILogger<StreamingLoggingMiddleware<TRequest, TResponse>> logger)
-    {
-        _logger = logger;
-    }
-
     public int Order => 0; // Execute first
 
     public async IAsyncEnumerable<TResponse> HandleAsync(
@@ -30,7 +25,7 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
         var startTime = DateTime.UtcNow;
         var itemCount = 0;
 
-        _logger.LogInformation("🚀 STREAM REQUEST: {RequestType} started at {StartTime}",
+        logger.LogInformation("🚀 STREAM REQUEST: {RequestType} started at {StartTime}",
             requestType, startTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
 
         try
@@ -41,15 +36,15 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
                 WriteIndented = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
-            _logger.LogInformation("📋 STREAM REQUEST DATA: {RequestData}", requestJson);
+            logger.LogInformation("📋 STREAM REQUEST DATA: {RequestData}", requestJson);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "⚠️ Could not serialize stream request: {Error}", ex.Message);
+            logger.LogWarning(ex, "⚠️ Could not serialize stream request: {Error}", ex.Message);
         }
 
         var streamStartTime = DateTime.UtcNow;
-        _logger.LogInformation("🌊 Starting stream processing at {StreamStartTime}", streamStartTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+        logger.LogInformation("🌊 Starting stream processing at {StreamStartTime}", streamStartTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
 
         IAsyncEnumerable<TResponse> stream;
         try
@@ -61,7 +56,7 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
 
-            _logger.LogError(ex, "❌ STREAM REQUEST: {RequestType} failed to start at {EndTime}. " +
+            logger.LogError(ex, "❌ STREAM REQUEST: {RequestType} failed to start at {EndTime}. " +
                                 "Duration: {Duration}ms",
                 requestType, endTime.ToString("yyyy-MM-dd HH:mm:ss.fff"),
                 duration.TotalMilliseconds);
@@ -75,7 +70,7 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
             // Log every 100 items to avoid log spam
             if (itemCount % 100 == 0)
             {
-                _logger.LogInformation("📦 Streamed {ItemCount} items so far", itemCount);
+                logger.LogInformation("📦 Streamed {ItemCount} items so far", itemCount);
             }
 
             yield return item;
@@ -85,7 +80,7 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
         var totalDuration = completionTime - startTime;
         var streamDuration = completionTime - streamStartTime;
 
-        _logger.LogInformation("✅ STREAM REQUEST: {RequestType} completed at {EndTime}. " +
+        logger.LogInformation("✅ STREAM REQUEST: {RequestType} completed at {EndTime}. " +
                                "Total duration: {Duration}ms, Stream duration: {StreamDuration}ms, Items: {ItemCount}",
             requestType, completionTime.ToString("yyyy-MM-dd HH:mm:ss.fff"),
             totalDuration.TotalMilliseconds, streamDuration.TotalMilliseconds, itemCount);

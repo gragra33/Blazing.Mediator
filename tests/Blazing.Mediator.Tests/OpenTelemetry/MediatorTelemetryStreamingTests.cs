@@ -13,10 +13,10 @@ namespace Blazing.Mediator.Tests.OpenTelemetry;
 [Collection("OpenTelemetry")]
 public class MediatorTelemetryStreamingTests : IDisposable
 {
-    private ServiceProvider _serviceProvider;
-    private IMediator _mediator;
-    private List<Activity>? _recordedActivities;
-    private ActivityListener? _activityListener;
+    private readonly ServiceProvider _serviceProvider;
+    private readonly IMediator _mediator;
+    private readonly List<Activity>? _recordedActivities;
+    private readonly ActivityListener? _activityListener;
 
     public MediatorTelemetryStreamingTests()
     {
@@ -148,7 +148,8 @@ public class MediatorTelemetryStreamingTests : IDisposable
             });
         }, typeof(StreamingTestStreamRequest).Assembly);
 
-        using var serviceProvider = services.BuildServiceProvider();
+        var serviceProvider = services.BuildServiceProvider();
+        await using ConfiguredAsyncDisposable provider = serviceProvider.ConfigureAwait(false);
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var request = new StreamingTestStreamRequest { Count = 2 };
@@ -256,7 +257,7 @@ public class MediatorTelemetryStreamingTests : IDisposable
                 results.Add(item);
                 if (results.Count >= 3)
                 {
-                    cts.Cancel(); // Cancel after receiving 3 items
+                    await cts.CancelAsync(); // Cancel after receiving 3 items
                 }
             }
         }

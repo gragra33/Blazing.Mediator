@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -291,11 +290,11 @@ public class StreamingMiddlewareIntegrationTests
                 results.Add(item);
                 if (results.Count >= 3)
                 {
-                    cts.Cancel(); // Cancel after 3 items
+                    await cts.CancelAsync(); // Cancel after 3 items
                     break;
                 }
             }
-        });
+        }, cts.Token);
 
         // Wait for cancellation to propagate
         try

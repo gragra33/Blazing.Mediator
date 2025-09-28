@@ -5,7 +5,10 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddMediator(config =>
         {
             config.WithStatisticsTracking()
-                  .WithMiddlewareDiscovery();
+                  .WithMiddlewareDiscovery()
+                  .WithoutLogging()
+                  .WithoutTelemetry();
+
         }, Assembly.GetExecutingAssembly());
 
         // Register FluentValidation services

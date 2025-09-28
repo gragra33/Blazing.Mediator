@@ -12,12 +12,12 @@ namespace Blazing.Mediator.Tests.OpenTelemetry;
 [Collection("OpenTelemetry")]
 public class MediatorTelemetryPublishTests : IDisposable
 {
-    private ServiceProvider _serviceProvider;
-    private IMediator _mediator;
-    private List<Activity>? _recordedActivities;
-    private PublishTestNotificationSubscriber _testSubscriber;
-    private PublishTestNotificationSubscriberWithException _exceptionSubscriber;
-    private ActivityListener? _activityListener;
+    private readonly ServiceProvider _serviceProvider;
+    private readonly IMediator _mediator;
+    private readonly List<Activity>? _recordedActivities;
+    private readonly PublishTestNotificationSubscriber _testSubscriber;
+    private readonly PublishTestNotificationSubscriberWithException _exceptionSubscriber;
+    private readonly ActivityListener? _activityListener;
 
     public MediatorTelemetryPublishTests()
     {

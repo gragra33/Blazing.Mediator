@@ -1,4 +1,4 @@
-namespace Blazing.Mediator.OpenTelemetry;
+namespace Blazing.Mediator.Configuration;
 
 /// <summary>
 /// Configuration options for Blazing.Mediator OpenTelemetry integration.

@@ -1,6 +1,6 @@
 using Blazing.Mediator;
-using Blazing.Mediator.Abstractions;
 using FluentValidation;
+using OpenTelemetryExample.Exceptions;
 using System.Diagnostics;
 
 namespace OpenTelemetryExample.Application.Middleware;
@@ -21,10 +21,12 @@ public sealed class ValidationMiddleware<TRequest>(
     public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         var validator = serviceProvider.GetService<IValidator<TRequest>>();
+        
+        _logger.LogInformation("ValidationMiddleware executing for {RequestType}, Validator found: {ValidatorFound}", 
+            typeof(TRequest).Name, validator != null);
+            
         if (validator != null)
         {
-            _logger.LogDebug("Validating request {RequestType}", typeof(TRequest).Name);
-
             var validationResult = await validator.ValidateAsync(request, cancellationToken);
             if (!validationResult.IsValid)
             {
@@ -35,7 +37,7 @@ public sealed class ValidationMiddleware<TRequest>(
                 Activity.Current?.SetTag("validation.failed", true);
                 Activity.Current?.SetTag("validation.errors", errors);
 
-                throw new ValidationException(validationResult.Errors);
+                throw new OpenTelemetryExample.Exceptions.ValidationException(validationResult.Errors);
             }
 
             Activity.Current?.SetTag("validation.passed", true);
@@ -64,8 +66,6 @@ public sealed class ValidationMiddleware<TRequest, TResponse>(
         var validator = serviceProvider.GetService<IValidator<TRequest>>();
         if (validator != null)
         {
-            _logger.LogDebug("Validating request {RequestType}", typeof(TRequest).Name);
-
             var validationResult = await validator.ValidateAsync(request, cancellationToken);
             if (!validationResult.IsValid)
             {
@@ -76,7 +76,7 @@ public sealed class ValidationMiddleware<TRequest, TResponse>(
                 Activity.Current?.SetTag("validation.failed", true);
                 Activity.Current?.SetTag("validation.errors", errors);
 
-                throw new ValidationException(validationResult.Errors);
+                throw new OpenTelemetryExample.Exceptions.ValidationException(validationResult.Errors);
             }
 
             Activity.Current?.SetTag("validation.passed", true);

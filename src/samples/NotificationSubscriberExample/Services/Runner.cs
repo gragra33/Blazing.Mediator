@@ -1,4 +1,4 @@
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
 using Blazing.Mediator.Statistics;
 
 namespace NotificationSubscriberExample.Services;

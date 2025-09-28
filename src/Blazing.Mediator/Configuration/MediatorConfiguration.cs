@@ -1,5 +1,3 @@
-using Blazing.Mediator.OpenTelemetry;
-
 namespace Blazing.Mediator.Configuration;
 
 /// <summary>
@@ -92,10 +90,7 @@ public sealed class MediatorConfiguration
         ArgumentNullException.ThrowIfNull(assemblyMarkerType);
         
         var assembly = assemblyMarkerType.Assembly;
-        if (!_assemblies.Contains(assembly))
-        {
-            _assemblies.Add(assembly);
-        }
+        _assemblies.Add(assembly);
         
         return this;
     }
@@ -120,10 +115,7 @@ public sealed class MediatorConfiguration
     {
         ArgumentNullException.ThrowIfNull(assembly);
         
-        if (!_assemblies.Contains(assembly))
-        {
-            _assemblies.Add(assembly);
-        }
+        _assemblies.Add(assembly);
         
         return this;
     }

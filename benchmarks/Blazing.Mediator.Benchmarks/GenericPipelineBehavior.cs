@@ -1,5 +1,3 @@
-using Blazing.Mediator.Abstractions;
-
 namespace Blazing.Mediator.Benchmarks;
 
 internal class GenericPipelineBehavior<TRequest, TResponse>(TextWriter writer)

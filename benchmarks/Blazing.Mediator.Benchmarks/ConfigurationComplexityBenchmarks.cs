@@ -1,7 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
-using Blazing.Mediator.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Benchmarks;
@@ -464,7 +463,7 @@ public class ConfigurationComplexityBenchmarks
             }
             catch (Exception e)
             {
-                System.GC.KeepAlive(e); // Satisfy S2737: add logic to catch clause
+                GC.KeepAlive(e); // Satisfy S2737: add logic to catch clause
                 throw;
             }
         }

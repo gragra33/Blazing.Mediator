@@ -1,4 +1,4 @@
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
 
 namespace Blazing.Mediator.Examples.Streams;
 

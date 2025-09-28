@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Performance\**" />
+    <EmbeddedResource Remove="Performance\**" />
+    <None Remove="Performance\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -33,10 +39,6 @@
     <Using Include="Xunit" />
     <Using Include="Shouldly" />
     <Using Include="Moq" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Performance\" />
   </ItemGroup>
 
 </Project>

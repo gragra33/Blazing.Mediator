@@ -1,4 +1,4 @@
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
 using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;

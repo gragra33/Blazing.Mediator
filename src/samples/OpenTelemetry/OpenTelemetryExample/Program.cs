@@ -19,4 +19,7 @@ await DatabaseInitializationHelper.InitializeAndSeedDatabaseAsync(app.Services, 
 
 await app.RunAsync();
 
-public static partial class Program { }
+public partial class Program
+{
+    // Make Program class accessible for testing
+}

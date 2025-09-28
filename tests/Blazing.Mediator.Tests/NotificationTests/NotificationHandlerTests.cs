@@ -102,14 +102,9 @@ public class NotificationHandlerTests
     /// <summary>
     /// Handler with dependencies for DI testing.
     /// </summary>
-    public class DependencyInjectedHandler : INotificationHandler<OrderCreatedNotification>
+    public class DependencyInjectedHandler(TestService testService) : INotificationHandler<OrderCreatedNotification>
     {
-        private readonly TestService _testService;
-
-        public DependencyInjectedHandler(TestService testService)
-        {
-            _testService = testService ?? throw new ArgumentNullException(nameof(testService));
-        }
+        private readonly TestService _testService = testService ?? throw new ArgumentNullException(nameof(testService));
 
         public List<OrderCreatedNotification> HandledNotifications { get; } = [];
         public int HandleCallCount { get; private set; }
@@ -246,6 +241,7 @@ public class NotificationHandlerTests
     {
         // Arrange
         var services = new ServiceCollection();
+        services.AddScoped<TestService>(); // Add missing TestService dependency
         services.AddMediator(config =>
         {
             config.WithNotificationHandlerDiscovery();
@@ -557,6 +553,7 @@ public class NotificationHandlerTests
     {
         // Arrange
         var services = new ServiceCollection();
+        services.AddScoped<TestService>(); // Add missing TestService dependency
         services.AddMediator(config =>
         {
             config.WithNotificationHandlerDiscovery();
@@ -572,7 +569,7 @@ public class NotificationHandlerTests
         };
 
         using var cts = new CancellationTokenSource();
-        cts.Cancel(); // Cancel immediately
+        await cts.CancelAsync(); // Cancel immediately
 
         // Act & Assert
         await Should.ThrowAsync<OperationCanceledException>(async () =>
@@ -723,10 +720,13 @@ public class NotificationHandlerTests
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
-        // Reset counters
+        // Reset counters to ensure test isolation
         BaseNotificationCovariantHandler.CallCount = 0;
+        BaseNotificationCovariantHandler.LastNotification = null;
         InterfaceNotificationCovariantHandler.CallCount = 0;
+        InterfaceNotificationCovariantHandler.LastNotification = null;
         SpecificDerivedHandler.CallCount = 0;
+        SpecificDerivedHandler.LastNotification = null;
 
         var derivedNotification = new DerivedTestNotificationForCovariance
         {
@@ -776,10 +776,13 @@ public class NotificationHandlerTests
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
-        // Reset counters
+        // Reset counters to ensure test isolation
         BaseNotificationCovariantHandler.CallCount = 0;
+        BaseNotificationCovariantHandler.LastNotification = null;
         InterfaceNotificationCovariantHandler.CallCount = 0;
+        InterfaceNotificationCovariantHandler.LastNotification = null;
         SpecificDerivedHandler.CallCount = 0;
+        SpecificDerivedHandler.LastNotification = null;
 
         var baseNotification = new BaseTestNotificationForCovariance
         {
@@ -887,6 +890,7 @@ public class NotificationHandlerTests
     {
         // Arrange & Act - Test default behavior (should be enabled)
         var servicesDefault = new ServiceCollection();
+        servicesDefault.AddScoped<TestService>(); // Register the required dependency
         servicesDefault.AddMediator(typeof(NotificationHandlerTests).Assembly);
         var defaultProvider = servicesDefault.BuildServiceProvider();
 
@@ -896,6 +900,7 @@ public class NotificationHandlerTests
 
         // Arrange & Act - Test explicitly enabled
         var servicesEnabled = new ServiceCollection();
+        servicesEnabled.AddScoped<TestService>(); // Register the required dependency
         servicesEnabled.AddMediator(config =>
         {
             config.WithNotificationHandlerDiscovery();

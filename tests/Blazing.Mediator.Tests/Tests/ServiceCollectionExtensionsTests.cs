@@ -1,7 +1,7 @@
-using Blazing.Mediator.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Tests.Middleware;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Tests;
 
@@ -289,7 +289,7 @@ public class ServiceCollectionExtensionsTests
             // Configure assemblies to scan for subscribers
             config.AddFromAssembly(typeof(TestRegistrationCommand));
             config.AddFromAssembly(typeof(ServiceCollectionExtensionsTests));
-        }, Array.Empty<Assembly>()); // Explicitly pass empty Assembly array to resolve ambiguity
+        }); // Explicitly pass empty Assembly array to resolve ambiguity
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -408,7 +408,7 @@ public class ServiceCollectionExtensionsTests
         services.AddMediator(config =>
         {
             config.AddMiddleware<AutoDiscoveryInstanceOrderMiddleware>();
-        }, (Assembly[])null!);
+        }, null!);
 
         // Register the handler for MiddlewareTestQuery
         services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
@@ -437,7 +437,7 @@ public class ServiceCollectionExtensionsTests
         services.AddMediator(config =>
         {
             config.AddMiddleware<AutoDiscoveryNoOrderMiddleware>();
-        }, (Assembly[])null!);
+        }, null!);
 
         // Register the handler for MiddlewareTestQuery
         services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();

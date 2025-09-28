@@ -1,3 +1,7 @@
+using System.Collections.Concurrent;
+using System.Reflection;
+using System.Text.RegularExpressions;
+
 namespace Blazing.Mediator.Pipeline;
 
 /// <summary>
@@ -94,7 +98,16 @@ internal static class PipelineUtilities
         return _formattedTypeNameCache.GetOrAdd(type, static t =>
         {
             if (!t.IsGenericType)
-                return t.Name;
+            {
+                var name = t.Name;
+                // Clean backticks from non-generic types as well
+                if (name.Contains('`'))
+                {
+                    var nameBacktickIndex = name.IndexOf('`');
+                    name = name[..nameBacktickIndex];
+                }
+                return name;
+            }
 
             var genericTypeName = t.Name;
             var backtickIndex = genericTypeName.IndexOf('`');
@@ -149,7 +162,17 @@ internal static class PipelineUtilities
                 var typeConstraints = parameter.GetGenericParameterConstraints();
                 parameterConstraints.AddRange(typeConstraints
                     .Where(constraint => constraint.IsInterface || constraint.IsClass)
-                    .Select(FormatTypeName));
+                    .Select(constraint => 
+                    {
+                        var constraintName = FormatTypeName(constraint);
+                        // Clean backticks from constraint names
+                        if (constraintName.Contains('`'))
+                        {
+                            constraintName = System.Text.RegularExpressions.Regex.Replace(
+                                constraintName, @"`\d+", "");
+                        }
+                        return constraintName;
+                    }));
 
                 // Check for new() constraint
                 if (parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))

@@ -101,7 +101,7 @@ mediator.Subscribe(inventoryHandler);
 -   Console applications (as demonstrated here)
 -   Any scenario requiring explicit handler control
 
-## 📋 Implementation Guide
+## * Implementation Guide
 
 ### Prerequisites: Default Scoped Mediator Registration
 
@@ -314,7 +314,7 @@ Auto-discovered notification middleware (in execution order):
 
 === Starting Order Processing ===
 
-📋 Creating Order #1001 for Alice Johnson
+* Creating Order #1001 for Alice Johnson
 * Validating notification: OrderCreatedNotification
 # Validation passed for: OrderCreatedNotification
 * Publishing notification: OrderCreatedNotification

@@ -7,83 +7,17 @@ namespace TypedMiddlewareExample.Services;
 /// Service responsible for running the TypedMiddlewareExample demonstration.
 /// Shows the distinction between ICommand and IQuery processing with validation middleware.
 /// </summary>
-public class Runner
+public class Runner(
+    IMediator mediator,
+    ILogger<Runner> logger,
+    ExampleAnalysisService analysisService)
 {
-    private readonly IMediator _mediator;
-    private readonly ILogger<Runner> _logger;
-    private readonly IMiddlewarePipelineInspector _pipelineInspector;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly MediatorStatistics _mediatorStatistics;
-
-    public Runner(
-        IMediator mediator,
-        ILogger<Runner> logger,
-        IMiddlewarePipelineInspector pipelineInspector,
-        IServiceProvider serviceProvider,
-        MediatorStatistics mediatorStatistics)
-    {
-        _mediator = mediator;
-        _logger = logger;
-        _pipelineInspector = pipelineInspector;
-        _serviceProvider = serviceProvider;
-        _mediatorStatistics = mediatorStatistics;
-    }
-
     /// <summary>
     /// Inspects and displays the middleware pipeline configuration.
     /// </summary>
     public void InspectMiddlewarePipeline()
     {
-        var middlewareAnalysis = MiddlewarePipelineAnalyzer.AnalyzeMiddleware(_pipelineInspector, _serviceProvider);
-
-        Console.WriteLine("Registered middleware:");
-        foreach (var middleware in middlewareAnalysis)
-        {
-            Console.WriteLine($"  - [{middleware.OrderDisplay}] {middleware.ClassName}{middleware.TypeParameters}");
-            if (!string.IsNullOrEmpty(middleware.GenericConstraints))
-            {
-                Console.WriteLine($"        - Constraints: {middleware.GenericConstraints}");
-            }
-        }
-        Console.WriteLine();
-    }
-
-    /// <summary>
-    /// Inspects and displays the mediator types (queries and commands).
-    /// </summary>
-    public void InspectMediatorTypes()
-    {
-        Console.WriteLine("=== COMPREHENSIVE MEDIATOR ANALYSIS ===");
-        Console.WriteLine();
-
-        // Show compact mode first
-        Console.WriteLine("COMPACT MODE (isDetailed: false):");
-        Console.WriteLine("══════════════════════════════════════");
-        var compactQueries = _mediatorStatistics.AnalyzeQueries(_serviceProvider, isDetailed: false);
-        var compactCommands = _mediatorStatistics.AnalyzeCommands(_serviceProvider, isDetailed: false);
-
-        DisplayAnalysisResults("QUERIES", compactQueries, isDetailed: false);
-        DisplayAnalysisResults("COMMANDS", compactCommands, isDetailed: false);
-
-        Console.WriteLine();
-        Console.WriteLine("LEGEND: + = Handler found, ! = No handler, # = Multiple handlers");
-        Console.WriteLine();
-
-        // Show detailed mode
-        Console.WriteLine("DETAILED MODE (isDetailed: true - Default):");
-        Console.WriteLine("════════════════════════════════════════════════");
-        var detailedQueries = _mediatorStatistics.AnalyzeQueries(_serviceProvider, isDetailed: true);
-        var detailedCommands = _mediatorStatistics.AnalyzeCommands(_serviceProvider, isDetailed: true);
-
-        DisplayAnalysisResults("QUERIES", detailedQueries, isDetailed: true);
-        DisplayAnalysisResults("COMMANDS", detailedCommands, isDetailed: true);
-
-        Console.WriteLine();
-        Console.WriteLine("LEGEND:");
-        Console.WriteLine("  + = Handler found (Single)    ! = No handler (Missing)    # = Multiple handlers");
-        Console.WriteLine("  │ = Property details          └─ = Additional information");
-        Console.WriteLine("===============================================");
-        Console.WriteLine();
+        analysisService.DisplayRegisteredMiddleware();
     }
 
     /// <summary>
@@ -91,17 +25,11 @@ public class Runner
     /// </summary>
     public async Task Run()
     {
-        _logger.LogInformation("Starting TypedMiddlewareExample Demo with Blazing.Mediator...");
+        logger.LogInformation("Starting TypedMiddlewareExample Demo with Blazing.Mediator...");
         Console.WriteLine();
 
-        // Test constraint display
-        ConstraintTestRunner.TestConstraintDisplay(_serviceProvider);
-
-        // Inspect middleware pipeline configuration first
-        InspectMiddlewarePipeline();
-
-        // Inspect mediator types before running examples
-        InspectMediatorTypes();
+        // Display pre-execution analysis
+        analysisService.DisplayPreExecutionAnalysis();
 
         // Demonstrate each type of operation
         await DemonstrateProductLookup();
@@ -110,13 +38,10 @@ public class Runner
         await DemonstrateCustomerRegistration();
         await DemonstrateCustomerDetailsUpdate();
 
-        // Show execution statistics
-        Console.WriteLine("=== EXECUTION STATISTICS ===");
-        _mediatorStatistics.ReportStatistics();
-        Console.WriteLine("=============================");
-        Console.WriteLine();
+        // Display post-execution analysis with detailed statistics
+        analysisService.DisplayPostExecutionAnalysis();
 
-        _logger.LogInformation("TypedMiddlewareExample Demo completed!");
+        logger.LogInformation("TypedMiddlewareExample Demo completed!");
     }
 
     /// <summary>
@@ -124,13 +49,14 @@ public class Runner
     /// </summary>
     private async Task DemonstrateProductLookup()
     {
-        Console.WriteLine("-------- PRODUCT LOOKUP (IQuery) --------");
-        _logger.LogDebug(">> Looking up product: WIDGET-001");
+        Console.WriteLine("-------- PRODUCT LOOKUP (IProductRequest) --------");
 
-        var query = new GetProductQuery { ProductId = "WIDGET-001" };
-        var result = await _mediator.Send(query);
+        var productQuery = new GetProductQuery { ProductId = "WIDGET-001" };
+        logger.LogDebug(">> Looking up product: {ProductId}", productQuery.ProductId);
 
-        _logger.LogDebug("<< Product found: {Result}", result);
+        var productInfo = await mediator.Send(productQuery);
+        logger.LogDebug("<< Product found: {ProductInfo}", productInfo);
+
         Console.WriteLine();
     }
 
@@ -139,13 +65,13 @@ public class Runner
     /// </summary>
     private async Task DemonstrateInventoryManagement()
     {
-        Console.WriteLine("-------- INVENTORY MANAGEMENT (ICommand<T>) --------");
-        _logger.LogDebug(">> Updating inventory for: WIDGET-001, change: -5");
+        Console.WriteLine("-------- INVENTORY MANAGEMENT (IInventoryRequest) --------");
+        logger.LogDebug(">> Updating inventory for: WIDGET-001, change: -5");
 
         var command = new UpdateInventoryCommand { ProductId = "WIDGET-001", InventoryChange = -5 };
-        var newCount = await _mediator.Send(command);
+        var newCount = await mediator.Send(command);
 
-        _logger.LogDebug("<< New stock count: {NewCount} units", newCount);
+        logger.LogDebug("<< New stock count: {NewCount} units", newCount);
         Console.WriteLine();
     }
 
@@ -154,17 +80,17 @@ public class Runner
     /// </summary>
     private async Task DemonstrateOrderConfirmation()
     {
-        Console.WriteLine("-------- ORDER CONFIRMATION (ICommand) --------");
-        _logger.LogDebug(">> Sending order confirmation for: ORD-2025-001 to: customer@example.com");
+        Console.WriteLine("-------- ORDER CONFIRMATION (IOrderRequest) --------");
+        logger.LogDebug(">> Sending order confirmation for: ORD-2025-001 to: customer@example.com");
 
         var command = new SendOrderConfirmationCommand
         {
             OrderId = "ORD-2025-001",
             CustomerEmail = "customer@example.com"
         };
-        await _mediator.Send(command);
+        await mediator.Send(command);
 
-        _logger.LogDebug("<< Order confirmation sent successfully!");
+        logger.LogDebug("<< Order confirmation sent successfully!");
         Console.WriteLine();
     }
 
@@ -173,10 +99,10 @@ public class Runner
     /// </summary>
     private async Task DemonstrateCustomerRegistration()
     {
-        Console.WriteLine("-------- CUSTOMER REGISTRATION (ICommand with Validation) --------");
+        Console.WriteLine("-------- CUSTOMER REGISTRATION (ICustomerRequest with Validation) --------");
 
         // First attempt with invalid data (validation should fail)
-        _logger.LogDebug(">> Registering customer: J (john.doe@example.com)");
+        logger.LogDebug(">> Registering customer: J (john.doe@example.com)");
 
         try
         {
@@ -186,17 +112,18 @@ public class Runner
                 Email = "john.doe@example.com",
                 ContactMethod = "Email"
             };
-            await _mediator.Send(invalidCommand);
+            await mediator.Send(invalidCommand);
         }
-        catch (ValidationException)
+        catch (FluentValidation.ValidationException ex)
         {
             // Expected - validation middleware caught this
+            logger.LogInformation("-- Expected validation failure caught: {ErrorMessage}", ex.Message);
         }
 
         Console.WriteLine();
 
         // Second attempt with valid data
-        _logger.LogDebug(">> Registering customer: John Doe (john.doe@example.com)");
+        logger.LogDebug(">> Registering customer: John Doe (john.doe@example.com)");
 
         var validCommand = new RegisterCustomerCommand
         {
@@ -204,9 +131,9 @@ public class Runner
             Email = "john.doe@example.com",
             ContactMethod = "Email"
         };
-        await _mediator.Send(validCommand);
+        await mediator.Send(validCommand);
 
-        _logger.LogDebug("<< Customer registered successfully!");
+        logger.LogDebug("<< Customer registered successfully!");
         Console.WriteLine();
     }
 
@@ -215,10 +142,10 @@ public class Runner
     /// </summary>
     private async Task DemonstrateCustomerDetailsUpdate()
     {
-        Console.WriteLine("-------- CUSTOMER DETAILS UPDATE (ICommand<T> with Validation Error & Retry Success) --------");
+        Console.WriteLine("-------- CUSTOMER DETAILS UPDATE (ICustomerRequest<T> with Validation Error & Retry Success) --------");
 
         // First attempt with invalid data
-        _logger.LogDebug(">> Updating customer details (invalid data): INVALID-ID - John Doe (john.doe@example.com)");
+        logger.LogDebug(">> Updating customer details (invalid data): INVALID-ID - John Doe (john.doe@example.com)");
 
         try
         {
@@ -229,17 +156,18 @@ public class Runner
                 Email = "john.doe@example.com",
                 ContactMethod = "Email"
             };
-            await _mediator.Send(invalidCommand);
+            await mediator.Send(invalidCommand);
         }
-        catch (ValidationException)
+        catch (FluentValidation.ValidationException ex)
         {
             // Expected - validation middleware caught this
+            logger.LogInformation("-- Expected validation failure caught: {ErrorMessage}", ex.Message);
         }
 
         Console.WriteLine();
 
         // Second attempt with valid data
-        _logger.LogDebug(">> Updating customer details (valid data): CUST-123456 - John Doe (john.doe@example.com)");
+        logger.LogDebug(">> Updating customer details (valid data): CUST-123456 - John Doe (john.doe@example.com)");
 
         var validCommand = new UpdateCustomerDetailsCommand
         {
@@ -248,69 +176,9 @@ public class Runner
             Email = "john.doe@example.com",
             ContactMethod = "Email"
         };
-        await _mediator.Send(validCommand);
+        await mediator.Send(validCommand);
 
-        _logger.LogDebug("<< Customer details updated successfully!");
-        Console.WriteLine();
-    }
-
-    /// <summary>
-    /// Helper method to display analysis results.
-    /// </summary>
-    private static void DisplayAnalysisResults(string type, IReadOnlyList<QueryCommandAnalysis> results, bool isDetailed)
-    {
-        Console.WriteLine($"* {results.Count} {type} DISCOVERED:");
-
-        if (results.Count == 0)
-        {
-            Console.WriteLine("  (None found)");
-            return;
-        }
-
-        var groupedResults = results.GroupBy(r => r.Assembly)
-            .OrderBy(g => g.Key);
-
-        foreach (var assemblyGroup in groupedResults)
-        {
-            Console.WriteLine($"  * Assembly: {assemblyGroup.Key}");
-
-            var namespaceGroups = assemblyGroup.GroupBy(r => r.Namespace)
-                .OrderBy(g => g.Key);
-
-            foreach (var namespaceGroup in namespaceGroups)
-            {
-                Console.WriteLine($"    * Namespace: {namespaceGroup.Key}");
-
-                var orderedItems = namespaceGroup.OrderBy(r => r.ClassName);
-
-
-                foreach (var item in orderedItems)
-                {
-                    var statusIcon = item.HandlerStatus switch
-                    {
-                        HandlerStatus.Single => "+",
-                        HandlerStatus.Missing => "!",
-                        HandlerStatus.Multiple => "#",
-                        _ => "?"
-                    };
-
-                    Console.WriteLine($"      {statusIcon} {item.ClassName} : {item.PrimaryInterface}");
-
-                    if (isDetailed)
-                    {
-                        Console.WriteLine($"        │ Type:        {item.Type?.FullName}");
-                        Console.WriteLine($"        │ Returns:     {item.ResponseType}");
-                        Console.WriteLine($"        │ Handler:     {(item.Handlers.Any() ? string.Join(", ", item.Handlers.Select(h => h.Name.Replace("Handler", ""))) : "None")}");
-                        Console.WriteLine($"        │ Status:      {item.HandlerStatus}");
-                        Console.WriteLine($"        │ Assembly:    {item.Assembly}");
-                        Console.WriteLine($"        │ Namespace:   {item.Namespace}");
-                        Console.WriteLine($"        │ Handler(s):  {item.Handlers.Count} registered");
-                        Console.WriteLine($"        └─ Result Type: {(item.IsResultType ? "YES (IResult)" : "NO (standard type)")}");
-                    }
-                }
-            }
-        }
-
+        logger.LogDebug("<< Customer details updated successfully!");
         Console.WriteLine();
     }
 }

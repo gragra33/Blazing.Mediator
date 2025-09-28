@@ -8,7 +8,6 @@ namespace Blazing.Mediator.Statistics;
 /// </summary>
 public sealed class MediatorStatistics : IDisposable
 {
-    // Constants to avoid magic strings
     private const string QueryNamePattern = "Query";
     private const string CommandNamePattern = "Command";
     private const string ResultNamePattern = "Result";
@@ -55,6 +54,17 @@ public sealed class MediatorStatistics : IDisposable
     // Memory usage tracking (when performance counters enabled)
     private long _totalMemoryAllocated;
     private readonly Lock _memoryLock = new();
+
+    // Notification performance counters (only used when EnablePerformanceCounters is true)
+    private readonly ConcurrentDictionary<string, List<long>> _notificationExecutionTimes = new();
+    private readonly ConcurrentDictionary<string, long> _totalNotificationExecutions = new();
+    private readonly ConcurrentDictionary<string, long> _totalNotificationExecutionTime = new();
+    private readonly ConcurrentDictionary<string, long> _failedNotificationExecutions = new();
+    private readonly ConcurrentDictionary<string, DateTime> _lastNotificationExecutionTimes = new();
+
+    // Notification memory usage tracking (when performance counters enabled)
+    private long _totalNotificationMemoryAllocated;
+    private readonly Lock _notificationMemoryLock = new();
 
     // Middleware metrics (only used when EnableMiddlewareMetrics is true)
     private readonly ConcurrentDictionary<string, long> _middlewareExecutionCounts = new();
@@ -208,210 +218,133 @@ public sealed class MediatorStatistics : IDisposable
     }
 
     /// <summary>
-    /// Records middleware execution metrics when middleware metrics are enabled.
+    /// Records the execution time for a specific notification type when performance counters are enabled.
     /// </summary>
-    /// <param name="middlewareType">The middleware type name.</param>
+    /// <param name="notificationType">The name of the notification type.</param>
     /// <param name="executionTimeMs">The execution time in milliseconds.</param>
-    /// <param name="successful">Whether the middleware executed successfully.</param>
-    public void RecordMiddlewareExecution(string middlewareType, long executionTimeMs, bool successful = true)
+    /// <param name="successful">Whether the execution was successful.</param>
+    public void RecordNotificationExecutionTime(string notificationType, long executionTimeMs, bool successful = true)
     {
-        if (!_options.EnableMiddlewareMetrics || string.IsNullOrEmpty(middlewareType))
+        if (!_options.EnablePerformanceCounters || string.IsNullOrEmpty(notificationType))
         {
             return;
         }
 
-        _middlewareExecutionCounts.AddOrUpdate(middlewareType, 1, (_, count) => count + 1);
-        _middlewareExecutionTimes.AddOrUpdate(middlewareType, executionTimeMs, (_, total) => total + executionTimeMs);
-
-        if (!successful)
-        {
-            _middlewareFailures.AddOrUpdate(middlewareType, 1, (_, count) => count + 1);
-        }
-
-        UpdateMetricTimestamp($"middleware_{middlewareType}");
-        
-        LogMiddlewareExecutionRecordedImpl(middlewareType, executionTimeMs, successful);
-    }
-
-    /// <summary>
-    /// Records detailed execution pattern when detailed analysis is enabled.
-    /// </summary>
-    /// <param name="requestType">The request type name.</param>
-    /// <param name="executionTime">The execution timestamp.</param>
-    public void RecordExecutionPattern(string requestType, DateTime executionTime)
-    {
-        if (!_options.EnableDetailedAnalysis || string.IsNullOrEmpty(requestType))
-        {
-            return;
-        }
-
-        // Check max tracked request types limit
-        if (_executionPatterns.Count >= _options.MaxTrackedRequestTypes &&
-            !_executionPatterns.ContainsKey(requestType))
-        {
-            return; // Don't track new request types if we've hit the limit
-        }
-
-        _executionPatterns.AddOrUpdate(requestType, [executionTime], (_, patterns) =>
-        {
-            lock (patterns)
-            {
-                patterns.Add(executionTime);
-
-                // Keep only recent patterns to prevent unbounded growth
-                if (patterns.Count > 10000)
-                {
-                    patterns.RemoveAt(0);
-                }
-
-                return patterns;
-            }
-        });
-
-        // Track hourly patterns
-        var hourKey = $"{requestType}_{executionTime:yyyy-MM-dd-HH}";
-        _hourlyExecutionCounts.AddOrUpdate(hourKey, 1, (_, count) => count + 1);
-
-        UpdateMetricTimestamp($"{PatternPrefix}{requestType}");
-        
-        LogExecutionPatternRecordedImpl(requestType, executionTime);
-    }
-
-    /// <summary>
-    /// Gets performance metrics for a specific request type.
-    /// </summary>
-    /// <param name="requestType">The name of the request type.</param>
-    /// <returns>Performance metrics if available, null otherwise.</returns>
-    public PerformanceMetrics? GetPerformanceMetrics(string requestType)
-    {
-        if (!_options.EnablePerformanceCounters || string.IsNullOrEmpty(requestType))
-        {
-            return null;
-        }
-
-        if (!_totalExecutions.TryGetValue(requestType, out var totalExecutions) || totalExecutions == 0)
-        {
-            return null;
-        }
-
-        _totalExecutionTime.TryGetValue(requestType, out var totalTime);
-        _failedExecutions.TryGetValue(requestType, out var failures);
-        _lastExecutionTimes.TryGetValue(requestType, out var lastExecution);
-
-        var averageTime = totalExecutions > 0 ? (double)totalTime / totalExecutions : 0;
-        var successRate = totalExecutions > 0 ? (double)(totalExecutions - failures) / totalExecutions * 100 : 0;
-
-        // Calculate percentiles if we have execution time data
-        double p50 = 0, p95 = 0, p99 = 0;
-        if (_executionTimes.TryGetValue(requestType, out var times) && times.Count > 0)
+        // Update execution times for percentile calculations
+        _notificationExecutionTimes.AddOrUpdate(notificationType, [executionTimeMs], (_, times) =>
         {
             lock (times)
             {
-                var sortedTimes = times.OrderBy(t => t).ToArray();
-                p50 = GetPercentile(sortedTimes, 0.5);
-                p95 = GetPercentile(sortedTimes, 0.95);
-                p99 = GetPercentile(sortedTimes, 0.99);
-            }
-        }
+                times.Add(executionTimeMs);
 
-        return new PerformanceMetrics(
-            requestType,
-            totalExecutions,
-            failures,
-            averageTime,
-            successRate,
-            lastExecution,
-            p50,
-            p95,
-            p99
-        );
+                // Keep only the last N entries to prevent unbounded growth
+                if (times.Count > 1000)
+                {
+                    times.RemoveAt(0);
+                }
+
+                return times;
+            }
+        });
+
+        // Update aggregated metrics
+        _totalNotificationExecutions.AddOrUpdate(notificationType, 1, (_, count) => count + 1);
+        _totalNotificationExecutionTime.AddOrUpdate(notificationType, executionTimeMs, (_, total) => total + executionTimeMs);
+        _lastNotificationExecutionTimes[notificationType] = DateTime.UtcNow;
+
+        if (!successful)
+        {
+            _failedNotificationExecutions.AddOrUpdate(notificationType, 1, (_, count) => count + 1);
+        }
+        
+        LogNotificationExecutionTimeRecordedImpl(notificationType, executionTimeMs, successful);
     }
 
     /// <summary>
-    /// Gets overall performance summary when performance counters are enabled.
+    /// Records memory allocation for notification processing when performance counters are enabled.
     /// </summary>
-    /// <returns>Performance summary with overall metrics.</returns>
-    public PerformanceSummary? GetPerformanceSummary()
+    /// <param name="bytesAllocated">The number of bytes allocated for notification processing.</param>
+    public void RecordNotificationMemoryAllocation(long bytesAllocated)
     {
         if (!_options.EnablePerformanceCounters)
         {
-            return null;
+            return;
         }
 
-        var totalRequests = _totalExecutions.Values.Sum();
-        var totalFailures = _failedExecutions.Values.Sum();
-        var totalTime = _totalExecutionTime.Values.Sum();
-
-        long totalMemory;
-        lock (_memoryLock)
+        lock (_notificationMemoryLock)
         {
-            totalMemory = _totalMemoryAllocated;
+            _totalNotificationMemoryAllocated += bytesAllocated;
         }
-
-        var averageTime = totalRequests > 0 ? (double)totalTime / totalRequests : 0;
-        var overallSuccessRate = totalRequests > 0 ? (double)(totalRequests - totalFailures) / totalRequests * 100 : 0;
-
-        return new PerformanceSummary(
-            totalRequests,
-            totalFailures,
-            averageTime,
-            overallSuccessRate,
-            totalMemory,
-            _totalExecutions.Count
-        );
+        
+        LogNotificationMemoryAllocationRecordedImpl(bytesAllocated);
     }
 
     /// <summary>
-    /// Calculates the specified percentile from a sorted array of values.
-    /// </summary>
-    /// <param name="sortedValues">Array of sorted values.</param>
-    /// <param name="percentile">Percentile to calculate (0.0 to 1.0).</param>
-    /// <returns>The percentile value.</returns>
-    private static double GetPercentile(long[] sortedValues, double percentile)
-    {
-        if (sortedValues.Length == 0) return 0;
-        if (sortedValues.Length == 1) return sortedValues[0];
-
-        var index = percentile * (sortedValues.Length - 1);
-        var lower = (int)Math.Floor(index);
-        var upper = (int)Math.Ceiling(index);
-
-        if (lower == upper)
-        {
-            return sortedValues[lower];
-        }
-
-        var weight = index - lower;
-        return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
-    }
-
-    /// <summary>
-    /// Reports the current statistics using the configured renderer.
+    /// Reports the current statistics using the configured renderer with enhanced separate performance sections.
+    /// Shows actual total executions, not just unique type counts.
     /// </summary>
     public void ReportStatistics()
     {
         LogStatisticsReportStartedImpl();
         
+        // Show total executions, not just unique types
         _renderer.Render("Mediator Statistics:");
-        _renderer.Render($"Queries: {_queryCounts.Count}");
-        _renderer.Render($"Commands: {_commandCounts.Count}");
-        _renderer.Render($"Notifications: {_notificationCounts.Count}");
+        _renderer.Render($"Queries: {_queryCounts.Values.Sum()}"); // Total executions
+        _renderer.Render($"Commands: {_commandCounts.Values.Sum()}"); // Total executions  
+        _renderer.Render($"Notifications: {_notificationCounts.Values.Sum()}"); // Total executions
 
-        // Include performance metrics if enabled
+        // Include enhanced performance metrics if enabled
         if (_options.EnablePerformanceCounters)
         {
-            var summary = GetPerformanceSummary();
-            if (summary.HasValue)
+            // Overall Performance Summary
+            var overallSummary = GetPerformanceSummary();
+            if (overallSummary.HasValue)
             {
-                var summaryValue = summary.Value;
+                var summaryValue = overallSummary.Value;
                 _renderer.Render("");
-                _renderer.Render("Performance Summary:");
-                _renderer.Render($"Total Requests: {summaryValue.TotalRequests:N0}");
-                _renderer.Render($"Failed Requests: {summaryValue.TotalFailures:N0}");
+                _renderer.Render("Overall Performance Summary:");
+                _renderer.Render($"Total Operations: {summaryValue.TotalOperations:N0}");
+                _renderer.Render($"Failed Operations: {summaryValue.TotalFailures:N0}");
                 _renderer.Render($"Success Rate: {summaryValue.OverallSuccessRate:F1}%");
                 _renderer.Render($"Average Execution Time: {summaryValue.AverageExecutionTimeMs:F1}ms");
                 _renderer.Render($"Total Memory Allocated: {summaryValue.TotalMemoryAllocatedBytes:N0} bytes");
-                _renderer.Render($"Unique Request Types: {summaryValue.UniqueRequestTypes}");
+                _renderer.Render($"Unique Operation Types: {summaryValue.UniqueOperationTypes}");
+            }
+
+            // Request Performance Summary (filtered to requests only)
+            _renderer.Render("");
+            var requestSummary = GetRequestPerformanceSummary();
+            if (requestSummary.HasValue && requestSummary.Value.TotalOperations > 0)
+            {
+                var requestSummaryValue = requestSummary.Value;
+                _renderer.Render("Request Performance Summary:");
+                _renderer.Render($"Request Operations: {requestSummaryValue.TotalOperations:N0}");
+                _renderer.Render($"Request Failures: {requestSummaryValue.TotalFailures:N0}");
+                _renderer.Render($"Request Success Rate: {requestSummaryValue.OverallSuccessRate:F1}%");
+                _renderer.Render($"Request Avg Time: {requestSummaryValue.AverageExecutionTimeMs:F1}ms");
+                _renderer.Render($"Request Operation Types: {requestSummaryValue.UniqueOperationTypes}");
+            }
+            else
+            {
+                _renderer.Render("Request Performance Summary: No request operations recorded");
+            }
+
+            // Notification Performance Summary (filtered to notifications only)
+            _renderer.Render("");
+            var notificationSummary = GetNotificationPerformanceSummary();
+            if (notificationSummary.HasValue && notificationSummary.Value.TotalOperations > 0)
+            {
+                var notificationSummaryValue = notificationSummary.Value;
+                _renderer.Render("Notification Performance Summary:");
+                _renderer.Render($"Notification Operations: {notificationSummaryValue.TotalOperations:N0}");
+                _renderer.Render($"Notification Failures: {notificationSummaryValue.TotalFailures:N0}");
+                _renderer.Render($"Notification Success Rate: {notificationSummaryValue.OverallSuccessRate:F1}%");
+                _renderer.Render($"Notification Avg Time: {notificationSummaryValue.AverageExecutionTimeMs:F1}ms");
+                _renderer.Render($"Notification Operation Types: {notificationSummaryValue.UniqueOperationTypes}");
+            }
+            else
+            {
+                _renderer.Render("Notification Performance Summary: No notification operations recorded");
             }
         }
         
@@ -822,10 +755,14 @@ public sealed class MediatorStatistics : IDisposable
 
     /// <summary>
     /// Creates notification analysis results from a collection of notification types.
+    /// Enhanced to support both automatic handlers and manual subscribers pattern detection.
     /// </summary>
     private static IReadOnlyList<NotificationAnalysis> CreateNotificationAnalysisResults(IEnumerable<Type> types, IServiceProvider serviceProvider, bool isDetailed)
     {
         var analysisResults = new List<NotificationAnalysis>();
+
+        // Try to get pattern detector and subscriber tracker from DI (will be null if not registered)
+        var subscriberTracker = serviceProvider.GetService<ISubscriberTracker>();
 
         foreach (var type in types.OrderBy(t => t.Assembly.GetName().Name).ThenBy(t => t.Namespace ?? "Unknown").ThenBy(t => t.Name))
         {
@@ -874,8 +811,10 @@ public sealed class MediatorStatistics : IDisposable
                     break;
             }
 
-            // Estimate manual subscribers (this is approximate since subscribers can be registered dynamically)
-            var (subscriberStatus, subscriberDetails, estimatedSubscribers) = EstimateSubscribers(type, serviceProvider, isDetailed);
+            // Enhanced subscriber tracking using SubscriberTracker if available
+            var (subscriberStatus, subscriberDetails, subscriberCount) = subscriberTracker != null 
+                ? GetEnhancedSubscriberStatus(type, subscriberTracker, isDetailed)
+                : EstimateSubscribers(type, serviceProvider, isDetailed);
 
             analysisResults.Add(new NotificationAnalysis(
                 Type: type,
@@ -886,14 +825,58 @@ public sealed class MediatorStatistics : IDisposable
                 PrimaryInterface: primaryInterface,
                 HandlerStatus: handlerStatus,
                 HandlerDetails: handlerDetails,
-                Handlers: isDetailed ? handlers : [],
+                Handlers: handlers, // Always include handlers for accurate status determination in both modes
                 SubscriberStatus: subscriberStatus,
                 SubscriberDetails: subscriberDetails,
-                EstimatedSubscribers: estimatedSubscribers
+                EstimatedSubscribers: subscriberCount
             ));
         }
 
         return analysisResults;
+    }
+
+    /// <summary>
+    /// Gets the subscriber status for a notification type using the enhanced tracking system.
+    /// </summary>
+    private static (SubscriberStatus Status, string Details, int Count) GetEnhancedSubscriberStatus(
+        Type notificationType, 
+        ISubscriberTracker subscriberTracker, 
+        bool isDetailed)
+    {
+        try
+        {
+            var activeSubscribers = subscriberTracker.GetActiveSubscribers(notificationType);
+            var subscriberCount = activeSubscribers.Count;
+
+            if (subscriberCount == 0)
+            {
+                var noneDetails = isDetailed 
+                    ? "No active subscribers detected"
+                    : "No subscribers";
+                return (SubscriberStatus.None, noneDetails, 0);
+            }
+
+            // Get subscriber type names for detailed reporting
+            var subscriberTypes = activeSubscribers
+                .Select(s => s.SubscriberType.Name)
+                .Distinct()
+                .OrderBy(name => name)
+                .ToArray();
+
+            var details = isDetailed
+                ? $"{subscriberCount} active ({string.Join(", ", subscriberTypes)})"
+                : $"{subscriberCount} subscriber{(subscriberCount == 1 ? "" : "s")}";
+                
+            return (SubscriberStatus.Present, details, subscriberCount);
+        }
+        catch
+        {
+            // Fallback to unknown status on any error
+            var unknownDetails = isDetailed 
+                ? "Cannot determine subscriber status (tracking error)"
+                : "Unknown";
+            return (SubscriberStatus.Unknown, unknownDetails, 0);
+        }
     }
 
     /// <summary>
@@ -1009,66 +992,9 @@ public sealed class MediatorStatistics : IDisposable
                 typeParameters = $"<{string.Join(", ", genericArgs.Select(t => t.Name))}>";
             }
 
-            // Determine primary interface and response type based on priority
+            // Enhanced interface detection with priority for custom domain interfaces
             var interfaces = type.GetInterfaces();
-
-            if (isQuery)
-            {
-                // For queries, prioritize IQuery<T> > IRequest<T>
-                var queryInterface = interfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQuery<>));
-                if (queryInterface != null)
-                {
-                    primaryInterface = $"IQuery<{queryInterface.GetGenericArguments()[0].Name}>";
-                    responseType = queryInterface.GetGenericArguments()[0];
-                }
-                else
-                {
-                    var requestInterface = interfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
-                    if (requestInterface != null)
-                    {
-                        primaryInterface = $"IRequest<{requestInterface.GetGenericArguments()[0].Name}>";
-                        responseType = requestInterface.GetGenericArguments()[0];
-                    }
-                    else
-                    {
-                        primaryInterface = "IRequest";
-                    }
-                }
-            }
-            else
-            {
-                // For commands, prioritize ICommand > ICommand<T> > IRequest > IRequest<T>
-                if (interfaces.Any(i => i == typeof(ICommand)))
-                {
-                    primaryInterface = "ICommand";
-                }
-                else
-                {
-                    var commandInterface = interfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICommand<>));
-                    if (commandInterface != null)
-                    {
-                        primaryInterface = $"ICommand<{commandInterface.GetGenericArguments()[0].Name}>";
-                        responseType = commandInterface.GetGenericArguments()[0];
-                    }
-                    else if (interfaces.Any(i => i == typeof(IRequest)))
-                    {
-                        primaryInterface = "IRequest";
-                    }
-                    else
-                    {
-                        var requestInterface = interfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
-                        if (requestInterface != null)
-                        {
-                            primaryInterface = $"IRequest<{requestInterface.GetGenericArguments()[0].Name}>";
-                            responseType = requestInterface.GetGenericArguments()[0];
-                        }
-                        else
-                        {
-                            primaryInterface = "Unknown";
-                        }
-                    }
-                }
-            }
+            (primaryInterface, responseType) = DetectPrimaryInterface(interfaces, isQuery);
 
             // ALWAYS discover handlers using the same logic, regardless of detail level
             var handlers = FindHandlersForRequestType(type, serviceProvider);
@@ -1114,11 +1040,296 @@ public sealed class MediatorStatistics : IDisposable
                 IsResultType: isResultType,
                 HandlerStatus: handlerStatus,
                 HandlerDetails: handlerDetails,
-                Handlers: isDetailed ? handlers : [] // Only include handler list in detailed mode
+                Handlers: handlers // Always include handlers for accurate status determination in both modes
             ));
         }
 
         return analysisResults;
+    }
+
+    /// <summary>
+    /// Detects the most specific primary interface for a type, prioritizing custom domain interfaces over built-in Blazing.Mediator interfaces.
+    /// This enables better analysis of domain-driven design patterns where custom interfaces like ICustomerRequest, IProductRequest, etc. are used.
+    /// </summary>
+    /// <param name="interfaces">All interfaces implemented by the type.</param>
+    /// <param name="isQuery">Whether this is being analyzed as a query (true) or command (false).</param>
+    /// <returns>A tuple containing the primary interface name and response type (if applicable).</returns>
+    private static (string PrimaryInterface, Type? ResponseType) DetectPrimaryInterface(Type[] interfaces, bool isQuery)
+    {
+        // Separate built-in Blazing.Mediator interfaces from custom domain interfaces
+        var customInterfaces = new List<Type>();
+        var builtInInterfaces = new List<Type>();
+
+        foreach (var iface in interfaces)
+        {
+            if (IsBuiltInBlazingMediatorInterface(iface))
+            {
+                builtInInterfaces.Add(iface);
+            }
+            else if (IsCustomDomainInterface(iface))
+            {
+                customInterfaces.Add(iface);
+            }
+        }
+
+        // First, try to find the most specific custom domain interface
+        if (customInterfaces.Count > 0)
+        {
+            var (customInterface, responseType) = FindMostSpecificInterface(customInterfaces, isQuery);
+            if (customInterface != null)
+            {
+                return (FormatInterfaceName(customInterface), responseType);
+            }
+        }
+
+        // Fall back to built-in interfaces using the original priority logic
+        return DetectBuiltInPrimaryInterface(builtInInterfaces, isQuery);
+    }
+
+    /// <summary>
+    /// Determines if an interface is a built-in Blazing.Mediator interface.
+    /// </summary>
+    /// <param name="interfaceType">The interface type to check.</param>
+    /// <returns>True if it's a built-in interface, false otherwise.</returns>
+    private static bool IsBuiltInBlazingMediatorInterface(Type interfaceType)
+    {
+        // Check for exact matches first
+        if (interfaceType == typeof(IRequest) || interfaceType == typeof(ICommand))
+        {
+            return true;
+        }
+
+        // Check for generic interface definitions
+        if (interfaceType.IsGenericType)
+        {
+            var genericDefinition = interfaceType.GetGenericTypeDefinition();
+            return genericDefinition == typeof(IRequest<>) ||
+                   genericDefinition == typeof(IQuery<>) ||
+                   genericDefinition == typeof(ICommand<>);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines if an interface is a custom domain interface (extends built-in interfaces).
+    /// Custom domain interfaces are those that inherit from IRequest, IQuery, or ICommand but are not the built-in types themselves.
+    /// </summary>
+    /// <param name="interfaceType">The interface type to check.</param>
+    /// <returns>True if it's a custom domain interface, false otherwise.</returns>
+    private static bool IsCustomDomainInterface(Type interfaceType)
+    {
+        // Must be an interface and not a built-in type
+        if (!interfaceType.IsInterface || IsBuiltInBlazingMediatorInterface(interfaceType))
+        {
+            return false;
+        }
+
+        // Check if it extends any of the built-in interfaces
+        var allInterfaces = interfaceType.GetInterfaces();
+        
+        return allInterfaces.Any(i => 
+            i == typeof(IRequest) || 
+            i == typeof(ICommand) ||
+            (i.IsGenericType && (
+                i.GetGenericTypeDefinition() == typeof(IRequest<>) ||
+                i.GetGenericTypeDefinition() == typeof(IQuery<>) ||
+                i.GetGenericTypeDefinition() == typeof(ICommand<>)
+            ))
+        );
+    }
+
+    /// <summary>
+    /// Finds the most specific interface from a collection of custom interfaces.
+    /// Prioritizes interfaces based on query/command context and inheritance depth.
+    /// </summary>
+    /// <param name="customInterfaces">Collection of custom domain interfaces.</param>
+    /// <param name="isQuery">Whether this is being analyzed as a query.</param>
+    /// <returns>The most specific interface and its response type (if applicable).</returns>
+    private static (Type? Interface, Type? ResponseType) FindMostSpecificInterface(List<Type> customInterfaces, bool isQuery)
+    {
+        if (customInterfaces.Count == 0) return (null, null);
+
+        // If there's only one custom interface, use it
+        if (customInterfaces.Count == 1)
+        {
+            var singleInterface = customInterfaces[0];
+            var responseType = GetResponseTypeFromInterface(singleInterface);
+            return (singleInterface, responseType);
+        }
+
+        // Multiple custom interfaces - find the most specific one
+        Type? bestInterface = null;
+        Type? bestResponseType = null;
+        int maxSpecificity = -1;
+
+        foreach (var iface in customInterfaces)
+        {
+            var specificity = CalculateInterfaceSpecificity(iface, isQuery);
+            if (specificity > maxSpecificity)
+            {
+                maxSpecificity = specificity;
+                bestInterface = iface;
+                bestResponseType = GetResponseTypeFromInterface(iface);
+            }
+        }
+
+        return (bestInterface, bestResponseType);
+    }
+
+    /// <summary>
+    /// Calculates a specificity score for an interface to help determine priority.
+    /// Higher scores indicate more specific interfaces that should be prioritized in analysis.
+    /// This uses only generic characteristics, not hardcoded domain patterns.
+    /// </summary>
+    /// <param name="interfaceType">The interface to score.</param>
+    /// <param name="isQuery">Whether this is being analyzed as a query.</param>
+    /// <returns>A specificity score where higher values are more specific.</returns>
+    private static int CalculateInterfaceSpecificity(Type interfaceType, bool isQuery)
+    {
+        int score = 0;
+
+        // Base score for being a custom interface
+        score += 100;
+
+        // Bonus for having generic parameters (more specific than non-generic)
+        if (interfaceType.IsGenericType)
+        {
+            score += 20;
+        }
+
+        // Bonus based on inheritance depth (more derived interfaces are more specific)
+        // This naturally prioritizes more specialized interfaces
+        score += interfaceType.GetInterfaces().Length * 5;
+
+        // Bonus for longer interface names (typically more specific)
+        // This helps distinguish between IRequest and ICustomerRequest
+        score += Math.Min(interfaceType.Name.Length * 2, 50); // Cap at 50 points
+
+        // Bonus for interfaces that don't directly match built-in patterns
+        // This helps prioritize custom interfaces over built-in ones
+        var interfaceName = interfaceType.Name;
+        if (!interfaceName.Equals("IRequest") && 
+            !interfaceName.Equals("ICommand") && 
+            !interfaceName.StartsWith("IRequest`") &&
+            !interfaceName.StartsWith("ICommand`") &&
+            !interfaceName.StartsWith("IQuery`"))
+        {
+            score += 25;
+        }
+
+        return score;
+    }
+
+    /// <summary>
+    /// Extracts the response type from an interface if it has one.
+    /// </summary>
+    /// <param name="interfaceType">The interface to examine.</param>
+    /// <returns>The response type if the interface is generic, null otherwise.</returns>
+    private static Type? GetResponseTypeFromInterface(Type interfaceType)
+    {
+        if (!interfaceType.IsGenericType) return null;
+
+        // For custom interfaces that extend IRequest<T>, IQuery<T>, or ICommand<T>
+        var genericArgs = interfaceType.GetGenericArguments();
+        return genericArgs.Length > 0 ? genericArgs[0] : null;
+    }
+
+    /// <summary>
+    /// Formats an interface name for display, including generic parameters.
+    /// </summary>
+    /// <param name="interfaceType">The interface type to format.</param>
+    /// <returns>A formatted string representation of the interface.</returns>
+    private static string FormatInterfaceName(Type interfaceType)
+    {
+        if (!interfaceType.IsGenericType)
+        {
+            return interfaceType.Name;
+        }
+
+        var name = interfaceType.Name;
+        var backtickIndex = name.IndexOf('`');
+        if (backtickIndex > 0)
+        {
+            name = name[..backtickIndex];
+        }
+
+        var genericArgs = interfaceType.GetGenericArguments();
+        var argNames = string.Join(", ", genericArgs.Select(t => t.Name));
+        return $"{name}<{argNames}>";
+    }
+
+    /// <summary>
+    /// Detects the primary interface using the original built-in interface priority logic.
+    /// This serves as a fallback when no custom domain interfaces are found.
+    /// </summary>
+    /// <param name="builtInInterfaces">Collection of built-in Blazing.Mediator interfaces.</param>
+    /// <param name="isQuery">Whether this is being analyzed as a query.</param>
+    /// <returns>The primary interface name and response type.</returns>
+    private static (string PrimaryInterface, Type? ResponseType) DetectBuiltInPrimaryInterface(List<Type> builtInInterfaces, bool isQuery)
+    {
+        Type? responseType = null;
+        string primaryInterface;
+
+        if (isQuery)
+        {
+            // For queries, prioritize IQuery<T> > IRequest<T>
+            var queryInterface = builtInInterfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQuery<>));
+            if (queryInterface != null)
+            {
+                primaryInterface = $"IQuery<{queryInterface.GetGenericArguments()[0].Name}>";
+                responseType = queryInterface.GetGenericArguments()[0];
+            }
+            else
+            {
+                var requestInterface = builtInInterfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
+                if (requestInterface != null)
+                {
+                    primaryInterface = $"IRequest<{requestInterface.GetGenericArguments()[0].Name}>";
+                    responseType = requestInterface.GetGenericArguments()[0];
+                }
+                else
+                {
+                    primaryInterface = "IRequest";
+                }
+            }
+        }
+        else
+        {
+            // For commands, prioritize ICommand > ICommand<T> > IRequest > IRequest<T>
+            if (builtInInterfaces.Any(i => i == typeof(ICommand)))
+            {
+                primaryInterface = "ICommand";
+            }
+            else
+            {
+                var commandInterface = builtInInterfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICommand<>));
+                if (commandInterface != null)
+                {
+                    primaryInterface = $"ICommand<{commandInterface.GetGenericArguments()[0].Name}>";
+                    responseType = commandInterface.GetGenericArguments()[0];
+                }
+                else if (builtInInterfaces.Any(i => i == typeof(IRequest)))
+                {
+                    primaryInterface = "IRequest";
+                }
+                else
+                {
+                    var requestInterface = builtInInterfaces.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
+                    if (requestInterface != null)
+                    {
+                        primaryInterface = $"IRequest<{requestInterface.GetGenericArguments()[0].Name}>";
+                        responseType = requestInterface.GetGenericArguments()[0];
+                    }
+                    else
+                    {
+                        primaryInterface = "Unknown";
+                    }
+                }
+            }
+        }
+
+        return (primaryInterface, responseType);
     }
 
     #region Source Generated Logging Methods
@@ -1145,6 +1356,18 @@ public sealed class MediatorStatistics : IDisposable
 
     private void LogMemoryAllocationRecordedImpl(long bytesAllocated)
     {
+        _mediatorLogger?.MemoryAllocationRecorded(bytesAllocated);
+    }
+
+    private void LogNotificationExecutionTimeRecordedImpl(string notificationType, long executionTimeMs, bool successful = true)
+    {
+        // Reuse existing logging infrastructure for notifications
+        _mediatorLogger?.ExecutionTimeRecorded($"Notification:{notificationType}", executionTimeMs, successful);
+    }
+
+    private void LogNotificationMemoryAllocationRecordedImpl(long bytesAllocated)
+    {
+        // Reuse existing memory allocation logging for notifications
         _mediatorLogger?.MemoryAllocationRecorded(bytesAllocated);
     }
 
@@ -1226,6 +1449,300 @@ public sealed class MediatorStatistics : IDisposable
     }
 
     #endregion
+
+    /// <summary>
+    /// Gets performance metrics for a specific operation type (request or notification).
+    /// </summary>
+    /// <param name="operationType">The name of the operation type (e.g., "GetUserQuery" or "Notification:OrderCreated").</param>
+    /// <returns>Performance metrics if available, null otherwise.</returns>
+    public PerformanceMetrics? GetPerformanceMetrics(string operationType)
+    {
+        if (!_options.EnablePerformanceCounters || string.IsNullOrEmpty(operationType))
+        {
+            return null;
+        }
+
+        if (!_totalExecutions.TryGetValue(operationType, out var totalExecutions) || totalExecutions == 0)
+        {
+            return null;
+        }
+
+        _totalExecutionTime.TryGetValue(operationType, out var totalTime);
+        _failedExecutions.TryGetValue(operationType, out var failures);
+        _lastExecutionTimes.TryGetValue(operationType, out var lastExecution);
+
+        var averageTime = totalExecutions > 0 ? (double)totalTime / totalExecutions : 0;
+        var successRate = totalExecutions > 0 ? (double)(totalExecutions - failures) / totalExecutions * 100 : 0;
+
+        // Calculate percentiles if we have execution time data
+        double p50 = 0, p95 = 0, p99 = 0;
+        if (_executionTimes.TryGetValue(operationType, out var times) && times.Count > 0)
+        {
+            lock (times)
+            {
+                var sortedTimes = times.OrderBy(t => t).ToArray();
+                p50 = GetPercentile(sortedTimes, 0.5);
+                p95 = GetPercentile(sortedTimes, 0.95);
+                p99 = GetPercentile(sortedTimes, 0.99);
+            }
+        }
+
+        return new PerformanceMetrics(
+            operationType,
+            totalExecutions,
+            failures,
+            averageTime,
+            successRate,
+            lastExecution,
+            p50,
+            p95,
+            p99
+        );
+    }
+
+    /// <summary>
+    /// Gets overall performance summary for all operations (requests and notifications) when performance counters are enabled.
+    /// </summary>
+    /// <returns>Performance summary with overall metrics.</returns>
+    public PerformanceSummary? GetPerformanceSummary()
+    {
+        if (!_options.EnablePerformanceCounters)
+        {
+            return null;
+        }
+
+        var totalOperations = _totalExecutions.Values.Sum();
+        var totalFailures = _failedExecutions.Values.Sum();
+        var totalTime = _totalExecutionTime.Values.Sum();
+
+        long totalMemory;
+        lock (_memoryLock)
+        {
+            totalMemory = _totalMemoryAllocated;
+        }
+
+        var averageTime = totalOperations > 0 ? (double)totalTime / totalOperations : 0;
+        var overallSuccessRate = totalOperations > 0 ? (double)(totalOperations - totalFailures) / totalOperations * 100 : 0;
+
+        return new PerformanceSummary(
+            totalOperations,
+            totalFailures,
+            averageTime,
+            overallSuccessRate,
+            totalMemory,
+            _totalExecutions.Count
+        );
+    }
+
+    /// <summary>
+    /// Gets performance summary filtered to show only request operations (non-notification).
+    /// </summary>
+    /// <returns>Performance summary for request operations only.</returns>
+    public PerformanceSummary? GetRequestPerformanceSummary()
+    {
+        if (!_options.EnablePerformanceCounters)
+        {
+            return null;
+        }
+
+        // Filter to request-only metrics (exclude notification-prefixed keys)
+        var requestMetrics = _totalExecutions
+            .Where(kvp => !IsNotificationType(kvp.Key))
+            .ToList();
+
+        var totalRequests = requestMetrics.Sum(kvp => kvp.Value);
+        var totalFailures = requestMetrics.Sum(kvp => _failedExecutions.GetValueOrDefault(kvp.Key, 0));
+        var totalTime = requestMetrics.Sum(kvp => _totalExecutionTime.GetValueOrDefault(kvp.Key, 0));
+
+        long totalMemory;
+        lock (_memoryLock)
+        {
+            totalMemory = _totalMemoryAllocated; // Note: Memory is shared between requests/notifications
+        }
+
+        var averageTime = totalRequests > 0 ? (double)totalTime / totalRequests : 0;
+        var overallSuccessRate = totalRequests > 0 ? (double)(totalRequests - totalFailures) / totalRequests * 100 : 0;
+
+        return new PerformanceSummary(
+            totalRequests,
+            totalFailures,
+            averageTime,
+            overallSuccessRate,
+            totalMemory,
+            requestMetrics.Count
+        );
+    }
+
+    /// <summary>
+    /// Gets performance summary filtered to show only notification operations.
+    /// </summary>
+    /// <returns>Performance summary for notification operations only.</returns>
+    public PerformanceSummary? GetNotificationPerformanceSummary()
+    {
+        if (!_options.EnablePerformanceCounters)
+        {
+            return null;
+        }
+
+        // Filter to notification-only metrics (include only notification-prefixed keys)
+        var notificationMetrics = _totalExecutions
+            .Where(kvp => IsNotificationType(kvp.Key))
+            .ToList();
+
+        var totalNotifications = notificationMetrics.Sum(kvp => kvp.Value);
+        var totalFailures = notificationMetrics.Sum(kvp => _failedExecutions.GetValueOrDefault(kvp.Key, 0));
+        var totalTime = notificationMetrics.Sum(kvp => _totalExecutionTime.GetValueOrDefault(kvp.Key, 0));
+
+        // For notifications, we could track separate memory, but for simplicity, we'll share memory tracking
+        long totalMemory;
+        lock (_memoryLock)
+        {
+            totalMemory = _totalMemoryAllocated; // Note: Memory is shared between requests/notifications
+        }
+
+        var averageTime = totalNotifications > 0 ? (double)totalTime / totalNotifications : 0;
+        var overallSuccessRate = totalNotifications > 0 ? (double)(totalNotifications - totalFailures) / totalNotifications * 100 : 0;
+
+        return new PerformanceSummary(
+            totalNotifications,
+            totalFailures,
+            averageTime,
+            overallSuccessRate,
+            totalMemory,
+            notificationMetrics.Count
+        );
+    }
+
+    /// <summary>
+    /// Gets performance metrics for a specific notification type.
+    /// </summary>
+    /// <param name="notificationType">The name of the notification type (without "Notification:" prefix).</param>
+    /// <returns>Performance metrics for the notification type if available, null otherwise.</returns>
+    public PerformanceMetrics? GetNotificationPerformanceMetrics(string notificationType)
+    {
+        if (string.IsNullOrEmpty(notificationType))
+        {
+            return null;
+        }
+
+        // Convert notification type to internal key format
+        var internalKey = $"Notification:{notificationType}";
+        return GetPerformanceMetrics(internalKey);
+    }
+
+    /// <summary>
+    /// Determines if an operation type name represents a notification.
+    /// </summary>
+    /// <param name="operationType">The operation type name to check.</param>
+    /// <returns>True if the operation type represents a notification, false otherwise.</returns>
+    private static bool IsNotificationType(string operationType)
+    {
+        return operationType.StartsWith("Notification:", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Gets the display type for an operation (Request or Notification).
+    /// </summary>
+    /// <param name="operationType">The operation type name.</param>
+    /// <returns>"Request" or "Notification" based on the operation type.</returns>
+    private static string GetOperationType(string operationType)
+    {
+        return IsNotificationType(operationType) ? "Notification" : "Request";
+    }
+
+    /// <summary>
+    /// Records detailed execution pattern when detailed analysis is enabled.
+    /// </summary>
+    /// <param name="operationType">The operation type name (request or notification).</param>
+    /// <param name="executionTime">The execution timestamp.</param>
+    public void RecordExecutionPattern(string operationType, DateTime executionTime)
+    {
+        if (!_options.EnableDetailedAnalysis || string.IsNullOrEmpty(operationType))
+        {
+            return;
+        }
+
+        // Check max tracked request types limit
+        if (_executionPatterns.Count >= _options.MaxTrackedRequestTypes &&
+            !_executionPatterns.ContainsKey(operationType))
+        {
+            return; // Don't track new operation types if we've hit the limit
+        }
+
+        _executionPatterns.AddOrUpdate(operationType, [executionTime], (_, patterns) =>
+        {
+            lock (patterns)
+            {
+                patterns.Add(executionTime);
+
+                // Keep only recent patterns to prevent unbounded growth
+                if (patterns.Count > 10000)
+                {
+                    patterns.RemoveAt(0);
+                }
+
+                return patterns;
+            }
+        });
+
+        // Track hourly patterns
+        var hourKey = $"{operationType}_{executionTime:yyyy-MM-dd-HH}";
+        _hourlyExecutionCounts.AddOrUpdate(hourKey, 1, (_, count) => count + 1);
+
+        UpdateMetricTimestamp($"{PatternPrefix}{operationType}");
+        
+        LogExecutionPatternRecordedImpl(operationType, executionTime);
+    }
+
+    /// <summary>
+    /// Records middleware execution metrics when middleware metrics are enabled.
+    /// </summary>
+    /// <param name="middlewareType">The middleware type name.</param>
+    /// <param name="executionTimeMs">The execution time in milliseconds.</param>
+    /// <param name="successful">Whether the middleware executed successfully.</param>
+    public void RecordMiddlewareExecution(string middlewareType, long executionTimeMs, bool successful = true)
+    {
+        if (!_options.EnableMiddlewareMetrics || string.IsNullOrEmpty(middlewareType))
+        {
+            return;
+        }
+
+        _middlewareExecutionCounts.AddOrUpdate(middlewareType, 1, (_, count) => count + 1);
+        _middlewareExecutionTimes.AddOrUpdate(middlewareType, executionTimeMs, (_, total) => total + executionTimeMs);
+
+        if (!successful)
+        {
+            _middlewareFailures.AddOrUpdate(middlewareType, 1, (_, count) => count + 1);
+        }
+
+        UpdateMetricTimestamp($"middleware_{middlewareType}");
+        
+        LogMiddlewareExecutionRecordedImpl(middlewareType, executionTimeMs, successful);
+    }
+
+    /// <summary>
+    /// Calculates the specified percentile from a sorted array of values.
+    /// </summary>
+    /// <param name="sortedValues">Array of sorted values.</param>
+    /// <param name="percentile">Percentile to calculate (0.0 to 1.0).</param>
+    /// <returns>The percentile value.</returns>
+    private static double GetPercentile(long[] sortedValues, double percentile)
+    {
+        if (sortedValues.Length == 0) return 0;
+        if (sortedValues.Length == 1) return sortedValues[0];
+
+        var index = percentile * (sortedValues.Length - 1);
+        var lower = (int)Math.Floor(index);
+        var upper = (int)Math.Ceiling(index);
+
+        if (lower == upper)
+        {
+            return sortedValues[lower];
+        }
+
+        var weight = index - lower;
+        return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
+    }
 }
 
 // Extension method to help with concurrent collections

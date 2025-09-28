@@ -1,8 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Logging.Console;
-using Microsoft.Extensions.Options;
-
-namespace TypedMiddlewareExample.Logging;
+namespace Example.Common.Logging;
 
 /// <summary>
 /// Custom console formatter that provides clean, readable output without timestamps and categories.

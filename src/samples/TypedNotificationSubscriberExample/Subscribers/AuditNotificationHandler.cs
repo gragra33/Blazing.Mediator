@@ -1,8 +1,9 @@
 namespace TypedNotificationSubscriberExample.Subscribers;
 
 /// <summary>
-/// Audit handler that processes all notifications for audit purposes.
-/// This handler demonstrates universal notification monitoring.
+/// Audit notification subscriber that maintains comprehensive audit trails.
+/// This subscriber demonstrates manual subscription and logging of all notification activities
+/// for compliance and monitoring purposes using the subscriber pattern.
 /// </summary>
 public class AuditNotificationHandler(ILogger<AuditNotificationHandler> logger) :
     INotificationSubscriber<OrderCreatedNotification>,
@@ -17,7 +18,7 @@ public class AuditNotificationHandler(ILogger<AuditNotificationHandler> logger) 
 
     public async Task OnNotification(OrderStatusChangedNotification notification, CancellationToken cancellationToken = default)
     {
-        await LogAuditEvent("ORDER_STATUS_CHANGED", $"Order {notification.OrderId} status: {notification.OldStatus} ? {notification.NewStatus}", cancellationToken);
+        await LogAuditEvent("ORDER_STATUS_CHANGED", $"Order {notification.OrderId} status: {notification.OldStatus} -> {notification.NewStatus}", cancellationToken);
     }
 
     public async Task OnNotification(CustomerRegisteredNotification notification, CancellationToken cancellationToken = default)
@@ -27,14 +28,14 @@ public class AuditNotificationHandler(ILogger<AuditNotificationHandler> logger) 
 
     public async Task OnNotification(InventoryUpdatedNotification notification, CancellationToken cancellationToken = default)
     {
-        await LogAuditEvent("INVENTORY_UPDATED", $"Product {notification.ProductId} inventory: {notification.OldQuantity} ? {notification.NewQuantity}", cancellationToken);
+        await LogAuditEvent("INVENTORY_UPDATED", $"Product {notification.ProductId} inventory: {notification.OldQuantity} -> {notification.NewQuantity}", cancellationToken);
     }
 
     private async Task LogAuditEvent(string eventType, string details, CancellationToken cancellationToken)
     {
         await Task.Delay(10, cancellationToken); // Simulate audit logging
 
-        logger.LogInformation("* AUDIT LOG: {EventType} - {Details} at {Timestamp:yyyy-MM-dd HH:mm:ss.fff}",
+        logger.LogInformation(">> AUDIT LOG: {EventType} - {Details} at {Timestamp:yyyy-MM-dd HH:mm:ss.fff}",
             eventType, details, DateTime.UtcNow);
     }
 }

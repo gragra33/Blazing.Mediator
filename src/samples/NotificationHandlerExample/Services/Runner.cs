@@ -4,7 +4,7 @@ namespace NotificationHandlerExample.Services;
 /// Demo runner service that demonstrates the automatic notification handler discovery and execution.
 /// Shows how multiple handlers are automatically invoked for a single notification.
 /// </summary>
-public class DemoRunner(IMediator mediator, ILogger<DemoRunner> logger)
+public class Runner(IMediator mediator, ILogger<Runner> logger, ExampleAnalysisService analysisService)
 {
     private static readonly List<(string ProductName, decimal UnitPrice)> SampleProducts = new()
     {
@@ -37,6 +37,10 @@ public class DemoRunner(IMediator mediator, ILogger<DemoRunner> logger)
         logger.LogInformation(">> Starting NotificationHandler Example Demo");
         logger.LogInformation("This demo shows automatic discovery and execution of INotificationHandler implementations");
         logger.LogInformation("");
+        
+        // Display pre-execution analysis
+        analysisService.DisplayPreExecutionAnalysis();
+        
         logger.LogInformation("Registered handlers that will be automatically invoked:");
         logger.LogInformation("  * EmailNotificationHandler - Sends order confirmation emails");
         logger.LogInformation("  * InventoryNotificationHandler - Updates inventory and checks stock levels");
@@ -51,6 +55,9 @@ public class DemoRunner(IMediator mediator, ILogger<DemoRunner> logger)
 
         // Create and publish sample orders
         await CreateSampleOrders();
+
+        // Display post-execution analysis with detailed statistics
+        analysisService.DisplayPostExecutionAnalysis();
 
         logger.LogInformation("");
         logger.LogInformation("*** Demo completed! All handlers were automatically discovered and executed. ***");

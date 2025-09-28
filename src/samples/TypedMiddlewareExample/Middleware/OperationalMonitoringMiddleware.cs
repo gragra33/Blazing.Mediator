@@ -4,16 +4,10 @@ namespace TypedMiddlewareExample.Middleware;
 /// Middleware for monitoring operational performance across all requests.
 /// </summary>
 /// <typeparam name="TRequest">The type of request being processed.</typeparam>
-public class OperationalMonitoringMiddleware<TRequest> : IRequestMiddleware<TRequest>
+public class BasicOperationalMonitoringMiddleware<TRequest>(ILogger<BasicOperationalMonitoringMiddleware<TRequest>> logger)
+    : IRequestMiddleware<TRequest>
     where TRequest : IRequest
 {
-    private readonly ILogger<OperationalMonitoringMiddleware<TRequest>> _logger;
-
-    public OperationalMonitoringMiddleware(ILogger<OperationalMonitoringMiddleware<TRequest>> logger)
-    {
-        _logger = logger;
-    }
-
     public int Order => 40; // Execute after business operation audit
 
     public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
@@ -21,46 +15,71 @@ public class OperationalMonitoringMiddleware<TRequest> : IRequestMiddleware<TReq
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var requestType = typeof(TRequest).Name;
 
-        _logger.LogDebug(">> Starting operation monitoring for: {RequestType}", requestType);
+        logger.LogDebug(">> Starting operation monitoring for: {RequestType}", requestType);
 
         await next();
 
         stopwatch.Stop();
-        _logger.LogDebug("<< Operation monitoring completed for: {RequestType} in {ElapsedMs}ms",
+        logger.LogDebug("<< Operation monitoring completed for: {RequestType} in {ElapsedMs}ms",
             requestType, stopwatch.ElapsedMilliseconds);
     }
 }
 
 /// <summary>
-/// Middleware for monitoring operational performance across all requests that return responses.
+/// Operational monitoring middleware that demonstrates type constraints for product requests only.
+/// This middleware will only execute for requests implementing IProductRequest&lt;T&gt;.
 /// </summary>
-/// <typeparam name="TRequest">The type of request being processed.</typeparam>
-/// <typeparam name="TResponse">The type of response being returned.</typeparam>
+/// <typeparam name="TRequest">The request type constrained to product requests.</typeparam>
+/// <typeparam name="TResponse">The response type.</typeparam>
 public class OperationalMonitoringMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+    where TRequest : class, IProductRequest<TResponse>
 {
     private readonly ILogger<OperationalMonitoringMiddleware<TRequest, TResponse>> _logger;
+    private static readonly ActivitySource ActivitySource = new("TypedMiddlewareExample.OperationalMonitoring", "2.0.0");
 
     public OperationalMonitoringMiddleware(ILogger<OperationalMonitoringMiddleware<TRequest, TResponse>> logger)
     {
         _logger = logger;
     }
 
-    public int Order => 40; // Execute after business operation audit
+    public int Order => 2146483650; // Execute after validation middleware
 
     public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var requestType = typeof(TRequest).Name;
+        var requestName = typeof(TRequest).Name;
+        using var activity = ActivitySource.StartActivity($"Monitor_{requestName}");
 
-        _logger.LogDebug(">> Starting operation monitoring for: {RequestType}", requestType);
+        activity?.SetTag("monitoring.request_type", requestName);
+        activity?.SetTag("monitoring.category", "Product");
 
-        var response = await next();
+        _logger.LogInformation("?? [OperationalMonitoring] Monitoring PRODUCT request type {RequestType}", requestName);
 
-        stopwatch.Stop();
-        _logger.LogDebug("<< Operation monitoring completed for: {RequestType} in {ElapsedMs}ms",
-            requestType, stopwatch.ElapsedMilliseconds);
+        var stopwatch = Stopwatch.StartNew();
+        
+        try
+        {
+            var response = await next().ConfigureAwait(false);
+            
+            stopwatch.Stop();
+            activity?.SetTag("monitoring.success", "true");
+            activity?.SetTag("monitoring.duration_ms", stopwatch.ElapsedMilliseconds);
 
-        return response;
+            _logger.LogInformation("? [OperationalMonitoring] PRODUCT {RequestType} completed successfully in {Duration}ms",
+                requestName, stopwatch.ElapsedMilliseconds);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            activity?.SetTag("monitoring.success", "false");
+            activity?.SetTag("monitoring.duration_ms", stopwatch.ElapsedMilliseconds);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+
+            _logger.LogError(ex, "? [OperationalMonitoring] PRODUCT {RequestType} failed after {Duration}ms: {Error}",
+                requestName, stopwatch.ElapsedMilliseconds, ex.Message);
+
+            throw;
+        }
     }
 }

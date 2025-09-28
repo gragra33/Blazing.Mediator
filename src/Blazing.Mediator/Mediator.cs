@@ -1,4 +1,4 @@
-    using Blazing.Mediator.OpenTelemetry;
+using Blazing.Mediator.OpenTelemetry;
 using Blazing.Mediator.Statistics;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
@@ -910,6 +910,13 @@ public sealed class Mediator : IMediator
         int subscriberCount = 0;
         int handlerCount = 0;
         var subscriberResults = new List<(string SubscriberType, bool Success, double DurationMs, string? ExceptionType, string? ExceptionMessage)>();
+        long startMemory = 0;
+
+        // Record initial memory if performance counters are enabled
+        if (_statistics != null && HasPerformanceCountersEnabled())
+        {
+            startMemory = GC.GetTotalMemory(false);
+        }
 
         try
         {
@@ -1116,6 +1123,49 @@ public sealed class Mediator : IMediator
         finally
         {
             stopwatch.Stop();
+
+            // Debug logging: Publish operation completed
+            _logger?.PublishOperationCompleted(typeof(TNotification).Name, stopwatch.Elapsed.TotalMilliseconds, exception == null, subscriberCount + handlerCount);
+
+            // ? PHASE 3: Enhanced statistics recording for notifications using existing infrastructure ?
+            if (_statistics != null)
+            {
+                var notificationTypeName = typeof(TNotification).Name;
+
+                // Record execution time if performance counters are enabled (using existing infrastructure)
+                if (HasPerformanceCountersEnabled())
+                {
+                    // Use existing RecordExecutionTime method with "Notification:" prefix
+                    _statistics.RecordExecutionTime($"Notification:{notificationTypeName}", stopwatch.ElapsedMilliseconds, exception == null);
+
+                    // Record memory allocation if available (using existing infrastructure)
+                    if (startMemory > 0)
+                    {
+                        var endMemory = GC.GetTotalMemory(false);
+                        var memoryDelta = endMemory - startMemory;
+                        if (memoryDelta > 0)
+                        {
+                            _statistics.RecordMemoryAllocation(memoryDelta);
+                        }
+                    }
+                }
+
+                // Record detailed analysis if enabled (using existing infrastructure)
+                if (HasDetailedAnalysisEnabled())
+                {
+                    _statistics.RecordExecutionPattern($"Notification:{notificationTypeName}", DateTime.UtcNow);
+                }
+
+                // Record middleware execution metrics if enabled (using existing infrastructure)
+                if (HasMiddlewareMetricsEnabled())
+                {
+                    foreach (var middlewareName in executedMiddleware)
+                    {
+                        _statistics.RecordMiddlewareExecution(middlewareName, 0, true);
+                    }
+                }
+            }
+
             if (IsTelemetryEnabled)
             {
                 var totalProcessors = subscriberCount + handlerCount;
@@ -1163,9 +1213,6 @@ public sealed class Mediator : IMediator
                     }));
                 }
 
-                // Log completion
-                _logger?.PublishOperationCompleted(typeof(TNotification).Name, stopwatch.Elapsed.TotalMilliseconds, exception == null, totalProcessors);
-
                 // Increment health check counter
                 TelemetryHealthCounter.Add(1, new TagList { { "operation", "publish" } });
             }
@@ -1190,6 +1237,10 @@ public sealed class Mediator : IMediator
                 existing.Add(subscriber);
                 return existing;
             });
+
+        // Track subscription for enhanced statistics
+        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
+        subscriberTracker?.TrackSubscription(typeof(TNotification), subscriber.GetType(), subscriber);
     }
 
     /// <summary>
@@ -1201,6 +1252,11 @@ public sealed class Mediator : IMediator
     {
         ArgumentNullException.ThrowIfNull(subscriber);
         _genericSubscribers.Add(subscriber);
+
+        // Track generic subscription for enhanced statistics
+        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
+        // Use a marker type for generic subscribers
+        subscriberTracker?.TrackSubscription(typeof(INotification), subscriber.GetType(), subscriber);
     }
 
     /// <summary>
@@ -1234,6 +1290,10 @@ public sealed class Mediator : IMediator
         {
             _specificSubscribers.TryUpdate(typeof(TNotification), newSubscribers, subscribers);
         }
+
+        // Track unsubscription for enhanced statistics
+        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
+        subscriberTracker?.TrackUnsubscription(typeof(TNotification), subscriber.GetType(), subscriber);
     }
 
     /// <summary>
@@ -1258,6 +1318,10 @@ public sealed class Mediator : IMediator
         {
             _genericSubscribers.Add(sub);
         }
+
+        // Track generic unsubscription for enhanced statistics
+        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
+        subscriberTracker?.TrackUnsubscription(typeof(INotification), subscriber.GetType(), subscriber);
     }
 
     #endregion

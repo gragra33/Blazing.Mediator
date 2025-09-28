@@ -1,0 +1,66 @@
+﻿using FluentValidation;
+using FluentValidation.Results;
+using ValidationException = System.ComponentModel.DataAnnotations.ValidationException;
+
+namespace Example.Common.Middleware;
+
+/// <summary>
+/// Base class for validation middleware that provides shared validation logic.
+/// </summary>
+/// <typeparam name="TRequest">The type of request to validate.</typeparam>
+public abstract class ValidationMiddlewareBase<TRequest>(IServiceProvider serviceProvider, ILogger logger)
+{
+    protected readonly IServiceProvider ServiceProvider = serviceProvider;
+    protected readonly ILogger Logger = logger;
+
+    public int Order => 100; // Execute after error handling but before business logic
+
+    /// <summary>
+    /// Validates a request using FluentValidation validators and throws ValidationException if validation fails.
+    /// </summary>
+    /// <param name="request">The request to validate.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">Thrown when validation fails.</exception>
+    protected async Task ValidateRequestAsync(TRequest request, CancellationToken cancellationToken)
+    {
+        Logger.LogDebug(">> Validating COMMAND request: {RequestType}", typeof(TRequest).Name);
+
+        // Get all validators for this request type (handles multiple validators)
+        var validatorType = typeof(IValidator<>).MakeGenericType(typeof(TRequest));
+        var validators = ServiceProvider.GetServices(validatorType).Cast<IValidator<TRequest>>().ToList();
+
+        if (validators.Any())
+        {
+            Logger.LogDebug("-- Found {ValidatorCount} validator(s) for COMMAND {RequestType}", validators.Count, typeof(TRequest).Name);
+
+            var allErrors = new List<ValidationFailure>();
+
+            // Run all validators
+            foreach (var validator in validators)
+            {
+                var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+                if (!validationResult.IsValid)
+                {
+                    allErrors.AddRange(validationResult.Errors);
+                }
+            }
+
+            // If any validator failed, throw exception with all errors
+            if (allErrors.Any())
+            {
+                var errors = string.Join(", ", allErrors.Select(e => e.ErrorMessage));
+                Logger.LogWarning("!! Validation failed for COMMAND {RequestType}: {Errors}", typeof(TRequest).Name, errors);
+
+                throw new ValidationException(errors);
+            }
+
+            Logger.LogDebug("-- All validations passed for COMMAND {RequestType}", typeof(TRequest).Name);
+        }
+        else
+        {
+            Logger.LogDebug("-- No validators found for COMMAND {RequestType}", typeof(TRequest).Name);
+        }
+    }
+}
+

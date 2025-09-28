@@ -91,11 +91,10 @@ public class Runner
         }
         Console.WriteLine("=============================");
 
-        // Show execution statistics
-        Console.WriteLine();
-        Console.WriteLine("=== EXECUTION STATISTICS ===");
-        _mediatorStatistics.ReportStatistics();
-        Console.WriteLine("=============================");
+        // Display detailed mediator statistics analysis using Example.Common
+        var analysisService = _serviceProvider.GetRequiredService<ExampleAnalysisService>();
+        analysisService.DisplayPostExecutionAnalysis();
+
         Console.WriteLine();
 
         _logger.LogInformation("TypedSimpleNotificationExample Demo completed!");

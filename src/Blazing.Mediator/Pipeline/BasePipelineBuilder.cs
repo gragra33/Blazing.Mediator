@@ -1,4 +1,7 @@
-    namespace Blazing.Mediator.Pipeline;
+using System.Reflection;
+using System.Text.RegularExpressions;
+
+namespace Blazing.Mediator.Pipeline;
 
 /// <summary>
 /// High-performance abstract base class for pipeline builders using CRTP pattern.
@@ -654,10 +657,18 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
             var orderDisplay = order == int.MaxValue ? "Default" : order.ToString();
             var className = PipelineUtilities.GetCleanTypeName(type);
             var typeParameters = type.IsGenericType && detailed ?
-                $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>" :
+                BuildCleanTypeParameters(type) :
                 string.Empty;
 
             var genericConstraints = detailed ? PipelineUtilities.GetGenericConstraints(type) : string.Empty;
+            
+            // Clean generic constraints to remove backticks
+            if (genericConstraints.Contains('`'))
+            {
+                genericConstraints = System.Text.RegularExpressions.Regex.Replace(
+                    genericConstraints, @"`\d+", "");
+            }
+
             var handlerInfo = detailed ? configuration : null;
 
             analysisResults.Add(new MiddlewareAnalysis(
@@ -672,6 +683,29 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
         }
 
         return analysisResults;
+    }
+
+    /// <summary>
+    /// Builds clean type parameters string without backtick notation.
+    /// </summary>
+    private static string BuildCleanTypeParameters(Type type)
+    {
+        if (!type.IsGenericType)
+            return string.Empty;
+
+        var genericArgs = type.GetGenericArguments();
+        var cleanArgNames = genericArgs.Select(t => 
+        {
+            var name = t.Name;
+            if (name.Contains('`'))
+            {
+                var backtickIndex = name.IndexOf('`');
+                name = name[..backtickIndex];
+            }
+            return name;
+        });
+
+        return $"<{string.Join(", ", cleanArgNames)}>";
     }
 
     #endregion

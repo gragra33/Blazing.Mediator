@@ -59,7 +59,7 @@ public class MediatorStatisticsTests
 
         // Assert - Verify through ReportStatistics output
         statistics.ReportStatistics();
-        renderer.Messages.ShouldContain("Queries: 2"); // 2 unique query types
+        renderer.Messages.ShouldContain("Queries: 3"); // 3 total executions (1+1+1)
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ public class MediatorStatisticsTests
 
         // Assert - Verify through ReportStatistics output
         statistics.ReportStatistics();
-        renderer.Messages.ShouldContain("Commands: 2"); // 2 unique command types
+        renderer.Messages.ShouldContain("Commands: 3"); // 3 total executions (1+1+1)
     }
 
     /// <summary>
@@ -99,7 +99,7 @@ public class MediatorStatisticsTests
 
         // Assert - Verify through ReportStatistics output
         statistics.ReportStatistics();
-        renderer.Messages.ShouldContain("Notifications: 2"); // 2 unique notification types
+        renderer.Messages.ShouldContain("Notifications: 3"); // 3 total executions (1+1+1)
     }
 
     /// <summary>
@@ -448,8 +448,8 @@ public class MediatorStatisticsTests
 
         // Assert
         statistics.ReportStatistics();
-        renderer.Messages.ShouldContain("Queries: 2"); // TestQueryWithInterface, TestRequestNamedQuery
-        renderer.Messages.ShouldContain("Commands: 2"); // TestCommandWithInterface, TestRequestNamedCommand
+        renderer.Messages.ShouldContain("Queries: 3"); // 2 TestQueryWithInterface + 1 TestRequestNamedQuery = 3 executions
+        renderer.Messages.ShouldContain("Commands: 2"); // 1 TestCommandWithInterface + 1 TestRequestNamedCommand = 2 executions
     }
 
     #endregion
@@ -508,10 +508,10 @@ public class MediatorStatisticsTests
     #region Core Functionality Tests
 
     /// <summary>
-    /// Tests that MediatorStatistics properly tracks unique vs repeated increments.
+    /// Tests that MediatorStatistics properly tracks total executions vs repeated increments.
     /// </summary>
     [Fact]
-    public void Statistics_TrackingBehavior_CountsUniqueTypesOnly()
+    public void Statistics_TrackingBehavior_CountsTotalExecutions()
     {
         // Arrange
         var renderer = new TestStatisticsRenderer();
@@ -533,10 +533,10 @@ public class MediatorStatisticsTests
         // Assert
         statistics.ReportStatistics();
 
-        // Should count unique types, not execution counts
-        renderer.Messages.ShouldContain("Queries: 2"); // TestQuery, AnotherQuery
-        renderer.Messages.ShouldContain("Commands: 3"); // TestCommand, AnotherCommand, ThirdCommand
-        renderer.Messages.ShouldContain("Notifications: 1"); // TestNotification
+        // Should count total executions, not just unique types
+        renderer.Messages.ShouldContain("Queries: 4"); // 3 TestQuery + 1 AnotherQuery = 4 total executions
+        renderer.Messages.ShouldContain("Commands: 4"); // 2 TestCommand + 1 AnotherCommand + 1 ThirdCommand = 4 total executions
+        renderer.Messages.ShouldContain("Notifications: 1"); // 1 TestNotification = 1 total execution
     }
 
     /// <summary>

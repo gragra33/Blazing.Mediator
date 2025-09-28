@@ -8,22 +8,19 @@ public class Runner
 {
     private readonly IMediator _mediator;
     private readonly ILogger<Runner> _logger;
-    private readonly INotificationMiddlewarePipelineInspector _notificationPipelineInspector;
+    private readonly ExampleAnalysisService _analysisService;
     private readonly IServiceProvider _serviceProvider;
-    private readonly MediatorStatistics _mediatorStatistics;
 
     public Runner(
         IMediator mediator,
         ILogger<Runner> logger,
-        INotificationMiddlewarePipelineInspector notificationPipelineInspector,
-        IServiceProvider serviceProvider,
-        MediatorStatistics mediatorStatistics)
+        ExampleAnalysisService analysisService,
+        IServiceProvider serviceProvider)
     {
         _mediator = mediator;
         _logger = logger;
-        _notificationPipelineInspector = notificationPipelineInspector;
+        _analysisService = analysisService;
         _serviceProvider = serviceProvider;
-        _mediatorStatistics = mediatorStatistics;
     }
 
     /// <summary>
@@ -31,26 +28,31 @@ public class Runner
     /// </summary>
     public async Task RunAsync()
     {
-        _logger.LogInformation("?? Starting TypedNotificationHandlerExample with automatic handler discovery...");
+        _logger.LogInformation(">> Starting TypedNotificationHandlerExample with automatic handler discovery...");
 
         Console.WriteLine("=".PadRight(80, '='));
         Console.WriteLine(" TYPED NOTIFICATION HANDLER EXAMPLE - AUTOMATIC DISCOVERY");
         Console.WriteLine("=".PadRight(80, '='));
         Console.WriteLine();
 
+        // Display pre-execution analysis
+        _analysisService.DisplayPreExecutionAnalysis();
+
         await DemonstrateHandlerDiscovery();
         await DemonstrateOrderNotifications();
         await DemonstrateCustomerNotifications();
         await DemonstrateInventoryNotifications();
         await DemonstrateComplexWorkflow();
-        await DisplayStatistics();
+
+        // Display post-execution analysis with detailed statistics
+        _analysisService.DisplayPostExecutionAnalysis();
 
         Console.WriteLine();
         Console.WriteLine("=".PadRight(80, '='));
         Console.WriteLine(" DEMONSTRATION COMPLETED");
         Console.WriteLine("=".PadRight(80, '='));
         
-        _logger.LogInformation("?? TypedNotificationHandlerExample demonstration completed successfully");
+        _logger.LogInformation(">> TypedNotificationHandlerExample demonstration completed successfully");
     }
 
     /// <summary>
@@ -60,9 +62,8 @@ public class Runner
     {
         Console.WriteLine("-------- AUTOMATIC HANDLER DISCOVERY ANALYSIS --------");
         
-        _logger.LogInformation("?? Analyzing automatically discovered notification handlers...");
+        _logger.LogInformation(">> Analyzing automatically discovered notification handlers...");
         
-        // Get all discovered notification handlers from service provider
         var discoveredHandlers = new List<string>();
         
         // Check for OrderCreatedNotification handlers
@@ -71,7 +72,7 @@ public class Runner
         {
             var handlerType = handler.GetType().Name;
             discoveredHandlers.Add($"INotificationHandler<OrderCreatedNotification>: {handlerType}");
-            Console.WriteLine($"? Discovered: {handlerType} ? OrderCreatedNotification");
+            Console.WriteLine($"* Discovered: {handlerType} -> OrderCreatedNotification");
         }
         
         // Check for OrderStatusChangedNotification handlers  
@@ -83,7 +84,7 @@ public class Runner
             {
                 discoveredHandlers.Add($"INotificationHandler<OrderStatusChangedNotification>: {handlerType}");
             }
-            Console.WriteLine($"? Discovered: {handlerType} ? OrderStatusChangedNotification");
+            Console.WriteLine($"* Discovered: {handlerType} -> OrderStatusChangedNotification");
         }
 
         // Check for CustomerRegisteredNotification handlers
@@ -95,7 +96,7 @@ public class Runner
             {
                 discoveredHandlers.Add($"INotificationHandler<CustomerRegisteredNotification>: {handlerType}");
             }
-            Console.WriteLine($"? Discovered: {handlerType} ? CustomerRegisteredNotification");
+            Console.WriteLine($"* Discovered: {handlerType} -> CustomerRegisteredNotification");
         }
 
         // Check for InventoryUpdatedNotification handlers
@@ -107,15 +108,15 @@ public class Runner
             {
                 discoveredHandlers.Add($"INotificationHandler<InventoryUpdatedNotification>: {handlerType}");
             }
-            Console.WriteLine($"? Discovered: {handlerType} ? InventoryUpdatedNotification");
+            Console.WriteLine($"* Discovered: {handlerType} -> InventoryUpdatedNotification");
         }
 
         Console.WriteLine();
-        Console.WriteLine($"?? Total Handlers Discovered: {discoveredHandlers.Count}");
-        Console.WriteLine($"?? All handlers are automatically registered - no manual subscription required!");
+        Console.WriteLine($">> Total Handlers Discovered: {discoveredHandlers.Count}");
+        Console.WriteLine($">> All handlers are automatically registered - no manual subscription required!");
         Console.WriteLine();
 
-        _logger.LogInformation("?? Discovered {HandlerCount} automatic notification handlers", discoveredHandlers.Count);
+        _logger.LogInformation(">> Discovered {HandlerCount} automatic notification handlers", discoveredHandlers.Count);
         
         await Task.Delay(100); // Brief pause for readability
     }
@@ -288,45 +289,5 @@ public class Runner
         Console.WriteLine();
         _logger.LogInformation("<< Complex workflow completed - demonstrated automatic handler discovery with type-constrained processing");
         Console.WriteLine();
-    }
-
-    /// <summary>
-    /// Displays performance statistics and handler metrics.
-    /// </summary>
-    private async Task DisplayStatistics()
-    {
-        Console.WriteLine("-------- PERFORMANCE STATISTICS --------");
-
-        // Display notification metrics from middleware
-        var metrics = NotificationMetricsMiddleware.GetMetrics();
-        if (metrics.Any())
-        {
-            Console.WriteLine("?? Notification Performance Metrics:");
-            foreach (var (notificationType, stats) in metrics)
-            {
-                Console.WriteLine($"   {notificationType}:");
-                Console.WriteLine($"     - Count: {stats.Count}");
-                Console.WriteLine($"     - Avg: {stats.AvgMs:F1}ms");
-                Console.WriteLine($"     - Min: {stats.MinMs}ms");
-                Console.WriteLine($"     - Max: {stats.MaxMs}ms");
-                Console.WriteLine($"     - Total: {stats.TotalMs}ms");
-            }
-            Console.WriteLine();
-        }
-
-        // Display mediator statistics
-        var notificationStats = _mediatorStatistics.AnalyzeNotifications(_serviceProvider);
-        Console.WriteLine($"?? Mediator Statistics:");
-        Console.WriteLine($"   - Notification Types: {notificationStats.Count}");
-        
-        foreach (var analysis in notificationStats)
-        {
-            Console.WriteLine($"   - {analysis.ClassName}: {analysis.Handlers.Count} handlers");
-        }
-
-        Console.WriteLine();
-        _logger.LogInformation("?? Statistics display completed");
-        
-        await Task.CompletedTask;
     }
 }

@@ -1,0 +1,11 @@
+global using System.Reflection;
+global using System.Text;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Logging.Console;
+global using Microsoft.Extensions.Logging.Abstractions;
+global using Microsoft.Extensions.Options;
+global using Blazing.Mediator;
+global using Blazing.Mediator.Statistics;
+global using Example.Common.Analysis;
+global using Example.Common.Logging;

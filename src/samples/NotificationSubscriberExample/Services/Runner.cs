@@ -1,5 +1,6 @@
 using Blazing.Mediator;
 using Blazing.Mediator.Statistics;
+using Example.Common;
 
 namespace NotificationSubscriberExample.Services;
 
@@ -7,7 +8,7 @@ namespace NotificationSubscriberExample.Services;
 /// Runner service that demonstrates the notification system in action.
 /// This orchestrates the demo by creating sample orders and publishing notifications.
 /// </summary>
-public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider serviceProvider, MediatorStatistics mediatorStatistics)
+public class Runner(IMediator mediator, ILogger<Runner> logger, ExampleAnalysisService analysisService, IServiceProvider serviceProvider)
 {
     /// <summary>
     /// Runs the notification demonstration by creating and publishing sample orders.
@@ -22,8 +23,8 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
         logger.LogInformation("  - NEW: MediatorStatistics for analyzing queries, commands, and notifications");
         logger.LogInformation("");
 
-        // First, analyze the mediator types
-        InspectMediatorTypes();
+        // Display pre-execution analysis
+        analysisService.DisplayPreExecutionAnalysis();
 
         // Then analyze the notification middleware pipeline
         InspectNotificationMiddlewarePipeline();
@@ -34,11 +35,8 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
 
         await CreateSampleOrders();
 
-        // Show final statistics
-        logger.LogInformation("");
-        logger.LogInformation("=== FINAL STATISTICS ===");
-        mediatorStatistics.ReportStatistics();
-        logger.LogInformation("========================");
+        // Display post-execution analysis with detailed statistics
+        analysisService.DisplayPostExecutionAnalysis();
 
         logger.LogInformation("");
         logger.LogInformation("* Demo completed! Both subscribers processed all notifications.");
@@ -46,88 +44,6 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
         logger.LogInformation("Notice how the middleware executed in order: Validation -> Logging -> Metrics -> Audit");
         logger.LogInformation("");
         logger.LogInformation("Press any key to exit the application.");
-    }
-
-    /// <summary>
-    /// Demonstrates the new mediator statistics functionality for analyzing queries, commands, and notifications.
-    /// </summary>
-    private void InspectMediatorTypes()
-    {
-        logger.LogInformation("=== MEDIATOR TYPE ANALYSIS ===");
-        logger.LogInformation("");
-
-        // Analyze all queries in the application
-        var queries = mediatorStatistics.AnalyzeQueries(serviceProvider);
-        logger.LogInformation("* QUERIES DISCOVERED:");
-        if (queries.Any())
-        {
-            var queryGroups = queries.GroupBy(q => q.Assembly);
-            foreach (var assemblyGroup in queryGroups)
-            {
-                logger.LogInformation("  * Assembly: {Assembly}", assemblyGroup.Key);
-                var namespaceGroups = assemblyGroup.GroupBy(q => q.Namespace);
-                foreach (var namespaceGroup in namespaceGroups)
-                {
-                    logger.LogInformation("    * {Namespace}", namespaceGroup.Key);
-                    foreach (var query in namespaceGroup)
-                    {
-                        var statusIcon = query.HandlerStatus switch
-                        {
-                            HandlerStatus.Single => "+",
-                            HandlerStatus.Missing => "!",
-                            HandlerStatus.Multiple => "#",
-                            _ => "?"
-                        };
-                        var responseType = query.ResponseType?.Name ?? "void";
-                        logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} -> {ResponseType} ({HandlerDetails})",
-                            statusIcon, query.ClassName, query.TypeParameters, responseType, query.HandlerDetails);
-                    }
-                }
-            }
-        }
-        else
-        {
-            logger.LogInformation("  (No queries discovered)");
-        }
-
-        // Analyze all commands in the application
-        var commands = mediatorStatistics.AnalyzeCommands(serviceProvider);
-        logger.LogInformation("");
-        logger.LogInformation("* COMMANDS DISCOVERED:");
-        if (commands.Any())
-        {
-            var commandGroups = commands.GroupBy(c => c.Assembly);
-            foreach (var assemblyGroup in commandGroups)
-            {
-                logger.LogInformation("  * Assembly: {Assembly}", assemblyGroup.Key);
-                var namespaceGroups = assemblyGroup.GroupBy(c => c.Namespace);
-                foreach (var namespaceGroup in namespaceGroups)
-                {
-                    logger.LogInformation("    * {Namespace}", namespaceGroup.Key);
-                    foreach (var command in namespaceGroup)
-                    {
-                        var statusIcon = command.HandlerStatus switch
-                        {
-                            HandlerStatus.Single => "+",
-                            HandlerStatus.Missing => "!",
-                            HandlerStatus.Multiple => "#",
-                            _ => "?"
-                        };
-                        var responseType = command.ResponseType?.Name ?? "void";
-                        logger.LogInformation("      {StatusIcon} {ClassName}{TypeParameters} -> {ResponseType} ({HandlerDetails})",
-                            statusIcon, command.ClassName, command.TypeParameters, responseType, command.HandlerDetails);
-                    }
-                }
-            }
-        }
-        else
-        {
-            logger.LogInformation("  (No commands discovered)");
-        }
-
-        logger.LogInformation("");
-        logger.LogInformation("Legend: + = Handler found, ! = No handler, # = Multiple handlers");
-        logger.LogInformation("=========================");
     }
 
     /// <summary>
@@ -224,7 +140,7 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
         {
             var order = orders[i];
 
-            logger.LogInformation("📋 Creating Order #{OrderId} for {CustomerName}",
+            logger.LogInformation("* Creating Order #{OrderId} for {CustomerName}",
                 order.OrderId, order.CustomerName);
 
             var totalAmount = order.Items.Sum(item => item.Quantity * item.UnitPrice);
@@ -245,7 +161,7 @@ public class Runner(IMediator mediator, ILogger<Runner> logger, IServiceProvider
             if (i < orders.Length - 1)
             {
                 logger.LogInformation("");
-                logger.LogInformation("⏳ Waiting before next order...");
+                logger.LogInformation("* Waiting before next order...");
                 await Task.Delay(2000);
                 logger.LogInformation("");
             }

@@ -1,9 +1,10 @@
 namespace TypedMiddlewareExample.Commands;
 
 /// <summary>
-/// Command for updating inventory levels for a product.
+/// Command to update product inventory.
+/// Uses custom IInventoryRequest interface to demonstrate type constraints.
 /// </summary>
-public class UpdateInventoryCommand : ICommand<int>
+public class UpdateInventoryCommand : IInventoryRequest<int>
 {
     /// <summary>
     /// Gets or sets the product ID.
@@ -11,7 +12,7 @@ public class UpdateInventoryCommand : ICommand<int>
     public required string ProductId { get; set; }
 
     /// <summary>
-    /// Gets or sets the change in inventory (positive for increase, negative for decrease).
+    /// Gets or sets the inventory change amount (positive for increase, negative for decrease).
     /// </summary>
-    public int InventoryChange { get; set; }
+    public required int InventoryChange { get; set; }
 }

@@ -17,9 +17,9 @@ public class NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware
         var notificationType = typeof(TNotification).Name;
         var middlewareName = GetType().Name;
         
-        logger.LogDebug("?? [{MiddlewareName}] Starting processing for {NotificationType}", middlewareName, notificationType);
+        logger.LogDebug(">> [{MiddlewareName}] Starting processing for {NotificationType}", middlewareName, notificationType);
         
-        Console.WriteLine($"?? [{middlewareName}] Processing {notificationType}");
+        Console.WriteLine($">> [{middlewareName}] Processing {notificationType}");
         
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         
@@ -28,19 +28,19 @@ public class NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware
             await next(notification, cancellationToken);
             stopwatch.Stop();
             
-            logger.LogDebug("? [{MiddlewareName}] Completed {NotificationType} in {ElapsedMs}ms", 
+            logger.LogDebug("* [{MiddlewareName}] Completed {NotificationType} in {ElapsedMs}ms", 
                 middlewareName, notificationType, stopwatch.ElapsedMilliseconds);
                 
-            Console.WriteLine($"? [{middlewareName}] Completed in {stopwatch.ElapsedMilliseconds}ms");
+            Console.WriteLine($"* [{middlewareName}] Completed in {stopwatch.ElapsedMilliseconds}ms");
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
             
-            logger.LogError(ex, "? [{MiddlewareName}] Failed processing {NotificationType} after {ElapsedMs}ms", 
+            logger.LogError(ex, "* [{MiddlewareName}] Failed processing {NotificationType} after {ElapsedMs}ms", 
                 middlewareName, notificationType, stopwatch.ElapsedMilliseconds);
                 
-            Console.WriteLine($"? [{middlewareName}] Failed after {stopwatch.ElapsedMilliseconds}ms: {ex.Message}");
+            Console.WriteLine($"* [{middlewareName}] Failed after {stopwatch.ElapsedMilliseconds}ms: {ex.Message}");
             throw;
         }
     }
@@ -65,18 +65,18 @@ public class OrderNotificationMiddleware(ILogger<OrderNotificationMiddleware> lo
         {
             var notificationType = typeof(TNotification).Name;
             
-            logger.LogDebug("??? [OrderMiddleware] Processing order notification: {NotificationType} for Order #{OrderId}", 
+            logger.LogDebug(">>> [OrderMiddleware] Processing order notification: {NotificationType} for Order #{OrderId}", 
                 notificationType, orderNotification.OrderId);
                 
-            Console.WriteLine($"??? [OrderMiddleware] Processing Order #{orderNotification.OrderId} ({notificationType})");
+            Console.WriteLine($">>> [OrderMiddleware] Processing Order #{orderNotification.OrderId} ({notificationType})");
             Console.WriteLine($"   Customer: {orderNotification.CustomerEmail}");
             
             // Simulate order-specific validation
             if (orderNotification.OrderId <= 0)
             {
                 var error = $"Invalid Order ID: {orderNotification.OrderId}";
-                logger.LogError("? [OrderMiddleware] {Error}", error);
-                Console.WriteLine($"? [OrderMiddleware] {error}");
+                logger.LogError("* [OrderMiddleware] {Error}", error);
+                Console.WriteLine($"* [OrderMiddleware] {error}");
                 throw new ArgumentException(error);
             }
             
@@ -84,17 +84,17 @@ public class OrderNotificationMiddleware(ILogger<OrderNotificationMiddleware> lo
             {
                 await next(notification, cancellationToken);
                 
-                logger.LogDebug("? [OrderMiddleware] Order notification processing completed for Order #{OrderId}", 
+                logger.LogDebug("* [OrderMiddleware] Order notification processing completed for Order #{OrderId}", 
                     orderNotification.OrderId);
                     
-                Console.WriteLine($"? [OrderMiddleware] Order processing completed");
+                Console.WriteLine($"* [OrderMiddleware] Order processing completed");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "? [OrderMiddleware] Order notification processing failed for Order #{OrderId}", 
+                logger.LogError(ex, "* [OrderMiddleware] Order notification processing failed for Order #{OrderId}", 
                     orderNotification.OrderId);
                 
-                Console.WriteLine($"? [OrderMiddleware] Order processing failed: {ex.Message}");
+                Console.WriteLine($"* [OrderMiddleware] Order processing failed: {ex.Message}");
                 throw;
             }
         }
@@ -125,18 +125,18 @@ public class CustomerNotificationMiddleware(ILogger<CustomerNotificationMiddlewa
         {
             var notificationType = typeof(TNotification).Name;
             
-            logger.LogDebug("?? [CustomerMiddleware] Processing customer notification: {NotificationType} for {CustomerEmail}", 
+            logger.LogDebug(">> [CustomerMiddleware] Processing customer notification: {NotificationType} for {CustomerEmail}", 
                 notificationType, customerNotification.CustomerEmail);
                 
-            Console.WriteLine($"?? [CustomerMiddleware] Processing customer event ({notificationType})");
+            Console.WriteLine($">> [CustomerMiddleware] Processing customer event ({notificationType})");
             Console.WriteLine($"   Customer: {customerNotification.CustomerName} ({customerNotification.CustomerEmail})");
             
             // Simulate customer-specific validation
             if (string.IsNullOrWhiteSpace(customerNotification.CustomerEmail) || !customerNotification.CustomerEmail.Contains('@'))
             {
                 var error = $"Invalid customer email: {customerNotification.CustomerEmail}";
-                logger.LogError("? [CustomerMiddleware] {Error}", error);
-                Console.WriteLine($"? [CustomerMiddleware] {error}");
+                logger.LogError("* [CustomerMiddleware] {Error}", error);
+                Console.WriteLine($"* [CustomerMiddleware] {error}");
                 throw new ArgumentException(error);
             }
             
@@ -144,17 +144,17 @@ public class CustomerNotificationMiddleware(ILogger<CustomerNotificationMiddlewa
             {
                 await next(notification, cancellationToken);
                 
-                logger.LogDebug("? [CustomerMiddleware] Customer notification processing completed for {CustomerEmail}", 
+                logger.LogDebug("* [CustomerMiddleware] Customer notification processing completed for {CustomerEmail}", 
                     customerNotification.CustomerEmail);
                     
-                Console.WriteLine($"? [CustomerMiddleware] Customer processing completed");
+                Console.WriteLine($"* [CustomerMiddleware] Customer processing completed");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "? [CustomerMiddleware] Customer notification processing failed for {CustomerEmail}", 
+                logger.LogError(ex, "* [CustomerMiddleware] Customer notification processing failed for {CustomerEmail}", 
                     customerNotification.CustomerEmail);
                 
-                Console.WriteLine($"? [CustomerMiddleware] Customer processing failed: {ex.Message}");
+                Console.WriteLine($"* [CustomerMiddleware] Customer processing failed: {ex.Message}");
                 throw;
             }
         }
@@ -185,43 +185,43 @@ public class InventoryNotificationMiddleware(ILogger<InventoryNotificationMiddle
         {
             var notificationType = typeof(TNotification).Name;
             
-            logger.LogDebug("?? [InventoryMiddleware] Processing inventory notification: {NotificationType} for {ProductId}", 
+            logger.LogDebug(">> [InventoryMiddleware] Processing inventory notification: {NotificationType} for {ProductId}", 
                 notificationType, inventoryNotification.ProductId);
                 
-            Console.WriteLine($"?? [InventoryMiddleware] Processing inventory event ({notificationType})");
+            Console.WriteLine($">> [InventoryMiddleware] Processing inventory event ({notificationType})");
             Console.WriteLine($"   Product: {inventoryNotification.ProductId} (Quantity: {inventoryNotification.Quantity})");
             
             // Simulate inventory-specific validation
             if (string.IsNullOrWhiteSpace(inventoryNotification.ProductId))
             {
                 var error = $"Invalid product ID: {inventoryNotification.ProductId}";
-                logger.LogError("? [InventoryMiddleware] {Error}", error);
-                Console.WriteLine($"? [InventoryMiddleware] {error}");
+                logger.LogError("* [InventoryMiddleware] {Error}", error);
+                Console.WriteLine($"* [InventoryMiddleware] {error}");
                 throw new ArgumentException(error);
             }
             
             if (inventoryNotification.Quantity < 0)
             {
-                logger.LogWarning("?? [InventoryMiddleware] Negative inventory quantity detected: {Quantity} for {ProductId}", 
+                logger.LogWarning(">> [InventoryMiddleware] Negative inventory quantity detected: {Quantity} for {ProductId}", 
                     inventoryNotification.Quantity, inventoryNotification.ProductId);
-                Console.WriteLine($"?? [InventoryMiddleware] Warning: Negative quantity {inventoryNotification.Quantity}");
+                Console.WriteLine($">> [InventoryMiddleware] Warning: Negative quantity {inventoryNotification.Quantity}");
             }
             
             try
             {
                 await next(notification, cancellationToken);
                 
-                logger.LogDebug("? [InventoryMiddleware] Inventory notification processing completed for {ProductId}", 
+                logger.LogDebug("* [InventoryMiddleware] Inventory notification processing completed for {ProductId}", 
                     inventoryNotification.ProductId);
                     
-                Console.WriteLine($"? [InventoryMiddleware] Inventory processing completed");
+                Console.WriteLine($"* [InventoryMiddleware] Inventory processing completed");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "? [InventoryMiddleware] Inventory notification processing failed for {ProductId}", 
+                logger.LogError(ex, "* [InventoryMiddleware] Inventory notification processing failed for {ProductId}", 
                     inventoryNotification.ProductId);
                 
-                Console.WriteLine($"? [InventoryMiddleware] Inventory processing failed: {ex.Message}");
+                Console.WriteLine($"* [InventoryMiddleware] Inventory processing failed: {ex.Message}");
                 throw;
             }
         }
@@ -271,19 +271,19 @@ public class NotificationMetricsMiddleware(ILogger<NotificationMetricsMiddleware
             var current = _metrics[notificationType];
             var avgMs = current.TotalMs / current.Count;
             
-            logger.LogDebug("?? [MetricsMiddleware] {NotificationType}: {ElapsedMs}ms (Avg: {AvgMs}ms, Count: {Count})", 
+            logger.LogDebug(">> [MetricsMiddleware] {NotificationType}: {ElapsedMs}ms (Avg: {AvgMs}ms, Count: {Count})", 
                 notificationType, elapsed, avgMs, current.Count);
                 
-            Console.WriteLine($"?? [MetricsMiddleware] {notificationType}: {elapsed}ms (Avg: {avgMs}ms, Total: {current.Count})");
+            Console.WriteLine($">> [MetricsMiddleware] {notificationType}: {elapsed}ms (Avg: {avgMs}ms, Total: {current.Count})");
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
             
-            logger.LogError(ex, "?? [MetricsMiddleware] {NotificationType} failed after {ElapsedMs}ms", 
+            logger.LogError(ex, ">> [MetricsMiddleware] {NotificationType} failed after {ElapsedMs}ms", 
                 notificationType, stopwatch.ElapsedMilliseconds);
                 
-            Console.WriteLine($"?? [MetricsMiddleware] {notificationType} failed after {stopwatch.ElapsedMilliseconds}ms");
+            Console.WriteLine($">> [MetricsMiddleware] {notificationType} failed after {stopwatch.ElapsedMilliseconds}ms");
             throw;
         }
     }

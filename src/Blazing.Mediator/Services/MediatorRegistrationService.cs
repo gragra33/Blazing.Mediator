@@ -269,6 +269,17 @@ internal static class MediatorRegistrationService
     /// </summary>
     private static void RegisterStatistics(IServiceCollection services, MediatorConfiguration configuration, bool shouldRegisterStatistics, bool hasStatisticsOptions)
     {
+        // Register subscriber tracking services for enhanced notification statistics
+        if (services.All(s => s.ServiceType != typeof(ISubscriberTracker)))
+        {
+            services.AddSingleton<ISubscriberTracker, SubscriberTracker>();
+        }
+
+        if (services.All(s => s.ServiceType != typeof(INotificationPatternDetector)))
+        {
+            services.AddSingleton<INotificationPatternDetector, NotificationPatternDetector>();
+        }
+
         if (shouldRegisterStatistics && services.All(s => s.ServiceType != typeof(IStatisticsRenderer)))
         {
             services.AddSingleton<IStatisticsRenderer, ConsoleStatisticsRenderer>();

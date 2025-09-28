@@ -1,4 +1,4 @@
-namespace TypedMiddlewareExample.Services;
+namespace Example.Common.Analysis;
 
 /// <summary>
 /// Helper class for analyzing middleware pipeline configuration.
@@ -18,12 +18,36 @@ public static class MiddlewarePipelineAnalyzer
 
         foreach (var analysis in middlewareAnalysis)
         {
+            // Clean the class name to remove backticks
+            var cleanClassName = analysis.ClassName;
+            if (cleanClassName.Contains('`'))
+            {
+                var backtickIndex = cleanClassName.IndexOf('`');
+                cleanClassName = cleanClassName[..backtickIndex];
+            }
+
+            // Clean the type parameters to remove backticks
+            var cleanTypeParameters = analysis.TypeParameters;
+            if (cleanTypeParameters.Contains('`'))
+            {
+                cleanTypeParameters = System.Text.RegularExpressions.Regex.Replace(
+                    cleanTypeParameters, @"`\d+", "");
+            }
+
+            // Clean the generic constraints to remove backticks
+            var cleanGenericConstraints = analysis.GenericConstraints;
+            if (cleanGenericConstraints.Contains('`'))
+            {
+                cleanGenericConstraints = System.Text.RegularExpressions.Regex.Replace(
+                    cleanGenericConstraints, @"`\d+", "");
+            }
+
             var info = new MiddlewareInfo(
                 analysis.Order,
                 FormatOrderValue(analysis.Order),
-                analysis.ClassName,
-                analysis.TypeParameters,
-                analysis.GenericConstraints
+                cleanClassName,
+                cleanTypeParameters,
+                cleanGenericConstraints
             );
             middlewareInfos.Add(info);
         }

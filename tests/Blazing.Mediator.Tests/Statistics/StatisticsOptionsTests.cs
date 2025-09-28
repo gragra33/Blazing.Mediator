@@ -173,12 +173,12 @@ public class StatisticsOptionsTests : IDisposable
 
         var performanceMetrics = _statistics.GetPerformanceMetrics("TestRequest");
         performanceMetrics.ShouldNotBeNull();
-        performanceMetrics.Value.RequestType.ShouldBe("TestRequest");
+        performanceMetrics.Value.OperationType.ShouldBe("TestRequest");
         performanceMetrics.Value.TotalExecutions.ShouldBe(1);
 
         var summary = _statistics.GetPerformanceSummary();
         summary.ShouldNotBeNull();
-        summary.Value.TotalRequests.ShouldBeGreaterThan(0);
+        summary.Value.TotalOperations.ShouldBeGreaterThan(0);
     }
 
     [Fact]

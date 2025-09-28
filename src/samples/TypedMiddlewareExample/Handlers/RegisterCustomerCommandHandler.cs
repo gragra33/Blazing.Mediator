@@ -5,22 +5,16 @@ namespace TypedMiddlewareExample.Handlers;
 /// <summary>
 /// Handler for registering new customers.
 /// </summary>
-public class RegisterCustomerCommandHandler : ICommandHandler<RegisterCustomerCommand>
+public class RegisterCustomerCommandHandler(ILogger<RegisterCustomerCommandHandler> logger)
+    : IRequestHandler<RegisterCustomerCommand>
 {
-    private readonly ILogger<RegisterCustomerCommandHandler> _logger;
-
-    public RegisterCustomerCommandHandler(ILogger<RegisterCustomerCommandHandler> logger)
+    public Task Handle(RegisterCustomerCommand request, CancellationToken cancellationToken)
     {
-        _logger = logger;
-    }
+        logger.LogInformation(".. Registering customer: {FullName} ({Email})", request.FullName, request.Email);
 
-    public async Task Handle(RegisterCustomerCommand request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation(".. Registering customer: {FullName} ({Email})", request.FullName, request.Email);
-
-        // Simulate customer registration processing
-        await Task.Delay(50, cancellationToken);
-
-        _logger.LogInformation("-- Customer registered successfully: {FullName}", request.FullName);
+        // Simulate customer registration
+        logger.LogInformation("-- Customer registered successfully: {FullName}", request.FullName);
+        
+        return Task.CompletedTask;
     }
 }

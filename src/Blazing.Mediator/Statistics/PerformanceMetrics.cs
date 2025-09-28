@@ -1,9 +1,9 @@
 namespace Blazing.Mediator.Statistics;
 
 /// <summary>
-/// Represents performance metrics for a specific request type.
+/// Represents performance metrics for a specific operation type (request or notification).
 /// </summary>
-/// <param name="RequestType">The name of the request type.</param>
+/// <param name="OperationType">The name of the operation type (request, notification, etc.).</param>
 /// <param name="TotalExecutions">Total number of executions.</param>
 /// <param name="FailedExecutions">Number of failed executions.</param>
 /// <param name="AverageExecutionTimeMs">Average execution time in milliseconds.</param>
@@ -13,7 +13,7 @@ namespace Blazing.Mediator.Statistics;
 /// <param name="P95ExecutionTimeMs">95th percentile execution time in milliseconds.</param>
 /// <param name="P99ExecutionTimeMs">99th percentile execution time in milliseconds.</param>
 public readonly record struct PerformanceMetrics(
-    string RequestType,
+    string OperationType,
     long TotalExecutions,
     long FailedExecutions,
     double AverageExecutionTimeMs,

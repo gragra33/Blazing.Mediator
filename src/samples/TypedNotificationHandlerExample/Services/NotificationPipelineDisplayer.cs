@@ -25,7 +25,7 @@ public class NotificationPipelineDisplayer(
     /// </summary>
     private void DisplayAutomaticHandlers()
     {
-        Console.WriteLine("?? AUTOMATIC HANDLER DISCOVERY:");
+        Console.WriteLine(">> AUTOMATIC HANDLER DISCOVERY:");
         Console.WriteLine();
 
         // Analyze handlers for each notification type
@@ -45,14 +45,14 @@ public class NotificationPipelineDisplayer(
         var handlers = serviceProvider.GetServices<INotificationHandler<T>>();
         var handlerList = handlers.ToList();
 
-        Console.WriteLine($"?? {friendlyName} Notification:");
+        Console.WriteLine($">> {friendlyName} Notification:");
         
         if (handlerList.Any())
         {
             foreach (var handler in handlerList)
             {
                 var handlerType = handler.GetType();
-                Console.WriteLine($"   ? {handlerType.Name} (automatic discovery)");
+                Console.WriteLine($"   * {handlerType.Name} (automatic discovery)");
                 
                 // Show which other notifications this handler supports
                 var allInterfaces = handlerType.GetInterfaces()
@@ -63,13 +63,13 @@ public class NotificationPipelineDisplayer(
                     
                 if (allInterfaces.Any())
                 {
-                    Console.WriteLine($"      ?? Also handles: {string.Join(", ", allInterfaces)}");
+                    Console.WriteLine($"      >> Also handles: {string.Join(", ", allInterfaces)}");
                 }
             }
         }
         else
         {
-            Console.WriteLine($"   ? No handlers found");
+            Console.WriteLine($"   * No handlers found");
         }
         
         Console.WriteLine();
@@ -80,7 +80,7 @@ public class NotificationPipelineDisplayer(
     /// </summary>
     private void DisplayMiddlewareConfiguration()
     {
-        Console.WriteLine("?? MIDDLEWARE PIPELINE CONFIGURATION:");
+        Console.WriteLine(">> MIDDLEWARE PIPELINE CONFIGURATION:");
         Console.WriteLine();
 
         // Display middleware for different notification types to show type constraints
@@ -100,7 +100,7 @@ public class NotificationPipelineDisplayer(
         {
             var middlewareInfo = pipelineInspector.AnalyzeMiddleware(serviceProvider);
             
-            Console.WriteLine($"?? {friendlyName}:");
+            Console.WriteLine($">> {friendlyName}:");
             
             if (middlewareInfo.Any())
             {
@@ -114,14 +114,14 @@ public class NotificationPipelineDisplayer(
             }
             else
             {
-                Console.WriteLine($"   ? No middleware configured");
+                Console.WriteLine($"   * No middleware configured");
             }
             
             Console.WriteLine();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"   ? Error analyzing middleware: {ex.Message}");
+            Console.WriteLine($"   * Error analyzing middleware: {ex.Message}");
             Console.WriteLine();
         }
     }

@@ -1,22 +1,23 @@
 namespace TypedMiddlewareExample.Commands;
 
 /// <summary>
-/// Command for registering a new customer account in the system.
+/// Command to register a new customer.
+/// Uses custom ICustomerRequest interface to demonstrate type constraints.
 /// </summary>
-public class RegisterCustomerCommand : ICommand
+public class RegisterCustomerCommand : ICustomerRequest
 {
     /// <summary>
     /// Gets or sets the customer's full name.
     /// </summary>
-    public string FullName { get; set; } = string.Empty;
+    public required string FullName { get; set; }
 
     /// <summary>
     /// Gets or sets the customer's email address.
     /// </summary>
-    public string Email { get; set; } = string.Empty;
+    public required string Email { get; set; }
 
     /// <summary>
-    /// Gets or sets the customer's preferred contact method.
+    /// Gets or sets the preferred contact method.
     /// </summary>
-    public string ContactMethod { get; set; } = "Email";
+    public required string ContactMethod { get; set; }
 }

@@ -1,5 +1,26 @@
 ﻿# Blazing.Mediator - Notification Systems Guide
 
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Quick Reference Tables](#quick-reference-tables)
+- [Pattern 1: Manual Subscriber System (Observer Pattern)](#pattern-1-manual-subscriber-system-observer-pattern-1)
+  - [Core Components](#core-components)
+  - [Implementation Examples](#implementation-examples)
+  - [Service Registration and Configuration](#service-registration-and-configuration)
+  - [Publishing Notifications](#publishing-notifications)
+  - [Pattern 1 Benefits and Use Cases](#pattern-1-benefits-and-use-cases)
+  - [Complete ECommerce Example](#complete-ecommerce-example)
+
+- [Pattern 2: Automatic Handler System (Publish-Subscribe Pattern)](#pattern-2-automatic-handler-system-publish-subscribe-pattern-1)
+  - [Core Components](#core-components-1)
+  - [Implementation Examples](#implementation-examples-1)
+  - [Pattern 2 Handler Examples](#pattern-2-handler-examples)
+  - [Service Registration and Configuration](#service-registration-and-configuration-1)
+  - [Publishing Notifications](#publishing-notifications-1)
+  - [Handler Type Comparison](#handler-type-comparison)
+  - [Pattern 2 Benefits and Use Cases](#pattern-2-benefits-and-use-cases)
+
 ## Introduction
 
 Blazing.Mediator implements two distinct yet complementary notification systems that enable sophisticated event-driven communication patterns within .NET applications. These dual systems provide developers with maximum flexibility to choose the most appropriate notification pattern for their specific architectural requirements, or to combine both approaches within the same application.
@@ -667,7 +688,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, int
     {
         // Business logic
         var order = Order.Create(request.CustomerEmail, request.Items);
-        await _orderRepository.AddAsync(order, cancellationToken);
+        await _orderRepository.AddAsync(order);
 
         // Publish domain event
         await _mediator.Publish(new OrderCreatedNotification(

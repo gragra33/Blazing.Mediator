@@ -1,5 +1,56 @@
 # OpenTelemetry Support Guide
 
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Quick Reference Tables](#quick-reference-tables)
+   - [TelemetryOptions Configuration Properties](#telemetryoptions-configuration-properties)
+   - [TelemetryOptions Default Configurations](#telemetryoptions-default-configurations)
+   - [Activity Sources and Metrics](#activity-sources-and-metrics)
+   - [Core Telemetry Tags](#core-telemetry-tags)
+   - [Streaming-Specific Tags](#streaming-specific-tags)
+   - [Request/Response Operations Metrics](#requestresponse-operations-metrics)
+   - [Notification Operations Metrics](#notification-operations-metrics)
+   - [Streaming Operations Metrics](#streaming-operations-metrics)
+   - [Health and System Metrics](#health-and-system-metrics)
+   - [Sensitive Data Patterns (Default)](#sensitive-data-patterns-default)
+3. [Installation](#installation)
+4. [Configuration](#configuration)
+   - [Basic Setup](#basic-setup)
+   - [Advanced Telemetry Configuration](#advanced-telemetry-configuration)
+   - [MediatorConfiguration Telemetry Methods](#mediatorconfiguration-telemetry-methods)
+   - [Environment-Specific Configuration](#environment-specific-configuration)
+   - [Jaeger and OpenTelemetry Protocol (OTLP) Configuration](#jaeger-and-opentelemetry-protocol-otlp-configuration)
+   - [Activity Sources](#activity-sources)
+5. [Features](#features)
+   - [Automatic Telemetry Creation](#automatic-telemetry-creation)
+   - [Telemetry Context and Tags](#telemetry-context-and-tags)
+   - [Error and Exception Tracking](#error-and-exception-tracking)
+6. [Usage Examples](#usage-examples)
+   - [Basic Request Tracing](#basic-request-tracing)
+   - [Notification Tracing](#notification-tracing)
+   - [Streaming Request Tracing](#streaming-request-tracing)
+   - [Adding Custom Telemetry](#adding-custom-telemetry)
+   - [Manual Notification Subscriber Tracing](#manual-notification-subscriber-tracing)
+   - [Notification Middleware Telemetry](#notification-middleware-telemetry)
+7. [Configuration Options](#configuration-options)
+   - [Mediator Configuration](#mediator-configuration)
+   - [Environment-Specific Configuration](#environment-specific-configuration-1)
+   - [OpenTelemetry Sampling and Filtering](#opentelemetry-sampling-and-filtering)
+   - [Production Configuration](#production-configuration)
+8. [Integration with ASP.NET Core](#integration-with-aspnet-core)
+9. [Monitoring Patterns](#monitoring-patterns)
+   - [Performance Monitoring](#performance-monitoring)
+   - [Notification Performance Monitoring](#notification-performance-monitoring)
+   - [Business Metrics](#business-metrics)
+10. [Best Practices](#best-practices)
+11. [Troubleshooting](#troubleshooting)
+12. [Example: Complete Setup](#example-complete-setup)
+
+---
+
+## Overview
+
 Blazing.Mediator provides comprehensive built-in support for OpenTelemetry, allowing you to trace and monitor your application's behavior with detailed telemetry data across commands, queries, notifications, and streaming operations.
 
 ## Quick Reference Tables

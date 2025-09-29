@@ -1,5 +1,57 @@
 # Mediator Statistics Configuration Guide
 
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Quick Reference Tables](#quick-reference-tables)
+   - [StatisticsOptions Configuration Properties](#statisticsoptions-configuration-properties)
+   - [StatisticsOptions Preset Configurations](#statisticsoptions-preset-configurations)
+   - [Query & Command Analysis Properties (QueryCommandAnalysis)](#query--command-analysis-properties-querycommandanalysis)
+   - [Notification Analysis Properties (NotificationAnalysis)](#notification-analysis-properties-notificationanalysis)
+   - [Handler & Subscriber Status Enums](#handler--subscriber-status-enums)
+   - [Performance Metrics Properties (PerformanceMetrics)](#performance-metrics-properties-performancemetrics)
+   - [Performance Summary Properties (PerformanceSummary)](#performance-summary-properties-performancesummary)
+   - [Middleware Analysis Properties (MiddlewareAnalysis)](#middleware-analysis-properties-middlewareanalysis)
+   - [Statistics Tracking Methods](#statistics-tracking-methods)
+3. [Basic Statistics Configuration](#1-basic-statistics-configuration)
+   - [Default Configuration](#default-configuration)
+   - [Custom Configuration](#custom-configuration)
+4. [Statistics Configuration Levels](#2-statistics-configuration-levels)
+   - [Development Configuration](#development-configuration)
+   - [Production Configuration](#production-configuration)
+   - [High-Performance Configuration](#high-performance-configuration)
+   - [Custom High-Observability Configuration](#custom-high-observability-configuration)
+5. [Statistics Features by Configuration Level](#3-statistics-features-by-configuration-level)
+   - [Request Metrics (`EnableRequestMetrics = true`)](#request-metrics-enablerequestmetrics--true)
+   - [Notification Metrics (`EnableNotificationMetrics = true`)](#notification-metrics-enablenotificationmetrics--true)
+   - [Middleware Metrics (`EnableMiddlewareMetrics = true`)](#middleware-metrics-enablemiddlewaremetrics--true)
+   - [Performance Counters (`EnablePerformanceCounters = true`)](#performance-counters-enableperformancecounters--true)
+   - [Detailed Analysis (`EnableDetailedAnalysis = true`)](#detailed-analysis-enabledetailedanalysis--true)
+6. [Using Statistics in Your Application](#4-using-statistics-in-your-application)
+   - [Basic Statistics Reporting](#basic-statistics-reporting)
+   - [Health Check Integration](#health-check-integration)
+   - [Performance Monitoring](#performance-monitoring)
+7. [Real-Time Session-Based Statistics](#5-real-time-session-based-statistics)
+   - [Session Tracking Setup](#session-tracking-setup)
+   - [Session Statistics Middleware](#session-statistics-middleware)
+   - [Request-Level Statistics Tracking](#request-level-statistics-tracking)
+8. [Advanced Analysis and Insights](#6-advanced-analysis-and-insights)
+   - [Query/Command Analysis](#querycommand-analysis)
+   - [Performance Insights](#performance-insights)
+9. [API Endpoints for Statistics](#7-api-endpoints-for-statistics)
+   - [Statistics Dashboard Endpoints (Sample Implementation)](#statistics-dashboard-endpoints-sample-implementation)
+10. [Statistics Configuration Best Practices](#8-statistics-configuration-best-practices)
+    - [Performance Considerations](#performance-considerations)
+    - [Monitoring Setup](#monitoring-setup)
+    - [Integration with Application Metrics](#integration-with-application-metrics)
+11. [Complete Setup Example](#9-complete-setup-example)
+    - [Production-Ready Statistics Configuration](#production-ready-statistics-configuration)
+12. [Troubleshooting Statistics](#10-troubleshooting-statistics)
+    - [Common Issues](#common-issues)
+    - [Diagnostic Endpoints](#diagnostic-endpoints)
+
+---
+
 This guide demonstrates how to use the comprehensive statistics tracking capabilities in Blazing.Mediator to monitor, analyze, and optimize your application's performance and usage patterns.
 
 ## Overview
@@ -88,8 +140,8 @@ The `NotificationAnalysis` record extends the analysis capabilities to include n
 | Value | ASCII Marker | Description | Usage |
 |-------|-------------|-------------|-------|
 | `Present` | `+` | Subscribers are registered | ? Working |
-| `None` | `!` | No subscribers found | ? May need attention |
-| `Unknown` | `?` | Cannot determine status | ?? Check configuration |
+| `None` | `!` | No subscribers found | ?? May need attention |
+| `Unknown` | `?` | Cannot determine status | ? Check configuration |
 
 ### Performance Metrics Properties (PerformanceMetrics)
 

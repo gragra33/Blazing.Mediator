@@ -15,6 +15,7 @@ A high-performance, feature-rich implementation of the Mediator pattern for .NET
 
 -   **OpenTelemetry Integration**: Full observability with distributed tracing, metrics collection, and performance monitoring
 -   **Statistics & Analytics**: Built-in execution tracking, performance monitoring, and health checks
+-   **Environment-Aware Configuration**: Automatic configuration with environment-specific presets and JSON support
 -   **Auto-Discovery**: Automatic handler and middleware discovery with intelligent type resolution
 -   **High Performance**: Optimized for speed with minimal overhead and efficient resource usage
 
@@ -22,6 +23,7 @@ A high-performance, feature-rich implementation of the Mediator pattern for .NET
 
 -   **Fluent Configuration**: Modern, type-safe configuration API with comprehensive validation
 -   **Zero Configuration**: Works out of the box with sensible defaults and automatic setup
+-   **Configuration Diagnostics**: Real-time configuration validation for production safety
 -   **Extensive Debug Logging**: Powerful debug logging with configurable log levels, performance tracking, and detailed execution flow analysis
 -   **Testing Friendly**: Easy to mock and test with comprehensive test coverage
 -   **Type Safety**: Compile-time type checking with generic constraints and validation
@@ -145,6 +147,8 @@ public class UsersController : ControllerBase
 
 ### **🔧 Advanced Configuration**
 
+Blazing.Mediator provides a powerful fluent configuration API that adapts to your environment automatically. Configure your mediator with environment-aware presets, JSON configuration support, and comprehensive validation. The configuration system includes intelligent discovery options for middleware and handlers, advanced statistics tracking, and seamless OpenTelemetry integration. Whether you're running in development, staging, or production, the configuration system ensures optimal settings for your deployment environment.
+
 ```csharp
 builder.Services.AddMediator(config =>
 {
@@ -156,7 +160,11 @@ builder.Services.AddMediator(config =>
 });
 ```
 
+For comprehensive configuration patterns and advanced scenarios, see the **[Configuration Guide](docs/MEDIATOR_CONFIGURATION_GUIDE.md)**.
+
 ### **🌊 Streaming Support**
+
+Native streaming support enables memory-efficient processing of large datasets through `IAsyncEnumerable<T>`. Perfect for real-time data feeds, large file processing, and server-sent events. The streaming infrastructure includes full middleware pipeline support, allowing you to apply cross-cutting concerns like logging, validation, and metrics to your streaming operations. This eliminates the need to load entire datasets into memory, providing superior performance for data-intensive applications.
 
 ```csharp
 // Streaming request
@@ -188,7 +196,11 @@ public async IAsyncEnumerable<DataItem> StreamData([EnumeratorCancellation] Canc
 }
 ```
 
+For detailed streaming patterns and real-world examples, see the **[Streaming Guide](docs/MEDIATOR_STREAMING_GUIDE.md)**.
+
 ### **📢 Event-Driven Architecture**
+
+Build robust event-driven systems with comprehensive notification support featuring both automatic handler discovery and manual subscription patterns. The notification system supports multiple handlers per event, complete middleware pipelines, and type-constrained processing for optimal performance. Whether you need decoupled domain events, observer patterns, or pub/sub messaging, the notification infrastructure provides the flexibility to implement complex event-driven architectures with ease.
 
 ```csharp
 // Domain event
@@ -219,7 +231,11 @@ public class AnalyticsHandler : INotificationHandler<UserCreatedNotification>
 await _mediator.Publish(new UserCreatedNotification { UserId = userId, Email = email });
 ```
 
+For complete event-driven patterns and notification strategies, see the **[Notification System Guide](docs/MEDIATOR_NOTIFICATION_GUIDE.md)**.
+
 ### **📊 Built-in Observability**
+
+Comprehensive observability is built into every aspect of Blazing.Mediator, providing deep insights into your application's behavior. Full OpenTelemetry integration delivers distributed tracing, metrics collection, and performance monitoring for cloud-native applications. The statistics system tracks execution patterns, success rates, and performance metrics across all operations. Combined with extensive debug logging infrastructure, you get complete visibility into request handling, middleware execution, and notification processing for both development debugging and production monitoring.
 
 ```csharp
 // Enable OpenTelemetry integration
@@ -239,6 +255,8 @@ public class HealthController : ControllerBase
     }
 }
 ```
+
+For complete observability implementation and cloud-native monitoring, see the **[OpenTelemetry Integration Guide](docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md)**, **[Statistics Guide](docs/MEDIATOR_STATISTICS_GUIDE.md)**, and **[Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md)**.
 
 ## 🎯 Why Choose Blazing.Mediator?
 
@@ -318,6 +336,7 @@ Comprehensive guides and documentation are available to help you master Blazing.
 - **[OpenTelemetry Integration Guide](docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md)** - Full observability support with distributed tracing, metrics collection, and cloud-native monitoring
 - **[Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md)** - Comprehensive debug logging infrastructure with configurable levels and performance tracking
 - **[Statistics Guide](docs/MEDIATOR_STATISTICS_GUIDE.md)** - Advanced statistics tracking with detailed performance metrics and runtime insights
+- **[Configuration Guide](docs/MEDIATOR_CONFIGURATION_GUIDE.md)** - In-depth guide to advanced configuration features, environment-specific settings, and JSON integration
 
 ### CQRS Implementation
 
@@ -407,7 +426,7 @@ The library includes comprehensive sample projects demonstrating different appro
     - **Order Processing Workflow**: Email notifications and inventory management in e-commerce scenario
     - **AOT Compatibility**: Works with ahead-of-time compilation requirements
 
-5. **TypedNotificationSubscriberExample** - Console application demonstrating type-constrained notification middleware with manual subscription pattern
+5. **TypedNotificationSubscriberExample** _**(NEW!)**_ - Console application demonstrating type-constrained notification middleware with manual subscription pattern
 
     - **Type-Constrained Middleware**: Selective middleware execution based on notification interface types (`IOrderNotification`, `ICustomerNotification`, `IInventoryNotification`)
     - **Manual Subscription Required**: Uses `INotificationSubscriber<T>` pattern requiring explicit subscription
@@ -494,6 +513,17 @@ The library includes comprehensive sample projects demonstrating different appro
     - Real-time performance monitoring and debugging capabilities with distributed correlation IDs
     - Production-ready observability patterns for microservices and cloud-native applications
 
+14. **ConfigurationExample** _**(NEW!)**_ - Comprehensive demonstration of Configuration Features with environment-aware settings
+
+    - Environment-aware configuration with automatic preset selection based on deployment environment
+    - JSON configuration support with environment-specific overrides and perfect DRY implementation
+    - Fluent preset integration solving original static factory method limitations with seamless chaining
+    - Configuration diagnostics with real-time configuration diagnostics and validation reporting
+    - Environment-specific validation preventing misconfiguration in production environments
+    - Advanced configuration layering combining presets with JSON overrides intelligently
+    - Production safety guards with intelligent validation for deployment environments
+    - Complete configuration management patterns for enterprise applications
+
 All of the Example Console applications demonstrate comprehensive **MediatorStatistics** analysis and **middleware analyzers** with detailed performance statistics, execution tracking, and pipeline inspection capabilities. These examples showcase real-time monitoring of queries, commands, and notifications with success rates, timing metrics, and handler discovery analysis. For complete details on implementing statistics tracking and performance monitoring in your applications, see the **[Statistics Guide](docs/MEDIATOR_STATISTICS_GUIDE.md)**.
 
 ## History
@@ -504,13 +534,16 @@ All of the Example Console applications demonstrate comprehensive **MediatorStat
 -   **Extensive Debug Logging**: Comprehensive debug logging infrastructure with configurable log levels, performance tracking, and detailed execution flow analysis for enhanced troubleshooting and monitoring
 -   **Enhanced Statistics**: Advanced statistics tracking with detailed performance metrics, execution counters, pipeline analysis, and comprehensive runtime insights for production monitoring and optimization
 -   **Fluent Configuration API**: New modern fluent configuration approach using `builder.Services.AddMediator(config => { ... })` for improved type safety, enhanced functionality, and streamlined developer experience with IntelliSense support
+-   **Environment-Aware Configuration**: Advanced configuration management with automatic environment detection, preset application, and JSON configuration support for production-ready deployment patterns
+-   **Configuration Diagnostics**: Real-time configuration diagnostics, validation reporting, and environment-specific validation for production safety and troubleshooting capabilities
 -   **Legacy Method Deprecation**: Marked older `AddMediator()` and `AddMediatorFromLoadedAssemblies()` methods with boolean parameters as obsolete while maintaining backward compatibility during transition period with comprehensive migration guidance
 -   **Enhanced Notification System**: Added comprehensive automatic notification handler system alongside existing manual subscriber pattern for maximum architectural flexibility
 -   **Type-Constrained Middleware**: Advanced middleware system supporting generic type constraints for selective execution based on interface types (e.g., `ICommand`, `IQuery<T>`, `IOrderNotification`)
 -   **New Sample Projects**: Added six comprehensive sample projects (OpenTelemetryExample, NotificationHandlerExample, NotificationHybridExample, TypedNotificationHandlerExample, TypedNotificationHybridExample, TypedNotificationSubscriberExample) demonstrating new fluent configuration, Telemetry, Statistics, Logging, automatic handlers, hybrid patterns, and type-constrained middleware
+-   **ConfigurationExample Sample**: Demonstrates configuration features with environment-aware settings, JSON configuration, preset integration, and advanced diagnostics capabilities
 -   **OpenTelemetryExample Sample**: New comprehensive sample project demonstrating OpenTelemetry integration with web API server, Blazor client, and .NET Aspire support for modern cloud-native applications with real-time telemetry visualization
 -   **New Documentation Guides**: Added comprehensive [OpenTelemetry Integration Guide](docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md), [Mediator Statistics Configuration Guide
-](docs/MEDIATOR_STATISTICS_GUIDE.md) and [Mediator Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md) with detailed implementation examples, best practices, and troubleshooting scenarios
+](docs/MEDIATOR_STATISTICS_GUIDE.md), [Mediator Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md), and [Mediator Configuration Guide](docs/MEDIATOR_CONFIGURATION.md) with detailed implementation examples, best practices, and troubleshooting scenarios
 -   **Enhanced Documentation**: Updated all documentation with new fluent configuration examples, OpenTelemetry integration patterns, logging configuration, notification system patterns, and comprehensive migration guidance from legacy registration methods
 -   **Improved Developer Experience**: Streamlined configuration process with better IntelliSense support, compile-time validation through fluent API design, enhanced debugging capabilities, and comprehensive observability features
 

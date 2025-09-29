@@ -71,6 +71,84 @@ public static class ServiceCollectionExtensions
         return AddMediatorCore(services, options, false, false, false, assemblies, null);
     }
 
+    /// <summary>  
+    /// Adds mediator services with a pre-configured MediatorConfiguration instance.  
+    /// </summary>  
+    /// <param name="services">The service collection.</param>  
+    /// <param name="configuration">Pre-configured MediatorConfiguration instance (e.g., from MediatorConfiguration.Production()).</param>  
+    /// <returns>The service collection for chaining.</returns>  
+    [OverloadResolutionPriority(2)]
+    public static IServiceCollection AddMediator(this IServiceCollection services, MediatorConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        
+        // Convert the pre-configured instance to a configuration action
+        Action<MediatorConfiguration> configAction = (config) =>
+        {
+            // Copy assemblies from the pre-configured instance
+            foreach (var assembly in configuration.Assemblies)
+            {
+                config.AddAssembly(assembly);
+            }
+            
+            // Copy discovery properties from the pre-configured instance
+            if (configuration.DiscoverMiddleware)
+                config.WithMiddlewareDiscovery();
+            else
+                config.WithoutMiddlewareDiscovery();
+                
+            if (configuration.DiscoverNotificationMiddleware)
+                config.WithNotificationMiddlewareDiscovery();
+            else
+                config.WithoutNotificationMiddlewareDiscovery();
+                
+            if (configuration.DiscoverConstrainedMiddleware)
+                config.WithConstrainedMiddlewareDiscovery();
+            else
+                config.WithoutConstrainedMiddlewareDiscovery();
+                
+            if (configuration.DiscoverNotificationHandlers)
+                config.WithNotificationHandlerDiscovery();
+            else
+                config.WithoutNotificationHandlerDiscovery();
+            
+            // Copy options using the appropriate With* methods
+            if (configuration.StatisticsOptions != null)
+            {
+                config.WithStatisticsTracking(configuration.StatisticsOptions.Clone());
+            }
+            else
+            {
+                config.WithoutStatistics();
+            }
+            
+            if (configuration.TelemetryOptions != null)
+            {
+                config.WithTelemetry(configuration.TelemetryOptions.Clone());
+            }
+            else
+            {
+                config.WithoutTelemetry();
+            }
+            
+            if (configuration.LoggingOptions != null)
+            {
+                config.WithLogging(configuration.LoggingOptions.Clone());
+            }
+            else
+            {
+                config.WithoutLogging();
+            }
+            
+            // Copy the obsolete property for backwards compatibility
+#pragma warning disable CS0618 // For backwards compatibility
+            config.EnableStatisticsTracking = configuration.EnableStatisticsTracking;
+#pragma warning restore CS0618
+        };
+        
+        return AddMediatorCore(services, configAction, false, false, false, null, null);
+    }
+
     /// <summary>
     /// Adds Blazing.Mediator services with automatic static resource cleanup service.
     /// The cleanup service can be manually called during application shutdown to dispose static OpenTelemetry resources.

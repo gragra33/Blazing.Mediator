@@ -1,4 +1,5 @@
 using System.Reflection;
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -48,17 +49,17 @@ public class ServiceCollectionExtensionsLintTests
 
         // Act & Assert - Verify core method exists (the registration logic is now in RegistrationService)
         privateMethods.ShouldContain("AddMediatorCore");
-            
+
         // Verify that the registration service exists and contains the moved logic
         var registrationServiceType = Type.GetType("Blazing.Mediator.Services.RegistrationService, Blazing.Mediator");
         registrationServiceType.ShouldNotBeNull("RegistrationService should exist");
-            
+
         // Verify that the registration service has the expected methods
         var registrationServiceMethods = registrationServiceType
             .GetMethods(BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public)
             .Select(m => m.Name)
             .ToList();
-                
+
         registrationServiceMethods.ShouldContain("RegisterMediatorServices");
         registrationServiceMethods.ShouldContain("RegisterMiddlewareFromAssembly");
         registrationServiceMethods.ShouldContain("RegisterHandlersFromAssembly");
@@ -175,16 +176,29 @@ public class ServiceCollectionExtensionsLintTests
         // Arrange
         ServiceCollection services = new();
 
-        // Act & Assert - Test edge cases
+        // Act & Assert - Test edge cases with explicit overload targeting
         Should.NotThrow(() => services.AddMediator(Array.Empty<Assembly>()));
         Should.NotThrow(() => services.AddMediator(Array.Empty<Type>()));
-        Should.NotThrow(() => services.AddMediator(null));
-        Should.NotThrow(() => services.AddMediator(null, Array.Empty<Type>()));
-        Should.NotThrow(() => services.AddMediator(null, true));
-        Should.NotThrow(() => services.AddMediator(null, false));
 
-        // Test with null configuration but valid assemblies
-        Should.NotThrow(() => services.AddMediator(null, typeof(ServiceCollectionExtensionsLintTests).Assembly));
+        // Test specifically the Assembly[] overload with null
+        Should.NotThrow(() => services.AddMediator((Assembly[])null!));
+
+        // Test specifically the Type[] overload with null
+        Should.NotThrow(() => services.AddMediator((Type[])null!));
+
+        // Test specifically overloads with Action<MediatorConfiguration> and arrays
+        Should.NotThrow(() => services.AddMediator((Action<MediatorConfiguration>?)null, Array.Empty<Type>()));
+        Should.NotThrow(() => services.AddMediator((Action<MediatorConfiguration>?)null, (Type[])null!));
+
+        // Test specifically obsolete overloads with bool parameters
+        Should.NotThrow(() => services.AddMediator((Action<MediatorConfiguration>?)null, true));
+        Should.NotThrow(() => services.AddMediator((Action<MediatorConfiguration>?)null, false));
+
+        // Test with null configuration but valid assemblies - explicit overload targeting
+        Should.NotThrow(() => services.AddMediator((Action<MediatorConfiguration>?)null, typeof(ServiceCollectionExtensionsLintTests).Assembly));
+
+        // Test MediatorConfiguration overload - this SHOULD throw for null
+        Should.Throw<ArgumentNullException>(() => services.AddMediator((MediatorConfiguration)null!));
 
         // Verify final state
         ServiceProvider serviceProvider = services.BuildServiceProvider();

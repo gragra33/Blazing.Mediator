@@ -3,7 +3,7 @@ namespace Blazing.Mediator.Configuration;
 /// <summary>
 /// Configuration for the mediator, including middleware pipeline setup.
 /// </summary>
-public sealed class MediatorConfiguration : IEnvironmentConfigurationOptions<MediatorConfiguration>
+public sealed class MediatorConfiguration : MediatorConfigurationSection, IEnvironmentConfigurationOptions<MediatorConfiguration>
 {
     private readonly IServiceCollection? _services;
     private readonly HashSet<Assembly> _assemblies = new();

@@ -1,7 +1,6 @@
 using Blazing.Mediator.Statistics;
 using Blazing.Mediator.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 namespace Blazing.Mediator.Tests.Enhanced
 {

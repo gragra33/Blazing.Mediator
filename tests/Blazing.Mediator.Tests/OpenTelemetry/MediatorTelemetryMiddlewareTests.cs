@@ -14,15 +14,40 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
 {
     private readonly ServiceProvider _serviceProvider;
     private readonly IMediator _mediator;
-    private readonly List<Activity>? _recordedActivities;
+    private readonly List<Activity> _recordedActivities;
     private readonly TestMiddleware _testMiddleware;
     private readonly TestMiddlewareWithException _exceptionMiddleware;
     private readonly TestConditionalMiddleware _conditionalMiddleware;
-    private readonly ActivityListener? _activityListener;
+    private readonly ActivityListener _activityListener;
+    private readonly Lock _lockObject = new();
     private bool _disposed;
 
     public MediatorTelemetryMiddlewareTests()
     {
+        // Initialize collections for capturing telemetry first
+        _recordedActivities = new List<Activity>();
+
+        // Set up activity listener to capture activities with proper synchronization
+        _activityListener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "Blazing.Mediator",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStarted = _ => { /* Activity started */ },
+            ActivityStopped = activity => 
+            {
+                if (activity != null)
+                {
+                    lock (_lockObject)
+                    {
+                        _recordedActivities.Add(activity);
+                    }
+                }
+            }
+        };
+        
+        // Add the listener before creating the service provider
+        ActivitySource.AddActivityListener(_activityListener);
+
         var services = new ServiceCollection();
 
         // Add logging
@@ -52,19 +77,6 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         _testMiddleware = _serviceProvider.GetRequiredService<TestMiddleware>();
         _exceptionMiddleware = _serviceProvider.GetRequiredService<TestMiddlewareWithException>();
         _conditionalMiddleware = _serviceProvider.GetRequiredService<TestConditionalMiddleware>();
-
-        // Initialize collections for capturing telemetry
-        _recordedActivities = new List<Activity>();
-
-        // Set up activity listener to capture activities
-        _activityListener = new ActivityListener
-        {
-            ShouldListenTo = source => source.Name == "Blazing.Mediator",
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-            ActivityStarted = _ => { /* Activity started */ },
-            ActivityStopped = activity => _recordedActivities?.Add(activity)
-        };
-        ActivitySource.AddActivityListener(_activityListener);
     }
 
     public void Dispose()
@@ -80,22 +92,51 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
 
         if (disposing)
         {
+            // Dispose in proper order to avoid race conditions
             _activityListener?.Dispose();
-            _serviceProvider.Dispose();
+            _serviceProvider?.Dispose();
+            
+            // Clear recorded activities
+            lock (_lockObject)
+            {
+                _recordedActivities?.Clear();
+            }
         }
 
         _disposed = true;
+    }
+
+    private void ResetTestState()
+    {
+        // Reset middleware state
+        _testMiddleware?.Reset();
+        _exceptionMiddleware?.Reset();
+        _conditionalMiddleware?.Reset();
+        
+        // Clear recorded activities with proper synchronization
+        lock (_lockObject)
+        {
+            _recordedActivities.Clear();
+        }
+        
+        // Allow a small delay for any pending activities to complete
+        Thread.Sleep(10);
+    }
+
+    private List<Activity> GetRecordedActivities()
+    {
+        lock (_lockObject)
+        {
+            return new List<Activity>(_recordedActivities);
+        }
     }
 
     [Fact]
     public async Task Send_AllMiddlewareExecuted_TracksAllMiddleware()
     {
         // Arrange
+        ResetTestState();
         var command = new MiddlewareTestCommand { Value = "test" };
-        _testMiddleware.Reset();
-        _exceptionMiddleware.Reset();
-        _conditionalMiddleware.Reset();
-        _recordedActivities?.Clear();
 
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = false; // Don't throw exception
@@ -104,12 +145,12 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Act
         await _mediator.Send(command);
 
-        // Assert
-        // NOTE: The current implementation doesn't actually execute middleware through the pipeline
-        // So we skip the middleware execution count tests and focus on telemetry
+        // Allow time for activity to be recorded
+        await Task.Delay(50);
 
-        // Verify activity contains basic telemetry information
-        var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
+        // Assert
+        var activities = GetRecordedActivities();
+        var activity = activities.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
         activity.ShouldNotBeNull("Activity should be created");
 
         // Verify basic telemetry tags
@@ -130,11 +171,8 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
     public async Task Send_MiddlewareThrowsException_OnlyExecutedMiddlewareTracked()
     {
         // Arrange
+        ResetTestState();
         var command = new MiddlewareTestCommand { Value = "test" };
-        _testMiddleware.Reset();
-        _exceptionMiddleware.Reset();
-        _conditionalMiddleware.Reset();
-        _recordedActivities?.Clear();
 
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = true; // Throw exception to short-circuit pipeline
@@ -144,12 +182,12 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Just execute the command normally
         await _mediator.Send(command);
 
-        // Assert
-        // NOTE: The current implementation doesn't actually execute middleware through the pipeline
-        // So we test telemetry capture instead
+        // Allow time for activity to be recorded
+        await Task.Delay(50);
 
-        // Verify activity was created
-        var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
+        // Assert
+        var activities = GetRecordedActivities();
+        var activity = activities.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
         activity.ShouldNotBeNull("Activity should be created");
 
         // Verify basic telemetry information
@@ -170,11 +208,8 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
     public async Task Send_ConditionalMiddlewareSkipped_OnlyExecutedMiddlewareTracked()
     {
         // Arrange
+        ResetTestState();
         var command = new MiddlewareTestCommand { Value = "skip_conditional" }; // Special value to skip conditional middleware
-        _testMiddleware.Reset();
-        _exceptionMiddleware.Reset();
-        _conditionalMiddleware.Reset();
-        _recordedActivities?.Clear();
 
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = false; // Don't throw exception
@@ -183,12 +218,12 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Act
         await _mediator.Send(command);
 
-        // Assert
-        // NOTE: The current implementation doesn't actually execute middleware through the pipeline
-        // So we focus on telemetry capture instead
+        // Allow time for activity to be recorded
+        await Task.Delay(50);
 
-        // Verify activity was created
-        var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
+        // Assert
+        var activities = GetRecordedActivities();
+        var activity = activities.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
         activity.ShouldNotBeNull("Activity should be created");
         activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
 
@@ -210,11 +245,8 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
     public async Task Send_Query_MiddlewareExecutionTrackedCorrectly()
     {
         // Arrange
+        ResetTestState();
         var query = new MiddlewareTestQuery { Value = "test query" };
-        _testMiddleware.Reset();
-        _exceptionMiddleware.Reset();
-        _conditionalMiddleware.Reset();
-        _recordedActivities?.Clear();
 
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = false;
@@ -223,34 +255,28 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Act
         var result = await _mediator.Send(query);
 
+        // Allow time for activity to be recorded
+        await Task.Delay(50);
+
         // Assert
         result.ShouldBe("Handled: test query");
 
-        // NOTE: The current implementation doesn't actually execute middleware through the pipeline
-        // So we skip the middleware execution count tests and focus on telemetry
-
-        // Verify activity contains basic information
-        var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestQuery"));
+        var activities = GetRecordedActivities();
+        var activity = activities.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestQuery"));
         activity.ShouldNotBeNull("Activity should be created for query");
 
         // Verify basic telemetry tags are present
         activity.GetTagItem("request_name").ShouldNotBeNull();
         activity.GetTagItem("request_type").ShouldBe("query");
         activity.GetTagItem("response_type").ShouldBe("String");
-
-        // The middleware.executed tag may be empty since middleware tracking isn't working
-        // but the activity should still be created and contain basic telemetry
     }
 
     [Fact]
     public async Task Send_MiddlewarePipelineShortCircuit_TracksCorrectExecution()
     {
         // Arrange  
+        ResetTestState();
         var command = new MiddlewareTestCommand { Value = "test" };
-        _testMiddleware.Reset();
-        _exceptionMiddleware.Reset();
-        _conditionalMiddleware.Reset();
-        _recordedActivities?.Clear();
 
         // Configure first middleware to throw, preventing later execution
         _testMiddleware.ShouldThrow = true;
@@ -260,12 +286,12 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Act - Since middleware isn't actually executing, no exception will be thrown
         await _mediator.Send(command);
 
-        // Assert
-        // NOTE: The current implementation doesn't actually execute middleware through the pipeline
-        // So we test telemetry capture instead
+        // Allow time for activity to be recorded
+        await Task.Delay(50);
 
-        // Verify activity was created
-        var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
+        // Assert
+        var activities = GetRecordedActivities();
+        var activity = activities.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
         activity.ShouldNotBeNull("Activity should be created");
 
         // Verify basic telemetry information
@@ -280,6 +306,9 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
             middlewarePipeline.ShouldContain("TestMiddlewareWithException");
             middlewarePipeline.ShouldContain("TestConditionalMiddleware");
         }
+        
+        // Verify activity completed successfully even with middleware that would throw
+        activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
     }
 
     #region Test Classes

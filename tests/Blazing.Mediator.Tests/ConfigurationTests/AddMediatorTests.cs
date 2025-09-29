@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests.ConfigurationTests;
 
@@ -306,6 +307,123 @@ public class AddMediatorTests
             .WithConstrainedMiddlewareDiscovery()
             .WithoutLogging() // Selectively disable logging
             .AddFromAssembly(typeof(TestNotification).Assembly));
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetService<IMediator>();
+
+        // Assert
+        mediator.ShouldNotBeNull();
+    }
+
+    #endregion
+
+    #region MediatorConfiguration Instance Overload Tests
+
+    [Fact]
+    public void AddMediator_WithMediatorConfigurationInstance_ShouldRegisterSuccessfully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var config = MediatorConfiguration.Production(typeof(TestCommand).Assembly);
+
+        // Act
+        services.AddMediator(config);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetService<IMediator>();
+
+        // Assert
+        mediator.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void AddMediator_WithProductionConfiguration_ShouldRegisterSuccessfully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddMediator(MediatorConfiguration.Production(typeof(TestCommand).Assembly));
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetService<IMediator>();
+
+        // Assert
+        mediator.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void AddMediator_WithDevelopmentConfiguration_ShouldRegisterSuccessfully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddMediator(MediatorConfiguration.Development(typeof(TestCommand).Assembly));
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetService<IMediator>();
+
+        // Assert
+        mediator.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void AddMediator_WithMinimalConfiguration_ShouldRegisterSuccessfully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddMediator(MediatorConfiguration.Minimal(typeof(TestCommand).Assembly));
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetService<IMediator>();
+
+        // Assert
+        mediator.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void AddMediator_WithDisabledConfiguration_ShouldRegisterSuccessfully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddMediator(MediatorConfiguration.Disabled(typeof(TestCommand).Assembly));
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetService<IMediator>();
+
+        // Assert
+        mediator.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void AddMediator_WithNullMediatorConfiguration_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act & Assert
+        Should.Throw<ArgumentNullException>(() => services.AddMediator((MediatorConfiguration)null!));
+    }
+
+    [Fact]
+    public void AddMediator_WithCustomConfigurationInstance_ShouldPreserveSettings()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var customConfig = new MediatorConfiguration()
+            .WithStatisticsTracking()
+            .WithTelemetry()
+            .WithLogging()
+            .WithMiddlewareDiscovery()
+            .AddAssembly(typeof(TestCommand).Assembly);
+
+        // Act
+        services.AddMediator(customConfig);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetService<IMediator>();

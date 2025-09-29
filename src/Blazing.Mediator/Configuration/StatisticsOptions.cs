@@ -153,7 +153,7 @@ public class StatisticsOptions : IEnvironmentConfigurationOptions<StatisticsOpti
             EnableRequestMetrics = true,
             EnableNotificationMetrics = true,
             EnableMiddlewareMetrics = true,
-            EnablePerformanceCounters = false,
+            EnablePerformanceCounters = true,
             EnableDetailedAnalysis = true,
             MetricsRetentionPeriod = TimeSpan.FromHours(1),
             CleanupInterval = TimeSpan.FromMinutes(15)

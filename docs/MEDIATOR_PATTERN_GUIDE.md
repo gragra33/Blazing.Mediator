@@ -23,18 +23,177 @@ The Mediator pattern decouples components by having them communicate through a c
 
 ## Table of Contents
 
-1. [Quick Start](#quick-start)
-2. [Core Concepts](#core-concepts)
-3. [Creating Requests](#creating-requests)
-4. [Implementing Handlers](#implementing-handlers)
-5. [Setup and Registration](#setup-and-registration)
-6. [Usage in APIs](#usage-in-apis)
-7. [Middleware Pipeline](#middleware-pipeline)
-8. [MediatorStatistics](#mediatorstatistics)
-9. [Validation and Error Handling](#validation-and-error-handling)
-10. [Testing Strategies](#testing-strategies)
-11. [Sample Projects](#sample-projects)
-12. [Complete Examples](#complete-examples)
+1. [Quick Reference Tables](#quick-reference-tables)
+2. [Quick Start](#quick-start)
+3. [Core Concepts](#core-concepts)
+4. [Creating Requests](#creating-requests)
+5. [Implementing Handlers](#implementing-handlers)
+6. [Setup and Registration](#setup-and-registration)
+7. [Usage in APIs](#usage-in-apis)
+8. [Middleware Pipeline](#middleware-pipeline)
+9. [MediatorStatistics](#mediatorstatistics)
+10. [Validation and Error Handling](#validation-and-error-handling)
+11. [Testing Strategies](#testing-strategies)
+12. [Sample Projects](#sample-projects)
+13. [Complete Examples](#complete-examples)
+
+## Quick Reference Tables
+
+The following quick reference tables provide comprehensive information about all the interfaces, configuration options, fluent methods, and patterns available in Blazing.Mediator. These tables are designed to give you immediate access to the most important configuration parameters and interface definitions without having to search through the detailed documentation. Use these tables to quickly understand what interfaces to implement, how to configure the mediator for your specific needs, and what each pattern means in the context of CQRS implementation.
+
+### Core CQRS Interfaces
+
+Blazing.Mediator provides clear interfaces for implementing CQRS patterns with explicit separation between commands (write operations) and queries (read operations). These interfaces are the foundation of your CQRS implementation and determine how requests are routed and handled throughout your application. Understanding these interfaces is crucial for implementing clean, maintainable, and performance-optimized applications.
+
+| Interface | Type | Purpose | Return Value | When to Use |
+|-----------|------|---------|--------------|-------------|
+| `IRequest` | Command | Write operations that modify state | `void` (no return) | Create, Update, Delete operations |
+| `IRequest<TResponse>` | Query/Command | Read operations or commands with return values | `TResponse` | Get operations, commands returning data |
+| `ICommand` | Command | Explicit command interface for write operations | `void` (no return) | Business commands, state modifications |
+| `ICommand<TResponse>` | Command | Commands that need to return data | `TResponse` | Commands returning IDs, results, status |
+| `IQuery<TResponse>` | Query | Explicit query interface for read operations | `TResponse` | Data retrieval, search, reporting |
+| `INotification` | Event | Domain events and notifications | N/A (fire-and-forget) | Domain events, pub/sub patterns |
+
+### Handler Interfaces
+
+Handler interfaces define the contract for processing requests and notifications in your CQRS implementation. Each request type requires exactly one handler (except notifications which can have multiple handlers or subscribers), and the handler interface you implement must match the request interface. These interfaces provide compile-time type safety and ensure that your handlers are properly registered and discoverable by the mediator.
+
+| Handler Interface | Handles | Method Signature | Purpose |
+|------------------|---------|------------------|---------|
+| `IRequestHandler<TRequest>` | `IRequest`, `ICommand` | `Task Handle(TRequest, CancellationToken)` | Process void commands |
+| `IRequestHandler<TRequest, TResponse>` | `IRequest<TResponse>`, `IQuery<TResponse>`, `ICommand<TResponse>` | `Task<TResponse> Handle(TRequest, CancellationToken)` | Process queries and commands with responses |
+| `INotificationHandler<TNotification>` | `INotification` | `Task Handle(TNotification, CancellationToken)` | Handle domain events automatically |
+| `IStreamHandler<TRequest, TResponse>` | `IRequest<IAsyncEnumerable<TResponse>>` | `IAsyncEnumerable<TResponse> Handle(TRequest, CancellationToken)` | Handle streaming data responses |
+
+### Mediator Interface Methods
+
+The `IMediator` interface is the central dispatcher that routes requests to appropriate handlers and manages the execution pipeline. These methods provide different ways to interact with your CQRS implementation, from simple request/response patterns to streaming data and fire-and-forget notifications. Understanding these methods is essential for effectively using the mediator in your controllers, services, and other application components.
+
+| Method | Parameters | Return Type | Purpose | Use Cases |
+|--------|------------|-------------|---------|-----------|
+| `Send<TResponse>(IRequest<TResponse>, CancellationToken)` | Query/Command with response | `Task<TResponse>` | Execute queries and commands that return data | API endpoints, data retrieval |
+| `Send(IRequest, CancellationToken)` | Command without response | `Task` | Execute void commands | State modifications, business operations |
+| `Publish<TNotification>(TNotification, CancellationToken)` | Notification | `Task` | Publish domain events to all handlers | Domain events, pub/sub patterns |
+| `CreateStream<TResponse>(IRequest<IAsyncEnumerable<TResponse>>, CancellationToken)` | Streaming request | `IAsyncEnumerable<TResponse>` | Create streaming data responses | Large datasets, real-time updates |
+| `Subscribe<TNotification>(Func<TNotification, CancellationToken, Task>)` | Notification handler function | `IDisposable` | Manual notification subscription | Runtime subscription management |
+
+### MediatorConfiguration Fluent Methods
+
+The `MediatorConfiguration` class provides fluent methods for configuring various aspects of the mediator, including middleware discovery, statistics tracking, and assembly registration. These methods allow you to customize the mediator's behavior to match your application's specific requirements and performance needs. The fluent interface provides a clean, discoverable way to configure complex behaviors while maintaining backward compatibility.
+
+| Method | Parameters | Purpose | Configuration Impact |
+|--------|------------|---------|---------------------|
+| `WithMiddlewareDiscovery()` | None | Enable automatic middleware discovery | Scans assemblies for middleware implementations |
+| `WithStatisticsTracking()` | None | Enable basic statistics with default options | Tracks request counts and basic metrics |
+| `WithStatisticsTracking(Action<StatisticsOptions>)` | Configuration action | Enable statistics with custom options | Configures detailed performance tracking |
+| `WithStatisticsTracking(StatisticsOptions)` | Options instance | Enable statistics with provided options | Uses pre-configured statistics options |
+| `AddAssembly(Assembly)` | Assembly instance | Register handlers from specific assembly | Scans assembly for handlers and requests |
+| `AddAssemblies(params Type[])` | Assembly marker types | Register handlers from multiple assemblies | Scans multiple assemblies using marker types |
+| `AddAssemblies(params Assembly[])` | Assembly instances | Register handlers from assembly collection | Scans provided assemblies for handlers |
+| `AddMiddleware<TMiddleware>()` | Middleware type | Register specific middleware | Adds middleware to pipeline |
+| `AddMiddleware(Type)` | Middleware type | Register middleware by type | Dynamic middleware registration |
+
+### Registration Extension Methods
+
+Blazing.Mediator provides multiple extension methods for registering the mediator in your dependency injection container. These methods offer different levels of control over assembly scanning, middleware discovery, and configuration options. Understanding these methods helps you choose the right registration approach for your application architecture and performance requirements.
+
+| Extension Method | Parameters | Recommended For | Features |
+|------------------|------------|-----------------|----------|
+| `AddMediator(Action<MediatorConfiguration>)` | Configuration action | **Most applications** | Full fluent configuration, type-safe |
+| `AddMediator(Action<MediatorConfiguration>, params Assembly[])` | Config + assemblies | **Legacy compatibility** | Fluent config with explicit assemblies |
+| `AddMediatorFromCallingAssembly()` | None | **Simple single-assembly apps** | Automatic calling assembly discovery |
+| `AddMediatorFromCallingAssembly(Action<MediatorConfiguration>)` | Configuration action | **Single-assembly with config** | Calling assembly + fluent configuration |
+| `AddMediatorFromLoadedAssemblies(Func<Assembly, bool>)` | Assembly filter | **Automated enterprise apps** | Filters loaded assemblies automatically |
+| `AddMediatorFromLoadedAssemblies(Action<MediatorConfiguration>, Func<Assembly, bool>)` | Config + filter | **Enterprise with custom config** | Full control with assembly filtering |
+
+### Middleware Interface Types
+
+The middleware system in Blazing.Mediator provides flexible cross-cutting concerns implementation with both standard and conditional execution patterns. These interfaces allow you to implement logging, validation, caching, authorization, and other concerns without modifying your core business logic. Understanding the different middleware types helps you choose the right pattern for your performance and architectural requirements.
+
+| Interface | Generic Parameters | Execution Condition | Use Cases |
+|-----------|-------------------|-------------------|-----------|
+| `IRequestMiddleware<TRequest>` | Command without response | Always for matching commands | Global command processing, audit logging |
+| `IRequestMiddleware<TRequest, TResponse>` | Query/Command with response | Always for matching requests | Global query/command processing, logging |
+| `IConditionalMiddleware<TRequest>` | Command without response | Only when `ShouldExecute` returns true | Selective command processing, performance optimization |
+| `IConditionalMiddleware<TRequest, TResponse>` | Query/Command with response | Only when `ShouldExecute` returns true | Selective query processing, conditional caching |
+| `INotificationMiddleware<TNotification>` | Notification | Always for matching notifications | Global notification processing, event logging |
+| `IConditionalNotificationMiddleware<TNotification>` | Notification | Only when `ShouldExecute` returns true | Selective notification processing, filtered event handling |
+
+### Middleware Properties and Methods
+
+Each middleware implementation requires specific properties and methods to function correctly within the pipeline. The `Order` property controls execution sequence (lower values execute first), while the `HandleAsync` method contains your cross-cutting logic. For conditional middleware, the `ShouldExecute` method provides fine-grained control over when the middleware runs, allowing for performance optimizations in complex applications.
+
+| Property/Method | Type | Purpose | Notes |
+|----------------|------|---------|-------|
+| `Order` | `int` | Controls middleware execution order | Lower values execute first (e.g., -1000, 0, 100) |
+| `HandleAsync` | `async Task<TResponse>` or `async Task` | Main middleware logic | Pre/post processing around `await next()` |
+| `ShouldExecute` | `bool` | Conditional execution logic (conditional middleware only) | Return `true` to execute, `false` to skip |
+| `next` (parameter) | `RequestHandlerDelegate<TResponse>` or `RequestHandlerDelegate` | Next middleware or handler in pipeline | Always call `await next()` to continue pipeline |
+
+### Pipeline Inspection Interfaces
+
+The pipeline inspection system provides comprehensive debugging and monitoring capabilities for middleware execution order and configuration. These interfaces are essential for troubleshooting pipeline issues, verifying middleware registration, and understanding the complete execution flow in complex applications with multiple middleware components.
+
+| Interface | Method | Return Type | Purpose |
+|-----------|--------|-------------|---------|
+| `IMiddlewarePipelineInspector` | `GetRegisteredMiddleware()` | `IReadOnlyList<Type>` | Get basic middleware types |
+| `IMiddlewarePipelineInspector` | `GetMiddlewareConfiguration()` | `IReadOnlyList<(Type, object?)>` | Get middleware with config objects |
+| `IMiddlewarePipelineInspector` | `GetDetailedMiddlewareInfo(IServiceProvider?)` | `IReadOnlyList<(Type, int, object?)>` | Get middleware with order and config |
+| `IMiddlewarePipelineInspector` | `AnalyzeMiddleware(IServiceProvider)` | `IReadOnlyList<MiddlewareAnalysis>` | Get comprehensive middleware analysis |
+| `INotificationMiddlewarePipelineInspector` | `GetRegisteredMiddleware()` | `IReadOnlyList<Type>` | Get notification middleware types |
+| `INotificationMiddlewarePipelineInspector` | `AnalyzeMiddleware(IServiceProvider)` | `IReadOnlyList<MiddlewareAnalysis>` | Get notification middleware analysis |
+
+### Statistics Configuration Options
+
+The statistics system provides comprehensive monitoring and analysis capabilities for your CQRS implementation. These configuration options allow you to balance observability needs with performance requirements, from basic request counting to detailed performance analytics with percentiles and memory allocation tracking. Understanding these options helps you implement appropriate monitoring for different environments.
+
+| Property | Type | Default | Purpose |
+|----------|------|---------|---------|
+| `EnableRequestMetrics` | `bool` | `true` | Track query and command execution counts |
+| `EnableNotificationMetrics` | `bool` | `true` | Track notification publication counts |
+| `EnableMiddlewareMetrics` | `bool` | `false` | Track middleware execution and performance |
+| `EnablePerformanceCounters` | `bool` | `false` | Enable detailed performance analytics (percentiles, timing) |
+| `EnableDetailedAnalysis` | `bool` | `false` | Enable comprehensive type and handler analysis |
+| `MetricsRetentionPeriod` | `TimeSpan` | `TimeSpan.Zero` | How long to retain metrics (0 = indefinite) |
+| `CleanupInterval` | `TimeSpan` | `TimeSpan.FromHours(1)` | Frequency of automatic cleanup operations |
+| `MaxTrackedRequestTypes` | `int` | `0` | Maximum request types to track (0 = unlimited) |
+
+### Statistics Preset Configurations
+
+Blazing.Mediator provides several preset configurations optimized for different environments and use cases. These presets represent battle-tested combinations of settings that balance observability needs with performance considerations. The presets eliminate the need to manually configure individual statistics options and provide recommended settings for common deployment scenarios.
+
+| Preset Method | Request | Notification | Middleware | Performance | Detailed | Retention | Cleanup | Best For |
+|---------------|---------|-------------|------------|-------------|----------|-----------|---------|----------|
+| `StatisticsOptions.Development()` | ✅ | ✅ | ✅ | ❌ | ✅ | 1 hour | 15 min | Development debugging |
+| `StatisticsOptions.Production()` | ✅ | ✅ | ❌ | ❌ | ❌ | 24 hours | 4 hours | Production monitoring |
+| `StatisticsOptions.Disabled()` | ❌ | ❌ | ❌ | ❌ | ❌ | 0 | Never | High-performance scenarios |
+| Custom High-Observability | ✅ | ✅ | ✅ | ✅ | ✅ | 7 days | 2 hours | Comprehensive analysis |
+
+### Exception Handling Patterns
+
+Proper exception handling is crucial for robust CQRS implementations. These exception types and patterns help you implement consistent error handling across your application, from input validation to business rule violations and technical errors. Understanding these patterns helps you create predictable and maintainable error handling strategies.
+
+| Exception Type | HTTP Status | Purpose | When to Use |
+|----------------|-------------|---------|-------------|
+| `ValidationException` | 400 Bad Request | Input validation failures | FluentValidation errors, malformed requests |
+| `NotFoundException` | 404 Not Found | Resource not found | Entity doesn't exist, invalid IDs |
+| `ConflictException` | 409 Conflict | Business rule violations | Duplicate emails, constraint violations |
+| `UnauthorizedException` | 401 Unauthorized | Authentication failures | Missing or invalid tokens |
+| `ForbiddenException` | 403 Forbidden | Authorization failures | Insufficient permissions |
+| `BusinessException` | 422 Unprocessable Entity | Domain rule violations | Business logic violations |
+
+### Testing Strategy Patterns
+
+Blazing.Mediator is designed to be highly testable with clear separation of concerns and dependency injection throughout. These testing patterns help you implement comprehensive test coverage for your CQRS implementation, from isolated unit tests to full integration tests. Understanding these patterns ensures that your application is reliable and maintainable.
+
+| Test Pattern | Scope | Purpose | Tools |
+|-------------|-------|---------|-------|
+| Unit Testing Handlers | Individual handlers | Test business logic in isolation | Moq, NSubstitute, Shouldly |
+| Integration Testing Controllers | Controller + Mediator | Test complete request flow | WebApplicationFactory, TestServer |
+| Contract Testing | Interface contracts | Verify handler registration and interfaces | Custom analyzers, reflection tests |
+| Pipeline Testing | Middleware pipeline | Test cross-cutting concerns | Pipeline inspection, middleware mocking |
+| Performance Testing | Request handling | Measure and verify performance | BenchmarkDotNet, load testing |
+| End-to-End Testing | Complete system | Test user scenarios | Playwright, Selenium, HTTP clients |
 
 ## Quick Start
 
@@ -317,7 +476,13 @@ builder.Services.AddMediator(config =>
           .AddAssembly(typeof(UpdateProductHandler).Assembly);
 });
 
-// Method 1a: With auto-discovery using fluent configuration
+// Method 1a: Using AddAssemblies with multiple marker types
+builder.Services.AddMediator(config =>
+{
+    config.AddAssemblies(typeof(GetUserHandler), typeof(CreateOrderHandler), typeof(UpdateProductHandler));
+});
+
+// Method 1b: With auto-discovery using fluent configuration
 builder.Services.AddMediator(config =>
 {
     config.WithMiddlewareDiscovery()
@@ -333,7 +498,13 @@ builder.Services.AddMediator(config =>
           .AddAssembly(typeof(ExternalHandler).Assembly);
 });
 
-// Method 2a: With auto-discovery using fluent configuration
+// Method 2a: Using AddAssemblies with multiple assembly references
+builder.Services.AddMediator(config =>
+{
+    config.AddAssemblies(Assembly.GetExecutingAssembly(), typeof(ExternalHandler).Assembly);
+});
+
+// Method 2b: With auto-discovery using fluent configuration
 builder.Services.AddMediator(config =>
 {
     config.WithMiddlewareDiscovery()
@@ -341,25 +512,27 @@ builder.Services.AddMediator(config =>
           .AddAssembly(typeof(ExternalHandler).Assembly);
 });
 
-// Legacy methods (marked as obsolete but still supported for backward compatibility)
-// We recommend migrating to the fluent configuration approach above
+// Method 3: Using calling assembly
+builder.Services.AddMediatorFromCallingAssembly();
 
-// Method 3: Scan calling assembly automatically (OBSOLETE)
-services.AddMediatorFromCallingAssembly();
+// Method 3a: Using calling assembly with configuration
+builder.Services.AddMediatorFromCallingAssembly(config =>
+{
+    config.WithMiddlewareDiscovery()
+          .WithStatisticsTracking();
+});
 
-// Method 3a: Scan calling assembly with auto-discovery (OBSOLETE)
-services.AddMediatorFromCallingAssembly(discoverMiddleware: true);
-
-// Method 4: Scan with filter (OBSOLETE)
-services.AddMediatorFromLoadedAssemblies(assembly =>
-    assembly.FullName.StartsWith("MyCompany.") &&
+// Method 4: Using loaded assemblies with filter
+builder.Services.AddMediatorFromLoadedAssemblies(assembly =>
+    assembly.FullName?.StartsWith("MyCompany.") == true &&
     assembly.FullName.Contains(".Application"));
 
-// Method 4a: Scan with filter and auto-discovery (OBSOLETE)
-services.AddMediatorFromLoadedAssemblies(
-    discoverMiddleware: true,
-    assembly => assembly.FullName.StartsWith("MyCompany.") &&
-               assembly.FullName.Contains(".Application"));
+// Method 4a: Using loaded assemblies with configuration
+builder.Services.AddMediatorFromLoadedAssemblies(config =>
+{
+    config.WithMiddlewareDiscovery()
+          .WithStatisticsTracking();
+}, assembly => assembly.FullName?.StartsWith("MyCompany.") == true);
 ```
 
 > **Migration Note**: The methods marked as obsolete above (`AddMediatorFromCallingAssembly`, `AddMediatorFromLoadedAssemblies`, and `AddMediator` with boolean parameters) are being phased out in favor of the new fluent configuration approach. While they remain supported for backward compatibility, we strongly recommend migrating to `builder.Services.AddMediator(config => { ... })` for better type safety, enhanced functionality, and future-proofing your applications.
@@ -1195,6 +1368,7 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, int>
             FirstName = request.FirstName,
             LastName = request.LastName,
             Email = request.Email,
+            DateOfBirth = request.DateOfBirth,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -1374,64 +1548,10 @@ app.UseHttpsRedirection();
 var api = app.MapGroup("/api/users").WithTags("Users");
 
 api.MapGet("/{id}", async (int id, IMediator mediator) =>
-{
-    try
-    {
-        var query = new GetUserByIdQuery { UserId = id };
-        var user = await mediator.Send(query);
-        return Results.Ok(user);
-    }
-    catch (NotFoundException)
-    {
-        return Results.NotFound();
-    }
-})
-.WithName("GetUser")
-.Produces<UserDto>()
-.Produces(404);
+    await mediator.Send(new GetUserQuery { UserId = id }));
 
-api.MapGet("/", async (
-    IMediator mediator,
-    int page = 1,
-    int pageSize = 10,
-    string searchTerm = "",
-    bool includeInactive = false) =>
-{
-    var query = new GetUsersQuery
-    {
-        Page = page,
-        PageSize = pageSize,
-        SearchTerm = searchTerm,
-        IncludeInactive = includeInactive
-    };
-
-    var result = await mediator.Send(query);
-    return Results.Ok(result);
-})
-.WithName("GetUsers")
-.Produces<PagedResult<UserDto>>();
-
-// Command endpoints (CQRS writes)
 api.MapPost("/", async (CreateUserCommand command, IMediator mediator) =>
-{
-    try
-    {
-        await mediator.Send(command);
-        return Results.Created("/api/users/0", null);
-    }
-    catch (ValidationException ex)
-    {
-        return Results.BadRequest(ex.Errors.Select(e => e.ErrorMessage));
-    }
-    catch (ConflictException ex)
-    {
-        return Results.Conflict(new { message = ex.Message });
-    }
-})
-.WithName("CreateUser")
-.Accepts<CreateUserCommand>("application/json")
-.Produces(201)
-.Produces(400);
+    await mediator.Send(command));
 
 app.Run();
 ```
@@ -1874,7 +1994,7 @@ The middleware pipeline executes in a specific order, wrapping around your reque
     │    │
     │    ├─── 🔧 Middleware 2 (Order: 1) ─── ValidationMiddleware
     │    │    │                              ├─ Pre: Validate request
-    │    │    │                              ├─ Execution: await next()
+    │    │    │                              ├─ Execution: await next() (if valid)
     │    │    │                              └─ Post: Handle validation errors
     │    │    │
     │    │    ├─── 🔧 Middleware 3 (Order: 2) ─── CachingMiddleware (Conditional)
@@ -1979,7 +2099,8 @@ builder.Services.AddMediator(config =>
     // Add standard middleware that logs all requests
     config.AddMiddleware<GeneralLoggingMiddleware<,>>();
     config.AddMiddleware<GeneralCommandLoggingMiddleware<>>();
-}, typeof(Program).Assembly);
+    config.AddAssembly(typeof(Program).Assembly);
+});
 ```
 
 #### Conditional Middleware Configuration
@@ -1991,7 +2112,8 @@ builder.Services.AddMediator(config =>
     // Add conditional middleware - only logs specific request types
     config.AddMiddleware<OrderLoggingMiddleware<,>>();
     config.AddMiddleware<ProductLoggingMiddleware<,>>();
-}, typeof(Program).Assembly);
+    config.AddAssembly(typeof(Program).Assembly);
+});
 ```
 
 #### Advanced Configuration with Multiple Middleware Types
@@ -2009,8 +2131,10 @@ builder.Services.AddMediator(config =>
 
     // Global caching middleware (standard)
     config.AddMiddleware<CachingMiddleware<,>>();
-}, typeof(Program).Assembly);
-```
+    
+    // Register handlers from assembly
+    config.AddAssembly(typeof(Program).Assembly);
+});
 
 #### Auto-Discovery Middleware Configuration
 

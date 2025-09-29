@@ -1,4 +1,4 @@
-﻿# Blazing.Mediator - Advanced Notification Systems Guide
+﻿# Blazing.Mediator - Notification Systems Guide
 
 ## Introduction
 
@@ -295,6 +295,95 @@ Notification handlers serve as the perfect first step in the Outbox Pattern impl
 -   🔧 Idempotency: Ensure message processing is idempotent
 -   🔧 Monitoring: Track message processing success rates and latency
 -   🔧 Cleanup: Regular cleanup of processed messages to prevent table growth
+
+## Quick Reference Tables
+
+### Notification Patterns Comparison
+
+Understanding the two notification systems helps you choose the right approach for your specific requirements. Each pattern serves different architectural needs and provides unique advantages depending on your application's structure and usage patterns.
+
+| **Aspect** | **Manual Subscriber System** | **Automatic Handler System** |
+|------------|-------------------------------|-------------------------------|
+| **Pattern Type** | Observer Pattern | Publish-Subscribe Pattern |
+| **Registration** | Runtime subscription/unsubscription | Compile-time via DI container |
+| **Discovery** | Manual subscription management | Automatic handler discovery |
+| **Interface** | `INotificationSubscriber<T>` | `INotificationHandler<T>` |
+| **Configuration** | `mediator.Subscribe(handler)` | Zero configuration required |
+| **Lifecycle** | Dynamic runtime control | Application startup registration |
+| **Best For** | Client applications, dynamic scenarios | Server applications, structured processing |
+| **Examples** | Blazor WebAssembly, MAUI, WPF | ASP.NET Core, Web API, microservices |
+
+### Core Interfaces
+
+These interfaces form the foundation of both notification systems, providing type-safe contracts for publishing and handling domain events throughout your application.
+
+| **Interface** | **Purpose** | **Pattern** | **Example Usage** |
+|---------------|-------------|-------------|-------------------|
+| `INotification` | Marker interface for all notifications | Both | `public class OrderCreatedNotification : INotification` |
+| `INotificationSubscriber<T>` | Manual subscription interface | Pattern 1 | `public class EmailSubscriber : INotificationSubscriber<OrderCreated>` |
+| `INotificationHandler<T>` | Automatic handler interface | Pattern 2 | `public class EmailHandler : INotificationHandler<OrderCreated>` |
+| `IMediator.Publish()` | Publish notifications | Both | `await _mediator.Publish(new OrderCreatedNotification(...))` |
+| `IMediator.Subscribe()` | Manual subscription | Pattern 1 | `_mediator.Subscribe(emailSubscriber)` |
+| `IMediator.Unsubscribe()` | Manual unsubscription | Pattern 1 | `_mediator.Unsubscribe(emailSubscriber)` |
+
+### Middleware Types
+
+The notification middleware pipeline supports three distinct types of middleware, each providing different levels of type safety and processing scope for comprehensive cross-cutting concerns.
+
+| **Middleware Type** | **Interface** | **Scope** | **Use Case** | **Example** |
+|---------------------|---------------|-----------|--------------|-------------|
+| **Standard Generic** | `INotificationMiddleware<INotification>` | All notifications | Cross-cutting concerns | Logging, validation, metrics |
+| **Type-Constrained** | `INotificationMiddleware<IOrderNotification>` | Specific interface types | Domain-specific processing | Order auditing, customer validation |
+| **Generic Constraints** | `where TNotification : INotification, IAuditableEvent` | Complex type requirements | Advanced scenarios | Security validation, compliance |
+| **Non-Generic** | `INotificationMiddleware` | All notifications (untyped) | Basic processing | Simple logging, error handling |
+
+### Configuration Options
+
+Choose the appropriate configuration method based on your application's complexity and requirements. The fluent configuration API provides maximum flexibility for complex scenarios.
+
+| **Configuration Method** | **Pattern** | **Registration Style** | **Use Case** |
+|---------------------------|-------------|------------------------|--------------|
+| `AddMediator(assembly)` | Both | Automatic discovery | Simple applications |
+| `config.AddNotificationMiddleware<T>()` | Both | Explicit middleware | Custom cross-cutting concerns |
+| `config.WithNotificationHandlerDiscovery()` | Pattern 2 | Auto-discover handlers | Server applications |
+| `services.AddScoped<INotificationSubscriber<T>>()` | Pattern 1 | Manual subscriber registration | Client applications |
+| `mediator.Subscribe(subscriber)` | Pattern 1 | Runtime subscription | Dynamic scenarios |
+
+### Error Handling Strategies
+
+Robust error handling ensures notification processing continues even when individual subscribers or handlers fail, maintaining system stability and reliability.
+
+| **Error Handling Approach** | **Implementation** | **Benefits** | **Example** |
+|------------------------------|-------------------|--------------|-------------|
+| **Isolated Processing** | Try-catch per handler/subscriber | Individual failures don't affect others | `try { await handler.Handle(); } catch { log.Error(); }` |
+| **Middleware Error Handling** | Global error middleware | Centralized error processing | `INotificationMiddleware` with exception handling |
+| **Logging Strategy** | Structured logging | Comprehensive error tracking | `_logger.LogError(ex, "Handler {HandlerType} failed")` |
+| **Circuit Breaker** | Resilience patterns | Prevent cascade failures | `Polly` integration with handlers |
+| **Dead Letter Queue** | Failed message storage | Retry failed notifications | Store failed notifications for later processing |
+
+### Performance Considerations
+
+Optimize notification processing performance by understanding the characteristics and trade-offs of different implementation approaches and architectural decisions.
+
+| **Performance Factor** | **Manual Subscribers** | **Automatic Handlers** | **Optimization Tips** |
+|-------------------------|-------------------------|------------------------|-----------------------|
+| **Registration Overhead** | Runtime subscription cost | Compile-time registration | Use automatic handlers for better startup performance |
+| **Memory Usage** | Dynamic subscriber lists | Static handler registration | Unsubscribe unused manual subscribers |
+| **Processing Speed** | Direct method calls | DI container resolution | Consider scoped vs singleton lifetimes |
+| **Concurrency** | Thread-safe subscription | Parallel handler execution | Use `ConfigureAwait(false)` in handlers (excluding ASP.Net) |
+| **Middleware Pipeline** | Same pipeline overhead | Same pipeline overhead | Use conditional middleware for selective processing |
+
+### Testing Strategies
+
+Each notification pattern supports different testing approaches, enabling comprehensive test coverage for various scenarios and requirements.
+
+| **Testing Approach** | **Manual Subscribers** | **Automatic Handlers** | **Best Practices** |
+|----------------------|-------------------------|-------------------------|--------------------|
+| **Unit Testing** | Mock `INotificationSubscriber<T>` | Mock `INotificationHandler<T>` | Test handlers in isolation |
+| **Integration Testing** | Test actual subscription/unsubscription | Test handler discovery and registration | Verify end-to-end notification flow |
+| **Middleware Testing** | Same pipeline testing | Same pipeline testing | Test middleware in isolation and integrated |
+| **Performance Testing** | Measure subscription overhead | Measure handler throughput | Use performance counters and metrics |
+| **Mocking Strategy** | Mock mediator subscription calls | Mock handler dependencies | Use dependency injection for testability |
 
 ## Pattern 1: Manual Subscriber System (Observer Pattern)
 
@@ -720,7 +809,7 @@ The fundamental interfaces and types that make up the Automatic Handler System i
 
 The primary interface that all automatic handlers must implement to receive notifications from the mediator.
 
-Handlers implement `INotificationHandler<TNotification>`:
+Handlers implement `INotificationHandler<T>`:
 
 ```csharp
 public interface INotificationHandler<in TNotification> : INotificationHandler
@@ -732,7 +821,7 @@ public interface INotificationHandler<in TNotification> : INotificationHandler
 
 #### Notification Middleware Interface
 
-The system supports three distinct types of notification middleware, each providing different levels of type safety and scope control:
+The system supports three distinct types of notification middleware, each providing different levels of type safety and processing scope:
 
 ##### 1. Standard Generic Middleware
 
@@ -1495,7 +1584,7 @@ Key advantages of the Automatic Handler System and scenarios where convention-ba
 
 -   **Zero Configuration**: Handlers are discovered and registered automatically
 -   **Convention-Based**: Follows standard DI patterns and conventions
--   **Type Safety**: Strongly typed handler interfaces with compile-time checking
+-   **Compile-Time Safety**: Strongly typed handler interfaces with compile-time checking
 -   **Separation of Concerns**: Each handler focuses on a single notification type
 -   **Testability**: Easy to unit test individual handlers in isolation
 -   **Scalability**: Automatic registration scales with application growth
@@ -1509,5 +1598,3 @@ Key advantages of the Automatic Handler System and scenarios where convention-ba
 -   **Event-Driven Architecture**: Domain events, integration events, system events
 -   **CQRS Implementation**: Command and query responsibility separation
 -   **Clean Architecture**: Domain layer event handling and cross-cutting concerns
-
-═══════════════════════════════════════════════════════════════════════════════════

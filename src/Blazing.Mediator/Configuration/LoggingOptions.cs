@@ -142,7 +142,7 @@ public sealed class LoggingOptions
     {
         var errors = new List<string>();
 
-        // Check for potentially performance-impacting combinations
+        // Check for potentially performance-impacting combinations (warnings - won't cause exceptions)
         if (EnableConstraintLogging && EnableMiddlewareRoutingLogging && EnablePerformanceTiming)
         {
             errors.Add("Warning: Enabling constraint logging, middleware routing logging, and performance timing together may significantly impact performance in high-volume scenarios.");

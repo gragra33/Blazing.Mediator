@@ -3,7 +3,7 @@ namespace Blazing.Mediator.OpenTelemetry;
 /// <summary>
 /// Result of a telemetry health check.
 /// </summary>
-public sealed class MediatorTelemetryHealthResult
+public sealed class TelemetryHealthResult
 {
     /// <summary>
     /// Gets or sets whether the telemetry system is healthy.

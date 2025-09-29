@@ -273,19 +273,18 @@ public class HealthController : ControllerBase
 
 ## 📈 Performance Benchmarks
 
-```
-BenchmarkDotNet=v0.15.2, OS=Windows 11
-AMD Ryzen 7 3700X, 1 CPU, 16 logical and 8 physical cores
-.NET 9.0.9
+- BenchmarkDotNet=v0.15.2, OS=Windows 11
+- AMD Ryzen 7 3700X, 1 CPU, 16 logical and 8 physical cores
+- .NET 9.0.9
 
-| Method                  | Mean     | Error     | StdDev    | Gen0   | Allocated |
-|------------------------ |---------:|----------:|----------:|-------:|----------:|
-| SendingRequests         | 2.281 us | 0.0453 us | 0.0445 us | 0.2823 |   2.32 KB |
-| PublishingNotifications | 1.912 us | 0.0373 us | 0.0430 us | 0.2537 |   2.08 KB |
-
-```
-
-**Legend:** `[-]` = Without OpenTelemetry | `[+]` = With OpenTelemetry enabled
+| Method                         | Mean     | Error     | StdDev    | Gen0   | Allocated |
+|------------------------------- |---------:|----------:|----------:|-------:|----------:|
+| SendRequests                   | 2.271 us | 0.0439 us | 0.0488 us | 0.2823 |   2.32 KB |
+| SendRequestsWithTelemetry      | 1.709 us | 0.0097 us | 0.0076 us | 0.2155 |   1.77 KB |
+| PublishToHandlers              | 2.356 us | 0.0183 us | 0.0153 us | 0.3510 |   2.89 KB |
+| PublishToHandlersWithTelemetry | 2.002 us | 0.0083 us | 0.0073 us | 0.2670 |   2.21 KB |
+| PublishToSubscribers           | 2.544 us | 0.0129 us | 0.0115 us | 0.3510 |   2.88 KB |
+| PublishToSubscribersTelemetry  | 2.062 us | 0.0121 us | 0.0113 us | 0.2670 |    2.2 KB |
 
 ## 🤝 Contributing
 

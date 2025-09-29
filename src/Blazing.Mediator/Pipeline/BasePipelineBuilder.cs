@@ -1,6 +1,3 @@
-using System.Reflection;
-using System.Text.RegularExpressions;
-
 namespace Blazing.Mediator.Pipeline;
 
 /// <summary>
@@ -73,16 +70,12 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
     /// <summary>
     /// High-performance middleware order calculation with context-aware caching.
     /// Uses single cache with context-aware keys for optimal performance.
-    /// Temporarily disabled for Phase 1 completion, will be re-enabled in Phase 2.
     /// </summary>
     /// <param name="middlewareType">The middleware type to calculate order for.</param>
     /// <param name="existingInfos">Existing middleware collection for context.</param>
     /// <returns>The calculated order value.</returns>
     protected static int GetMiddlewareOrderOptimized(Type middlewareType, IReadOnlyList<MiddlewareInfo> existingInfos)
     {
-        // Temporarily disable caching for Phase 1 completion
-        // This eliminates test contamination issues while we fix the core order calculation
-        // Caching will be re-enabled in Phase 2 with proper isolation
         return CalculateOrderCore(middlewareType, existingInfos);
     }
 

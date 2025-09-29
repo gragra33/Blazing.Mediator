@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace Blazing.Mediator.Statistics;
@@ -48,7 +47,7 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
 
             _subscriptions.AddOrUpdate(
                 notificationType,
-                new ConcurrentBag<SubscriberInfo> { subscriberInfo },
+                [subscriberInfo],
                 (_, existing) =>
                 {
                     existing.Add(subscriberInfo);
@@ -105,7 +104,7 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
         catch (Exception ex)
         {
             // Log the exception but don't throw to avoid breaking unsubscription
-            Debug.WriteLine($"Error tracking unsubscription for {notificationType.Name}: {ex.Message}");
+            //Debug.WriteLine($"Error tracking unsubscription for {notificationType.Name}: {ex.Message}");
         }
     }
 
@@ -117,7 +116,7 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
     public IReadOnlyList<SubscriberInfo> GetActiveSubscribers(Type notificationType)
     {
         if (_disposed || !_subscriptions.TryGetValue(notificationType, out var subscribers))
-            return Array.Empty<SubscriberInfo>();
+            return [];
 
         try
         {
@@ -128,8 +127,8 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Error getting active subscribers for {notificationType.Name}: {ex.Message}");
-            return Array.Empty<SubscriberInfo>();
+            //Debug.WriteLine($"Error getting active subscribers for {notificationType.Name}: {ex.Message}");
+            return [];
         }
     }
 
@@ -162,7 +161,7 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Error getting all subscriptions: {ex.Message}");
+            //Debug.WriteLine($"Error getting all subscriptions: {ex.Message}");
             return new Dictionary<Type, IReadOnlyList<SubscriberInfo>>();
         }
     }
@@ -215,30 +214,9 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error during subscriber cleanup: {ex.Message}");
+                //Debug.WriteLine($"Error during subscriber cleanup: {ex.Message}");
             }
         }
-    }
-
-    /// <summary>
-    /// Gets the count of active subscriptions for a notification type.
-    /// </summary>
-    /// <param name="notificationType">The notification type to count subscribers for.</param>
-    /// <returns>The number of active subscribers.</returns>
-    public int GetActiveSubscriberCount(Type notificationType)
-    {
-        return GetActiveSubscribers(notificationType).Count;
-    }
-
-    /// <summary>
-    /// Gets the subscriber type names for a notification type.
-    /// </summary>
-    /// <param name="notificationType">The notification type to get subscriber types for.</param>
-    /// <returns>List of subscriber type names.</returns>
-    public IReadOnlyList<string> GetSubscriberTypeNames(Type notificationType)
-    {
-        var subscribers = GetActiveSubscribers(notificationType);
-        return subscribers.Select(s => s.SubscriberType.Name).Distinct().ToArray();
     }
 
     /// <summary>

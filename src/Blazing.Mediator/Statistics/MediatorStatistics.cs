@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using static Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder;
 
 namespace Blazing.Mediator.Statistics;
@@ -20,22 +19,9 @@ public sealed class MediatorStatistics : IDisposable
     private const string NoHandlersRegistered = "No handlers registered";
     private const string NoHandlers = "No handlers";
     private const string HandlerFound = "Handler found";
-    private const string IQueryGeneric = "IQuery<{0}>";
-    private const string IRequestGeneric = "IRequest<{0}>";
     private const string IRequest = "IRequest";
     private const string ICommand = "ICommand";
-    private const string ICommandGeneric = "ICommand<{0}>";
     private const string PatternPrefix = "pattern_";
-    private const string RequestTypeLabel = "RequestType";
-    private const string HandlerTypeLabel = "HandlerType";
-    private const string ExceptionTypeLabel = "ExceptionType";
-    private const string PipelineStageLabel = "PipelineStage";
-    private const string NoHandlersMessage = "No handlers registered for request type: ";
-    private const string MultipleHandlersMessage = "Multiple handlers registered for request type: ";
-    private const string ExceptionMessage = "Exception occurred while handling request of type: ";
-    private const string PipelineExceptionMessage = "Exception occurred in pipeline stage: ";
-    private const string StreamingExceptionMessage = "Exception occurred in streaming handler for request type: ";
-    private const string NotificationExceptionMessage = "Exception occurred in notification handler for request type: ";
 
     private readonly ConcurrentDictionary<string, long> _queryCounts = new();
     private readonly ConcurrentDictionary<string, long> _commandCounts = new();
@@ -54,17 +40,6 @@ public sealed class MediatorStatistics : IDisposable
     // Memory usage tracking (when performance counters enabled)
     private long _totalMemoryAllocated;
     private readonly Lock _memoryLock = new();
-
-    // Notification performance counters (only used when EnablePerformanceCounters is true)
-    private readonly ConcurrentDictionary<string, List<long>> _notificationExecutionTimes = new();
-    private readonly ConcurrentDictionary<string, long> _totalNotificationExecutions = new();
-    private readonly ConcurrentDictionary<string, long> _totalNotificationExecutionTime = new();
-    private readonly ConcurrentDictionary<string, long> _failedNotificationExecutions = new();
-    private readonly ConcurrentDictionary<string, DateTime> _lastNotificationExecutionTimes = new();
-
-    // Notification memory usage tracking (when performance counters enabled)
-    private long _totalNotificationMemoryAllocated;
-    private readonly Lock _notificationMemoryLock = new();
 
     // Middleware metrics (only used when EnableMiddlewareMetrics is true)
     private readonly ConcurrentDictionary<string, long> _middlewareExecutionCounts = new();
@@ -215,68 +190,6 @@ public sealed class MediatorStatistics : IDisposable
         }
         
         LogMemoryAllocationRecordedImpl(bytesAllocated);
-    }
-
-    /// <summary>
-    /// Records the execution time for a specific notification type when performance counters are enabled.
-    /// </summary>
-    /// <param name="notificationType">The name of the notification type.</param>
-    /// <param name="executionTimeMs">The execution time in milliseconds.</param>
-    /// <param name="successful">Whether the execution was successful.</param>
-    public void RecordNotificationExecutionTime(string notificationType, long executionTimeMs, bool successful = true)
-    {
-        if (!_options.EnablePerformanceCounters || string.IsNullOrEmpty(notificationType))
-        {
-            return;
-        }
-
-        // Update execution times for percentile calculations
-        _notificationExecutionTimes.AddOrUpdate(notificationType, [executionTimeMs], (_, times) =>
-        {
-            lock (times)
-            {
-                times.Add(executionTimeMs);
-
-                // Keep only the last N entries to prevent unbounded growth
-                if (times.Count > 1000)
-                {
-                    times.RemoveAt(0);
-                }
-
-                return times;
-            }
-        });
-
-        // Update aggregated metrics
-        _totalNotificationExecutions.AddOrUpdate(notificationType, 1, (_, count) => count + 1);
-        _totalNotificationExecutionTime.AddOrUpdate(notificationType, executionTimeMs, (_, total) => total + executionTimeMs);
-        _lastNotificationExecutionTimes[notificationType] = DateTime.UtcNow;
-
-        if (!successful)
-        {
-            _failedNotificationExecutions.AddOrUpdate(notificationType, 1, (_, count) => count + 1);
-        }
-        
-        LogNotificationExecutionTimeRecordedImpl(notificationType, executionTimeMs, successful);
-    }
-
-    /// <summary>
-    /// Records memory allocation for notification processing when performance counters are enabled.
-    /// </summary>
-    /// <param name="bytesAllocated">The number of bytes allocated for notification processing.</param>
-    public void RecordNotificationMemoryAllocation(long bytesAllocated)
-    {
-        if (!_options.EnablePerformanceCounters)
-        {
-            return;
-        }
-
-        lock (_notificationMemoryLock)
-        {
-            _totalNotificationMemoryAllocated += bytesAllocated;
-        }
-        
-        LogNotificationMemoryAllocationRecordedImpl(bytesAllocated);
     }
 
     /// <summary>
@@ -747,7 +660,7 @@ public sealed class MediatorStatistics : IDisposable
         catch (Exception ex)
         {
             // For debugging: log the exception details (in production this would be logged)
-            Debug.WriteLine($"Error finding handlers for {requestType.Name}: {ex.Message}");
+            //Debug.WriteLine($"Error finding handlers for {requestType.Name}: {ex.Message}");
         }
 
         return handlers;
@@ -797,11 +710,11 @@ public sealed class MediatorStatistics : IDisposable
             {
                 case 0:
                     handlerStatus = HandlerStatus.Missing;
-                    handlerDetails = isDetailed ? "No handlers registered" : "No handlers";
+                    handlerDetails = isDetailed ? NoHandlersRegistered : NoHandlers;
                     break;
                 case 1:
                     handlerStatus = HandlerStatus.Single;
-                    handlerDetails = isDetailed ? handlers[0].Name : "Handler found";
+                    handlerDetails = isDetailed ? handlers[0].Name : HandlerFound;
                     break;
                 default:
                     handlerStatus = HandlerStatus.Multiple;
@@ -898,7 +811,7 @@ public sealed class MediatorStatistics : IDisposable
         catch (Exception ex)
         {
             // For debugging: log the exception details
-            Debug.WriteLine($"Error finding handlers for notification {notificationType.Name}: {ex.Message}");
+            //Debug.WriteLine($"Error finding handlers for notification {notificationType.Name}: {ex.Message}");
         }
 
         return handlers;
@@ -973,8 +886,6 @@ public sealed class MediatorStatistics : IDisposable
         {
             var className = type.Name;
             var typeParameters = string.Empty;
-            Type? responseType = null;
-            string primaryInterface;
             bool isResultType = false;
 
             // Handle generic types
@@ -994,7 +905,7 @@ public sealed class MediatorStatistics : IDisposable
 
             // Enhanced interface detection with priority for custom domain interfaces
             var interfaces = type.GetInterfaces();
-            (primaryInterface, responseType) = DetectPrimaryInterface(interfaces, isQuery);
+            (string primaryInterface, Type? responseType) = DetectPrimaryInterface(interfaces, isQuery);
 
             // ALWAYS discover handlers using the same logic, regardless of detail level
             var handlers = FindHandlersForRequestType(type, serviceProvider);
@@ -1010,7 +921,7 @@ public sealed class MediatorStatistics : IDisposable
                     break;
                 case 1:
                     handlerStatus = HandlerStatus.Single;
-                    handlerDetails = isDetailed ? handlers[0].Name : "Handler found";
+                    handlerDetails = isDetailed ? handlers[0].Name : HandlerFound;
                     break;
                 default:
                     handlerStatus = HandlerStatus.Multiple;
@@ -1148,7 +1059,10 @@ public sealed class MediatorStatistics : IDisposable
     /// <returns>The most specific interface and its response type (if applicable).</returns>
     private static (Type? Interface, Type? ResponseType) FindMostSpecificInterface(List<Type> customInterfaces, bool isQuery)
     {
-        if (customInterfaces.Count == 0) return (null, null);
+        if (customInterfaces.Count == 0)
+        {
+            return (null, null);
+        }
 
         // If there's only one custom interface, use it
         if (customInterfaces.Count == 1)
@@ -1209,8 +1123,8 @@ public sealed class MediatorStatistics : IDisposable
         // Bonus for interfaces that don't directly match built-in patterns
         // This helps prioritize custom interfaces over built-in ones
         var interfaceName = interfaceType.Name;
-        if (!interfaceName.Equals("IRequest") && 
-            !interfaceName.Equals("ICommand") && 
+        if (!interfaceName.Equals(IRequest) && 
+            !interfaceName.Equals(ICommand) && 
             !interfaceName.StartsWith("IRequest`") &&
             !interfaceName.StartsWith("ICommand`") &&
             !interfaceName.StartsWith("IQuery`"))
@@ -1290,7 +1204,7 @@ public sealed class MediatorStatistics : IDisposable
                 }
                 else
                 {
-                    primaryInterface = "IRequest";
+                    primaryInterface = IRequest;
                 }
             }
         }
@@ -1299,7 +1213,7 @@ public sealed class MediatorStatistics : IDisposable
             // For commands, prioritize ICommand > ICommand<T> > IRequest > IRequest<T>
             if (builtInInterfaces.Any(i => i == typeof(ICommand)))
             {
-                primaryInterface = "ICommand";
+                primaryInterface = ICommand;
             }
             else
             {
@@ -1311,7 +1225,7 @@ public sealed class MediatorStatistics : IDisposable
                 }
                 else if (builtInInterfaces.Any(i => i == typeof(IRequest)))
                 {
-                    primaryInterface = "IRequest";
+                    primaryInterface = IRequest;
                 }
                 else
                 {
@@ -1641,16 +1555,6 @@ public sealed class MediatorStatistics : IDisposable
     }
 
     /// <summary>
-    /// Gets the display type for an operation (Request or Notification).
-    /// </summary>
-    /// <param name="operationType">The operation type name.</param>
-    /// <returns>"Request" or "Notification" based on the operation type.</returns>
-    private static string GetOperationType(string operationType)
-    {
-        return IsNotificationType(operationType) ? "Notification" : "Request";
-    }
-
-    /// <summary>
     /// Records detailed execution pattern when detailed analysis is enabled.
     /// </summary>
     /// <param name="operationType">The operation type name (request or notification).</param>
@@ -1743,62 +1647,4 @@ public sealed class MediatorStatistics : IDisposable
         var weight = index - lower;
         return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
     }
-}
-
-// Extension method to help with concurrent collections
-public static class CollectionExtensions
-{
-    public static ConcurrentHashSet<T> ToConcurrentHashSet<T>(this IEnumerable<T> source)
-    {
-        var hashSet = new ConcurrentHashSet<T>();
-        foreach (var item in source)
-        {
-            hashSet.Add(item);
-        }
-        return hashSet;
-    }
-}
-
-// Simple thread-safe hash set implementation
-public class ConcurrentHashSet<T> : IEnumerable<T>
-{
-    private readonly HashSet<T> _hashSet = new();
-    private readonly Lock _lock = new();
-
-    public void Add(T item)
-    {
-        lock (_lock)
-        {
-            _hashSet.Add(item);
-        }
-    }
-
-    public void Clear()
-    {
-        lock (_lock)
-        {
-            _hashSet.Clear();
-        }
-    }
-
-    public int Count
-    {
-        get
-        {
-            lock (_lock)
-            {
-                return _hashSet.Count;
-            }
-        }
-    }
-
-    public IEnumerator<T> GetEnumerator()
-    {
-        lock (_lock)
-        {
-            return _hashSet.ToList().GetEnumerator();
-        }
-    }
-
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }

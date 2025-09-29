@@ -7,7 +7,7 @@ namespace Blazing.Mediator.OpenTelemetry;
 /// Telemetry context for streaming operations that tracks comprehensive packet-level metrics.
 /// </summary>
 /// <typeparam name="TResponse">The type of response items in the stream</typeparam>
-internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse> request, MediatorTelemetryOptions? telemetryOptions)
+internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse> request, TelemetryOptions? telemetryOptions)
 {
     private readonly IStreamRequest<TResponse> _request = request ?? throw new ArgumentNullException(nameof(request));
     private readonly List<double> _interPacketTimes = new();
@@ -81,9 +81,6 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
     private const string GoodPerformance = "good";
     private const string FairPerformance = "fair";
     private const string PoorPerformance = "poor";
-    private const string MiddlewareReplacement = "Middleware";
-    private const string MiddlewareLowerReplacement = "middleware";
-    private const string EllipsisEnding = "...";
     private const string CommaDelimiter = ",";
     private const string ActivityNamePrefix = "Mediator.SendStream:";
     private const string PacketSuffix = ".packet_";

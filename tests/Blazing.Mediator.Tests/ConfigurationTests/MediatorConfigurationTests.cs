@@ -415,7 +415,7 @@ public class MediatorConfigurationTests
         var config = new MediatorConfiguration();
 
         // Act & Assert
-        Should.Throw<ArgumentNullException>(() => config.WithTelemetry((Action<MediatorTelemetryOptions>)null!));
+        Should.Throw<ArgumentNullException>(() => config.WithTelemetry((Action<TelemetryOptions>)null!));
     }
 
     [Fact]
@@ -423,7 +423,7 @@ public class MediatorConfigurationTests
     {
         // Arrange
         var config = new MediatorConfiguration();
-        var options = new MediatorTelemetryOptions
+        var options = new TelemetryOptions
         {
             CapturePacketSize = true,
             PacketTelemetryBatchSize = 25
@@ -448,7 +448,7 @@ public class MediatorConfigurationTests
         var config = new MediatorConfiguration();
 
         // Act & Assert
-        Should.Throw<ArgumentNullException>(() => config.WithTelemetry((MediatorTelemetryOptions)null!));
+        Should.Throw<ArgumentNullException>(() => config.WithTelemetry((TelemetryOptions)null!));
     }
 
     [Fact]

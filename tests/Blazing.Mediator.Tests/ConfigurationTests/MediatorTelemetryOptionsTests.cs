@@ -15,7 +15,7 @@ public class MediatorTelemetryOptionsTests
     public void DefaultConstructor_ShouldSetCorrectDefaultValues()
     {
         // Act
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Assert
         options.Enabled.ShouldBeTrue();
@@ -40,7 +40,7 @@ public class MediatorTelemetryOptionsTests
     public void DefaultConstructor_ShouldSetCorrectSensitiveDataPatterns()
     {
         // Act
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Assert
         var expectedPatterns = new[] { "password", "token", "secret", "key", "auth", "credential", "connection" };
@@ -60,7 +60,7 @@ public class MediatorTelemetryOptionsTests
     public void Enabled_WhenSetToFalse_ShouldDisableTelemetry()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.Enabled = false;
@@ -73,7 +73,7 @@ public class MediatorTelemetryOptionsTests
     public void CaptureMiddlewareDetails_WhenSetToFalse_ShouldDisableMiddlewareCapture()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.CaptureMiddlewareDetails = false;
@@ -88,7 +88,7 @@ public class MediatorTelemetryOptionsTests
     public void CaptureHandlerDetails_WhenSetToValue_ShouldUpdateCorrectly(bool value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.CaptureHandlerDetails = value;
@@ -103,7 +103,7 @@ public class MediatorTelemetryOptionsTests
     public void CaptureExceptionDetails_WhenSetToValue_ShouldUpdateCorrectly(bool value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.CaptureExceptionDetails = value;
@@ -118,7 +118,7 @@ public class MediatorTelemetryOptionsTests
     public void EnableHealthChecks_WhenSetToValue_ShouldUpdateCorrectly(bool value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.EnableHealthChecks = value;
@@ -135,7 +135,7 @@ public class MediatorTelemetryOptionsTests
     public void MaxExceptionMessageLength_WhenSetToValidValue_ShouldUpdateCorrectly()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.MaxExceptionMessageLength = 500;
@@ -152,7 +152,7 @@ public class MediatorTelemetryOptionsTests
     public void MaxExceptionMessageLength_WhenSetToValidValues_ShouldUpdateCorrectly(int value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.MaxExceptionMessageLength = value;
@@ -169,7 +169,7 @@ public class MediatorTelemetryOptionsTests
     public void MaxStackTraceLines_WhenSetToValidValue_ShouldUpdateCorrectly(int value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.MaxStackTraceLines = value;
@@ -182,7 +182,7 @@ public class MediatorTelemetryOptionsTests
     public void PacketTelemetryBatchSize_WhenSetToValidValue_ShouldUpdateCorrectly()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.PacketTelemetryBatchSize = 50;
@@ -199,7 +199,7 @@ public class MediatorTelemetryOptionsTests
     public void PacketTelemetryBatchSize_WhenSetToValidValues_ShouldUpdateCorrectly(int value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.PacketTelemetryBatchSize = value;
@@ -216,7 +216,7 @@ public class MediatorTelemetryOptionsTests
     public void PacketLevelTelemetryEnabled_WhenSetToTrue_ShouldEnablePacketTelemetry()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.PacketLevelTelemetryEnabled = true;
@@ -229,7 +229,7 @@ public class MediatorTelemetryOptionsTests
     public void EnableStreamingMetrics_WhenSetToFalse_ShouldDisableStreamingMetrics()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.EnableStreamingMetrics = false;
@@ -244,7 +244,7 @@ public class MediatorTelemetryOptionsTests
     public void EnableStreamingMetrics_WhenSetToValue_ShouldUpdateCorrectly(bool value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.EnableStreamingMetrics = value;
@@ -257,7 +257,7 @@ public class MediatorTelemetryOptionsTests
     public void CapturePacketSize_WhenSetToTrue_ShouldEnablePacketSizeCapture()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.CapturePacketSize = true;
@@ -272,7 +272,7 @@ public class MediatorTelemetryOptionsTests
     public void CapturePacketSize_WhenSetToValue_ShouldUpdateCorrectly(bool value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.CapturePacketSize = value;
@@ -287,7 +287,7 @@ public class MediatorTelemetryOptionsTests
     public void EnableStreamingPerformanceClassification_WhenSetToValue_ShouldUpdateCorrectly(bool value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.EnableStreamingPerformanceClassification = value;
@@ -304,7 +304,7 @@ public class MediatorTelemetryOptionsTests
     public void PerformanceThresholds_WhenSetToCustomValues_ShouldUpdateCorrectly()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.ExcellentPerformanceThreshold = 0.05;
@@ -325,7 +325,7 @@ public class MediatorTelemetryOptionsTests
     public void ExcellentPerformanceThreshold_WhenSetToValidValue_ShouldUpdateCorrectly(double value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.ExcellentPerformanceThreshold = value;
@@ -342,7 +342,7 @@ public class MediatorTelemetryOptionsTests
     public void GoodPerformanceThreshold_WhenSetToValidValue_ShouldUpdateCorrectly(double value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.GoodPerformanceThreshold = value;
@@ -359,7 +359,7 @@ public class MediatorTelemetryOptionsTests
     public void FairPerformanceThreshold_WhenSetToValidValue_ShouldUpdateCorrectly(double value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.FairPerformanceThreshold = value;
@@ -372,7 +372,7 @@ public class MediatorTelemetryOptionsTests
     public void PerformanceThresholds_WhenSetToCustomValues_ShouldUpdateAllCorrectly()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.ExcellentPerformanceThreshold = 0.05;
@@ -393,7 +393,7 @@ public class MediatorTelemetryOptionsTests
     public void SensitiveDataPatterns_WhenModified_ShouldAllowCustomization()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.SensitiveDataPatterns.Add("custom-pattern");
@@ -407,7 +407,7 @@ public class MediatorTelemetryOptionsTests
     public void SensitiveDataPatterns_WhenModified_ShouldAllowMultipleCustomizations()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.SensitiveDataPatterns.Add("custom-pattern");
@@ -423,7 +423,7 @@ public class MediatorTelemetryOptionsTests
     public void SensitiveDataPatterns_WhenCleared_ShouldRemoveAllPatterns()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.SensitiveDataPatterns.Clear();
@@ -436,7 +436,7 @@ public class MediatorTelemetryOptionsTests
     public void SensitiveDataPatterns_WhenReplacedWithCustomList_ShouldUseCustomList()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
         var customPatterns = new List<string> { "custom1", "custom2", "custom3" };
 
         // Act
@@ -454,7 +454,7 @@ public class MediatorTelemetryOptionsTests
     public void SensitiveDataPatterns_WhenRemoving_ShouldRemoveSpecificPattern()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
         var originalCount = options.SensitiveDataPatterns.Count;
 
         // Act
@@ -477,7 +477,7 @@ public class MediatorTelemetryOptionsTests
     public void MaxExceptionMessageLength_WhenSetToZeroOrNegative_ShouldAcceptValue(int value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act & Assert - Should not throw, behavior is up to consuming code
         options.MaxExceptionMessageLength = value;
@@ -491,7 +491,7 @@ public class MediatorTelemetryOptionsTests
     public void MaxStackTraceLines_WhenSetToZeroOrNegative_ShouldAcceptValue(int value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act & Assert - Should not throw, behavior is up to consuming code
         options.MaxStackTraceLines = value;
@@ -505,7 +505,7 @@ public class MediatorTelemetryOptionsTests
     public void PacketTelemetryBatchSize_WhenSetToZeroOrNegative_ShouldAcceptValue(int value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act & Assert - Should not throw, behavior is up to consuming code
         options.PacketTelemetryBatchSize = value;
@@ -520,7 +520,7 @@ public class MediatorTelemetryOptionsTests
     public void PerformanceThresholds_WhenSetToEdgeValues_ShouldAcceptValues(double value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act & Assert - Should not throw, behavior is up to consuming code
         options.ExcellentPerformanceThreshold = value;
@@ -540,7 +540,7 @@ public class MediatorTelemetryOptionsTests
     public void PerformanceThresholds_WhenSetToExtremeValues_ShouldAcceptValues(double value)
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act & Assert - Should not throw, behavior is up to consuming code
         options.ExcellentPerformanceThreshold = value;
@@ -556,7 +556,7 @@ public class MediatorTelemetryOptionsTests
     public void PerformanceThresholds_WhenSetToNaN_ShouldAcceptNaN()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.ExcellentPerformanceThreshold = double.NaN;
@@ -577,7 +577,7 @@ public class MediatorTelemetryOptionsTests
     public void Configuration_ForHighPerformanceScenario_ShouldConfigureCorrectly()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act - Configure for high performance (minimal telemetry overhead)
         options.Enabled = true;
@@ -606,7 +606,7 @@ public class MediatorTelemetryOptionsTests
     public void Configuration_ForDebugScenario_ShouldConfigureCorrectly()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act - Configure for detailed debugging (maximum telemetry)
         options.Enabled = true;
@@ -637,7 +637,7 @@ public class MediatorTelemetryOptionsTests
     public void Configuration_ForProductionScenario_ShouldConfigureCorrectly()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act - Configure for production (balanced telemetry)
         options.Enabled = true;
@@ -668,7 +668,7 @@ public class MediatorTelemetryOptionsTests
     public void Configuration_WhenDisablingAllFeatures_ShouldDisableCorrectly()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act - Disable all telemetry features
         options.Enabled = false;
@@ -701,7 +701,7 @@ public class MediatorTelemetryOptionsTests
     public void PropertyChanges_ShouldNotAffectOtherProperties()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
         var originalGoodThreshold = options.GoodPerformanceThreshold;
         var originalFairThreshold = options.FairPerformanceThreshold;
         var originalPatternsCount = options.SensitiveDataPatterns.Count;
@@ -719,7 +719,7 @@ public class MediatorTelemetryOptionsTests
     public void BooleanProperties_ShouldBeIndependent()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act - Change one boolean property
         options.Enabled = false;
@@ -741,7 +741,7 @@ public class MediatorTelemetryOptionsTests
     public void SensitiveDataPatterns_WhenSetToNull_ShouldThrowException()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act & Assert
         Should.Throw<NullReferenceException>(() => 
@@ -756,7 +756,7 @@ public class MediatorTelemetryOptionsTests
     public void SensitiveDataPatterns_WhenAddingNull_ShouldAllowNull()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act & Assert - Should not throw, List<string> allows null values
         Should.NotThrow(() => options.SensitiveDataPatterns.Add(null!));
@@ -767,7 +767,7 @@ public class MediatorTelemetryOptionsTests
     public void SensitiveDataPatterns_WhenAddingEmptyString_ShouldAllowEmptyString()
     {
         // Arrange
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
 
         // Act
         options.SensitiveDataPatterns.Add(string.Empty);

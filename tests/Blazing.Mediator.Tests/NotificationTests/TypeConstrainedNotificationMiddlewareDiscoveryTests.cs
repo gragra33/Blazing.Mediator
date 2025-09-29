@@ -6,7 +6,6 @@ namespace Blazing.Mediator.Tests.NotificationTests;
 
 /// <summary>
 /// Tests for type-constrained notification middleware auto-discovery functionality.
-/// Tests Phase 2 Step 2.4: Add constraint-based middleware discovery in auto-discovery process.
 /// </summary>
 public class TypeConstrainedNotificationMiddlewareDiscoveryTests
 {

@@ -3,20 +3,20 @@ namespace Blazing.Mediator.OpenTelemetry;
 /// <summary>
 /// Health check for Blazing.Mediator telemetry system.
 /// </summary>
-public sealed class MediatorTelemetryHealthCheck
+public sealed class TelemetryHealthCheck
 {
     /// <summary>
     /// Checks the health of the telemetry system.
     /// </summary>
     /// <returns>A health check result.</returns>
-    public static MediatorTelemetryHealthResult CheckHealth()
+    public static TelemetryHealthResult CheckHealth()
     {
         try
         {
             var isEnabled = Mediator.TelemetryEnabled;
             var isWorking = Mediator.GetTelemetryHealth();
 
-            return new MediatorTelemetryHealthResult
+            return new TelemetryHealthResult
             {
                 IsHealthy = isEnabled && isWorking,
                 IsEnabled = isEnabled,
@@ -32,7 +32,7 @@ public sealed class MediatorTelemetryHealthCheck
         }
         catch (Exception ex)
         {
-            return new MediatorTelemetryHealthResult
+            return new TelemetryHealthResult
             {
                 IsHealthy = false,
                 IsEnabled = false,

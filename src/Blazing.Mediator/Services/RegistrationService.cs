@@ -7,19 +7,18 @@ namespace Blazing.Mediator.Services;
 /// Static service responsible for registering mediator services, handlers, and middleware in the dependency injection container.
 /// This class encapsulates the core registration logic separated from the extension methods.
 /// Enhanced with registration-time performance optimizations and pre-caching capabilities.
-/// Phase 4 Enhancement: Advanced compile-time optimizations and comprehensive pre-caching system.
 /// </summary>
-internal static class MediatorRegistrationService
+internal static class RegistrationService
 {
-    // Phase 4 Enhancement: Advanced high-impact pre-caching during DI registration
+    // Advanced high-impact pre-caching during DI registration
     private static readonly ConcurrentDictionary<Type, MiddlewareMetadata> _middlewareCache = new();
     private static readonly ConcurrentDictionary<Type, HandlerMetadata> _handlerCache = new();
     
-    // Phase 4 Enhancement: Compile-time optimizations using frozen collections for better performance
+    // Compile-time optimizations using frozen collections for better performance
     private static readonly ConcurrentDictionary<Assembly, FrozenSet<Type>> _assemblyTypeCache = new();
     private static readonly ConcurrentDictionary<Type, FrozenSet<Type>> _interfaceCache = new();
     
-    // Phase 4 Enhancement: Pre-calculated common type lookups for maximum performance
+    // Pre-calculated common type lookups for maximum performance
     private static readonly FrozenDictionary<string, Type> _commonMiddlewareInterfaces = new Dictionary<string, Type>
     {
         ["IRequestMiddleware<>"] = typeof(IRequestMiddleware<>),
@@ -42,7 +41,7 @@ internal static class MediatorRegistrationService
     }.ToFrozenDictionary();
 
     /// <summary>
-    /// Phase 4 Enhancement: Cached metadata for middleware types to minimize runtime reflection calls.
+    /// Cached metadata for middleware types to minimize runtime reflection calls.
     /// Enhanced with compile-time optimizations and comprehensive pre-caching.
     /// </summary>
     internal sealed record MiddlewareMetadata(
@@ -51,7 +50,6 @@ internal static class MediatorRegistrationService
         string[] InterfaceNames,            // Pre-calculated interface names
         bool IsGenericTypeDefinition,       // Cached boolean check
         Type[]? GenericConstraints,         // Pre-analyzed constraints
-        // Phase 4 Enhancement: Additional compile-time cached properties
         bool IsConditionalMiddleware,       // Pre-calculated conditional check
         bool IsNotificationMiddleware,      // Pre-calculated notification middleware check
         bool IsStreamMiddleware,            // Pre-calculated stream middleware check
@@ -60,7 +58,7 @@ internal static class MediatorRegistrationService
     );
 
     /// <summary>
-    /// Phase 4 Enhancement: Cached metadata for handler types to minimize runtime reflection calls.
+    /// Cached metadata for handler types to minimize runtime reflection calls.
     /// </summary>
     internal sealed record HandlerMetadata(
         string CleanTypeName,               // Cached handler name
@@ -73,7 +71,6 @@ internal static class MediatorRegistrationService
     /// <summary>
     /// Core implementation for all AddMediator methods to prevent recursion.
     /// Handles configuration creation, assembly resolution, and service registration.
-    /// Phase 4 Enhancement: Optimized with compile-time caching and pre-calculation.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="options">Optional action to configure middleware pipeline.</param>
@@ -92,7 +89,7 @@ internal static class MediatorRegistrationService
         Assembly[]? assemblies,
         Assembly? callingAssembly)
     {
-        // Phase 4 Enhancement: Pre-warm assembly type cache for better performance
+        // Pre-warm assembly type cache for better performance
         if (assemblies is { Length: > 0 })
         {
             PreWarmAssemblyTypeCache(assemblies);
@@ -177,7 +174,7 @@ internal static class MediatorRegistrationService
 
     /// <summary>
     /// Registers the core mediator services in the dependency injection container.
-    /// Phase 4 Enhancement: Optimized registration flow with pre-caching.
+    /// Optimized registration flow with pre-caching.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">The mediator configuration.</param>
@@ -232,7 +229,7 @@ internal static class MediatorRegistrationService
         RegisterPipelineComponents(services, configuration);
         RegisterHandlers(services, assemblies, configuration.DiscoverNotificationHandlers);
 
-        // Phase 4 Enhancement: Pre-cache utilities for runtime performance
+        // Pre-cache utilities for runtime performance
         if (assemblies is { Length: > 0 })
         {
             var middlewareTypes = GetCachedMiddlewareTypes(assemblies);
@@ -247,7 +244,7 @@ internal static class MediatorRegistrationService
     /// </summary>
     private static void RegisterTelemetryOptions(IServiceCollection services, MediatorConfiguration configuration, bool hasTelemetryOptions)
     {
-        if (hasTelemetryOptions && services.All(s => s.ServiceType != typeof(MediatorTelemetryOptions)))
+        if (hasTelemetryOptions && services.All(s => s.ServiceType != typeof(TelemetryOptions)))
         {
             services.AddSingleton(configuration.TelemetryOptions!);
         }
@@ -315,7 +312,7 @@ internal static class MediatorRegistrationService
                 var pipelineBuilder = provider.GetRequiredService<IMiddlewarePipelineBuilder>();
                 var notificationPipelineBuilder = provider.GetRequiredService<INotificationPipelineBuilder>();
                 var statistics = shouldRegisterStatistics ? provider.GetRequiredService<MediatorStatistics>() : null;
-                var telemetryOptions = provider.GetService<MediatorTelemetryOptions>();
+                var telemetryOptions = provider.GetService<TelemetryOptions>();
                 var baseLogger = provider.GetService<ILogger<Mediator>>();
                 var loggingOptions = provider.GetService<LoggingOptions>();
                 // Only create MediatorLogger if logging options are configured (not null)
@@ -329,7 +326,7 @@ internal static class MediatorRegistrationService
 
     /// <summary>
     /// Registers middleware from the specified assemblies with enhanced support for constrained middleware.
-    /// Phase 4 Enhancement: Optimized with pre-cached assembly scanning.
+    /// Optimized with pre-cached assembly scanning.
     /// </summary>
     private static void RegisterMiddleware(IServiceCollection services, MediatorConfiguration configuration, Assembly[]? assemblies, bool finalDiscoverMiddleware, bool finalDiscoverNotificationMiddleware)
     {
@@ -395,7 +392,7 @@ internal static class MediatorRegistrationService
 
     /// <summary>
     /// Registers handlers from the specified assemblies.
-    /// Phase 4 Enhancement: Optimized with pre-cached handler discovery.
+    /// Optimized with pre-cached handler discovery.
     /// </summary>
     private static void RegisterHandlers(IServiceCollection services, Assembly[]? assemblies, bool discoverNotificationHandlers)
     {
@@ -412,10 +409,10 @@ internal static class MediatorRegistrationService
         }
     }
 
-    #region Phase 4: Compile-Time Optimizations
+    #region Compile-Time Optimizations
 
     /// <summary>
-    /// Phase 4 Enhancement: Pre-warms assembly type cache for better performance.
+    /// Pre-warms assembly type cache for better performance.
     /// This compile-time optimization reduces reflection overhead during registration.
     /// </summary>
     /// <param name="assemblies">Assemblies to pre-warm cache for.</param>
@@ -443,7 +440,7 @@ internal static class MediatorRegistrationService
     }
 
     /// <summary>
-    /// Phase 4 Enhancement: Gets cached types from assembly for better performance.
+    /// Gets cached types from assembly for better performance.
     /// </summary>
     /// <param name="assembly">Assembly to get types from.</param>
     /// <returns>Cached frozen set of types.</returns>
@@ -473,7 +470,7 @@ internal static class MediatorRegistrationService
     }
 
     /// <summary>
-    /// Phase 4 Enhancement: Gets cached middleware types from assemblies.
+    /// Gets cached middleware types from assemblies.
     /// </summary>
     /// <param name="assemblies">Assemblies to scan for middleware types.</param>
     /// <returns>Collection of middleware types found.</returns>
@@ -493,7 +490,7 @@ internal static class MediatorRegistrationService
     }
 
     /// <summary>
-    /// Phase 4 Enhancement: Cached check if type is middleware using pre-calculated interface lookups.
+    /// Cached check if type is middleware using pre-calculated interface lookups.
     /// </summary>
     /// <param name="type">Type to check.</param>
     /// <returns>True if type is middleware.</returns>
@@ -501,17 +498,17 @@ internal static class MediatorRegistrationService
     {
         if (_interfaceCache.TryGetValue(type, out var cachedInterfaces))
         {
-            return cachedInterfaces.Any(i => IsMiddlewareInterface(i));
+            return cachedInterfaces.Any(IsMiddlewareInterface);
         }
 
         var interfaces = type.GetInterfaces().ToFrozenSet();
         _interfaceCache.TryAdd(type, interfaces);
         
-        return interfaces.Any(i => IsMiddlewareInterface(i));
+        return interfaces.Any(IsMiddlewareInterface);
     }
 
     /// <summary>
-    /// Phase 4 Enhancement: Optimized middleware interface check using frozen dictionary lookups.
+    /// Optimized middleware interface check using frozen dictionary lookups.
     /// </summary>
     /// <param name="interfaceType">Interface type to check.</param>
     /// <returns>True if interface is a middleware interface.</returns>
@@ -535,7 +532,7 @@ internal static class MediatorRegistrationService
     /// <summary>  
     /// Registers middleware from a single assembly with enhanced support for type-constrained notification middleware.
     /// Enhanced with registration-time pre-caching for optimal runtime performance.
-    /// Phase 4 Enhancement: Optimized with compile-time caching and frozen collections.
+    /// Optimized with compile-time caching and frozen collections.
     /// </summary>  
     /// <param name="services">The service collection for DI registration.</param>
     /// <param name="configuration">The mediator configuration.</param>  
@@ -546,7 +543,7 @@ internal static class MediatorRegistrationService
     {
         try
         {
-            // Phase 4 Enhancement: Use cached assembly types for better performance
+            // Use cached assembly types for better performance
             var assemblyTypes = GetCachedAssemblyTypes(assembly);
             
             List<Type> middlewareTypes = assemblyTypes
@@ -616,7 +613,7 @@ internal static class MediatorRegistrationService
     /// <summary>
     /// Pre-caches middleware metadata during DI registration to minimize runtime reflection calls.
     /// This is a high-impact performance optimization that moves expensive operations from runtime to startup.
-    /// Phase 4 Enhancement: Enhanced with comprehensive compile-time metadata caching.
+    /// Enhanced with comprehensive compile-time metadata caching.
     /// </summary>
     /// <param name="middlewareType">The middleware type to cache metadata for.</param>
     private static void PreCacheMiddlewareMetadata(Type middlewareType)
@@ -626,9 +623,9 @@ internal static class MediatorRegistrationService
             return; // Already cached
         }
 
-        // Phase 4 Enhancement: Comprehensive metadata pre-calculation
+        // Comprehensive metadata pre-calculation
         var interfaces = middlewareType.GetInterfaces();
-        var interfaceNames = interfaces.Select(i => PipelineUtilities.FormatTypeName(i)).ToArray();
+        var interfaceNames = interfaces.Select(PipelineUtilities.FormatTypeName).ToArray();
         var interfacePatterns = interfaces.Select(i => i.IsGenericType ? i.GetGenericTypeDefinition().Name : i.Name).ToFrozenSet();
         
         var metadata = new MiddlewareMetadata(
@@ -637,7 +634,7 @@ internal static class MediatorRegistrationService
             InterfaceNames: interfaceNames,
             IsGenericTypeDefinition: middlewareType.IsGenericTypeDefinition,
             GenericConstraints: GetConstraintsOnce(middlewareType),
-            // Phase 4 Enhancement: Additional pre-calculated properties
+            // Additional pre-calculated properties
             IsConditionalMiddleware: IsConditionalMiddleware(interfaces),
             IsNotificationMiddleware: IsNotificationMiddleware(interfaces),
             IsStreamMiddleware: IsStreamMiddleware(interfaces),
@@ -649,7 +646,7 @@ internal static class MediatorRegistrationService
     }
 
     /// <summary>
-    /// Phase 4 Enhancement: Pre-caches handler metadata during registration.
+    /// Pre-caches handler metadata during registration.
     /// </summary>
     /// <param name="handlerType">The handler type to cache metadata for.</param>
     private static void PreCacheHandlerMetadata(Type handlerType)
@@ -678,7 +675,7 @@ internal static class MediatorRegistrationService
     }
 
     /// <summary>
-    /// Phase 4 Enhancement: Pre-calculates if middleware is conditional.
+    /// Pre-calculates if middleware is conditional.
     /// </summary>
     private static bool IsConditionalMiddleware(Type[] interfaces)
     {
@@ -690,7 +687,7 @@ internal static class MediatorRegistrationService
     }
 
     /// <summary>
-    /// Phase 4 Enhancement: Pre-calculates if middleware is notification middleware.
+    /// Pre-calculates if middleware is notification middleware.
     /// </summary>
     private static bool IsNotificationMiddleware(Type[] interfaces)
     {
@@ -700,7 +697,7 @@ internal static class MediatorRegistrationService
     }
 
     /// <summary>
-    /// Phase 4 Enhancement: Pre-calculates if middleware is stream middleware.
+    /// Pre-calculates if middleware is stream middleware.
     /// </summary>
     private static bool IsStreamMiddleware(Type[] interfaces)
     {
@@ -749,7 +746,7 @@ internal static class MediatorRegistrationService
     private static string[] GetInterfaceNamesOnce(Type middlewareType)
     {
         return middlewareType.GetInterfaces()
-            .Select(i => PipelineUtilities.FormatTypeName(i))
+            .Select(PipelineUtilities.FormatTypeName)
             .ToArray();
     }
 
@@ -765,30 +762,10 @@ internal static class MediatorRegistrationService
         return genericParameters.SelectMany(p => p.GetGenericParameterConstraints()).ToArray();
     }
 
-    /// <summary>
-    /// Gets cached middleware metadata for runtime performance.
-    /// </summary>
-    /// <param name="middlewareType">The middleware type to get metadata for.</param>
-    /// <returns>Cached metadata or null if not found.</returns>
-    internal static MiddlewareMetadata? GetCachedMiddlewareMetadata(Type middlewareType)
-    {
-        return _middlewareCache.TryGetValue(middlewareType, out var metadata) ? metadata : null;
-    }
-
-    /// <summary>
-    /// Phase 4 Enhancement: Gets cached handler metadata for runtime performance.
-    /// </summary>
-    /// <param name="handlerType">The handler type to get metadata for.</param>
-    /// <returns>Cached metadata or null if not found.</returns>
-    internal static HandlerMetadata? GetCachedHandlerMetadata(Type handlerType)
-    {
-        return _handlerCache.TryGetValue(handlerType, out var metadata) ? metadata : null;
-    }
-
     /// <summary>  
     /// Registers handler types from the specified assembly into the service collection.  
     /// Implements enhanced assembly scanning for INotificationHandler with proper error handling.
-    /// Phase 4 Enhancement: Optimized with pre-cached handler discovery and metadata caching.
+    /// Optimized with pre-cached handler discovery and metadata caching.
     /// </summary>  
     /// <param name="services">The service collection.</param>  
     /// <param name="assembly">The assembly to scan for handler types.</param>  
@@ -797,7 +774,7 @@ internal static class MediatorRegistrationService
     {
         try
         {
-            // Phase 4 Enhancement: Use cached assembly types for better performance
+            // Use cached assembly types for better performance
             var assemblyTypes = GetCachedAssemblyTypes(assembly);
             
             List<Type> handlerTypes = assemblyTypes
@@ -809,7 +786,7 @@ internal static class MediatorRegistrationService
             
             foreach (Type handlerType in handlerTypes)
             {
-                // Phase 4 Enhancement: Pre-cache handler metadata
+                // Pre-cache handler metadata
                 PreCacheHandlerMetadata(handlerType);
 
                 // First register the handler type itself as scoped  

@@ -18,7 +18,7 @@ public sealed class Mediator : IMediator
     private readonly IMiddlewarePipelineBuilder _pipelineBuilder;
     private readonly INotificationPipelineBuilder _notificationPipelineBuilder;
     private readonly MediatorStatistics? _statistics;
-    private readonly MediatorTelemetryOptions? _telemetryOptions;
+    private readonly TelemetryOptions? _telemetryOptions;
     private readonly MediatorLogger? _logger;
 
     // Thread-safe collections for notification subscribers
@@ -63,6 +63,8 @@ public sealed class Mediator : IMediator
     private static readonly Histogram<double> PublishSubscriberDurationHistogram = Meter.CreateHistogram<double>(PublishSubscriberDurationMetric, unit: MillisecondsUnit, description: PublishSubscriberDurationDescription);
     private static readonly Counter<long> PublishSubscriberSuccessCounter = Meter.CreateCounter<long>(PublishSubscriberSuccessMetric, description: PublishSubscriberSuccessDescription);
     private static readonly Counter<long> PublishSubscriberFailureCounter = Meter.CreateCounter<long>(PublishSubscriberFailureMetric, description: PublishSubscriberFailureDescription);
+    private static readonly Counter<long> PublishPartialFailureCounter = Meter.CreateCounter<long>(PublishPartialFailureMetric, description: PublishPartialFailureDescription);
+    private static readonly Counter<long> PublishTotalFailureCounter = Meter.CreateCounter<long>(PublishTotalFailureMetric, description: PublishTotalFailureDescription);
 
     // Streaming metrics (internal for StreamTelemetryContext access)
     internal static readonly Histogram<double> StreamDurationHistogram = Meter.CreateHistogram<double>(StreamDurationMetric, unit: MillisecondsUnit, description: StreamDurationDescription);
@@ -86,33 +88,12 @@ public sealed class Mediator : IMediator
     private const string MillisecondsUnit = "ms";
     private const string ItemsPerSecondUnit = "items/sec";
     private const string HandleMethodName = "Handle";
-    private const string SendOperation = "send";
-    private const string PublishOperation = "publish";
-    private const string StreamOperation = "stream";
-    private const string MediatorOperation = "mediator.operation";
-    private const string ExecutePipelineActivity = "ExecutePipeline";
-    private const string ExecuteStreamPipelineActivity = "ExecuteStreamPipeline";
     private const string HandlerNotFoundFormat = "No handler found for request type {0}";
     private const string StreamHandlerNotFoundFormat = "No handler found for stream request type {0}";
     private const string MultipleHandlersFoundFormat = "Multiple handlers found for request type {0}. Only one handler per request type is allowed.";
     private const string MultipleStreamHandlersFoundFormat = "Multiple handlers found for stream request type {0}. Only one handler per request type is allowed.";
     private const string HandlerReturnedNullFormat = "Handler for {0} returned null";
     private const string HandleMethodNotFoundFormat = "Handle method not found on {0}";
-    private const string ArgumentNullExceptionType = "ArgumentNullException";
-    private const string InvalidOperationExceptionType = "InvalidOperationException";
-    private const string RequestType = "request_type";
-    private const string ResponseType = "response_type";
-    private const string HandlerType = "handler.type";
-    private const string NotificationType = "notification_type";
-    private const string SubscriberType = "subscriber_type";
-    private const string ExceptionType = "exception.type";
-    private const string ExceptionMessage = "exception.message";
-    private const string ExceptionStackTrace = "exception.stack_trace";
-    private const string DurationMs = "duration_ms";
-    private const string Success = "success";
-    private const string HandlerCount = "handler_count";
-    private const string SubscriberCount = "subscriber_count";
-    private const string ItemsProcessed = "items_processed";
     
     // Metric names
     private const string SendDurationMetric = "mediator.send.duration";
@@ -124,6 +105,9 @@ public sealed class Mediator : IMediator
     private const string PublishSubscriberDurationMetric = "mediator.publish.subscriber.duration";
     private const string PublishSubscriberSuccessMetric = "mediator.publish.subscriber.success";
     private const string PublishSubscriberFailureMetric = "mediator.publish.subscriber.failure";
+    private const string PublishPartialFailureMetric = "mediator.publish.partial_failure";
+    private const string PublishTotalFailureMetric = "mediator.publish.total_failure";
+    
     private const string StreamDurationMetric = "mediator.stream.duration";
     private const string StreamSuccessMetric = "mediator.stream.success";
     private const string StreamFailureMetric = "mediator.stream.failure";
@@ -150,6 +134,9 @@ public sealed class Mediator : IMediator
     private const string PublishSubscriberDurationDescription = "Duration of individual subscriber notification processing";
     private const string PublishSubscriberSuccessDescription = "Number of successful subscriber notifications";
     private const string PublishSubscriberFailureDescription = "Number of failed subscriber notifications";
+    private const string PublishPartialFailureDescription = "Number of notifications with partial handler failures";
+    private const string PublishTotalFailureDescription = "Number of notifications where all handlers failed";
+    
     private const string StreamDurationDescription = "Duration of mediator stream operations";
     private const string StreamSuccessDescription = "Number of successful mediator stream operations";
     private const string StreamFailureDescription = "Number of failed mediator stream operations";
@@ -176,7 +163,7 @@ public sealed class Mediator : IMediator
         IMiddlewarePipelineBuilder pipelineBuilder,
         INotificationPipelineBuilder notificationPipelineBuilder,
         MediatorStatistics? statistics,
-        MediatorTelemetryOptions? telemetryOptions = null,
+        TelemetryOptions? telemetryOptions = null,
         MediatorLogger? logger = null)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
@@ -600,6 +587,7 @@ public sealed class Mediator : IMediator
                 {
                     foreach (var middlewareName in executedMiddleware)
                     {
+                        // Record that middleware was executed (duration would be tracked in pipeline)
                         _statistics.RecordMiddlewareExecution(middlewareName, 0, true);
                     }
                 }
@@ -901,6 +889,9 @@ public sealed class Mediator : IMediator
         if (activity != null && IsTelemetryEnabled)
         {
             activity.SetStatus(ActivityStatusCode.Ok);
+            activity.SetTag("notification.type", SanitizeTypeName(typeof(TNotification).Name));
+            activity.SetTag("operation", "publish");
+            activity.SetTag("mediator_operation", "notification_publish");
         }
 
         var stopwatch = Stopwatch.StartNew();
@@ -926,7 +917,7 @@ public sealed class Mediator : IMediator
             // Get all registered notification middleware (types and order)
             var pipelineInspector = _notificationPipelineBuilder as INotificationMiddlewarePipelineInspector;
             var middlewareInfo = pipelineInspector?.GetDetailedMiddlewareInfo(_serviceProvider);
-            if (middlewareInfo != null && IsTelemetryEnabled)
+            if (middlewareInfo != null && IsTelemetryEnabled && ShouldCaptureNotificationMiddlewareDetails)
             {
                 allMiddleware = middlewareInfo.OrderBy(m => m.Order).Select(m => SanitizeMiddlewareName(m.Type.Name)).ToList();
                 activity?.SetTag("notification_middleware.pipeline", string.Join(",", allMiddleware));
@@ -954,137 +945,31 @@ public sealed class Mediator : IMediator
                 
                 var totalProcessors = subscriberCount + handlerCount;
                 _logger?.PublishSubscriberResolution(totalProcessors, typeof(TNotification).Name);
+
+                if (IsTelemetryEnabled && ShouldCaptureNotificationHandlerDetails)
+                {
+                    activity?.SetTag("notification.handler_count", handlerCount);
+                    activity?.SetTag("notification.subscriber_count", subscriberCount);
+                    activity?.SetTag("notification.execution_pattern", DetermineExecutionPattern());
+                }
                 
                 var processingExceptions = new List<Exception>();
 
                 // Process manual subscribers
                 foreach (var subscriber in subscribers)
                 {
-                    var subType = SanitizeTypeName(subscriber.GetType().Name);
-                    _logger?.PublishSubscriberProcessing($"{subType}(Subscriber)", typeof(TNotification).Name);
-                    var subStopwatch = Stopwatch.StartNew();
-
-                    try
-                    {
-                        await subscriber.OnNotification(n, ct).ConfigureAwait(false);
-                        if (IsTelemetryEnabled)
-                        {
-                            var successTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "subscriber" }, { "processor_name", subType } };
-                            PublishSubscriberSuccessCounter.Add(1, successTags);
-                        }
-
-                        subscriberResults.Add(($"{subType}(Subscriber)", true, subStopwatch.Elapsed.TotalMilliseconds, null, null));
-                        _logger?.PublishSubscriberCompleted($"{subType}(Subscriber)", typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, true);
-                    }
-                    catch (Exception ex)
-                    {
-                        processingExceptions.Add(ex);
-                        if (IsTelemetryEnabled)
-                        {
-                            var failureTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "subscriber" }, { "processor_name", subType }, { "exception.type", SanitizeTypeName(ex.GetType().Name) }, { "exception.message", SanitizeExceptionMessage(ex.Message) } };
-                            PublishSubscriberFailureCounter.Add(1, failureTags);
-                        }
-
-                        subscriberResults.Add(($"{subType}(Subscriber)", false, subStopwatch.Elapsed.TotalMilliseconds, SanitizeTypeName(ex.GetType().Name), SanitizeExceptionMessage(ex.Message)));
-                        _logger?.PublishSubscriberCompleted($"{subType}(Subscriber)", typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, false);
-                        // Don't throw immediately - continue with other processors
-                    }
-                    finally
-                    {
-                        subStopwatch.Stop();
-                        if (IsTelemetryEnabled)
-                        {
-                            var durationTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "subscriber" }, { "processor_name", subType } };
-                            PublishSubscriberDurationHistogram.Record(subStopwatch.Elapsed.TotalMilliseconds, durationTags);
-                        }
-                    }
+                    await ProcessSubscriberWithTelemetry(subscriber, n, activity, ct, subscriberResults, processingExceptions);
                 }
 
                 // Process generic subscribers
                 foreach (var genericSubscriber in genericSubscriberList)
                 {
-                    var subType = SanitizeTypeName(genericSubscriber.GetType().Name);
-                    _logger?.PublishSubscriberProcessing($"{subType}(Generic)", typeof(TNotification).Name);
-                    var subStopwatch = Stopwatch.StartNew();
-
-                    try
-                    {
-                        await genericSubscriber.OnNotification(n, ct).ConfigureAwait(false);
-                        if (IsTelemetryEnabled)
-                        {
-                            var successTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "generic_subscriber" }, { "processor_name", subType } };
-                            PublishSubscriberSuccessCounter.Add(1, successTags);
-                        }
-
-                        subscriberResults.Add(($"{subType}(Generic)", true, subStopwatch.Elapsed.TotalMilliseconds, null, null));
-                        _logger?.PublishSubscriberCompleted($"{subType}(Generic)", typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, true);
-                    }
-                    catch (Exception ex)
-                    {
-                        processingExceptions.Add(ex);
-                        if (IsTelemetryEnabled)
-                        {
-                            var failureTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "generic_subscriber" }, { "processor_name", subType }, { "exception.type", SanitizeTypeName(ex.GetType().Name) }, { "exception.message", SanitizeExceptionMessage(ex.Message) } };
-                            PublishSubscriberFailureCounter.Add(1, failureTags);
-                        }
-
-                        subscriberResults.Add(($"{subType}(Generic)", false, subStopwatch.Elapsed.TotalMilliseconds, SanitizeTypeName(ex.GetType().Name), SanitizeExceptionMessage(ex.Message)));
-                        _logger?.PublishSubscriberCompleted($"{subType}(Generic)", typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, false);
-                        // Don't throw immediately - continue with other processors
-                    }
-                    finally
-                    {
-                        subStopwatch.Stop();
-                        if (IsTelemetryEnabled)
-                        {
-                            var durationTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "generic_subscriber" }, { "processor_name", subType } };
-                            PublishSubscriberDurationHistogram.Record(subStopwatch.Elapsed.TotalMilliseconds, durationTags);
-                        }
-                    }
+                    await ProcessGenericSubscriberWithTelemetry(genericSubscriber, n, activity, ct, subscriberResults, processingExceptions);
                 }
 
-                // Process automatic handlers
                 foreach (var handler in handlers)
                 {
-                    var handlerTypeName = SanitizeTypeName(handler.GetType().Name);
-                    _logger?.PublishSubscriberProcessing($"{handlerTypeName}(Handler)", typeof(TNotification).Name);
-                    var handlerStopwatch = Stopwatch.StartNew();
-
-                    try
-                    {
-                        var typedHandler = (INotificationHandler<TNotification>)handler;
-                        await typedHandler.Handle(n, ct).ConfigureAwait(false);
-                        if (IsTelemetryEnabled)
-                        {
-                            var successTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "handler" }, { "processor_name", handlerTypeName } };
-                            PublishSubscriberSuccessCounter.Add(1, successTags);
-                        }
-
-                        subscriberResults.Add(($"{handlerTypeName}(Handler)", true, handlerStopwatch.Elapsed.TotalMilliseconds, null, null));
-                        _logger?.PublishSubscriberCompleted($"{handlerTypeName}(Handler)", typeof(TNotification).Name, handlerStopwatch.Elapsed.TotalMilliseconds, true);
-                    }
-                    catch (Exception ex)
-                    {
-                        processingExceptions.Add(ex);
-                        if (IsTelemetryEnabled)
-                        {
-                            var failureTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "handler" }, { "processor_name", handlerTypeName }, { "exception.type", SanitizeTypeName(ex.GetType().Name) }, { "exception.message", SanitizeExceptionMessage(ex.Message) } };
-                            PublishSubscriberFailureCounter.Add(1, failureTags);
-                        }
-
-                        subscriberResults.Add(($"{handlerTypeName}(Handler)", false, handlerStopwatch.Elapsed.TotalMilliseconds, SanitizeTypeName(ex.GetType().Name), SanitizeExceptionMessage(ex.Message)));
-                        _logger?.PublishSubscriberCompleted($"{handlerTypeName}(Handler)", typeof(TNotification).Name, handlerStopwatch.Elapsed.TotalMilliseconds, false);
-                        // Don't throw immediately - continue with other processors
-                    }
-                    finally
-                    {
-                        handlerStopwatch.Stop();
-                        if (IsTelemetryEnabled)
-                        {
-                            var durationTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "handler" }, { "processor_name", handlerTypeName } };
-                            PublishSubscriberDurationHistogram.Record(handlerStopwatch.Elapsed.TotalMilliseconds, durationTags);
-                        }
-                    }
+                    await ProcessHandlerWithTelemetry(handler, n, activity, ct, subscriberResults, processingExceptions);
                 }
 
                 // After all processors have been called, throw the first exception if any occurred
@@ -1127,7 +1012,7 @@ public sealed class Mediator : IMediator
             // Debug logging: Publish operation completed
             _logger?.PublishOperationCompleted(typeof(TNotification).Name, stopwatch.Elapsed.TotalMilliseconds, exception == null, subscriberCount + handlerCount);
 
-            // ? PHASE 3: Enhanced statistics recording for notifications using existing infrastructure ?
+            // Enhanced statistics recording for notifications using existing infrastructure
             if (_statistics != null)
             {
                 var notificationTypeName = typeof(TNotification).Name;
@@ -1184,6 +1069,33 @@ public sealed class Mediator : IMediator
 
                 PublishDurationHistogram.Record(stopwatch.Elapsed.TotalMilliseconds, tags);
 
+                // Analyze handler/subscriber results for partial/total failure metrics
+                var successCount = subscriberResults.Count(r => r.Success);
+                var failureCount = subscriberResults.Count(r => !r.Success);
+                
+                if (exception == null)
+                {
+                    PublishSuccessCounter.Add(1, tags);
+                    // Ensure successful completion is marked with Ok status
+                    activity?.SetStatus(ActivityStatusCode.Ok);
+                }
+                else
+                {
+                    // Partial vs total failure classification
+                    if (successCount > 0 && failureCount > 0)
+                    {
+                        // Mixed results: some succeeded, some failed = partial failure
+                        PublishPartialFailureCounter.Add(1, tags);
+                    }
+                    else if (failureCount > 0 && successCount == 0)
+                    {
+                        // All failed = total failure
+                        PublishTotalFailureCounter.Add(1, tags);
+                    }
+                    // Note: If successCount > 0 && failureCount == 0, then exception shouldn't have occurred
+                    // This would be an edge case where collection succeeded but middleware/pipeline threw
+                }
+
                 // Add activity tags
                 activity?.SetTag("notification_name", SanitizeTypeName(typeof(TNotification).Name));
                 activity?.SetTag("notification_middleware.executed", string.Join(",", executedMiddleware));
@@ -1192,13 +1104,6 @@ public sealed class Mediator : IMediator
                 activity?.SetTag("subscriber_count", subscriberCount);
                 activity?.SetTag("handler_count", handlerCount);
                 activity?.SetTag("total_processors", totalProcessors);
-
-                if (exception == null)
-                {
-                    PublishSuccessCounter.Add(1, tags);
-                    // Ensure successful completion is marked with Ok status
-                    activity?.SetStatus(ActivityStatusCode.Ok);
-                }
 
                 // Add per-processor results as activity events
                 foreach (var result in subscriberResults)
@@ -1220,108 +1125,215 @@ public sealed class Mediator : IMediator
     }
 
     /// <summary>
-    /// Subscribe to notifications of a specific type.
-    /// Subscribers actively choose to listen to notifications they're interested in.
+    /// Processes a subscriber with telemetry tracking.
     /// </summary>
-    /// <typeparam name="TNotification">The type of notification to subscribe to</typeparam>
-    /// <param name="subscriber">The subscriber that will receive notifications</param>
-    public void Subscribe<TNotification>(INotificationSubscriber<TNotification> subscriber) where TNotification : INotification
+    private async Task ProcessSubscriberWithTelemetry<TNotification>(
+        INotificationSubscriber<TNotification> subscriber,
+        TNotification notification,
+        Activity? parentActivity,
+        CancellationToken cancellationToken,
+        List<(string SubscriberType, bool Success, double DurationMs, string? ExceptionType, string? ExceptionMessage)> subscriberResults,
+        List<Exception> processingExceptions) where TNotification : INotification
     {
-        ArgumentNullException.ThrowIfNull(subscriber);
+        var subType = SanitizeTypeName(subscriber.GetType().Name);
+        _logger?.PublishSubscriberProcessing($"{subType}(Subscriber)", typeof(TNotification).Name);
+        var subStopwatch = Stopwatch.StartNew();
 
-        _specificSubscribers.AddOrUpdate(
-            typeof(TNotification),
-            [subscriber],
-            (_, existing) =>
+        try
+        {
+            await subscriber.OnNotification(notification, cancellationToken).ConfigureAwait(false);
+            if (IsTelemetryEnabled && ShouldCaptureSubscriberMetrics)
             {
-                existing.Add(subscriber);
-                return existing;
-            });
+                var successTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "subscriber" }, { "processor_name", subType } };
+                PublishSubscriberSuccessCounter.Add(1, successTags);
+            }
 
-        // Track subscription for enhanced statistics
-        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
-        subscriberTracker?.TrackSubscription(typeof(TNotification), subscriber.GetType(), subscriber);
+            subscriberResults.Add(($"{subType}(Subscriber)", true, subStopwatch.Elapsed.TotalMilliseconds, null, null));
+            _logger?.PublishSubscriberCompleted($"{subType}(Subscriber)", typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, true);
+        }
+        catch (Exception ex)
+        {
+            processingExceptions.Add(ex);
+            if (IsTelemetryEnabled && ShouldCaptureSubscriberMetrics)
+            {
+                var failureTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "subscriber" }, { "processor_name", subType }, { "exception.type", SanitizeTypeName(ex.GetType().Name) }, { "exception.message", SanitizeExceptionMessage(ex.Message) } };
+                PublishSubscriberFailureCounter.Add(1, failureTags);
+            }
+
+            subscriberResults.Add(($"{subType}(Subscriber)", false, subStopwatch.Elapsed.TotalMilliseconds, SanitizeTypeName(ex.GetType().Name), SanitizeExceptionMessage(ex.Message)));
+            _logger?.PublishSubscriberCompleted($"{subType}(Subscriber)", typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, false);
+        }
+        finally
+        {
+            subStopwatch.Stop();
+            if (IsTelemetryEnabled && ShouldCaptureSubscriberMetrics)
+            {
+                var durationTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "subscriber" }, { "processor_name", subType } };
+                PublishSubscriberDurationHistogram.Record(subStopwatch.Elapsed.TotalMilliseconds, durationTags);
+            }
+        }
     }
 
     /// <summary>
-    /// Subscribe to all notifications (generic/broadcast).
-    /// Subscribers actively choose to listen to all notifications.
+    /// Processes a generic subscriber with telemetry tracking.
     /// </summary>
-    /// <param name="subscriber">The subscriber that will receive all notifications</param>
-    public void Subscribe(INotificationSubscriber subscriber)
+    private async Task ProcessGenericSubscriberWithTelemetry<TNotification>(
+        INotificationSubscriber genericSubscriber,
+        TNotification notification,
+        Activity? parentActivity,
+        CancellationToken cancellationToken,
+        List<(string SubscriberType, bool Success, double DurationMs, string? ExceptionType, string? ExceptionMessage)> subscriberResults,
+        List<Exception> processingExceptions) where TNotification : INotification
     {
-        ArgumentNullException.ThrowIfNull(subscriber);
-        _genericSubscribers.Add(subscriber);
+        var subType = SanitizeTypeName(genericSubscriber.GetType().Name);
+        _logger?.PublishSubscriberProcessing($"{subType}(Generic)", typeof(TNotification).Name);
+        var subStopwatch = Stopwatch.StartNew();
 
-        // Track generic subscription for enhanced statistics
-        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
-        // Use a marker type for generic subscribers
-        subscriberTracker?.TrackSubscription(typeof(INotification), subscriber.GetType(), subscriber);
+        try
+        {
+            await genericSubscriber.OnNotification(notification, cancellationToken).ConfigureAwait(false);
+            if (IsTelemetryEnabled && ShouldCaptureSubscriberMetrics)
+            {
+                var successTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "generic_subscriber" }, { "processor_name", subType } };
+                PublishSubscriberSuccessCounter.Add(1, successTags);
+            }
+
+            subscriberResults.Add(($"{subType}(Generic)", true, subStopwatch.Elapsed.TotalMilliseconds, null, null));
+            _logger?.PublishSubscriberCompleted($"{subType}(Generic)", typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, true);
+        }
+        catch (Exception ex)
+        {
+            processingExceptions.Add(ex);
+            if (IsTelemetryEnabled && ShouldCaptureSubscriberMetrics)
+            {
+                var failureTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "generic_subscriber" }, { "processor_name", subType }, { "exception.type", SanitizeTypeName(ex.GetType().Name) }, { "exception.message", SanitizeExceptionMessage(ex.Message) } };
+                PublishSubscriberFailureCounter.Add(1, failureTags);
+            }
+
+            subscriberResults.Add(($"{subType}(Generic)", false, subStopwatch.Elapsed.TotalMilliseconds, SanitizeTypeName(ex.GetType().Name), SanitizeExceptionMessage(ex.Message)));
+            _logger?.PublishSubscriberCompleted($"{subType}(Generic)", typeof(TNotification).Name, subStopwatch.Elapsed.TotalMilliseconds, false);
+        }
+        finally
+        {
+            subStopwatch.Stop();
+            if (IsTelemetryEnabled && ShouldCaptureSubscriberMetrics)
+            {
+                var durationTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "generic_subscriber" }, { "processor_name", subType } };
+                PublishSubscriberDurationHistogram.Record(subStopwatch.Elapsed.TotalMilliseconds, durationTags);
+            }
+        }
     }
 
     /// <summary>
-    /// Unsubscribe from notifications of a specific type.
+    /// Processes a notification handler with individual child span telemetry tracking.
     /// </summary>
-    /// <typeparam name="TNotification">The type of notification to unsubscribe from</typeparam>
-    /// <param name="subscriber">The subscriber to remove</param>
-    public void Unsubscribe<TNotification>(INotificationSubscriber<TNotification> subscriber) where TNotification : INotification
+    private async Task ProcessHandlerWithTelemetry<TNotification>(
+        object handler,
+        TNotification notification,
+        Activity? parentActivity,
+        CancellationToken cancellationToken,
+        List<(string SubscriberType, bool Success, double DurationMs, string? ExceptionType, string? ExceptionMessage)> subscriberResults,
+        List<Exception> processingExceptions) where TNotification : INotification
     {
-        ArgumentNullException.ThrowIfNull(subscriber);
+        var handlerTypeName = SanitizeTypeName(handler.GetType().Name);
+        _logger?.PublishSubscriberProcessing($"{handlerTypeName}(Handler)", typeof(TNotification).Name);
+        
+        // Create child span for individual handler
+        using var handlerActivity = IsTelemetryEnabled && ShouldCreateHandlerChildSpans 
+            ? ActivitySource.StartActivity($"{MediatorPublishActivityPrefix}Handler.{handlerTypeName}", ActivityKind.Internal, parentActivity?.Context ?? default) 
+            : null;
 
-        if (!_specificSubscribers.TryGetValue(typeof(TNotification), out var subscribers))
+        if (handlerActivity != null && IsTelemetryEnabled && ShouldCaptureNotificationHandlerDetails)
         {
-            return;
+            handlerActivity.SetTag("handler.type", handlerTypeName);
+            handlerActivity.SetTag("notification.type", SanitizeTypeName(typeof(TNotification).Name));
+            handlerActivity.SetTag("operation", "handle_notification");
         }
 
-        // Create new bag without the subscriber
-        var newSubscribers = new ConcurrentBag<object>();
-        foreach (var existing in from existing in subscribers
-                                 where !ReferenceEquals(existing, subscriber)
-                                 select existing)
-        {
-            newSubscribers.Add(existing);
-        }
+        var handlerStopwatch = Stopwatch.StartNew();
 
-        if (newSubscribers.IsEmpty)
+        try
         {
-            _specificSubscribers.TryRemove(typeof(TNotification), out _);
-        }
-        else
-        {
-            _specificSubscribers.TryUpdate(typeof(TNotification), newSubscribers, subscribers);
-        }
+            var typedHandler = (INotificationHandler<TNotification>)handler;
+            await typedHandler.Handle(notification, cancellationToken).ConfigureAwait(false);
+            
+            handlerStopwatch.Stop();
+            
+            // Record metrics
+            if (IsTelemetryEnabled && ShouldCaptureSubscriberMetrics)
+            {
+                PublishSubscriberDurationHistogram.Record(handlerStopwatch.ElapsedMilliseconds);
+                PublishSubscriberSuccessCounter.Add(1);
+                
+                var successTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "handler" }, { "processor_name", handlerTypeName } };
+                PublishSubscriberSuccessCounter.Add(1, successTags);
+            }
+            
+            if (handlerActivity != null && IsTelemetryEnabled)
+            {
+                handlerActivity.SetStatus(ActivityStatusCode.Ok);
+                handlerActivity.SetTag("duration_ms", handlerStopwatch.ElapsedMilliseconds);
+                handlerActivity.SetTag("success", true);
+            }
 
-        // Track unsubscription for enhanced statistics
-        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
-        subscriberTracker?.TrackUnsubscription(typeof(TNotification), subscriber.GetType(), subscriber);
+            subscriberResults.Add(($"{handlerTypeName}(Handler)", true, handlerStopwatch.Elapsed.TotalMilliseconds, null, null));
+            _logger?.PublishSubscriberCompleted($"{handlerTypeName}(Handler)", typeof(TNotification).Name, handlerStopwatch.Elapsed.TotalMilliseconds, true);
+        }
+        catch (Exception ex)
+        {
+            handlerStopwatch.Stop();
+            processingExceptions.Add(ex);
+            
+            if (IsTelemetryEnabled && ShouldCaptureSubscriberMetrics)
+            {
+                PublishSubscriberFailureCounter.Add(1);
+                PublishSubscriberDurationHistogram.Record(handlerStopwatch.ElapsedMilliseconds);
+                
+                var failureTags = new TagList { { "notification_name", SanitizeTypeName(typeof(TNotification).Name) }, { "processor_type", "handler" }, { "processor_name", handlerTypeName }, { "exception.type", SanitizeTypeName(ex.GetType().Name) }, { "exception.message", SanitizeExceptionMessage(ex.Message) } };
+                PublishSubscriberFailureCounter.Add(1, failureTags);
+            }
+            
+            if (handlerActivity != null && IsTelemetryEnabled && ShouldCaptureExceptionDetails)
+            {
+                handlerActivity.SetStatus(ActivityStatusCode.Error, ex.Message);
+                handlerActivity.SetTag("exception.type", SanitizeTypeName(ex.GetType().Name));
+                handlerActivity.SetTag("exception.message", SanitizeExceptionMessage(ex.Message));
+                handlerActivity.SetTag("success", false);
+            }
+
+            subscriberResults.Add(($"{handlerTypeName}(Handler)", false, handlerStopwatch.Elapsed.TotalMilliseconds, SanitizeTypeName(ex.GetType().Name), SanitizeExceptionMessage(ex.Message)));
+            _logger?.PublishSubscriberCompleted($"{handlerTypeName}(Handler)", typeof(TNotification).Name, handlerStopwatch.Elapsed.TotalMilliseconds, false);
+        }
     }
 
+    // ** Helper methods for telemetry configuration **
+
     /// <summary>
-    /// Unsubscribe from all notifications.
+    /// Gets whether notification handler details should be captured based on options (default true).
     /// </summary>
-    /// <param name="subscriber">The subscriber to remove from all notifications</param>
-    public void Unsubscribe(INotificationSubscriber subscriber)
+    private bool ShouldCaptureNotificationHandlerDetails => _telemetryOptions?.CaptureNotificationHandlerDetails ?? true;
+
+    /// <summary>
+    /// Gets whether to create child spans for individual handlers based on options (default true).
+    /// </summary>
+    private bool ShouldCreateHandlerChildSpans => _telemetryOptions?.CreateHandlerChildSpans ?? true;
+
+    /// <summary>
+    /// Gets whether to capture subscriber metrics based on options (default true).
+    /// </summary>
+    private bool ShouldCaptureSubscriberMetrics => _telemetryOptions?.CaptureSubscriberMetrics ?? true;
+
+    /// <summary>
+    /// Gets whether notification middleware details should be captured based on options (default true).
+    /// </summary>
+    private bool ShouldCaptureNotificationMiddlewareDetails => _telemetryOptions?.CaptureNotificationMiddlewareDetails ?? true;
+
+    /// <summary>
+    /// Determines the execution pattern for the notification processing.
+    /// </summary>
+    private static string DetermineExecutionPattern()
     {
-        ArgumentNullException.ThrowIfNull(subscriber);
-
-        // Remove from generic subscribers
-        var newGenericSubscribers = new ConcurrentBag<INotificationSubscriber>();
-        foreach (var existing in _genericSubscribers
-                     .Where(existing => !ReferenceEquals(existing, subscriber)))
-        {
-            newGenericSubscribers.Add(existing);
-        }
-
-        // Replace the entire bag
-        _genericSubscribers.Clear();
-        foreach (var sub in newGenericSubscribers)
-        {
-            _genericSubscribers.Add(sub);
-        }
-
-        // Track generic unsubscription for enhanced statistics
-        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
-        subscriberTracker?.TrackUnsubscription(typeof(INotification), subscriber.GetType(), subscriber);
+        return "standard"; // Simple implementation for now
     }
 
     #endregion
@@ -1756,6 +1768,116 @@ public sealed class Mediator : IMediator
         return _statistics?.GetType()
             .GetField("_options", BindingFlags.NonPublic | BindingFlags.Instance)?
             .GetValue(_statistics) is StatisticsOptions { EnableMiddlewareMetrics: true };
+    }
+
+    #endregion
+
+    #region Subscribe/Unsubscribe Methods
+
+    /// <summary>
+    /// Subscribe to notifications of a specific type.
+    /// Subscribers actively choose to listen to notifications they're interested in.
+    /// </summary>
+    /// <typeparam name="TNotification">The type of notification to subscribe to</typeparam>
+    /// <param name="subscriber">The subscriber that will receive notifications</param>
+    public void Subscribe<TNotification>(INotificationSubscriber<TNotification> subscriber) where TNotification : INotification
+    {
+        ArgumentNullException.ThrowIfNull(subscriber);
+
+        _specificSubscribers.AddOrUpdate(
+            typeof(TNotification),
+            [subscriber],
+            (_, existing) =>
+            {
+                existing.Add(subscriber);
+                return existing;
+            });
+
+        // Track subscription for enhanced statistics
+        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
+        subscriberTracker?.TrackSubscription(typeof(TNotification), subscriber.GetType(), subscriber);
+    }
+
+    /// <summary>
+    /// Subscribe to all notifications (generic/broadcast).
+    /// Subscribers actively choose to listen to all notifications.
+    /// </summary>
+    /// <param name="subscriber">The subscriber that will receive all notifications</param>
+    public void Subscribe(INotificationSubscriber subscriber)
+    {
+        ArgumentNullException.ThrowIfNull(subscriber);
+        _genericSubscribers.Add(subscriber);
+
+        // Track generic subscription for enhanced statistics
+        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
+        // Use a marker type for generic subscribers
+        subscriberTracker?.TrackSubscription(typeof(INotification), subscriber.GetType(), subscriber);
+    }
+
+    /// <summary>
+    /// Unsubscribe from notifications of a specific type.
+    /// </summary>
+    /// <typeparam name="TNotification">The type of notification to unsubscribe from</typeparam>
+    /// <param name="subscriber">The subscriber to remove</param>
+    public void Unsubscribe<TNotification>(INotificationSubscriber<TNotification> subscriber) where TNotification : INotification
+    {
+        ArgumentNullException.ThrowIfNull(subscriber);
+
+        if (!_specificSubscribers.TryGetValue(typeof(TNotification), out var subscribers))
+        {
+            return;
+        }
+
+        // Create new bag without the subscriber
+        var newSubscribers = new ConcurrentBag<object>();
+        foreach (var existing in from existing in subscribers
+                                 where !ReferenceEquals(existing, subscriber)
+                                 select existing)
+        {
+            newSubscribers.Add(existing);
+        }
+
+        if (newSubscribers.IsEmpty)
+        {
+            _specificSubscribers.TryRemove(typeof(TNotification), out _);
+        }
+        else
+        {
+            _specificSubscribers.TryUpdate(typeof(TNotification), newSubscribers, subscribers);
+        }
+
+        // Track unsubscription for enhanced statistics
+        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
+        subscriberTracker?.TrackUnsubscription(typeof(TNotification), subscriber.GetType(), subscriber);
+    }
+
+    /// <summary>
+    /// Unsubscribe from all notifications.
+    /// </summary>
+    /// <param name="subscriber">The subscriber to remove from all notifications</param>
+    public void Unsubscribe(INotificationSubscriber subscriber)
+    {
+        ArgumentNullException.ThrowIfNull(subscriber);
+
+        // Remove from generic subscribers
+        var newGenericSubscribers = new ConcurrentBag<INotificationSubscriber>();
+        foreach (var existing in _genericSubscribers
+                     .Where(existing => !ReferenceEquals(existing, subscriber)))
+        {
+            newGenericSubscribers.Add(existing);
+        }
+
+        // Replace the entire bag
+        _genericSubscribers.Clear();
+        foreach (var sub in newGenericSubscribers)
+        {
+            _genericSubscribers.Add(sub);
+        }
+
+        // Track generic unsubscription for enhanced statistics
+        var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
+        // Use a marker type for generic subscribers
+        subscriberTracker?.TrackUnsubscription(typeof(INotification), subscriber.GetType(), subscriber);
     }
 
     #endregion

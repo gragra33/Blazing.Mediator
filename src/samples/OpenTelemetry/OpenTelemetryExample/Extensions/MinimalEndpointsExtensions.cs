@@ -142,7 +142,7 @@ internal static class MinimalEndpointsExtensions
     {
         try
         {
-            var health = Blazing.Mediator.OpenTelemetry.MediatorTelemetryHealthCheck.CheckHealth();
+            var health = Blazing.Mediator.OpenTelemetry.TelemetryHealthCheck.CheckHealth();
             Console.WriteLine($"[+] Telemetry health check: IsHealthy={health.IsHealthy}, IsEnabled={health.IsEnabled}");
 
             // Return strongly-typed TelemetryHealthDto

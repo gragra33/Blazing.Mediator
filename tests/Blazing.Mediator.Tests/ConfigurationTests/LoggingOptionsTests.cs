@@ -253,15 +253,31 @@ public class LoggingOptionsTests
         var config = new MediatorConfiguration();
 
         // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            config.WithLogging(options =>
-            {
-                options.EnableConstraintLogging = true;
-                options.EnableMiddlewareRoutingLogging = true;
-                options.EnablePerformanceTiming = true;
-            }));
+        // Test null action parameter - this should throw ArgumentNullException
+        Assert.Throws<ArgumentNullException>(() =>
+            config.WithLogging((Action<LoggingOptions>)null!));
+    }
 
-        Assert.Contains("validation failed", exception.Message);
+    [Fact]
+    public void MediatorConfiguration_WithLogging_ValidationWarning_DoesNotThrowException()
+    {
+        // Arrange
+        var config = new MediatorConfiguration();
+
+        // Act - This should not throw because warnings are not blocking errors
+        var result = config.WithLogging(options =>
+        {
+            options.EnableConstraintLogging = true;
+            options.EnableMiddlewareRoutingLogging = true;
+            options.EnablePerformanceTiming = true;
+        });
+
+        // Assert
+        Assert.Same(config, result);
+        Assert.NotNull(config.LoggingOptions);
+        Assert.True(config.LoggingOptions.EnableConstraintLogging);
+        Assert.True(config.LoggingOptions.EnableMiddlewareRoutingLogging);
+        Assert.True(config.LoggingOptions.EnablePerformanceTiming);
     }
 
     [Fact]

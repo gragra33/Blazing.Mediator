@@ -46,12 +46,12 @@ public class ServiceCollectionExtensionsLintTests
             .Select(m => m.Name)
             .ToList();
 
-        // Act & Assert - Verify core method exists (the registration logic is now in MediatorRegistrationService)
+        // Act & Assert - Verify core method exists (the registration logic is now in RegistrationService)
         privateMethods.ShouldContain("AddMediatorCore");
             
         // Verify that the registration service exists and contains the moved logic
-        var registrationServiceType = Type.GetType("Blazing.Mediator.Services.MediatorRegistrationService, Blazing.Mediator");
-        registrationServiceType.ShouldNotBeNull("MediatorRegistrationService should exist");
+        var registrationServiceType = Type.GetType("Blazing.Mediator.Services.RegistrationService, Blazing.Mediator");
+        registrationServiceType.ShouldNotBeNull("RegistrationService should exist");
             
         // Verify that the registration service has the expected methods
         var registrationServiceMethods = registrationServiceType
@@ -59,8 +59,9 @@ public class ServiceCollectionExtensionsLintTests
             .Select(m => m.Name)
             .ToList();
                 
-        registrationServiceMethods.ShouldContain("RegisterHandlersFromAssembly");
+        registrationServiceMethods.ShouldContain("RegisterMediatorServices");
         registrationServiceMethods.ShouldContain("RegisterMiddlewareFromAssembly");
+        registrationServiceMethods.ShouldContain("RegisterHandlersFromAssembly");
     }
 
     /// <summary>

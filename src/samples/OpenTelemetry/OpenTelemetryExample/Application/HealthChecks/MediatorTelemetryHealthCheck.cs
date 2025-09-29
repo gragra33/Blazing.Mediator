@@ -11,7 +11,7 @@ public sealed class MediatorTelemetryHealthCheck : IHealthCheck
     {
         try
         {
-            var health = Blazing.Mediator.OpenTelemetry.MediatorTelemetryHealthCheck.CheckHealth();
+            var health = Blazing.Mediator.OpenTelemetry.TelemetryHealthCheck.CheckHealth();
 
             var data = new Dictionary<string, object>
             {

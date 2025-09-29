@@ -4,7 +4,7 @@ namespace Blazing.Mediator.Services;
 /// Service that provides cleanup functionality for static Mediator resources.
 /// This service can be manually called during application shutdown to dispose static resources.
 /// </summary>
-public sealed partial class MediatorCleanupService
+public sealed partial class CleanupService
 {
     private readonly MediatorLogger? _mediatorLogger;
     private static bool _staticResourcesDisposed;
@@ -14,7 +14,7 @@ public sealed partial class MediatorCleanupService
     /// Initializes a new instance of the MediatorCleanupService.
     /// </summary>
     /// <param name="mediatorLogger">Optional MediatorLogger for cleanup operations.</param>
-    public MediatorCleanupService(MediatorLogger? mediatorLogger = null)
+    public CleanupService(MediatorLogger? mediatorLogger = null)
     {
         _mediatorLogger = mediatorLogger;
     }

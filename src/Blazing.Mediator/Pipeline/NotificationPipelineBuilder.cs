@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Blazing.Mediator.Pipeline;
 
 /// <summary>
@@ -8,8 +10,6 @@ namespace Blazing.Mediator.Pipeline;
 public sealed class NotificationPipelineBuilder
     : BasePipelineBuilder<NotificationPipelineBuilder>, INotificationPipelineBuilder, INotificationMiddlewarePipelineInspector
 {
-    private const string OrderPropertyName = "Order";
-
     /// <summary>
     /// CRTP pattern implementation for fluent API.
     /// </summary>
@@ -172,7 +172,7 @@ public sealed class NotificationPipelineBuilder
     {
         Type actualNotificationType = notification.GetType();
         var pipelineId = Guid.NewGuid().ToString("N")[..8];
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
         _mediatorLogger?.NotificationPipelineStarted(actualNotificationType.Name, _middlewareInfos.Count, pipelineId);
 
@@ -252,6 +252,7 @@ public sealed class NotificationPipelineBuilder
         int executedCount = 0;
         int skippedCount = _middlewareInfos.Count - applicableMiddleware.Count;
 
+        // Middleware telemetry instrumentation
         for (int i = applicableMiddleware.Count - 1; i >= 0; i--)
         {
             (Type middlewareType, int order) = applicableMiddleware[i];
@@ -260,7 +261,7 @@ public sealed class NotificationPipelineBuilder
 
             pipeline = async (notif, ct) =>
             {
-                var middlewareStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                var middlewareStopwatch = Stopwatch.StartNew();
                 object? middlewareInstance = serviceProvider.GetService(middlewareType);
                 if (middlewareInstance == null)
                 {
@@ -272,14 +273,40 @@ public sealed class NotificationPipelineBuilder
                     throw new InvalidOperationException(
                         $"Middleware {middlewareName} does not implement INotificationMiddleware.");
                 }
+
+                using var middlewareActivity = IsTelemetryEnabled && ShouldCaptureNotificationMiddlewareDetails
+                    ? Mediator.ActivitySource.StartActivity(
+                        $"Mediator.Publish.Middleware.{SanitizeMiddlewareName(middlewareName)}",
+                        ActivityKind.Internal,
+                        Activity.Current?.Context ?? default)
+                    : null;
+
+                if (middlewareActivity != null && IsTelemetryEnabled && ShouldCaptureNotificationMiddlewareDetails)
+                {
+                    middlewareActivity.SetTag("middleware.type", SanitizeMiddlewareName(middlewareName));
+                    middlewareActivity.SetTag("notification.type", SanitizeTypeName(actualNotificationType.Name));
+                    middlewareActivity.SetTag("operation", "notification_middleware");
+                    middlewareActivity.SetTag("middleware.order", order);
+                }
+
                 if (middleware is IConditionalNotificationMiddleware conditionalMiddleware &&
                     !conditionalMiddleware.ShouldExecute(notif))
                 {
+                    if (middlewareActivity != null)
+                    {
+                        middlewareActivity.SetTag("middleware.skipped", true);
+                        middlewareActivity.SetStatus(ActivityStatusCode.Ok);
+                    }
                     await currentPipeline(notif, ct).ConfigureAwait(false);
                     return;
                 }
                 if (IsTypeConstrainedMiddleware(middleware, actualNotificationType, notif))
                 {
+                    if (middlewareActivity != null)
+                    {
+                        middlewareActivity.SetTag("middleware.type_constrained", true);
+                        middlewareActivity.SetStatus(ActivityStatusCode.Ok);
+                    }
                     await currentPipeline(notif, ct).ConfigureAwait(false);
                     return;
                 }
@@ -293,13 +320,39 @@ public sealed class NotificationPipelineBuilder
                     }
 
                     executedCount++;
+                    middlewareStopwatch.Stop();
+
+                    if (middlewareActivity != null && IsTelemetryEnabled)
+                    {
+                        middlewareActivity.SetStatus(ActivityStatusCode.Ok);
+                        middlewareActivity.SetTag("duration_ms", middlewareStopwatch.ElapsedMilliseconds);
+                        middlewareActivity.SetTag("success", true);
+                        middlewareActivity.SetTag("middleware.executed", true);
+                    }
                 }
                 catch (OperationCanceledException)
                 {
+                    middlewareStopwatch.Stop();
+                    if (middlewareActivity != null && IsTelemetryEnabled && ShouldCaptureExceptionDetails)
+                    {
+                        middlewareActivity.SetStatus(ActivityStatusCode.Error, "Operation was cancelled");
+                        middlewareActivity.SetTag("success", false);
+                        middlewareActivity.SetTag("exception.type", "OperationCanceledException");
+                        middlewareActivity.SetTag("duration_ms", middlewareStopwatch.ElapsedMilliseconds);
+                    }
                     throw;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    middlewareStopwatch.Stop();
+                    if (middlewareActivity != null && IsTelemetryEnabled && ShouldCaptureExceptionDetails)
+                    {
+                        middlewareActivity.SetStatus(ActivityStatusCode.Error, SanitizeExceptionMessage(ex.Message));
+                        middlewareActivity.SetTag("exception.type", SanitizeTypeName(ex.GetType().Name));
+                        middlewareActivity.SetTag("exception.message", SanitizeExceptionMessage(ex.Message));
+                        middlewareActivity.SetTag("success", false);
+                        middlewareActivity.SetTag("duration_ms", middlewareStopwatch.ElapsedMilliseconds);
+                    }
                     throw;
                 }
                 finally
@@ -446,6 +499,93 @@ public sealed class NotificationPipelineBuilder
     /// Minimal notification for concrete type creation fallback.
     /// </summary>
     private sealed class MinimalNotification : INotification { }
+
+    /// <summary>
+    /// Gets whether telemetry is enabled by checking if the ActivitySource has listeners.
+    /// </summary>
+    private static bool IsTelemetryEnabled => Mediator.ActivitySource.HasListeners();
+
+    /// <summary>
+    /// Gets whether notification middleware details should be captured.
+    /// For the pipeline builder, we assume this is true if telemetry is enabled.
+    /// This could be enhanced to use TelemetryOptions if available from the service provider.
+    /// </summary>
+    private static bool ShouldCaptureNotificationMiddlewareDetails => true;
+
+    /// <summary>
+    /// Gets whether exception details should be captured in telemetry.
+    /// For the pipeline builder, we assume this is true if telemetry is enabled.
+    /// This could be enhanced to use TelemetryOptions if available from the service provider.
+    /// </summary>
+    private static bool ShouldCaptureExceptionDetails => true;
+
+    /// <summary>
+    /// Sanitizes middleware names by removing generic suffixes and sensitive patterns.
+    /// </summary>
+    /// <param name="middlewareName">The middleware name to sanitize.</param>
+    /// <returns>A sanitized middleware name safe for telemetry.</returns>
+    private static string SanitizeMiddlewareName(string middlewareName)
+    {
+        if (string.IsNullOrEmpty(middlewareName))
+        {
+            return "unknown_middleware";
+        }
+
+        // Remove generic type suffix (e.g., "`1", "`2")
+        var backtickIndex = middlewareName.IndexOf('`');
+        if (backtickIndex > 0)
+        {
+            middlewareName = middlewareName[..backtickIndex];
+        }
+
+        return middlewareName;
+    }
+
+    /// <summary>
+    /// Sanitizes type names by removing generic suffixes.
+    /// </summary>
+    /// <param name="typeName">The type name to sanitize.</param>
+    /// <returns>A sanitized type name safe for telemetry.</returns>
+    private static string SanitizeTypeName(string typeName)
+    {
+        if (string.IsNullOrEmpty(typeName))
+        {
+            return "unknown_type";
+        }
+
+        // Remove generic type suffix (e.g., "`1", "`2")
+        var backtickIndex = typeName.IndexOf('`');
+        if (backtickIndex > 0)
+        {
+            typeName = typeName[..backtickIndex];
+        }
+
+        return typeName;
+    }
+
+    /// <summary>
+    /// Sanitizes exception messages for telemetry by limiting length and removing sensitive information.
+    /// </summary>
+    /// <param name="message">The exception message to sanitize.</param>
+    /// <returns>A sanitized exception message safe for telemetry.</returns>
+    private static string SanitizeExceptionMessage(string? message)
+    {
+        if (string.IsNullOrEmpty(message))
+            return "unknown_error";
+
+        // Limit message length for telemetry
+        const int maxLength = 200;
+        var sanitized = message.Length > maxLength ? 
+            message[..maxLength] + "..." : message;
+
+        // Remove potential file paths
+        if (sanitized.Contains(":\\") || sanitized.Contains("/"))
+        {
+            sanitized = "file_path_error";
+        }
+
+        return sanitized;
+    }
 
     #endregion
 

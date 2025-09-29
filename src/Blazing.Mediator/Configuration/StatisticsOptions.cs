@@ -4,7 +4,7 @@ namespace Blazing.Mediator.Configuration;
 /// Configuration options for mediator statistics tracking.
 /// Provides granular control over what statistics are collected and how they are managed.
 /// </summary>
-public sealed class StatisticsOptions
+public class StatisticsOptions : IEnvironmentConfigurationOptions<StatisticsOptions>
 {
     /// <summary>
     /// Gets or sets whether to track request metrics (queries and commands).

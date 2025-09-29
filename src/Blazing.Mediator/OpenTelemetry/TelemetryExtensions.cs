@@ -3,7 +3,7 @@ namespace Blazing.Mediator.OpenTelemetry;
 /// <summary>
 /// Extension methods for configuring Blazing.Mediator OpenTelemetry integration.
 /// </summary>
-public static class MediatorTelemetryExtensions
+public static class TelemetryExtensions
 {
     /// <summary>
     /// Configures Blazing.Mediator telemetry options.
@@ -13,9 +13,9 @@ public static class MediatorTelemetryExtensions
     /// <returns>The service collection for method chaining.</returns>
     public static IServiceCollection ConfigureMediatorTelemetry(
         this IServiceCollection services,
-        Action<MediatorTelemetryOptions> configure)
+        Action<TelemetryOptions> configure)
     {
-        var options = new MediatorTelemetryOptions();
+        var options = new TelemetryOptions();
         configure(options);
 
         // Apply configuration to static properties

@@ -89,7 +89,7 @@ public static class ServiceCollectionExtensions
         // Optionally register cleanup service for manual disposal
         if (enableStaticResourceCleanup)
         {
-            services.AddSingleton<MediatorCleanupService>();
+            services.AddSingleton<CleanupService>();
         }
 
         return services;
@@ -113,7 +113,7 @@ public static class ServiceCollectionExtensions
         // Optionally register cleanup service for manual disposal
         if (enableStaticResourceCleanup)
         {
-            services.AddSingleton<MediatorCleanupService>();
+            services.AddSingleton<CleanupService>();
         }
 
         return services;
@@ -278,7 +278,7 @@ public static class ServiceCollectionExtensions
         Assembly? callingAssembly)
     {
         // Delegate all logic to the MediatorRegistrationService
-        return MediatorRegistrationService.RegisterMediatorServices(
+        return RegistrationService.RegisterMediatorServices(
             services,
             options,
             enableStatisticsTracking,

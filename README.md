@@ -314,7 +314,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 If you find Blazing.Mediator useful, please give it a star on GitHub! It helps us understand that the project is valuable to the community.
 
-[![GitHub stars](https://img.shields.io/github/stars/blazing-dev/Blazing.Mediator?style=social)](https://github.com/blazing-dev/Blazing.Mediator/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/blazing-dev/Blazing.Mediator?style=social)](https://github.com/gragra33/Blazing.Mediator/stargazers)
 
 ## 📄 License
 

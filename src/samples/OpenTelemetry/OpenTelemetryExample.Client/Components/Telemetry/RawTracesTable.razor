@@ -1,0 +1,67 @@
+@if (IsLoading)
+{
+    <!-- Loading Spinner -->
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading traces...</span>
+            </div>
+            <div class="mt-2 text-muted">Loading traces...</div>
+        </div>
+    </div>
+}
+else if (Traces != null && Traces.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>Operation</th>
+                    <th>Trace ID</th>
+                    <th class="text-end">Duration</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Start Time</th>
+                    <th class="text-center">Source</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var trace in GetFilteredTraces())
+                {
+                    <tr style="border-left: 4px solid @GetRowBorderColor(trace);">
+                        <td><strong>@trace.OperationName</strong></td>
+                        <td><code class="small">@ShortenTraceId(trace.TraceId)</code></td>
+                        <td class="text-end">@trace.Duration.TotalMilliseconds.ToString("F1")ms</td>
+                        <td class="text-center">
+                            <span class="badge @GetStatusBadgeClass(trace.Status)">
+                                @trace.Status
+                            </span>
+                        </td>
+                        <td class="text-center">@trace.StartTime.ToString("HH:mm:ss.fff")</td>
+                        <td class="text-center">
+                            <span class="badge @GetSourceBadgeClass(trace.Source)">
+                                @GetSourceDisplayName(trace.Source)
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-info" @onclick="() => OnViewTraceDetails.InvokeAsync(trace)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        No trace data available. Try running some tests using the buttons below to generate traces.
+        @if (Traces != null)
+        {
+            <br><small class="text-muted">Debug: DataSource exists but traces length is @GetFilteredTraces().Count()</small>
+        }
+    </div>
+}

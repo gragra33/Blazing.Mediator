@@ -51,7 +51,7 @@ public class StatisticsCleanupService(ILogger<StatisticsCleanupService> logger, 
         var removedCount = beforeCount - afterCount;
         if (removedCount > 0)
         {
-            logger.LogInformation("Cleaned up {RemovedCount} inactive sessions (timeout: {Timeout})", 
+            logger.LogInformation("Cleaned up {RemovedCount} inactive sessions (timeout: {Timeout})",
                 removedCount, _sessionTimeout);
         }
 

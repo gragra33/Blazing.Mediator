@@ -3,34 +3,18 @@ using TypedMiddlewareExample.Queries;
 namespace TypedMiddlewareExample.Handlers;
 
 /// <summary>
-/// Handler for retrieving product information.
+/// Handler for getting product information.
+/// Handles custom IProductRequest interface.
 /// </summary>
-public class GetProductQueryHandler : IQueryHandler<GetProductQuery, string>
+public class GetProductQueryHandler(ILogger<GetProductQueryHandler> logger) : IRequestHandler<GetProductQuery, string>
 {
-    private readonly ILogger<GetProductQueryHandler> _logger;
-    private static readonly Dictionary<string, object> _products = new()
+    public Task<string> Handle(GetProductQuery request, CancellationToken cancellationToken)
     {
-        { "WIDGET-001", new { Name = "High Quality Widget", Price = 99.99m, InStock = 25 } }
-    };
+        logger.LogDebug(".. Retrieving product information for: {ProductId}", request.ProductId);
 
-    public GetProductQueryHandler(ILogger<GetProductQueryHandler> logger)
-    {
-        _logger = logger;
-    }
-
-    public async Task<string> Handle(GetProductQuery request, CancellationToken cancellationToken)
-    {
-        _logger.LogDebug(".. Retrieving product information for: {ProductId}", request.ProductId);
-
-        // Simulate database lookup
-        await Task.Delay(5, cancellationToken);
-
-        if (_products.TryGetValue(request.ProductId, out var product))
-        {
-            var productInfo = $"-- Product: {request.ProductId} - {((dynamic)product).Name}, Price: ${((dynamic)product).Price}, In Stock: {((dynamic)product).InStock} units";
-            return productInfo;
-        }
-
-        return $"-- Product {request.ProductId} not found";
+        // Simulate product lookup
+        var product = $"-- Product: {request.ProductId} - High Quality Widget, Price: $99.99, In Stock: 25 units";
+        
+        return Task.FromResult(product);
     }
 }

@@ -52,13 +52,10 @@ public class StatisticsIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: true,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: false,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking();
+        }, _testAssembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -112,10 +109,7 @@ public class StatisticsIntegrationTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: false, // Disabled
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: false,
+            config => { }, // No configuration = disabled statistics
             _testAssembly
         );
 
@@ -140,16 +134,11 @@ public class StatisticsIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(
-            configureMiddleware: config =>
-            {
-                config.AddMiddleware<FirstQueryMiddleware>();
-            },
-            enableStatisticsTracking: true,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: false,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking()
+                  .AddMiddleware<FirstQueryMiddleware>();
+        }, _testAssembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -179,13 +168,10 @@ public class StatisticsIntegrationTests
         var customRenderer = new TestStatisticsRenderer();
         var services = new ServiceCollection();
         services.AddSingleton<IStatisticsRenderer>(customRenderer);
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: true,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: false,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking();
+        }, _testAssembly);
 
         // Act
         var serviceProvider = services.BuildServiceProvider();
@@ -204,13 +190,10 @@ public class StatisticsIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: true,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: false,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking();
+        }, _testAssembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
@@ -247,13 +230,10 @@ public class StatisticsIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(
-            configureMiddleware: null,
-            enableStatisticsTracking: true,
-            discoverMiddleware: false,
-            discoverNotificationMiddleware: false,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking();
+        }, _testAssembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

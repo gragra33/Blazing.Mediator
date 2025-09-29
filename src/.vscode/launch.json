@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "compounds": [
+        {
+            "name": "Run OpenTelemetry Example",
+            "configurations": [
+                "Run OpenTelemetryExample API",
+                "Run OpenTelemetryExample Client"
+            ]
+        }
+    ],
+    "configurations": [
+        {
+            "name": "Run OpenTelemetryExample API",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/src/samples/OpenTelemetry/OpenTelemetryExample/OpenTelemetryExample.csproj",
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        },
+        {
+            "name": "Run OpenTelemetryExample Client",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/src/samples/OpenTelemetry/OpenTelemetryExample.Client/OpenTelemetryExample.Client.csproj",
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        },
+        {
+            "name": "Run OpenTelemetryExample Aspire",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/src/samples/OpenTelemetry/OpenTelemetryExample.Aspire/OpenTelemetryExample.Aspire.csproj",
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        }
+    ]
+}

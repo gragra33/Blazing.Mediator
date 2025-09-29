@@ -1,0 +1,524 @@
+### OpenTelemetryExample API Test Requests
+### This file contains HTTP requests for testing the OpenTelemetryExample API
+### and demonstrating OpenTelemetry telemetry collection
+
+@baseUrl = https://localhost:7000
+# @baseUrl = http://localhost:5000
+
+###############################################################################
+### Health and Status Endpoints
+###############################################################################
+
+### Application Health Check
+GET {{baseUrl}}/health
+
+### Telemetry Health Check
+GET {{baseUrl}}/telemetry/health
+
+### Telemetry Test Endpoint
+GET {{baseUrl}}/telemetry/test
+
+### Telemetry Metrics Info
+GET {{baseUrl}}/telemetry/metrics
+
+### Debug - Mediator Information
+GET {{baseUrl}}/debug/mediator
+
+###############################################################################
+### User Management Endpoints (CRUD Operations)
+###############################################################################
+
+### Get all users (Query)
+GET {{baseUrl}}/api/users
+
+### Get all users with pagination and filters
+GET {{baseUrl}}/api/users?page=1&pageSize=5&includeInactive=true&searchTerm=john
+
+### Get specific user (Query)
+GET {{baseUrl}}/api/users/1
+
+### Get non-existent user (should return 404)
+GET {{baseUrl}}/api/users/999
+
+### Create new user (Command)
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Jane Doe",
+  "email": "jane.doe@example.com"
+}
+
+### Create user with validation error (empty name)
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "",
+  "email": "invalid-email"
+}
+
+### Update user (Command)
+PUT {{baseUrl}}/api/users/1
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "name": "John Updated",
+  "email": "john.updated@example.com"
+}
+
+### Update non-existent user (should return 404)
+PUT {{baseUrl}}/api/users/999
+Content-Type: application/json
+
+{
+  "userId": 999,
+  "name": "Non Existent",
+  "email": "nonexistent@example.com"
+}
+
+### Delete user (Command)
+DELETE {{baseUrl}}/api/users/2
+
+### Delete non-existent user (should return 404)
+DELETE {{baseUrl}}/api/users/999
+
+### Simulate error for telemetry testing
+POST {{baseUrl}}/api/users/simulate-error
+
+### Simulate validation error for telemetry testing
+POST {{baseUrl}}/api/users/simulate-validation-error
+
+###############################################################################
+### Streaming Endpoints (Real-time Data)
+###############################################################################
+
+### Stream users with basic streaming response
+GET {{baseUrl}}/api/streaming/users?count=10&delayMs=500&searchTerm=&includeInactive=false
+
+### Stream users with large dataset
+GET {{baseUrl}}/api/streaming/users?count=100&delayMs=100
+
+### Stream generic data for testing
+GET {{baseUrl}}/api/streaming/stream-data?count=20&delayMs=200
+
+### Stream users with metadata
+GET {{baseUrl}}/api/streaming/users/metadata?count=15&delayMs=300&searchTerm=test
+
+### Server-Sent Events (SSE) streaming
+GET {{baseUrl}}/api/streaming/users/sse?count=10&delayMs=1000
+
+### Streaming health check
+GET {{baseUrl}}/api/streaming/health
+
+###############################################################################
+### Telemetry Data Endpoints (Live Monitoring)
+###############################################################################
+
+### Get live telemetry metrics
+GET {{baseUrl}}/telemetry/live-metrics
+
+### Get recent traces (default parameters)
+GET {{baseUrl}}/telemetry/traces
+
+### Get recent traces with filtering
+GET {{baseUrl}}/telemetry/traces?maxRecords=20&blazingMediatorOnly=true&timeWindowMinutes=60
+
+### Get recent traces with pagination
+GET {{baseUrl}}/telemetry/traces?page=1&pageSize=10&exampleAppOnly=true
+
+### Get grouped traces (hierarchical view)
+GET {{baseUrl}}/telemetry/traces/grouped
+
+### Get grouped traces with filtering
+GET {{baseUrl}}/telemetry/traces/grouped?maxRecords=15&hidePackets=true&timeWindowMinutes=30
+
+### Get grouped traces with pagination
+GET {{baseUrl}}/telemetry/traces/grouped?page=1&pageSize=5&blazingMediatorOnly=false
+
+### Get recent activities
+GET {{baseUrl}}/telemetry/activities
+
+###############################################################################
+### Logging Endpoints (Structured Logs)
+###############################################################################
+
+### Get recent logs (default - last 30 minutes, 20 per page)
+GET {{baseUrl}}/api/logs/recent
+
+### Get recent logs with time filter (last 5 minutes)
+GET {{baseUrl}}/api/logs/recent?timeWindowMinutes=5&pageSize=10
+
+### Get recent logs (App only)
+GET {{baseUrl}}/api/logs/recent?appOnly=true&timeWindowMinutes=30
+
+### Get recent logs (Mediator only)
+GET {{baseUrl}}/api/logs/recent?mediatorOnly=true&timeWindowMinutes=30
+
+### Get recent logs (Errors only)
+GET {{baseUrl}}/api/logs/recent?errorsOnly=true&timeWindowMinutes=60
+
+### Get recent logs (Warning level and above)
+GET {{baseUrl}}/api/logs/recent?minLogLevel=Warning&timeWindowMinutes=30
+
+### Get recent logs (Search for specific text)
+GET {{baseUrl}}/api/logs/recent?searchText=user&timeWindowMinutes=30
+
+### Get recent logs (Complex filtering)
+GET {{baseUrl}}/api/logs/recent?appOnly=true&errorsOnly=true&minLogLevel=Error&timeWindowMinutes=60&pageSize=50
+
+### Get recent logs (Pagination)
+GET {{baseUrl}}/api/logs/recent?page=2&pageSize=10&timeWindowMinutes=30
+
+### Get recent logs (Search with pagination)
+GET {{baseUrl}}/api/logs/recent?searchText=validation&page=1&pageSize=5&timeWindowMinutes=120
+
+### Get specific log details
+GET {{baseUrl}}/api/logs/1
+
+### Get logs summary (last 30 minutes)
+GET {{baseUrl}}/api/logs/summary
+
+### Get logs summary (last hour)
+GET {{baseUrl}}/api/logs/summary?timeWindowMinutes=60
+
+### Get logs summary (last 24 hours)
+GET {{baseUrl}}/api/logs/summary?timeWindowMinutes=1440
+
+###############################################################################
+### Testing Endpoints (Telemetry Generation)
+###############################################################################
+
+### Test notification publishing
+POST {{baseUrl}}/testing/notifications
+
+### Test middleware error handling
+POST {{baseUrl}}/testing/middleware/error
+
+### Test middleware validation
+POST {{baseUrl}}/testing/middleware/validation
+
+### Test logging functionality (Generate sample logs)
+POST {{baseUrl}}/api/logs/test-logging
+
+### Test direct database logging (Bypass logging provider)
+POST {{baseUrl}}/api/logs/test-database-logging
+
+###############################################################################
+### Advanced Testing Scenarios for OpenTelemetry
+###############################################################################
+
+### Load Testing - Create multiple users quickly
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Load Test User 1",
+  "email": "loadtest1@example.com"
+}
+
+###
+
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Load Test User 2",
+  "email": "loadtest2@example.com"
+}
+
+###
+
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Load Test User 3",
+  "email": "loadtest3@example.com"
+}
+
+###
+
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Load Test User 4",
+  "email": "loadtest4@example.com"
+}
+
+###
+
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Load Test User 5",
+  "email": "loadtest5@example.com"
+}
+
+### Bulk Operations - Query multiple users to test caching and performance
+GET {{baseUrl}}/api/users/1
+
+###
+
+GET {{baseUrl}}/api/users/2
+
+###
+
+GET {{baseUrl}}/api/users/3
+
+###
+
+GET {{baseUrl}}/api/users/4
+
+###
+
+GET {{baseUrl}}/api/users/5
+
+### Test pagination and filtering
+GET {{baseUrl}}/api/users?page=1&pageSize=2
+
+###
+
+GET {{baseUrl}}/api/users?page=2&pageSize=2
+
+###
+
+GET {{baseUrl}}/api/users?searchTerm=load
+
+###
+
+GET {{baseUrl}}/api/users?includeInactive=false
+
+###############################################################################
+### Streaming Load Testing Scenarios
+###############################################################################
+
+### Small stream test
+GET {{baseUrl}}/api/streaming/users?count=5&delayMs=1000
+
+###
+
+### Medium stream test
+GET {{baseUrl}}/api/streaming/users?count=25&delayMs=200
+
+###
+
+### Large stream test
+GET {{baseUrl}}/api/streaming/users?count=100&delayMs=50
+
+###
+
+### SSE load test
+GET {{baseUrl}}/api/streaming/users/sse?count=50&delayMs=100
+
+###
+
+### Stream with search filter
+GET {{baseUrl}}/api/streaming/users?count=30&delayMs=150&searchTerm=test
+
+###############################################################################
+### Telemetry Monitoring Scenarios
+###############################################################################
+
+### Monitor telemetry during operations
+GET {{baseUrl}}/telemetry/live-metrics
+
+###
+
+### Check traces after operations
+GET {{baseUrl}}/telemetry/traces?maxRecords=50&timeWindowMinutes=5
+
+###
+
+### View grouped traces
+GET {{baseUrl}}/telemetry/traces/grouped?maxRecords=25&timeWindowMinutes=10
+
+###
+
+### Monitor streaming telemetry
+GET {{baseUrl}}/telemetry/traces/grouped?blazingMediatorOnly=true&hidePackets=false
+
+###############################################################################
+### Error Scenarios for OpenTelemetry Error Tracking
+###############################################################################
+
+### Invalid Content-Type
+POST {{baseUrl}}/api/users
+Content-Type: text/plain
+
+This is not JSON
+
+### Malformed JSON
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Test",
+  "email": 
+
+### Missing required fields
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{}
+
+### ID mismatch in PUT request
+PUT {{baseUrl}}/api/users/1
+Content-Type: application/json
+
+{
+  "userId": 2,
+  "name": "Mismatch Test",
+  "email": "mismatch@example.com"
+}
+
+### Invalid streaming parameters
+GET {{baseUrl}}/api/streaming/users?count=-1&delayMs=invalid
+
+###
+
+### Test error in streaming
+GET {{baseUrl}}/api/streaming/users?count=1000000&delayMs=0
+
+###############################################################################
+### Performance Testing for OpenTelemetry Metrics
+###############################################################################
+
+### Sequential requests to measure latency
+GET {{baseUrl}}/api/users/1
+
+###
+
+GET {{baseUrl}}/api/users/1
+
+###
+
+GET {{baseUrl}}/api/users/1
+
+###
+
+GET {{baseUrl}}/api/users/1
+
+###
+
+GET {{baseUrl}}/api/users/1
+
+### Mixed operations to test different telemetry paths
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Performance Test User",
+  "email": "perftest@example.com"
+}
+
+###
+
+GET {{baseUrl}}/api/users
+
+###
+
+PUT {{baseUrl}}/api/users/6
+Content-Type: application/json
+
+{
+  "userId": 6,
+  "name": "Performance Test User Updated",
+  "email": "perftest.updated@example.com"
+}
+
+###
+
+DELETE {{baseUrl}}/api/users/6
+
+###############################################################################
+### Real-time Monitoring Workflow
+###############################################################################
+
+### Step 1: Start monitoring
+GET {{baseUrl}}/telemetry/health
+
+###
+
+### Step 2: Generate some activity
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Monitor Test",
+  "email": "monitor@test.com"
+}
+
+###
+
+### Step 3: Start a stream
+GET {{baseUrl}}/api/streaming/users?count=10&delayMs=500
+
+###
+
+### Step 4: Check live metrics
+GET {{baseUrl}}/telemetry/live-metrics
+
+###
+
+### Step 5: View recent traces
+GET {{baseUrl}}/telemetry/traces?maxRecords=20&timeWindowMinutes=5
+
+###
+
+### Step 6: View grouped traces for analysis
+GET {{baseUrl}}/telemetry/traces/grouped?maxRecords=10&timeWindowMinutes=5
+
+###
+
+### Step 7: Test error scenarios
+POST {{baseUrl}}/testing/middleware/error
+
+###
+
+### Step 8: Check traces after errors
+GET {{baseUrl}}/telemetry/traces?maxRecords=10&timeWindowMinutes=2
+
+###############################################################################
+### SignalR Hub Testing (WebSocket Endpoints)
+###############################################################################
+### Note: These are WebSocket connections - use SignalR client tools or browser console
+### Example JavaScript for browser console:
+
+# const connection = new signalR.HubConnectionBuilder()
+#     .withUrl("https://localhost:7000/streaming-hub")
+#     .build();
+# 
+# connection.start().then(function () {
+#     console.log("Connected to streaming hub");
+#     
+#     // Start streaming with parameters
+#     connection.invoke("StartStreaming", {
+#         count: 10,
+#         delayMs: 1000,
+#         batchSize: 1
+#     });
+#     
+#     // Listen for stream items
+#     connection.on("ReceiveStreamItem", function (data) {
+#         console.log("Received:", data);
+#     });
+#     
+#     // Listen for completion
+#     connection.on("StreamCompleted", function (data) {
+#         console.log("Stream completed:", data);
+#     });
+# });
+
+###############################################################################
+### Documentation and Discovery
+###############################################################################
+
+### OpenAPI/Swagger JSON
+GET {{baseUrl}}/swagger/v1/swagger.json
+
+### Swagger UI (open in browser)
+# GET {{baseUrl}}/swagger/index.html

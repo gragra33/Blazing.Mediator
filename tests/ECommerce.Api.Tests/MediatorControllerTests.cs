@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Shouldly;
 
 namespace ECommerce.Api.Tests;
 
@@ -47,7 +46,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
@@ -56,15 +55,15 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         message.ShouldBeOneOf("Session ID Not Yet Assigned", "Current Session ID");
 
         var sessionId = root.GetProperty("sessionId");
-        
+
         if (message == "Session ID Not Yet Assigned")
         {
             sessionId.ValueKind.ShouldBe(JsonValueKind.Null);
-            root.GetProperty("note").GetString().ShouldContain("No session ID has been assigned yet");
+            root.GetProperty("note").GetString()!.ShouldContain("No session ID has been assigned yet");
 
             var instructions = root.GetProperty("instructions");
-            instructions.GetProperty("initializeSession").GetString().ShouldContain("Make any API request");
-            instructions.GetProperty("checkAgain").GetString().ShouldContain("call this endpoint again");
+            instructions.GetProperty("initializeSession").GetString()!.ShouldContain("Make any API request");
+            instructions.GetProperty("checkAgain").GetString()!.ShouldContain("call this endpoint again");
         }
         else
         {
@@ -93,18 +92,18 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
         root.GetProperty("message").GetString().ShouldBe("Current Session ID");
-        
+
         var sessionId = root.GetProperty("sessionId").GetString();
         sessionId.ShouldNotBeNullOrEmpty();
         sessionId.ShouldStartWith("stats_"); // Our session ID format
 
         var usage = root.GetProperty("usage");
-        usage.GetProperty("viewSessionStats").GetString().ShouldContain(sessionId);
+        usage.GetProperty("viewSessionStats").GetString()!.ShouldContain(sessionId);
         usage.GetProperty("viewGlobalStats").GetString().ShouldBe("GET /api/mediator/statistics");
 
         var sessionInfo = root.GetProperty("sessionInfo");
@@ -132,18 +131,18 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
         // Verify the response structure
         root.GetProperty("message").GetString().ShouldBe("Real-Time Mediator Statistics");
-        root.GetProperty("note").GetString().ShouldContain("update dynamically");
+        root.GetProperty("note").GetString()!.ShouldContain("update dynamically");
 
         // Verify global statistics structure
         var globalStats = root.GetProperty("globalStatistics");
         var summary = globalStats.GetProperty("summary");
-        
+
         summary.GetProperty("uniqueQueryTypes").GetInt32().ShouldBeGreaterThanOrEqualTo(0);
         summary.GetProperty("uniqueCommandTypes").GetInt32().ShouldBeGreaterThanOrEqualTo(0);
         summary.GetProperty("totalQueryExecutions").GetInt64().ShouldBeGreaterThan(0);
@@ -156,13 +155,13 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
 
         // Verify tracking info
         var trackingInfo = root.GetProperty("trackingInfo");
-        trackingInfo.GetProperty("method").GetString().ShouldContain("StatisticsTrackingMiddleware");
-        trackingInfo.GetProperty("sessionTracking").GetString().ShouldContain("Enabled");
+        trackingInfo.GetProperty("method").GetString()!.ShouldContain("StatisticsTrackingMiddleware");
+        trackingInfo.GetProperty("sessionTracking").GetString()!.ShouldContain("Enabled");
 
         // Verify instructions
         var instructions = root.GetProperty("instructions");
-        instructions.GetProperty("getSessionId").GetString().ShouldContain("/api/mediator/session");
-        instructions.GetProperty("viewSessionStats").GetString().ShouldContain("/api/mediator/statistics/session/");
+        instructions.GetProperty("getSessionId").GetString()!.ShouldContain("/api/mediator/session");
+        instructions.GetProperty("viewSessionStats").GetString()!.ShouldContain("/api/mediator/statistics/session/");
     }
 
     #endregion
@@ -193,11 +192,11 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
-        root.GetProperty("message").GetString().ShouldContain(sessionId);
+        root.GetProperty("message").GetString()!.ShouldContain(sessionId);
 
         var sessionStats = root.GetProperty("sessionStatistics");
         sessionStats.GetProperty("sessionId").GetString().ShouldBe(sessionId);
@@ -225,11 +224,11 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
-        root.GetProperty("error").GetString().ShouldContain("Session 'invalid-session-id' not found");
+        root.GetProperty("error").GetString()!.ShouldContain("Session 'invalid-session-id' not found");
     }
 
     #endregion
@@ -251,18 +250,18 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
         root.GetProperty("message").GetString().ShouldBe("Statistics for All Active Sessions");
-        
+
         var totalSessions = root.GetProperty("totalActiveSessions").GetInt32();
         totalSessions.ShouldBeGreaterThanOrEqualTo(1);
 
         var sessions = root.GetProperty("sessions");
         sessions.ValueKind.ShouldBe(JsonValueKind.Array);
-        
+
         var sessionArray = sessions.EnumerateArray().ToArray();
         sessionArray.Length.ShouldBe(totalSessions);
 
@@ -270,11 +269,11 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         {
             var firstSession = sessionArray[0];
             firstSession.TryGetProperty("sessionId", out _).ShouldBeTrue();
-            
+
             var summary = firstSession.GetProperty("summary");
             summary.TryGetProperty("uniqueQueryTypes", out _).ShouldBeTrue();
             summary.TryGetProperty("totalQueryExecutions", out _).ShouldBeTrue();
-            
+
             firstSession.TryGetProperty("lastActivity", out _).ShouldBeTrue();
         }
     }
@@ -295,7 +294,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
@@ -310,15 +309,15 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         summary.GetProperty("missingHandlers").GetInt32().ShouldBeGreaterThanOrEqualTo(0);
 
         var legend = root.GetProperty("legend");
-        legend.GetProperty("description").GetString().ShouldContain("Handler found");
+        legend.GetProperty("description").GetString()!.ShouldContain("Handler found");
 
         // Should find ECommerce queries
         var assemblies = queriesByAssembly.EnumerateArray().ToArray();
         assemblies.ShouldNotBeEmpty();
-        
-        var ecommerceAssembly = assemblies.FirstOrDefault(a => 
+
+        var ecommerceAssembly = assemblies.FirstOrDefault(a =>
             a.GetProperty("assembly").GetString()?.Contains("ECommerce") == true);
-        
+
         if (ecommerceAssembly.ValueKind != JsonValueKind.Undefined)
         {
             var namespaces = ecommerceAssembly.GetProperty("namespaces");
@@ -338,7 +337,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
@@ -367,7 +366,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
@@ -407,7 +406,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
@@ -428,7 +427,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
 
         // Verify legend
         var legend = root.GetProperty("legend");
-        legend.GetProperty("description").GetString().ShouldContain("Handler found");
+        legend.GetProperty("description").GetString()!.ShouldContain("Handler found");
 
         // Verify timestamp
         root.TryGetProperty("timestamp", out _).ShouldBeTrue();
@@ -446,7 +445,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
 
@@ -475,10 +474,10 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Step 1: Check initial session state
         var initialSessionResponse = await testClient.GetAsync("/api/mediator/session");
         initialSessionResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        
+
         var initialSessionContent = await initialSessionResponse.Content.ReadAsStringAsync();
         using var initialSessionDoc = JsonDocument.Parse(initialSessionContent);
-        
+
         // Session might already exist due to SessionTrackingMiddleware, but let's verify we can track the process
         var initialMessage = initialSessionDoc.RootElement.GetProperty("message").GetString();
         initialMessage.ShouldBeOneOf("Session ID Not Yet Assigned", "Current Session ID");
@@ -502,7 +501,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         var sessionResponse = await testClient.GetAsync("/api/mediator/session");
         var sessionContent = await sessionResponse.Content.ReadAsStringAsync();
         using var sessionDoc = JsonDocument.Parse(sessionContent);
-        
+
         var sessionId = sessionDoc.RootElement.GetProperty("sessionId").GetString();
         sessionId.ShouldNotBeNullOrEmpty();
         sessionId.ShouldStartWith("stats_");
@@ -514,7 +513,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         var globalStatsResponse = await testClient.GetAsync("/api/mediator/statistics");
         var globalStatsContent = await globalStatsResponse.Content.ReadAsStringAsync();
         using var globalStatsDoc = JsonDocument.Parse(globalStatsContent);
-        
+
         var globalSummary = globalStatsDoc.RootElement.GetProperty("globalStatistics").GetProperty("summary");
         globalSummary.GetProperty("totalQueryExecutions").GetInt64().ShouldBeGreaterThan(0);
         globalSummary.GetProperty("totalCommandExecutions").GetInt64().ShouldBeGreaterThan(0);
@@ -525,7 +524,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
 
         var sessionStatsContent = await sessionStatsResponse.Content.ReadAsStringAsync();
         using var sessionStatsDoc = JsonDocument.Parse(sessionStatsContent);
-        
+
         var sessionStats = sessionStatsDoc.RootElement.GetProperty("sessionStatistics");
         var sessionSummary = sessionStats.GetProperty("summary");
         sessionSummary.GetProperty("totalQueryExecutions").GetInt64().ShouldBeGreaterThan(0);
@@ -544,7 +543,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         var allSessionsResponse = await testClient.GetAsync("/api/mediator/statistics/sessions");
         var allSessionsContent = await allSessionsResponse.Content.ReadAsStringAsync();
         using var allSessionsDoc = JsonDocument.Parse(allSessionsContent);
-        
+
         var sessions = allSessionsDoc.RootElement.GetProperty("sessions").EnumerateArray();
         var ourSession = sessions.FirstOrDefault(s => s.GetProperty("sessionId").GetString() == sessionId);
         ourSession.ValueKind.ShouldNotBe(JsonValueKind.Undefined, "Our session should be in the all sessions list");
@@ -552,7 +551,7 @@ public class MediatorControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Step 8: Verify session usage instructions work
         var usage = sessionDoc.RootElement.GetProperty("usage");
         usage.ValueKind.ShouldNotBe(JsonValueKind.Null);
-        usage.GetProperty("viewSessionStats").GetString().ShouldContain(sessionId);
+        usage.GetProperty("viewSessionStats").GetString()!.ShouldContain(sessionId);
     }
 
     #endregion

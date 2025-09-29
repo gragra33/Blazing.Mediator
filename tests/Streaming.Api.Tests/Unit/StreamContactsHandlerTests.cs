@@ -1,6 +1,5 @@
 using Blazing.Mediator;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using Streaming.Api.Handlers;
 using Streaming.Api.Requests;
@@ -14,32 +13,30 @@ namespace Streaming.Api.Tests.Unit;
 /// </summary>
 public class StreamContactsHandlerTests
 {
-    private readonly IServiceCollection _services;
-    private readonly ServiceProvider _serviceProvider;
     private readonly IMediator _mediator;
 
     public StreamContactsHandlerTests()
     {
-        _services = new ServiceCollection();
-        _services.AddLogging(builder => builder.AddConsole());
+        IServiceCollection services = new ServiceCollection();
+        services.AddLogging(builder => builder.AddConsole());
 
         // Mock IWebHostEnvironment for ContactService
-        _services.AddSingleton<IWebHostEnvironment>(new TestWebHostEnvironment());
+        services.AddSingleton<IWebHostEnvironment>(new TestWebHostEnvironment());
 
         // Register ContactService first
-        _services.AddSingleton<IContactService, ContactService>();
+        services.AddSingleton<IContactService, ContactService>();
 
         // Add Mediator with manual handler registration since assembly scanning has issues in test context
-        _services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator(Array.Empty<Assembly>());
 
         // Manually register all the handlers we need for testing
-        _services.AddScoped<IStreamRequestHandler<StreamContactsRequest, ContactDto>, StreamContactsHandler>();
-        _services.AddScoped<IStreamRequestHandler<StreamContactsWithMetadataRequest, StreamResponse<ContactDto>>, StreamContactsWithMetadataHandler>();
-        _services.AddScoped<IRequestHandler<GetContactCountRequest, int>, GetContactCountHandler>();
-        _services.AddScoped<IRequestHandler<GetAllContactsRequest, ContactDto[]>, GetAllContactsHandler>();
+        services.AddScoped<IStreamRequestHandler<StreamContactsRequest, ContactDto>, StreamContactsHandler>();
+        services.AddScoped<IStreamRequestHandler<StreamContactsWithMetadataRequest, StreamResponse<ContactDto>>, StreamContactsWithMetadataHandler>();
+        services.AddScoped<IRequestHandler<GetContactCountRequest, int>, GetContactCountHandler>();
+        services.AddScoped<IRequestHandler<GetAllContactsRequest, ContactDto[]>, GetAllContactsHandler>();
 
-        _serviceProvider = _services.BuildServiceProvider();
-        _mediator = _serviceProvider.GetRequiredService<IMediator>();
+        ServiceProvider serviceProvider = services.BuildServiceProvider();
+        _mediator = serviceProvider.GetRequiredService<IMediator>();
     }
 
     [Fact]
@@ -50,14 +47,14 @@ public class StreamContactsHandlerTests
         var results = new List<ContactDto>();
 
         // Act
-        await foreach (var contact in _mediator.SendStream(request))
+        await foreach (var contact in _mediator.SendStream(request).ConfigureAwait(false))
         {
             results.Add(contact);
         }
 
-        // Assert
+        // Assert - With 50 contacts in Mock_Contacts.json, we expect all 50
         results.ShouldNotBeEmpty();
-        results.Count.ShouldBeGreaterThan(0);
+        results.Count.ShouldBe(50); // Exact count from Mock_Contacts.json
 
         // Verify contact structure
         var firstContact = results.First();
@@ -75,7 +72,7 @@ public class StreamContactsHandlerTests
         var results = new List<ContactDto>();
 
         // Act
-        await foreach (var contact in _mediator.SendStream(request))
+        await foreach (var contact in _mediator.SendStream(request).ConfigureAwait(false))
         {
             results.Add(contact);
         }
@@ -101,12 +98,12 @@ public class StreamContactsHandlerTests
         // Act & Assert
         try
         {
-            await foreach (var contact in _mediator.SendStream(request, cancellationTokenSource.Token))
+            await foreach (var contact in _mediator.SendStream(request, cancellationTokenSource.Token).ConfigureAwait(false))
             {
                 results.Add(contact);
-                if (results.Count == 2)
+                if (results.Count == 5) // Cancel after 5 items
                 {
-                    cancellationTokenSource.Cancel();
+                    await cancellationTokenSource.CancelAsync();
                 }
             }
         }
@@ -117,7 +114,7 @@ public class StreamContactsHandlerTests
 
         // Should have processed some items before cancellation
         results.Count.ShouldBeGreaterThan(0);
-        results.Count.ShouldBeLessThanOrEqualTo(100); // Shouldn't complete full stream
+        results.Count.ShouldBeLessThanOrEqualTo(50); // Max available in test data
     }
 
     [Fact]
@@ -128,19 +125,23 @@ public class StreamContactsHandlerTests
         var results = new List<StreamResponse<ContactDto>>();
 
         // Act
-        await foreach (var response in _mediator.SendStream(request))
+        await foreach (var response in _mediator.SendStream(request).ConfigureAwait(false))
         {
             results.Add(response);
         }
 
-        // Assert
+        // Assert - With 50 contacts in Mock_Contacts.json, we expect 50 + 1 completion signal = 51
         results.ShouldNotBeEmpty();
+        results.Count.ShouldBe(51); // 50 contacts + 1 completion signal
 
-        // Verify stream response structure
-        var firstResponse = results.First();
-        firstResponse.ShouldNotBeNull();
-        firstResponse.Data.ShouldNotBeNull();
-        firstResponse.Data.Id.ShouldBeGreaterThan(0);
+        // Verify that the first 50 responses contain contact data
+        var contactResponses = results.Take(50).ToList();
+        contactResponses.ShouldAllBe(r => !r.IsComplete && r.Data.Id > 0);
+
+        // Verify the last response is a completion signal
+        var completionResponse = results.Last();
+        completionResponse.IsComplete.ShouldBeTrue();
+        completionResponse.Message.ShouldBe("Streaming completed successfully");
     }
 
     [Fact]
@@ -150,10 +151,10 @@ public class StreamContactsHandlerTests
         var request = new GetContactCountRequest();
 
         // Act
-        var count = await _mediator.Send(request);
+        var count = await _mediator.Send(request).ConfigureAwait(false);
 
-        // Assert
-        count.ShouldBeGreaterThan(0);
+        // Assert - Mock_Contacts.json contains exactly 50 contacts
+        count.ShouldBe(50);
     }
 
     [Fact]
@@ -163,11 +164,11 @@ public class StreamContactsHandlerTests
         var request = new GetAllContactsRequest();
 
         // Act
-        var contacts = await _mediator.Send(request);
+        var contacts = await _mediator.Send(request).ConfigureAwait(false);
 
-        // Assert
+        // Assert - Mock_Contacts.json contains exactly 50 contacts
         contacts.ShouldNotBeNull();
-        contacts.Length.ShouldBeGreaterThan(0);
+        contacts.Length.ShouldBe(50);
 
         // Verify contact structure
         var firstContact = contacts.First();
@@ -184,7 +185,7 @@ public class StreamContactsHandlerTests
         var request = new GetAllContactsRequest { SearchTerm = "doe" };
 
         // Act
-        var contacts = await _mediator.Send(request);
+        var contacts = await _mediator.Send(request).ConfigureAwait(false);
 
         // Assert
         contacts.ShouldNotBeNull();
@@ -196,36 +197,5 @@ public class StreamContactsHandlerTests
                 c.LastName.Contains("doe", StringComparison.OrdinalIgnoreCase) ||
                 c.Email.Contains("doe", StringComparison.OrdinalIgnoreCase));
         }
-    }
-}
-
-/// <summary>
-/// Test implementation of IWebHostEnvironment for unit testing
-/// </summary>
-public class TestWebHostEnvironment : IWebHostEnvironment
-{
-    public string EnvironmentName { get; set; } = "Testing";
-    public string ApplicationName { get; set; } = "Streaming.Api.Tests";
-    public string ContentRootPath { get; set; } = Directory.GetCurrentDirectory();
-    public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
-
-    // Point to the test project root directory so ContactService can find "data/Mock_Contacts.json"
-    public string WebRootPath { get; set; } = GetTestProjectRoot();
-    public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
-
-    private static string GetTestProjectRoot()
-    {
-        // Navigate from bin/Debug/net9.0 back to project root
-        var currentDir = Directory.GetCurrentDirectory();
-        var projectRoot = currentDir;
-
-        // If we're in a bin directory, go up to find the project root
-        while (Path.GetFileName(projectRoot) != "Streaming.Api.Tests" &&
-               Directory.GetParent(projectRoot) != null)
-        {
-            projectRoot = Directory.GetParent(projectRoot)!.FullName;
-        }
-
-        return projectRoot;
     }
 }

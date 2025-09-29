@@ -169,7 +169,3 @@ public class MediatorTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(query));
     }
 }
-
-// Test Commands and Queries
-
-// Test Handlers

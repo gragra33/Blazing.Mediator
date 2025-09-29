@@ -1,18 +1,35 @@
 ﻿# Version History
 
-### V1.7.0 - 19 September, 2025
+### V1.8.0 - 30 September, 2025
 
--   **Type-Constrained Middleware Support**: Enhanced middleware pipeline with generic type constraint validation for selective middleware execution based on interface types
+-   **OpenTelemetry Integration**: Full observability support with distributed tracing, metrics collection, and performance monitoring for enhanced debugging and monitoring capabilities with seamless integration for modern cloud-native applications
+-   **Extensive Debug Logging**: Comprehensive debug logging infrastructure with configurable log levels, performance tracking, and detailed execution flow analysis for enhanced troubleshooting and monitoring
+-   **Enhanced Statistics**: Advanced statistics tracking with detailed performance metrics, execution counters, pipeline analysis, and comprehensive runtime insights for production monitoring and optimization
+-   **Fluent Configuration API**: New modern fluent configuration approach using `builder.Services.AddMediator(config => { ... })` for improved type safety, enhanced functionality, and streamlined developer experience with IntelliSense support
+-   **Environment-Aware Configuration**: Advanced configuration management with automatic environment detection, preset application, and JSON configuration support for production-ready deployment patterns
+-   **Configuration Diagnostics**: Real-time configuration diagnostics, validation reporting, and environment-specific validation for production safety and troubleshooting capabilities
+-   **Legacy Method Deprecation**: Marked older `AddMediator()` and `AddMediatorFromLoadedAssemblies()` methods with boolean parameters as obsolete while maintaining backward compatibility during transition period with comprehensive migration guidance
+-   **Enhanced Notification System**: Added comprehensive automatic notification handler system alongside existing manual subscriber pattern for maximum architectural flexibility
+-   **Type-Constrained Middleware**: Advanced middleware system supporting generic type constraints for selective execution based on interface types (e.g., `ICommand`, `IQuery<T>`, `IOrderNotification`)
+-   **New Sample Projects**: Added six comprehensive sample projects (OpenTelemetryExample, NotificationHandlerExample, NotificationHybridExample, TypedNotificationHandlerExample, TypedNotificationHybridExample, TypedNotificationSubscriberExample) demonstrating new fluent configuration, Telemetry, Statistics, Logging, automatic handlers, hybrid patterns, and type-constrained middleware
+-   **ConfigurationExample Sample**: Demonstrates configuration features with environment-aware settings, JSON configuration, preset integration, and advanced diagnostics capabilities
+-   **OpenTelemetryExample Sample**: New comprehensive sample project demonstrating OpenTelemetry integration with web API server, Blazor client, and .NET Aspire support for modern cloud-native applications with real-time telemetry visualization
+-   **New Documentation Guides**: Added comprehensive [OpenTelemetry Integration Guide](docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md), [Mediator Statistics Configuration Guide
+](docs/MEDIATOR_STATISTICS_GUIDE.md) and [Mediator Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md) with detailed implementation examples, best practices, and troubleshooting scenarios
+-   **Enhanced Documentation**: Updated all documentation with new fluent configuration examples, OpenTelemetry integration patterns, logging configuration, notification system patterns, and comprehensive migration guidance from legacy registration methods
+-   **Improved Developer Experience**: Streamlined configuration process with better IntelliSense support, compile-time validation through fluent API design, enhanced debugging capabilities, and comprehensive observability features
+
+### V1.7.0 - 16 September, 2025
+
+-   **Type-Constrained Middleware Support**: Enhanced middleware pipeline with support for type-constrained middleware implementations for selective middleware execution based on interface types
 -   **Request Middleware Type Constraints**: Added support for constraining request middleware to specific interface types (e.g., `ICommand`, `IQuery`) for precise middleware targeting
 -   **Notification Middleware Type Constraints**: Extended type constraint support to notification middleware for selective notification processing based on interface implementations
 -   **Enhanced CQRS Interface Support**: Improved middleware pipeline to respect typed constraints for compile-time middleware applicability
 -   **TypedMiddlewareExample Sample**: New comprehensive sample project demonstrating type-constrained middleware with clear ICommand/IQuery distinction and selective validation
--   **Generic Constraint Validation**: Advanced generic type constraint checking with support for complex constraint scenarios including class, struct, and interface constraints
 -   **Enhanced Type Safety**: Compile-time enforcement of middleware applicability through generic type constraints reducing runtime errors and improving performance
--   **Comprehensive Test Coverage**: Extensive test suite for type constraint validation covering edge cases, constraint inheritance, and complex generic scenarios
 -   **Enhanced Sample Projects**: Updated ECommerce.Api and UserManagement.Api with comprehensive mediator statistics endpoints for runtime monitoring and analysis
- 
-### V1.6.2 - 18 September, 2025
+
+### V1.6.2 - 16 September, 2025
 
 -   **Enhanced Handler Analysis**: Updated `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` with comprehensive handler detection and status reporting
 -   **Handler Status Tracking**: New `HandlerStatus` enum with ASCII markers (`+` = found, `!` = missing, `#` = multiple) for easy visual identification

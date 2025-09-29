@@ -60,7 +60,7 @@ public class MediatorStreamingTests
                 results.Add(item);
                 if (results.Count == 2)
                 {
-                    cancellationTokenSource.Cancel(); // Cancel after receiving 2 items
+                    await cancellationTokenSource.CancelAsync(); // Cancel after receiving 2 items
                 }
             }
         }

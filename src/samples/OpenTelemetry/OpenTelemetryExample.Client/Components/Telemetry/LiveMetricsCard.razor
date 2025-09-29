@@ -1,0 +1,86 @@
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-graph-up me-2"></i>Live Metrics
+        </h5>
+    </div>
+    <div class="card-body">
+        @if (DataSource != null)
+        {
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="text-center">
+                        <h4 class="text-primary">@GetMetricValue("RequestCount")</h4>
+                        <small class="text-muted">Requests</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center">
+                        <h4 class="text-info">@GetMetricValue("AverageResponseTime")ms</h4>
+                        <small class="text-muted">Avg Response</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center">
+                        <h4 class="text-warning">@GetMetricValue("ErrorRate")%</h4>
+                        <small class="text-muted">Error Rate</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center">
+                        <h4 class="text-success">@GetMetricValue("ActiveConnections")</h4>
+                        <small class="text-muted">Active Connections</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center">
+                        <h4 class="text-info">@GetMetricValue("MemoryUsage")%</h4>
+                        <small class="text-muted">Memory</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center">
+                        <h4 class="text-primary">@GetMetricValue("CpuUsage")%</h4>
+                        <small class="text-muted">CPU</small>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Live metrics data is not available. Please ensure the API server is running and try refreshing.
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public LiveMetricsDto? DataSource { get; set; }
+
+    private string GetMetricValue(string metricName)
+    {
+        try
+        {
+            if (DataSource?.Metrics != null)
+            {
+                return metricName switch
+                {
+                    "RequestCount" => DataSource.Metrics.RequestCount.ToString(),
+                    "AverageResponseTime" => DataSource.Metrics.AverageResponseTime.ToString("F1"),
+                    "ErrorRate" => DataSource.Metrics.ErrorRate.ToString("F1"),
+                    "ActiveConnections" => DataSource.Metrics.ActiveConnections.ToString(),
+                    "MemoryUsage" => DataSource.Metrics.MemoryUsage.ToString("F1"),
+                    "CpuUsage" => DataSource.Metrics.CpuUsage.ToString("F1"),
+                    _ => "N/A"
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Error getting metric value for '{metricName}': {ex.Message}");
+        }
+        return "N/A";
+    }
+}

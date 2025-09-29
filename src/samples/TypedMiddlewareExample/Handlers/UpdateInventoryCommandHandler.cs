@@ -3,15 +3,13 @@ using TypedMiddlewareExample.Commands;
 namespace TypedMiddlewareExample.Handlers;
 
 /// <summary>
-/// Handler for updating inventory levels.
+/// Handles inventory updates for products in the system.
+/// Returns the new stock count after the inventory change.
 /// </summary>
-public class UpdateInventoryCommandHandler : ICommandHandler<UpdateInventoryCommand, int>
+public class UpdateInventoryCommandHandler : IRequestHandler<UpdateInventoryCommand, int>
 {
     private readonly ILogger<UpdateInventoryCommandHandler> _logger;
-    private static readonly Dictionary<string, int> _inventory = new()
-    {
-        { "WIDGET-001", 25 }
-    };
+    private static readonly ActivitySource ActivitySource = new("TypedMiddlewareExample.UpdateInventoryCommandHandler", "2.0.0");
 
     public UpdateInventoryCommandHandler(ILogger<UpdateInventoryCommandHandler> logger)
     {
@@ -20,25 +18,25 @@ public class UpdateInventoryCommandHandler : ICommandHandler<UpdateInventoryComm
 
     public async Task<int> Handle(UpdateInventoryCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation(".. Updating inventory for product: {ProductId}, change: {InventoryChange}",
+        using var activity = ActivitySource.StartActivity("Handle_UpdateInventoryCommand");
+        activity?.SetTag("inventory.product_id", request.ProductId);
+        activity?.SetTag("inventory.change", request.InventoryChange);
+
+        _logger.LogInformation("?? [UpdateInventoryHandler] Updating inventory for product: {ProductId}, change: {Change}", 
             request.ProductId, request.InventoryChange);
 
-        // Simulate inventory update processing
-        await Task.Delay(25, cancellationToken);
+        // Simulate inventory lookup and update
+        await Task.Delay(50, cancellationToken); // Simulate database call
 
-        if (_inventory.ContainsKey(request.ProductId))
-        {
-            _inventory[request.ProductId] += request.InventoryChange;
-        }
-        else
-        {
-            _inventory[request.ProductId] = Math.Max(0, request.InventoryChange);
-        }
+        // For demo purposes, simulate current stock
+        const int currentStock = 25;
+        var newStock = Math.Max(0, currentStock + request.InventoryChange); // Ensure we don't go negative
 
-        var newCount = _inventory[request.ProductId];
-        _logger.LogInformation("-- Inventory updated for {ProductId}. New stock count: {NewCount}",
-            request.ProductId, newCount);
+        activity?.SetTag("inventory.new_stock", newStock);
 
-        return newCount;
+        _logger.LogInformation("? [UpdateInventoryHandler] Inventory updated for {ProductId}. New stock count: {NewStock}", 
+            request.ProductId, newStock);
+
+        return newStock;
     }
 }

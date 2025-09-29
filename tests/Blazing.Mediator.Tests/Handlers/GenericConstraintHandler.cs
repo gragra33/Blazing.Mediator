@@ -1,22 +1,17 @@
-namespace Blazing.Mediator.Tests;
+using Blazing.Mediator.Tests.Commands;
+
+namespace Blazing.Mediator.Tests.Handlers;
 
 /// <summary>
-/// Generic constraint handler for testing type constraints.
+/// Generic handler for testing C# generic constraints functionality.
+/// This tests standard C# generic constraints, not the removed constraint validation feature.
 /// </summary>
-public class GenericConstraintHandler : IRequestHandler<GenericConstraintCommand<TestConstraintEntity>>
+public class GenericConstraintHandler<TEntity> : IRequestHandler<GenericConstraintCommand<TEntity>>
+    where TEntity : ITestConstraintEntity
 {
-    /// <summary>
-    /// Gets the last processed entity.
-    /// </summary>
-    public static TestConstraintEntity? LastProcessedEntity { get; set; }
+    public static object? LastProcessedEntity { get; private set; }
 
-    /// <summary>
-    /// Handles the generic constraint command.
-    /// </summary>
-    /// <param name="request">The command request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A completed task.</returns>
-    public Task Handle(GenericConstraintCommand<TestConstraintEntity> request, CancellationToken cancellationToken = default)
+    public Task Handle(GenericConstraintCommand<TEntity> request, CancellationToken cancellationToken)
     {
         LastProcessedEntity = request.Data;
         return Task.CompletedTask;

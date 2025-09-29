@@ -20,7 +20,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
 
         // Act & Assert - Should not throw
         services.AddMediator((Assembly[])null!);
-        services.AddMediator(configureMiddleware: null, (Assembly[])null!);
+        services.AddMediator(config => { }, (Assembly[])null!);
     }
 
     /// <summary>
@@ -34,7 +34,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
 
         // Act & Assert - Should not throw
         services.AddMediator(Array.Empty<Assembly>());
-        services.AddMediator(configureMiddleware: null, Array.Empty<Assembly>());
+        services.AddMediator(config => { }, Array.Empty<Assembly>());
     }
 
     /// <summary>
@@ -48,7 +48,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
 
         // Act & Assert - Should not throw
         services.AddMediator((Type[])null!);
-        services.AddMediator(configureMiddleware: null, (Type[])null!);
+        services.AddMediator(config => { }, (Type[])null!);
     }
 
     /// <summary>
@@ -61,8 +61,8 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act & Assert - Should not throw
-        services.AddMediator(Array.Empty<Type>());
-        services.AddMediator(configureMiddleware: null, Array.Empty<Type>());
+        services.AddMediator([]);
+        services.AddMediator(config => { }, Array.Empty<Type>());
     }
 
     /// <summary>

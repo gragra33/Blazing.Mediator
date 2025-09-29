@@ -1,26 +1,14 @@
-using Blazing.Mediator.Abstractions;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
+namespace Blazing.Mediator.Benchmarks;
 
-namespace Blazing.Mediator.Benchmarks
+// Post-processing logic integrated into a middleware component
+internal class GenericRequestPostProcessor<TRequest, TResponse>(TextWriter writer)
+    : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
 {
-    // Post-processing logic integrated into a middleware component
-    public class GenericRequestPostProcessor<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
+    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        private readonly TextWriter _writer;
-
-        public GenericRequestPostProcessor(TextWriter writer)
-        {
-            _writer = writer;
-        }
-
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
-        {
-            var response = await next();
-            await _writer.WriteLineAsync("- All Done");
-            return response;
-        }
+        var response = await next().ConfigureAwait(false);
+        await writer.WriteLineAsync("- All Done").ConfigureAwait(false);
+        return response;
     }
 }

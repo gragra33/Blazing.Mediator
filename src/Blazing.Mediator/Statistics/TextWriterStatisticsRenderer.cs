@@ -3,7 +3,7 @@ namespace Blazing.Mediator.Statistics;
 /// <summary>
 /// Text writer renderer for statistics output that writes to a TextWriter.
 /// </summary>
-public class TextWriterStatisticsRenderer : IStatisticsRenderer
+public sealed class TextWriterStatisticsRenderer : IStatisticsRenderer
 {
     private readonly TextWriter _writer;
 

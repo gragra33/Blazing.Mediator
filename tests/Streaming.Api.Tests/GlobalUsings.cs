@@ -4,3 +4,4 @@ global using Shouldly;
 global using Streaming.Api.Shared.DTOs;
 global using System.Text.Json;
 global using Xunit;
+global using System.IO;

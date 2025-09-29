@@ -1,0 +1,151 @@
+@page "/"
+
+<PageTitle>OpenTelemetry Example - Home</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="jumbotron bg-primary text-white p-5 rounded mb-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="display-4 fw-bold">
+                            <i class="bi bi-graph-up me-3"></i>
+                            OpenTelemetry Example
+                        </h1>
+                        <p class="lead">
+                            Comprehensive demonstration of OpenTelemetry integration with Blazing.Mediator, 
+                            showcasing telemetry collection, metrics, tracing, and real-time streaming capabilities.
+                        </p>
+                        <div class="mt-4">
+                            <a href="/users" class="btn btn-light btn-lg me-3">
+                                <i class="bi bi-people-fill me-2"></i>Explore Users
+                            </a>
+                            <a href="/streaming" class="btn btn-outline-light btn-lg me-3">
+                                <i class="bi bi-broadcast me-2"></i>Live Streaming
+                            </a>
+                            <a href="/telemetry" class="btn btn-outline-light btn-lg">
+                                <i class="bi bi-bar-chart-fill me-2"></i>View Telemetry
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <i class="bi bi-activity feature-icon" style="font-size: 6rem; color: rgba(255,255,255,0.8);"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 telemetry-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-speedometer2 feature-icon"></i>
+                    <h5 class="card-title">Real-time Metrics</h5>
+                    <p class="card-text">
+                        Monitor request duration, success rates, and performance metrics 
+                        in real-time with comprehensive OpenTelemetry integration.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 telemetry-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-broadcast feature-icon"></i>
+                    <h5 class="card-title">Live Data Streaming</h5>
+                    <p class="card-text">
+                        Experience real-time data streaming through Blazing.Mediator with 
+                        comprehensive telemetry tracking and SignalR integration.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 telemetry-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-diagram-3 feature-icon"></i>
+                    <h5 class="card-title">Distributed Tracing</h5>
+                    <p class="card-text">
+                        Track requests through the complete CQRS pipeline with detailed 
+                        spans and correlation IDs for end-to-end visibility.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-code-slash me-2"></i>CQRS with OpenTelemetry
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        This example demonstrates how to integrate OpenTelemetry with Blazing.Mediator's 
+                        CQRS implementation, providing comprehensive observability for:
+                    </p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Command & Query execution</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Middleware pipeline tracking</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Real-time streaming operations</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Exception handling & logging</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Performance monitoring</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Health check integration</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-play-circle me-2"></i>Getting Started
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Explore the features of this OpenTelemetry example:</p>
+                    <div class="d-grid gap-2">
+                        <a href="/users" class="btn btn-outline-primary">
+                            <i class="bi bi-people me-2"></i>Manage Users (CRUD Operations)
+                        </a>
+                        <a href="/streaming" class="btn btn-outline-info">
+                            <i class="bi bi-broadcast me-2"></i>Real-time Streaming Demo
+                        </a>
+                        <a href="/telemetry" class="btn btn-outline-success">
+                            <i class="bi bi-bar-chart me-2"></i>View Telemetry Dashboard
+                        </a>
+                        <a href="/demo" class="btn btn-outline-warning">
+                            <i class="bi bi-play me-2"></i>Run Interactive Demo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-info-circle me-2"></i>About This Example
+                    </h5>
+                    <p class="card-text">
+                        This Blazor WebAssembly application demonstrates a complete OpenTelemetry integration 
+                        with Blazing.Mediator. The backend API collects comprehensive telemetry data including 
+                        metrics, traces, and logs, while this client provides an interactive interface to 
+                        explore the features and monitor the telemetry in real-time.
+                    </p>
+                    <p class="card-text">
+                        <strong>Key Technologies:</strong> .NET 9, Blazor WebAssembly, OpenTelemetry, 
+                        Blazing.Mediator, Bootstrap 5, SignalR, and comprehensive CQRS patterns.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

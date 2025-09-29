@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 
 namespace Blazing.Mediator.Tests;

@@ -12,7 +12,7 @@ public class MediatorStatisticsTracker
     private readonly ConcurrentDictionary<string, long> _globalQueryCounts = new();
     private readonly ConcurrentDictionary<string, long> _globalCommandCounts = new();
     private readonly ConcurrentDictionary<string, long> _globalNotificationCounts = new();
-    
+
     private readonly ConcurrentDictionary<string, SessionStatistics> _sessionStatistics = new();
 
     /// <summary>
@@ -23,10 +23,10 @@ public class MediatorStatisticsTracker
     public void TrackQuery(string queryType, string? sessionId = null)
     {
         if (string.IsNullOrEmpty(queryType)) return;
-        
+
         // Track globally
         _globalQueryCounts.AddOrUpdate(queryType, 1, (_, count) => count + 1);
-        
+
         // Track per session if sessionId provided
         if (!string.IsNullOrEmpty(sessionId))
         {
@@ -44,10 +44,10 @@ public class MediatorStatisticsTracker
     public void TrackCommand(string commandType, string? sessionId = null)
     {
         if (string.IsNullOrEmpty(commandType)) return;
-        
+
         // Track globally
         _globalCommandCounts.AddOrUpdate(commandType, 1, (_, count) => count + 1);
-        
+
         // Track per session if sessionId provided
         if (!string.IsNullOrEmpty(sessionId))
         {
@@ -65,10 +65,10 @@ public class MediatorStatisticsTracker
     public void TrackNotification(string notificationType, string? sessionId = null)
     {
         if (string.IsNullOrEmpty(notificationType)) return;
-        
+
         // Track globally
         _globalNotificationCounts.AddOrUpdate(notificationType, 1, (_, count) => count + 1);
-        
+
         // Track per session if sessionId provided
         if (!string.IsNullOrEmpty(sessionId))
         {

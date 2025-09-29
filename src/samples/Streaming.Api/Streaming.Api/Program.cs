@@ -70,7 +70,7 @@ app.UseCors();
 
 app.UseAntiforgery();
 
-app.MapStaticAssets();
+app.UseStaticFiles();
 
 // Map API endpoints
 app.MapContactEndpoints();

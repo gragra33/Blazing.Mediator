@@ -197,7 +197,7 @@ public class OrdersController(IMediator mediator, ILogger<OrdersController> logg
 
         if (result.Success)
             return Ok(result);
-        
+
         return BadRequest(result);
     }
 

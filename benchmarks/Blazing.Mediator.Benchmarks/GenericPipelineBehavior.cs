@@ -1,26 +1,14 @@
-using Blazing.Mediator.Abstractions;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
+namespace Blazing.Mediator.Benchmarks;
 
-namespace Blazing.Mediator.Benchmarks
+internal class GenericPipelineBehavior<TRequest, TResponse>(TextWriter writer)
+    : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
 {
-    public class GenericPipelineBehavior<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
+    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        private readonly TextWriter _writer;
-
-        public GenericPipelineBehavior(TextWriter writer)
-        {
-            _writer = writer;
-        }
-
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
-        {
-            await _writer.WriteLineAsync("-- Handling Request");
-            var response = await next();
-            await _writer.WriteLineAsync("-- Finished Request");
-            return response;
-        }
+        await writer.WriteLineAsync("-- Handling Request").ConfigureAwait(false);
+        var response = await next().ConfigureAwait(false);
+        await writer.WriteLineAsync("-- Finished Request").ConfigureAwait(false);
+        return response;
     }
 }

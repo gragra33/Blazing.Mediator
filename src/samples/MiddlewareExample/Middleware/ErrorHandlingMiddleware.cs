@@ -4,14 +4,9 @@ namespace MiddlewareExample.Middleware;
 /// Base class for error handling middleware that provides shared error handling logic.
 /// </summary>
 /// <typeparam name="TRequest">The type of request being processed.</typeparam>
-public abstract class ErrorHandlingMiddlewareBase<TRequest>
+public abstract class ErrorHandlingMiddlewareBase<TRequest>(ILogger logger)
 {
-    protected readonly ILogger Logger;
-
-    protected ErrorHandlingMiddlewareBase(ILogger logger)
-    {
-        Logger = logger;
-    }
+    protected readonly ILogger Logger = logger;
 
     public int Order => int.MinValue; // Execute first to wrap entire pipeline in error handling
 
@@ -60,14 +55,10 @@ public abstract class ErrorHandlingMiddlewareBase<TRequest>
 /// Catches exceptions and converts them to user-friendly errors to avoid leaking internal details.
 /// </summary>
 /// <typeparam name="TRequest">The type of request being processed.</typeparam>
-public class ErrorHandlingMiddleware<TRequest> : ErrorHandlingMiddlewareBase<TRequest>, IRequestMiddleware<TRequest>
+public class ErrorHandlingMiddleware<TRequest>(ILogger<ErrorHandlingMiddleware<TRequest>> logger)
+    : ErrorHandlingMiddlewareBase<TRequest>(logger), IRequestMiddleware<TRequest>
     where TRequest : IRequest
 {
-    public ErrorHandlingMiddleware(ILogger<ErrorHandlingMiddleware<TRequest>> logger)
-        : base(logger)
-    {
-    }
-
     public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         LogStart();
@@ -89,14 +80,10 @@ public class ErrorHandlingMiddleware<TRequest> : ErrorHandlingMiddlewareBase<TRe
 /// </summary>
 /// <typeparam name="TRequest">The type of request being processed.</typeparam>
 /// <typeparam name="TResponse">The type of response returned.</typeparam>
-public class ErrorHandlingMiddleware<TRequest, TResponse> : ErrorHandlingMiddlewareBase<TRequest>, IRequestMiddleware<TRequest, TResponse>
+public class ErrorHandlingMiddleware<TRequest, TResponse>(ILogger<ErrorHandlingMiddleware<TRequest, TResponse>> logger)
+    : ErrorHandlingMiddlewareBase<TRequest>(logger), IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public ErrorHandlingMiddleware(ILogger<ErrorHandlingMiddleware<TRequest, TResponse>> logger)
-        : base(logger)
-    {
-    }
-
     public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         LogStart();

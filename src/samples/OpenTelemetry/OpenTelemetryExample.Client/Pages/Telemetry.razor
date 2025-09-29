@@ -1,0 +1,99 @@
+@page "/telemetry"
+@using OpenTelemetryExample.Client.Services
+@inject ITelemetryService TelemetryService
+@implements IDisposable
+
+<PageTitle>Telemetry Dashboard - OpenTelemetry Example</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-bar-chart-fill me-2"></i>Telemetry Dashboard
+        </h2>
+        <div class="d-flex align-items-center gap-3">
+            <!-- Auto-refresh toggle -->
+            <div class="d-flex align-items-center">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="autoRefreshToggle" 
+                           checked="@_autoRefreshEnabled" @onchange="ToggleAutoRefresh">
+                    <label class="form-check-label" for="autoRefreshToggle">
+                        <i class="bi @(_autoRefreshEnabled ? "bi-arrow-repeat" : "bi-pause-circle") me-1"></i>
+                        @if (_autoRefreshEnabled)
+                        {
+                            <text>Auto-refresh (@_remainingSeconds.ToString()s of @_refreshIntervalSeconds.ToString()s)</text>
+                        }
+                        else
+                        {
+                            <text>Auto-refresh</text>
+                        }
+                    </label>
+                </div>
+            </div>
+            <!-- Manual refresh button -->
+            <button class="btn btn-outline-primary" @onclick="RefreshTelemetryManual">
+                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <ApiHealthStatusCard DataSource="_apiHealthy" Loading="_apiHealthLoading" />
+        </div>
+        <div class="col-md-6">
+            <TelemetryHealthCard DataSource="_telemetryHealth" Loading="_telemetryHealthLoading" />
+        </div>
+    </div>
+
+    @if (_telemetryHealth != null)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <TelemetryConfigurationCard DataSource="_telemetryHealth" />
+            </div>
+        </div>
+    }
+
+    <!-- Live Metrics Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <LiveMetricsCard DataSource="_liveMetrics" />
+        </div>
+    </div>
+
+    <!-- Commands & Queries Performance -->
+    <CommandsQueriesPerformanceCard DataSource="_liveMetrics" />
+
+    <!-- Recent Traces Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <RecentTracesCard RefreshTrigger="_recentTracesRefreshTrigger" />
+        </div>
+    </div>
+
+    <!-- Recent Logs Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <RecentLogsCard RefreshTrigger="_recentLogsRefreshTrigger" />
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <TelemetryTestingCard OnTestCompleted="RefreshTelemetry" />
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <AboutOpenTelemetryCard />
+        </div>
+    </div>
+
+    <!-- DEBUG: API Status Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <DebugInformationCard DataSource="_debugData" />
+        </div>
+    </div>
+</div>

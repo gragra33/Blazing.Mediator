@@ -1,5 +1,5 @@
 using Blazing.Mediator;
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
 using UserManagement.Api.Services;
 
 namespace UserManagement.Api.Middleware;
@@ -20,11 +20,11 @@ public class StatisticsTrackingMiddleware<TRequest, TResponse>(MediatorStatistic
     {
         // Get session ID from HTTP context (set by SessionTrackingMiddleware)
         var sessionId = GetSessionId();
-        
+
         // Determine if this is a query or command
         var requestType = request.GetType().Name;
         var isQuery = IsQuery(request);
-        
+
         // Track the request
         if (isQuery)
         {
@@ -47,7 +47,7 @@ public class StatisticsTrackingMiddleware<TRequest, TResponse>(MediatorStatistic
             if (httpContext == null) return null;
 
             // First try to get session ID from HttpContext.Items (set by SessionTrackingMiddleware)
-            if (httpContext.Items.TryGetValue("StatisticsSessionId", out var sessionIdObj) && 
+            if (httpContext.Items.TryGetValue("StatisticsSessionId", out var sessionIdObj) &&
                 sessionIdObj is string sessionId && !string.IsNullOrEmpty(sessionId))
             {
                 return sessionId;
@@ -91,7 +91,7 @@ public class StatisticsTrackingVoidMiddleware<TRequest>(MediatorStatisticsTracke
     {
         // Get session ID from HTTP context
         var sessionId = GetSessionId();
-        
+
         // Track as command (void requests are typically commands)
         var requestType = request.GetType().Name;
         statisticsTracker.TrackCommand(requestType, sessionId);
@@ -108,7 +108,7 @@ public class StatisticsTrackingVoidMiddleware<TRequest>(MediatorStatisticsTracke
             if (httpContext == null) return null;
 
             // First try to get session ID from HttpContext.Items (set by SessionTrackingMiddleware)
-            if (httpContext.Items.TryGetValue("StatisticsSessionId", out var sessionIdObj) && 
+            if (httpContext.Items.TryGetValue("StatisticsSessionId", out var sessionIdObj) &&
                 sessionIdObj is string sessionId && !string.IsNullOrEmpty(sessionId))
             {
                 return sessionId;

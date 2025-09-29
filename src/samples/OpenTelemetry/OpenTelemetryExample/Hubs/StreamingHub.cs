@@ -1,0 +1,483 @@
+using Blazing.Mediator;
+using Microsoft.AspNetCore.SignalR;
+using OpenTelemetryExample.Application.Queries;
+using OpenTelemetryExample.Shared.Models;
+using System.Diagnostics;
+
+namespace OpenTelemetryExample.Hubs;
+
+/// <summary>
+/// SignalR hub for streaming users with OpenTelemetry integration.
+/// </summary>
+public class StreamingHub(IMediator mediator, ILogger<StreamingHub> logger) : Hub
+{
+    private const string AppSourceName = "OpenTelemetryExample";
+    private const string ActivitySourceName = $"{AppSourceName}.SignalRHub";
+    private const string HubName = $"{AppSourceName}.{nameof(StreamingHub)}";
+
+    private static readonly Dictionary<string, CancellationTokenSource> _activeStreams = new();
+
+    /// <summary>
+    /// Start streaming with user data via mediator for consistent telemetry flow.
+    /// </summary>
+    public async Task StartStreaming(StreamingRequest request)
+    {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        try
+        {
+            using var activity = activitySource.StartActivity($"{HubName}.StartStreaming");
+
+            activity?.SetTag("signalr.method", "StartStreaming");
+            activity?.SetTag("signalr.connection_id", Context.ConnectionId);
+            activity?.SetTag("stream.count", request.Count);
+            activity?.SetTag("stream.delay_ms", request.DelayMs);
+            activity?.SetTag("stream.batch_size", request.BatchSize);
+
+            var connectionId = Context.ConnectionId;
+
+            StreamingHubLog.LogClientStartedStreaming(logger, connectionId);
+
+            // Cancel any existing stream for this connection
+            if (_activeStreams.TryGetValue(connectionId, out var existingCts))
+            {
+                await existingCts.CancelAsync().ConfigureAwait(false);
+                existingCts.Dispose();
+            }
+
+            // Create new cancellation token source
+            var cts = new CancellationTokenSource();
+            _activeStreams[connectionId] = cts;
+
+            var itemCount = 0;
+
+            try
+            {
+                // FIX: Use mediator with StreamUsersQuery instead of generating data directly
+                var query = new StreamUsersQuery
+                {
+                    Count = request.Count,
+                    DelayMs = request.DelayMs,
+                    SearchTerm = null,
+                    IncludeInactive = true
+                };
+
+                var batchId = Guid.NewGuid().ToString("N")[..8];
+
+                await foreach (var user in mediator.SendStream(query, cts.Token).ConfigureAwait(false))
+                {
+                    cts.Token.ThrowIfCancellationRequested();
+                    itemCount++;
+
+                    var streamResponse = new StreamResponseDto<string>
+                    {
+                        Data = $"User: {user.Name} ({user.Email}) - Generated at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC",
+                        Metadata = new StreamMetadataDto
+                        {
+                            ItemNumber = itemCount,
+                            Timestamp = DateTimeOffset.UtcNow,
+                            BatchId = batchId,
+                            IsLast = itemCount == request.Count // Will be updated if we get fewer items
+                        }
+                    };
+
+                    activity?.AddEvent(new ActivityEvent($"signalr.stream.item.{itemCount}", default, new ActivityTagsCollection
+                    {
+                        ["item.number"] = itemCount,
+                        ["user.id"] = user.Id,
+                        ["user.name"] = user.Name,
+                        ["data"] = streamResponse.Data,
+                        ["metadata.batch_id"] = streamResponse.Metadata.BatchId,
+                        ["connection.id"] = connectionId
+                    }));
+
+                    // Send to specific client
+                    await Clients.Caller.SendAsync("ReceiveStreamItem", streamResponse, cts.Token).ConfigureAwait(false);
+
+                    // Check for batching (apply batching delay every N items)
+                    if (itemCount % request.BatchSize == 0 && request.DelayMs > 0)
+                    {
+                        await Task.Delay(request.DelayMs, cts.Token).ConfigureAwait(false);
+                    }
+                }
+
+                activity?.SetTag("stream.items_streamed", itemCount);
+                activity?.SetStatus(ActivityStatusCode.Ok, $"Successfully streamed {itemCount} items via SignalR");
+
+                // Send completion signal
+                await Clients.Caller.SendAsync("StreamCompleted", new { ItemCount = itemCount }, cts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Catch and ignore cancellation exceptions
+            }
+            catch (Exception ex)
+            {
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                activity?.SetTag("exception.type", ex.GetType().Name);
+                activity?.SetTag("exception.message", ex.Message);
+
+                // Send error to client
+                await Clients.Caller.SendAsync("StreamError", ex.Message, CancellationToken.None).ConfigureAwait(false);
+            }
+            finally
+            {
+                // Clean up cancellation token
+                if (_activeStreams.Remove(connectionId, out var activeCts))
+                {
+                    activeCts.Dispose();
+                }
+
+                StreamingHubLog.LogClientCompletedStreaming(logger, connectionId, itemCount);
+            }
+        }
+        finally
+        {
+            activitySource.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Stop streaming for the current connection.
+    /// </summary>
+    public async Task StopStreaming()
+    {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        try
+        {
+            using var activity = activitySource.StartActivity($"{HubName}.StopStreaming");
+
+            activity?.SetTag("signalr.method", "StopStreaming");
+            activity?.SetTag("signalr.connection_id", Context.ConnectionId);
+
+            var connectionId = Context.ConnectionId;
+
+            StreamingHubLog.LogClientRequestedStop(logger, connectionId);
+
+            if (_activeStreams.TryGetValue(connectionId, out var cts))
+            {
+                await cts.CancelAsync().ConfigureAwait(false);
+                _activeStreams.Remove(connectionId);
+                cts.Dispose();
+                await Clients.Caller.SendAsync("StreamCompleted", new { Message = "Streaming stopped by user" }).ConfigureAwait(false);
+            }
+
+            StreamingHubLog.LogStreamingStopped(logger, connectionId);
+        }
+        finally
+        {
+            activitySource.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Stream users to connected clients with basic streaming.
+    /// </summary>
+    public async Task StreamUsers(int count = 10, int delayMs = 500, string? searchTerm = null, bool includeInactive = false)
+    {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        try
+        {
+            using var activity = activitySource.StartActivity($"{HubName}.StreamUsers");
+
+            activity?.SetTag("signalr.method", "StreamUsers");
+            activity?.SetTag("signalr.connection_id", Context.ConnectionId);
+            activity?.SetTag("stream.count", count);
+            activity?.SetTag("stream.delay_ms", delayMs);
+            activity?.SetTag("search_term", searchTerm);
+            activity?.SetTag("include_inactive", includeInactive);
+
+            var connectionId = Context.ConnectionId;
+
+            StreamingHubLog.LogClientStartedStreamingUsers(logger, connectionId);
+
+            var itemCount = 0;
+
+            try
+            {
+                var query = new StreamUsersQuery
+                {
+                    Count = count,
+                    DelayMs = delayMs,
+                    SearchTerm = searchTerm,
+                    IncludeInactive = includeInactive
+                };
+
+                await foreach (var user in mediator.SendStream(query, Context.ConnectionAborted).ConfigureAwait(false))
+                {
+                    itemCount++;
+
+                    activity?.AddEvent(new ActivityEvent($"signalr.stream.item.{itemCount}", default, new ActivityTagsCollection
+                    {
+                        ["item.number"] = itemCount,
+                        ["user.id"] = user.Id,
+                        ["user.name"] = user.Name,
+                        ["connection.id"] = connectionId
+                    }));
+
+                    // Send to specific client
+                    await Clients.Caller.SendAsync("ReceiveUser", user, Context.ConnectionAborted).ConfigureAwait(false);
+
+                    // Check if client disconnected
+                    if (Context.ConnectionAborted.IsCancellationRequested)
+                    {
+                        StreamingHubLog.LogClientDisconnectedDuringStreaming(logger, connectionId, itemCount);
+                        break;
+                    }
+                }
+
+                activity?.SetTag("stream.items_streamed", itemCount);
+                activity?.SetStatus(ActivityStatusCode.Ok, $"Successfully streamed {itemCount} users via SignalR");
+
+                // Send completion signal
+                await Clients.Caller.SendAsync("StreamComplete", new { ItemCount = itemCount }, Context.ConnectionAborted).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                activity?.SetTag("exception.type", ex.GetType().Name);
+                activity?.SetTag("exception.message", ex.Message);
+
+                // Send error to client
+                await Clients.Caller.SendAsync("StreamError", new { Error = ex.Message }, Context.ConnectionAborted).ConfigureAwait(false);
+            }
+            finally
+            {
+                StreamingHubLog.LogClientCompletedStreamingUsers(logger, connectionId, itemCount);
+            }
+        }
+        finally
+        {
+            activitySource.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Stream users with metadata to connected clients.
+    /// </summary>
+    public async Task StreamUsersWithMetadata(int count = 10, int delayMs = 500, string? searchTerm = null, bool includeInactive = false)
+    {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        try
+        {
+            using var activity = activitySource.StartActivity($"{HubName}.StreamUsersWithMetadata");
+            activity?.SetTag("signalr.method", "StreamUsersWithMetadata");
+            activity?.SetTag("signalr.connection_id", Context.ConnectionId);
+            activity?.SetTag("stream.count", count);
+            activity?.SetTag("stream.delay_ms", delayMs);
+            activity?.SetTag("search_term", searchTerm);
+            activity?.SetTag("include_inactive", includeInactive);
+
+            var connectionId = Context.ConnectionId;
+
+            StreamingHubLog.LogClientStartedStreamingWithMetadata(logger, connectionId);
+
+            var itemCount = 0;
+
+            try
+            {
+                var query = new StreamUsersWithMetadataQuery
+                {
+                    Count = count,
+                    DelayMs = delayMs,
+                    SearchTerm = searchTerm,
+                    IncludeInactive = includeInactive
+                };
+
+                await foreach (var userResponse in mediator.SendStream(query, Context.ConnectionAborted).ConfigureAwait(false))
+                {
+                    itemCount++;
+                    activity?.AddEvent(new ActivityEvent($"signalr.metadata.item.{itemCount}", default, new ActivityTagsCollection
+                    {
+                        ["item.number"] = itemCount,
+                        ["user.id"] = userResponse.Data.Id,
+                        ["user.name"] = userResponse.Data.Name,
+                        ["metadata.batch_id"] = userResponse.Metadata.BatchId,
+                        ["metadata.is_last"] = userResponse.Metadata.IsLast,
+                        ["connection.id"] = connectionId
+                    }));
+
+                    // Send to specific client
+                    await Clients.Caller.SendAsync("ReceiveUserWithMetadata", userResponse, Context.ConnectionAborted).ConfigureAwait(false);
+
+                    // Check if client disconnected
+                    if (Context.ConnectionAborted.IsCancellationRequested)
+                    {
+                        StreamingHubLog.LogClientDisconnectedDuringMetadataStreaming(logger, connectionId, itemCount);
+                        break;
+                    }
+                }
+
+                activity?.SetTag("stream.items_streamed", itemCount);
+                activity?.SetStatus(ActivityStatusCode.Ok, $"Successfully streamed {itemCount} users with metadata via SignalR");
+                // Send completion signal
+                await Clients.Caller.SendAsync("StreamComplete", new { ItemCount = itemCount }, Context.ConnectionAborted).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                activity?.SetTag("exception.type", ex.GetType().Name);
+                activity?.SetTag("exception.message", ex.Message);
+                // Send error to client
+                await Clients.Caller.SendAsync("StreamError", new { Error = ex.Message }, Context.ConnectionAborted).ConfigureAwait(false);
+            }
+            finally
+            {
+                StreamingHubLog.LogClientCompletedMetadataStreaming(logger, connectionId, itemCount);
+            }
+        }
+        finally
+        {
+            activitySource.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Broadcast streaming to all connected clients.
+    /// </summary>
+    public async Task BroadcastStreamUsers(int count = 5, int delayMs = 1000, string? searchTerm = null)
+    {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        try
+        {
+            using var activity = activitySource.StartActivity($"{HubName}.BroadcastStreamUsers");
+            activity?.SetTag("signalr.method", "BroadcastStreamUsers");
+            activity?.SetTag("signalr.connection_id", Context.ConnectionId);
+            activity?.SetTag("signalr.broadcast", true);
+            activity?.SetTag("stream.count", count);
+            activity?.SetTag("stream.delay_ms", delayMs);
+            activity?.SetTag("search_term", searchTerm);
+
+            var connectionId = Context.ConnectionId;
+
+            StreamingHubLog.LogClientStartedBroadcastStreaming(logger, connectionId);
+
+            try
+            {
+                var query = new StreamUsersWithMetadataQuery
+                {
+                    Count = count,
+                    DelayMs = delayMs,
+                    SearchTerm = searchTerm,
+                    IncludeInactive = false
+                };
+
+                var itemCount = 0;
+                var broadcastId = Guid.NewGuid().ToString("N")[..8];
+                activity?.SetTag("stream.broadcast_id", broadcastId);
+
+                // Notify all clients that broadcast is starting
+                await Clients.All.SendAsync("BroadcastStarted", new { BroadcastId = broadcastId, InitiatedBy = connectionId }).ConfigureAwait(false);
+
+                await foreach (var userResponse in mediator.SendStream(query, Context.ConnectionAborted).ConfigureAwait(false))
+                {
+                    itemCount++;
+                    activity?.AddEvent(new ActivityEvent($"signalr.broadcast.item.{itemCount}", default, new ActivityTagsCollection
+                    {
+                        ["item.number"] = itemCount,
+                        ["user.id"] = userResponse.Data.Id,
+                        ["user.name"] = userResponse.Data.Name,
+                        ["broadcast.id"] = broadcastId,
+                        ["initiated.by"] = connectionId
+                    }));
+
+                    // Enhance metadata with broadcast info
+                    userResponse.Metadata.BatchId = broadcastId;
+                    // Broadcast to all clients
+                    await Clients.All.SendAsync("BroadcastUser", userResponse, Context.ConnectionAborted).ConfigureAwait(false);
+
+                    // Check if client disconnected
+                    if (Context.ConnectionAborted.IsCancellationRequested)
+                    {
+                        StreamingHubLog.LogBroadcastInitiatorDisconnected(logger, connectionId, itemCount);
+                        break;
+                    }
+                }
+
+                activity?.SetTag("stream.items_streamed", itemCount);
+                activity?.SetStatus(ActivityStatusCode.Ok, $"Successfully broadcast {itemCount} users via SignalR");
+                // Send completion signal to all clients
+                await Clients.All.SendAsync("BroadcastComplete", new
+                {
+                    BroadcastId = broadcastId,
+                    ItemCount = itemCount,
+                    InitiatedBy = connectionId
+                }).ConfigureAwait(false);
+                StreamingHubLog.LogBroadcastCompleted(logger, connectionId, itemCount);
+            }
+            catch (Exception ex)
+            {
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                activity?.SetTag("exception.type", ex.GetType().Name);
+                activity?.SetTag("exception.message", ex.Message);
+                StreamingHubLog.LogBroadcastFailed(logger, ex, connectionId);
+                // Send error to all clients
+                await Clients.All.SendAsync("BroadcastError", new { Error = ex.Message, InitiatedBy = connectionId }).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            activitySource.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Handle client connection events.
+    /// </summary>
+    public override async Task OnConnectedAsync()
+    {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        try
+        {
+            using var activity = activitySource.StartActivity($"{HubName}.OnConnectedAsync");
+            activity?.SetTag("signalr.event", "connected");
+            activity?.SetTag("signalr.connection_id", Context.ConnectionId);
+            StreamingHubLog.LogClientConnected(logger, Context.ConnectionId);
+            await Clients.Caller.SendAsync("Connected", new
+            {
+                Context.ConnectionId,
+                Timestamp = DateTime.UtcNow,
+                Message = "Welcome to OpenTelemetry Streaming Hub!"
+            }).ConfigureAwait(false);
+            await base.OnConnectedAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            activitySource.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Handle client disconnection events.
+    /// </summary>
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        var activitySource = new ActivitySource(ActivitySourceName);
+        try
+        {
+            using var activity = activitySource.StartActivity($"{HubName}.OnDisconnectedAsync");
+            activity?.SetTag("signalr.event", "disconnected");
+            activity?.SetTag("signalr.connection_id", Context.ConnectionId);
+            // Clean up any active streams for this connection
+            if (_activeStreams.TryGetValue(Context.ConnectionId, out var cts))
+            {
+                await cts.CancelAsync().ConfigureAwait(false);
+                _activeStreams.Remove(Context.ConnectionId);
+                cts.Dispose();
+            }
+            if (exception != null)
+            {
+                activity?.SetTag("disconnect.exception", exception.Message);
+                StreamingHubLog.LogClientDisconnectedWithError(logger, exception, Context.ConnectionId);
+            }
+            else
+            {
+                StreamingHubLog.LogClientDisconnected(logger, Context.ConnectionId);
+            }
+            await base.OnDisconnectedAsync(exception).ConfigureAwait(false);
+        }
+        finally
+        {
+            activitySource.Dispose();
+        }
+    }
+}

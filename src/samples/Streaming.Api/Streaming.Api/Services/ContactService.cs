@@ -39,34 +39,26 @@ public interface IContactService
 /// <summary>
 /// Implementation of contact service using JSON streaming
 /// </summary>
-public class ContactService : IContactService
+public class ContactService(IWebHostEnvironment environment, ILogger<ContactService> logger)
+    : IContactService
 {
-    private readonly IWebHostEnvironment _environment;
-    private readonly ILogger<ContactService> _logger;
-    private readonly JsonSerializerOptions _jsonOptions;
-
-    public ContactService(IWebHostEnvironment environment, ILogger<ContactService> logger)
+    private readonly JsonSerializerOptions _jsonOptions = new()
     {
-        _environment = environment;
-        _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-    }
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
     public async IAsyncEnumerable<ContactDto> StreamContactsAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var filePath = Path.Combine(_environment.WebRootPath, "data", "Mock_Contacts.json");
+        var filePath = Path.Combine(environment.WebRootPath, "data", "Mock_Contacts.json");
 
         if (!File.Exists(filePath))
         {
-            _logger.LogWarning("Contact data file not found at: {FilePath}", filePath);
+            logger.LogWarning("Contact data file not found at: {FilePath}", filePath);
             yield break;
         }
 
-        _logger.LogInformation("Starting to stream contacts from: {FilePath}", filePath);
+        logger.LogInformation("Starting to stream contacts from: {FilePath}", filePath);
 
         var processedCount = 0;
         Contact[]? jsonData = null;
@@ -78,7 +70,7 @@ public class ContactService : IContactService
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Error parsing JSON file: {FilePath}", filePath);
+            logger.LogError(ex, "Error parsing JSON file: {FilePath}", filePath);
             yield break;
         }
 
@@ -98,7 +90,7 @@ public class ContactService : IContactService
             }
         }
 
-        _logger.LogInformation("Completed streaming {Count} contacts", processedCount);
+        logger.LogInformation("Completed streaming {Count} contacts", processedCount);
     }
 
     public async IAsyncEnumerable<ContactDto> StreamContactsAsync(string searchTerm, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -114,7 +106,7 @@ public class ContactService : IContactService
             yield break;
         }
 
-        _logger.LogInformation("Streaming contacts with search term: {SearchTerm}", searchTerm);
+        logger.LogInformation("Streaming contacts with search term: {SearchTerm}", searchTerm);
 
         await foreach (var contact in StreamContactsAsync(cancellationToken))
         {
@@ -178,7 +170,7 @@ public class ContactService : IContactService
             yield break;
         }
 
-        _logger.LogInformation("Streaming contacts with metadata and search term: {SearchTerm}", searchTerm);
+        logger.LogInformation("Streaming contacts with metadata and search term: {SearchTerm}", searchTerm);
 
         var startTime = DateTime.UtcNow;
         var count = 0;
@@ -225,7 +217,7 @@ public class ContactService : IContactService
 
     public async Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default)
     {
-        var filePath = Path.Combine(_environment.WebRootPath, "data", "Mock_Contacts.json");
+        var filePath = Path.Combine(environment.WebRootPath, "data", "Mock_Contacts.json");
 
         if (!File.Exists(filePath))
         {
@@ -240,7 +232,7 @@ public class ContactService : IContactService
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Error parsing JSON file for count: {FilePath}", filePath);
+            logger.LogError(ex, "Error parsing JSON file for count: {FilePath}", filePath);
             return 0;
         }
     }

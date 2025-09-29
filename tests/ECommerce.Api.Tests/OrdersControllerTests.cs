@@ -14,7 +14,6 @@ namespace ECommerce.Api.Tests;
 /// </summary>
 public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _jsonOptions;
 
@@ -25,8 +24,8 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
     /// <param name="factory">The web application factory for creating test clients.</param>
     public OrdersControllerTests(WebApplicationFactory<Program> factory)
     {
-        _factory = factory;
-        _client = _factory.CreateClient();
+        WebApplicationFactory<Program> factory1 = factory;
+        _client = factory1.CreateClient();
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -48,7 +47,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         OrderDto? order = JsonSerializer.Deserialize<OrderDto>(content, _jsonOptions);
 
         order.ShouldNotBeNull();
-        order!.Id.ShouldBe(1);
+        order.Id.ShouldBe(1);
     }
 
     /// <summary>
@@ -66,7 +65,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         PagedResult<OrderDto>? result = JsonSerializer.Deserialize<PagedResult<OrderDto>>(content, _jsonOptions);
 
         result.ShouldNotBeNull();
-        result!.Items.ShouldNotBeNull();
+        result.Items.ShouldNotBeNull();
         result.TotalCount.ShouldBeGreaterThan(0);
         result.Page.ShouldBe(1);
         result.PageSize.ShouldBe(10);
@@ -87,7 +86,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         PagedResult<OrderDto>? result = JsonSerializer.Deserialize<PagedResult<OrderDto>>(content, _jsonOptions);
 
         result.ShouldNotBeNull();
-        result!.Page.ShouldBe(1);
+        result.Page.ShouldBe(1);
         result.PageSize.ShouldBe(5);
     }
 
@@ -106,7 +105,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         List<OrderDto>? orders = JsonSerializer.Deserialize<List<OrderDto>>(content, _jsonOptions);
 
         orders.ShouldNotBeNull();
-        orders!.ShouldAllBe(o => o.CustomerId == 1);
+        orders.ShouldAllBe(o => o.CustomerId == 1);
     }
 
     /// <summary>
@@ -145,7 +144,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         OrderStatisticsDto? statistics = JsonSerializer.Deserialize<OrderStatisticsDto>(content, _jsonOptions);
 
         statistics.ShouldNotBeNull();
-        statistics!.TotalOrders.ShouldBeGreaterThanOrEqualTo(0);
+        statistics.TotalOrders.ShouldBeGreaterThanOrEqualTo(0);
     }
 
     /// <summary>
@@ -190,18 +189,18 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         HttpResponseMessage response = await _client.PostAsync("/api/orders", content);
 
         // Debug: Log response content for debugging
-        if (response.StatusCode == HttpStatusCode.BadRequest)
-        {
-            string errorContent = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"CreateOrder validation error: {errorContent}");
-        }
+        //if (response.StatusCode == HttpStatusCode.BadRequest)
+        //{
+        //    string errorContent = await response.Content.ReadAsStringAsync();
+        //    Console.WriteLine($"CreateOrder validation error: {errorContent}");
+        //}
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         string responseContent = await response.Content.ReadAsStringAsync();
         OperationResult<int>? result = JsonSerializer.Deserialize<OperationResult<int>>(responseContent, _jsonOptions);
         result.ShouldNotBeNull();
-        result!.Success.ShouldBeTrue();
+        result.Success.ShouldBeTrue();
         result.Data.ShouldBeGreaterThan(0);
     }
 
@@ -231,10 +230,10 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         OperationResult<int>? result = JsonSerializer.Deserialize<OperationResult<int>>(responseContent, _jsonOptions);
 
         result.ShouldNotBeNull();
-        result!.Success.ShouldBeFalse();
+        result.Success.ShouldBeFalse();
         result.Message.ShouldBe("Validation failed");
         result.Errors.ShouldNotBeNull();
-        result.Errors!.ShouldContain("Customer ID must be greater than 0");
+        result.Errors.ShouldContain("Customer ID must be greater than 0");
         result.Errors.ShouldContain("Invalid email format");
         result.Errors.ShouldContain("Shipping address is required");
         result.Errors.ShouldContain("Order must contain at least one item");
@@ -263,10 +262,10 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
 
         // Debug: Log response content for debugging
         if (response.StatusCode == HttpStatusCode.BadRequest)
-        {
-            string errorContent = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"ProcessOrder validation error: {errorContent}");
-        }
+        //{
+        //    string errorContent = await response.Content.ReadAsStringAsync();
+        //    Console.WriteLine($"ProcessOrder validation error: {errorContent}");
+        //}
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -333,7 +332,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         string content = await response.Content.ReadAsStringAsync();
-        
+
         // Verify the response contains completion information
         content.ShouldNotBeNull();
         content.ShouldContain("Order completed successfully");
@@ -368,7 +367,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         string content = await response.Content.ReadAsStringAsync();
-        
+
         // Verify the response contains workflow completion information
         content.ShouldNotBeNull();
         content.ShouldContain("Order workflow completed successfully");
@@ -427,7 +426,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         OperationResult<int>? result = JsonSerializer.Deserialize<OperationResult<int>>(responseContent, _jsonOptions);
 
         result.ShouldNotBeNull();
-        result!.Success.ShouldBeFalse();
+        result.Success.ShouldBeFalse();
         result.Message.ShouldContain("Product with ID 9999 not found or inactive");
     }
 
@@ -463,7 +462,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         OperationResult<int>? result = JsonSerializer.Deserialize<OperationResult<int>>(responseContent, _jsonOptions);
 
         result.ShouldNotBeNull();
-        result!.Success.ShouldBeFalse();
+        result.Success.ShouldBeFalse();
         result.Message.ShouldBe("Validation failed");
         result.Errors.ShouldContain("Invalid email format");
     }
@@ -491,7 +490,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactory<Program
         OperationResult<bool>? result = JsonSerializer.Deserialize<OperationResult<bool>>(responseContent, _jsonOptions);
 
         result.ShouldNotBeNull();
-        result!.Success.ShouldBeFalse();
+        result.Success.ShouldBeFalse();
         result.Message.ShouldBe("Order with ID 9999 not found");
     }
 }

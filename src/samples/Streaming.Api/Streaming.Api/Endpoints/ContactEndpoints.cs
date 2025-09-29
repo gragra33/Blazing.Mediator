@@ -73,8 +73,8 @@ public static class ContactEndpoints
                     await writer.WriteLineAsync("event: start").ConfigureAwait(false);
                     await writer.WriteLineAsync("data: {\"message\": \"Starting stream\"}").ConfigureAwait(false);
                     await writer.WriteLineAsync().ConfigureAwait(false);
-                    await writer.FlushAsync().ConfigureAwait(false);
-                    await stream.FlushAsync().ConfigureAwait(false);  // Force immediate flush to client
+                    await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    await stream.FlushAsync(cancellationToken).ConfigureAwait(false);  // Force immediate flush to client
 
                     var count = 0;
                     await foreach (var contact in mediator.SendStream(request, cancellationToken))
@@ -85,8 +85,8 @@ public static class ContactEndpoints
                         await writer.WriteLineAsync("event: data").ConfigureAwait(false);
                         await writer.WriteLineAsync($"data: {JsonSerializer.Serialize(contact, options)}").ConfigureAwait(false);
                         await writer.WriteLineAsync().ConfigureAwait(false);
-                        await writer.FlushAsync().ConfigureAwait(false);
-                        await stream.FlushAsync().ConfigureAwait(false);  // Critical: Force immediate flush
+                        await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                        await stream.FlushAsync(cancellationToken).ConfigureAwait(false);  // Critical: Force immediate flush
 
                         // Send progress every 50 items
                         if (count % 50 == 0)
@@ -94,8 +94,8 @@ public static class ContactEndpoints
                             await writer.WriteLineAsync("event: progress").ConfigureAwait(false);
                             await writer.WriteLineAsync($"data: {{\"processed\": {count}}}").ConfigureAwait(false);
                             await writer.WriteLineAsync().ConfigureAwait(false);
-                            await writer.FlushAsync().ConfigureAwait(false);
-                            await stream.FlushAsync().ConfigureAwait(false);  // Immediate flush for progress
+                            await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);  // Immediate flush for progress
                         }
                     }
 
@@ -103,8 +103,8 @@ public static class ContactEndpoints
                     await writer.WriteLineAsync("event: complete").ConfigureAwait(false);
                     await writer.WriteLineAsync($"data: {{\"message\": \"Stream completed\", \"total\": {count}}}").ConfigureAwait(false);
                     await writer.WriteLineAsync().ConfigureAwait(false);
-                    await writer.FlushAsync().ConfigureAwait(false);
-                    await stream.FlushAsync().ConfigureAwait(false);
+                    await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -150,8 +150,8 @@ public static class ContactEndpoints
                         await writer.WriteLineAsync($"event: {eventType}").ConfigureAwait(false);
                         await writer.WriteLineAsync($"data: {JsonSerializer.Serialize(response, options)}").ConfigureAwait(false);
                         await writer.WriteLineAsync().ConfigureAwait(false);
-                        await writer.FlushAsync().ConfigureAwait(false);
-                        await stream.FlushAsync().ConfigureAwait(false);  // Critical: Force immediate flush
+                        await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                        await stream.FlushAsync(cancellationToken).ConfigureAwait(false);  // Critical: Force immediate flush
                     }
                 }
                 finally
@@ -179,8 +179,8 @@ public static class ContactEndpoints
             try
             {
                 // Send start event immediately
-                await context.Response.WriteAsync("event: start\n").ConfigureAwait(false);
-                await context.Response.WriteAsync("data: {\"message\": \"Starting stream\"}\n\n").ConfigureAwait(false);
+                await context.Response.WriteAsync("event: start\n", cancellationToken: cancellationToken).ConfigureAwait(false);
+                await context.Response.WriteAsync("data: {\"message\": \"Starting stream\"}\n\n", cancellationToken: cancellationToken).ConfigureAwait(false);
                 await context.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
 
                 var count = 0;
@@ -189,28 +189,28 @@ public static class ContactEndpoints
                     count++;
 
                     // Write directly to HTTP response - completely bypasses buffering
-                    await context.Response.WriteAsync("event: data\n").ConfigureAwait(false);
-                    await context.Response.WriteAsync($"data: {JsonSerializer.Serialize(contact, options)}\n\n").ConfigureAwait(false);
+                    await context.Response.WriteAsync("event: data\n", cancellationToken: cancellationToken).ConfigureAwait(false);
+                    await context.Response.WriteAsync($"data: {JsonSerializer.Serialize(contact, options)}\n\n", cancellationToken: cancellationToken).ConfigureAwait(false);
                     await context.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
 
                     // Send progress every 50 items
                     if (count % 50 == 0)
                     {
-                        await context.Response.WriteAsync("event: progress\n").ConfigureAwait(false);
-                        await context.Response.WriteAsync($"data: {{\"processed\": {count}}}\n\n").ConfigureAwait(false);
+                        await context.Response.WriteAsync("event: progress\n", cancellationToken: cancellationToken).ConfigureAwait(false);
+                        await context.Response.WriteAsync($"data: {{\"processed\": {count}}}\n\n", cancellationToken: cancellationToken).ConfigureAwait(false);
                         await context.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
                     }
                 }
 
                 // Send completion event
-                await context.Response.WriteAsync("event: complete\n").ConfigureAwait(false);
-                await context.Response.WriteAsync($"data: {{\"message\": \"Stream completed\", \"total\": {count}}}\n\n").ConfigureAwait(false);
+                await context.Response.WriteAsync("event: complete\n", cancellationToken: cancellationToken).ConfigureAwait(false);
+                await context.Response.WriteAsync($"data: {{\"message\": \"Stream completed\", \"total\": {count}}}\n\n", cancellationToken: cancellationToken).ConfigureAwait(false);
                 await context.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                await context.Response.WriteAsync("event: error\n").ConfigureAwait(false);
-                await context.Response.WriteAsync($"data: {{\"error\": \"{ex.Message}\"}}\n\n").ConfigureAwait(false);
+                await context.Response.WriteAsync("event: error\n", cancellationToken: cancellationToken).ConfigureAwait(false);
+                await context.Response.WriteAsync($"data: {{\"error\": \"{ex.Message}\"}}\n\n", cancellationToken: cancellationToken).ConfigureAwait(false);
                 await context.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
         })

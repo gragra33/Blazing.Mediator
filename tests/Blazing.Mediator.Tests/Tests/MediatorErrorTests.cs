@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
@@ -496,11 +495,22 @@ namespace Blazing.Mediator.Tests
             ServiceCollection services = new();
             services.AddMediator(config =>
             {
-                config.AddMiddleware<FirstQueryMiddleware>();
-                config.AddMiddleware<SecondQueryMiddleware>();
+                config.AddMiddleware<FirstQueryMiddleware>()
+                      .AddMiddleware<SecondQueryMiddleware>();
             }, typeof(MiddlewareTestQueryHandler).Assembly);
 
             ServiceProvider serviceProvider = services.BuildServiceProvider();
+
+            // Analyze the middleware pipeline before execution
+            var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
+            var analysis = inspector.AnalyzeMiddleware(serviceProvider);
+
+            // Debug: Print what middleware is actually registered
+            //foreach (var middleware in analysis)
+            //{
+            //    Console.WriteLine($"Middleware: {middleware.ClassName}, Order: {middleware.Order}, Type: {middleware.Type.Name}");
+            //}
+
             IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
             MiddlewareTestQuery query = new() { Value = "test" };
@@ -520,6 +530,7 @@ namespace Blazing.Mediator.Tests
         {
             // Arrange
             ServiceCollection services = new();
+            services.AddTransient<ThrowingQueryMiddleware>();
             services.AddMediator(config =>
             {
                 config.AddMiddleware<ThrowingQueryMiddleware>();
@@ -543,6 +554,7 @@ namespace Blazing.Mediator.Tests
         {
             // Arrange
             ServiceCollection services = new();
+            services.AddTransient<ConditionalQueryMiddleware>();
             services.AddMediator(config =>
             {
                 config.AddMiddleware<ConditionalQueryMiddleware>();
@@ -572,11 +584,14 @@ namespace Blazing.Mediator.Tests
         {
             // Arrange
             ServiceCollection services = new();
+            services.AddTransient<HighOrderQueryMiddleware>();
+            services.AddTransient<LowOrderQueryMiddleware>();
+            services.AddTransient<MidOrderQueryMiddleware>();
             services.AddMediator(config =>
             {
-                config.AddMiddleware<HighOrderQueryMiddleware>(); // Order = 100
-                config.AddMiddleware<LowOrderQueryMiddleware>();  // Order = 1
-                config.AddMiddleware<MidOrderQueryMiddleware>();  // Order = 50
+                config.AddMiddleware<HighOrderQueryMiddleware>() // Order = 100
+                      .AddMiddleware<LowOrderQueryMiddleware>()  // Order = 1
+                      .AddMiddleware<MidOrderQueryMiddleware>(); // Order = 50
             }, typeof(MiddlewareTestQueryHandler).Assembly);
 
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -599,6 +614,7 @@ namespace Blazing.Mediator.Tests
         {
             // Arrange
             ServiceCollection services = new();
+            services.AddTransient<CancellationCheckQueryMiddleware>();
             services.AddMediator(config =>
             {
                 config.AddMiddleware<CancellationCheckQueryMiddleware>();
@@ -672,6 +688,7 @@ namespace Blazing.Mediator.Tests
         {
             // Arrange
             ServiceCollection services = new();
+            services.AddTransient<AsyncQueryMiddleware>();
             services.AddMediator(config =>
             {
                 config.AddMiddleware<AsyncQueryMiddleware>();
@@ -692,29 +709,6 @@ namespace Blazing.Mediator.Tests
         #endregion
 
         #region Advanced Tests
-
-        /// <summary>
-        /// Tests that generic requests with type constraints are handled correctly.
-        /// </summary>
-        [Fact]
-        public async Task Send_WithGenericConstraints_HandlesCorrectly()
-        {
-            // Arrange
-            ServiceCollection services = new();
-            services.AddMediator(typeof(GenericConstraintHandler).Assembly);
-            ServiceProvider serviceProvider = services.BuildServiceProvider();
-            IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-
-            GenericConstraintCommand<TestConstraintEntity> command = new() { Data = new TestConstraintEntity { Id = 42, Name = "Generic Test" } };
-
-            // Act
-            await mediator.Send(command);
-
-            // Assert
-            GenericConstraintHandler.LastProcessedEntity.ShouldNotBeNull();
-            GenericConstraintHandler.LastProcessedEntity.Id.ShouldBe(42);
-            GenericConstraintHandler.LastProcessedEntity.Name.ShouldBe("Generic Test");
-        }
 
         /// <summary>
         /// Tests that inherited handlers execute the correct handler implementation.

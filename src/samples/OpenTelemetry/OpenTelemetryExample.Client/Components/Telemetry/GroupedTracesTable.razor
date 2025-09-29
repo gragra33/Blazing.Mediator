@@ -1,0 +1,132 @@
+@if (IsLoading)
+{
+    <!-- Loading Spinner -->
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading grouped traces...</span>
+            </div>
+            <div class="mt-2 text-muted">Loading grouped traces...</div>
+        </div>
+    </div>
+}
+else if (TraceGroups != null && TraceGroups.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>Operation</th>
+                    <th>Trace ID</th>
+                    <th class="text-end">Duration</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Start Time</th>
+                    <th class="text-center">Source</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var group in GetFilteredTraceGroups())
+                {
+                    <!-- Root trace row -->
+                    <tr style="font-weight: 500; border-left: 4px solid @GetGroupBorderColor(group);">
+                        <td>
+                            @if (group.ChildTraces.Any())
+                            {
+                                <button class="btn btn-sm btn-link p-0 me-2" @onclick="() => ToggleGroupExpansion(group)">
+                                    <i class="bi @(group.IsExpanded ? "bi-dash-square" : "bi-plus-square")"></i>
+                                </button>
+                            }
+                            <strong>@group.RootTrace.OperationName</strong>
+                            @if (group.TraceCount > 1)
+                            {
+                                <small class="text-muted"> (@group.TraceCount traces)</small>
+                            }
+                        </td>
+                        <td><code class="small">@ShortenTraceId(group.TraceId)</code></td>
+                        <td class="text-end">@group.TotalDuration.TotalMilliseconds.ToString("F1")ms</td>
+                        <td class="text-center">
+                            <span class="badge @GetStatusBadgeClass(group.Status)">
+                                @group.Status
+                            </span>
+                        </td>
+                        <td class="text-center">@group.StartTime.ToString("HH:mm:ss.fff")</td>
+                        <td class="text-center">
+                            <span class="badge @GetSourceBadgeClass(group.RootTrace.Source)">
+                                @GetSourceDisplayName(group.RootTrace.Source)
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-info" @onclick="() => OnViewTraceDetails.InvokeAsync(group.RootTrace)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Child traces (hierarchical) -->
+                    @if (group.IsExpanded)
+                    {
+                        @foreach (var childTrace in group.ChildTraces)
+                        {
+                            @RenderHierarchicalTrace(childTrace)
+                        }
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        No grouped trace data available. Try running some tests using the buttons below to generate traces.
+        @if (TraceGroups != null)
+        {
+            <br><small class="text-muted">Debug: DataSource exists but trace groups count is @GetFilteredTraceGroups().Count()</small>
+        }
+    </div>
+}
+
+@code {
+    private RenderFragment RenderHierarchicalTrace(HierarchicalTraceDto hierarchicalTrace) => @<text>
+        <tr style="border-left: 4px solid @GetChildBorderColor(hierarchicalTrace.Level);">
+            <td style="padding-left: @((hierarchicalTrace.Level + 1) * 1.5)rem;">
+                @if (hierarchicalTrace.Children.Any())
+                {
+                    <button class="btn btn-sm btn-link p-0 me-2" @onclick="() => ToggleTraceExpansion(hierarchicalTrace)">
+                        <i class="bi @(hierarchicalTrace.IsExpanded ? "bi-dash-square" : "bi-plus-square")"></i>
+                    </button>
+                }
+                <span>@hierarchicalTrace.Trace.OperationName</span>
+            </td>
+            <td><code class="small">@ShortenSpanId(hierarchicalTrace.Trace.SpanId)</code></td>
+            <td class="text-end">@hierarchicalTrace.Trace.Duration.TotalMilliseconds.ToString("F1")ms</td>
+            <td class="text-center">
+                <span class="badge @GetStatusBadgeClass(hierarchicalTrace.Trace.Status)">
+                    @hierarchicalTrace.Trace.Status
+                </span>
+            </td>
+            <td class="text-center">@hierarchicalTrace.Trace.StartTime.ToString("HH:mm:ss.fff")</td>
+            <td class="text-center">
+                <span class="badge @GetSourceBadgeClass(hierarchicalTrace.Trace.Source)">
+                    @GetSourceDisplayName(hierarchicalTrace.Trace.Source)
+                </span>
+            </td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-info" @onclick="() => OnViewTraceDetails.InvokeAsync(hierarchicalTrace.Trace)">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </td>
+        </tr>
+
+        @* Render children recursively if expanded *@
+        @if (hierarchicalTrace.IsExpanded)
+        {
+            @foreach (var child in hierarchicalTrace.Children)
+            {
+                @RenderHierarchicalTrace(child)
+            }
+        }
+    </text>;
+}

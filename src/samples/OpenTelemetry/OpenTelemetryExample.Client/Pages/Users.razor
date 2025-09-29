@@ -1,0 +1,241 @@
+@page "/users"
+@using OpenTelemetryExample.Client.Services
+@inject IUserService UserService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Users - OpenTelemetry Example</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-people-fill me-2"></i>User Management
+        </h2>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            <i class="bi bi-plus-circle me-2"></i>Add User
+        </button>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading users...</span>
+            </div>
+            <div class="mt-2">Loading users...</div>
+        </div>
+    }
+    else if (_users.Any())
+    {
+        <div class="row">
+            @foreach (var user in _users)
+            {
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card user-card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">@user.Name</h5>
+                            <p class="card-text">
+                                <i class="bi bi-envelope me-2"></i>@user.Email
+                            </p>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar me-2"></i>Created: @user.CreatedAt.ToString("MMM dd, yyyy")
+                                </small>
+                            </p>
+                            <div class="d-flex justify-content-between">
+                                <span class="badge @(user.IsActive ? "bg-success" : "bg-secondary")">
+                                    @(user.IsActive ? "Active" : "Inactive")
+                                </span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary action-button me-1" 
+                                            @onclick="() => EditUser(user)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger action-button" 
+                                            @onclick="() => DeleteUser(user)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-people text-muted" style="font-size: 4rem;"></i>
+            <h4 class="text-muted mt-3">No users found</h4>
+            <p class="text-muted">Create your first user to get started.</p>
+            <button class="btn btn-primary" @onclick="ShowCreateModal">
+                <i class="bi bi-plus-circle me-2"></i>Add First User
+            </button>
+        </div>
+    }
+</div>
+
+<!-- Create/Edit User Modal -->
+<div class="modal fade @(_showModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    @(_editingUser != null ? "Edit User" : "Create New User")
+                </h5>
+                <button type="button" class="btn-close" @onclick="HideModal"></button>
+            </div>
+            <div class="modal-body">
+                <form @onsubmit="SaveUser" @onsubmit:preventDefault="true">
+                    <div class="mb-3">
+                        <label for="userName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="userName" @bind="_userForm.Name" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="userEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="userEmail" @bind="_userForm.Email" required />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="HideModal">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="SaveUser" disabled="@_saving">
+                    @if (_saving)
+                    {
+                        <span class="spinner-border spinner-border-sm loading-spinner me-2"></span>
+                    }
+                    @(_editingUser != null ? "Update" : "Create")
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<UserDto> _users = [];
+    private bool _loading = true;
+    private bool _showModal;
+    private bool _saving;
+    private UserDto? _editingUser;
+    private CreateUserRequest _userForm = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        _loading = true;
+        StateHasChanged();
+        
+        try
+        {
+            _users = await UserService.GetUsersAsync();
+            Console.WriteLine($"[DEBUG] Loaded {_users.Count} users from API");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Error loading users: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error loading users: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        _editingUser = null;
+        _userForm = new CreateUserRequest();
+        _showModal = true;
+        StateHasChanged();
+    }
+
+    private void EditUser(UserDto user)
+    {
+        _editingUser = user;
+        _userForm = new CreateUserRequest
+        {
+            Name = user.Name,
+            Email = user.Email
+        };
+        _showModal = true;
+        StateHasChanged();
+    }
+
+    private void HideModal()
+    {
+        _showModal = false;
+        _editingUser = null;
+        _userForm = new CreateUserRequest();
+        StateHasChanged();
+    }
+
+    private async Task SaveUser()
+    {
+        if (string.IsNullOrWhiteSpace(_userForm.Name) || string.IsNullOrWhiteSpace(_userForm.Email))
+            return;
+
+        _saving = true;
+        StateHasChanged();
+        
+        try
+        {
+            if (_editingUser != null)
+            {
+                Console.WriteLine($"[DEBUG] Updating user {_editingUser.Id}: {_userForm.Name}, {_userForm.Email}");
+                await UserService.UpdateUserAsync(_editingUser.Id, new UpdateUserRequest
+                {
+                    UserId = _editingUser.Id,
+                    Name = _userForm.Name,
+                    Email = _userForm.Email
+                });
+                Console.WriteLine($"[DEBUG] User {_editingUser.Id} updated successfully");
+            }
+            else
+            {
+                Console.WriteLine($"[DEBUG] Creating new user: {_userForm.Name}, {_userForm.Email}");
+                var userId = await UserService.CreateUserAsync(_userForm);
+                Console.WriteLine($"[DEBUG] User created successfully with ID: {userId}");
+            }
+
+            HideModal();
+            await LoadUsers();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Error saving user: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving user: {ex.Message}");
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteUser(UserDto user)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"Are you sure you want to delete {user.Name}?");
+        
+        if (confirmed)
+        {
+            try
+            {
+                Console.WriteLine($"[DEBUG] Deleting user {user.Id}: {user.Name}");
+                await UserService.DeleteUserAsync(user.Id);
+                Console.WriteLine($"[DEBUG] User {user.Id} deleted successfully");
+                await LoadUsers();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Error deleting user: {ex.Message}");
+                await JSRuntime.InvokeVoidAsync("alert", $"Error deleting user: {ex.Message}");
+            }
+        }
+    }
+}

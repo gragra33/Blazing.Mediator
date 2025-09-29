@@ -1,15 +1,11 @@
-using System.Threading;
-using System.Threading.Tasks;
+namespace Blazing.Mediator.Benchmarks;
 
-namespace Blazing.Mediator.Benchmarks
+public class Ping : IRequest
 {
-    public class Ping : IRequest
-    {
-        public string Message { get; set; }
-    }
+    public string Message { get; set; } = string.Empty;
+}
 
-    public class PingHandler : IRequestHandler<Ping>
-    {
-        public Task Handle(Ping request, CancellationToken cancellationToken) => Task.CompletedTask;
-    }
+public class PingHandler : IRequestHandler<Ping>
+{
+    public Task Handle(Ping request, CancellationToken cancellationToken) => Task.CompletedTask;
 }

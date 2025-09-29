@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Shouldly;
 
 namespace ECommerce.Api.Tests;
 
@@ -41,10 +40,10 @@ public class SessionStatisticsTrackingTests : IClassFixture<WebApplicationFactor
         // Act - Get initial statistics
         var initialStatsResponse = await client.GetAsync("/api/mediator/statistics");
         initialStatsResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        
+
         var initialStatsContent = await initialStatsResponse.Content.ReadAsStringAsync();
         var initialStats = JsonDocument.Parse(initialStatsContent);
-        
+
         var initialActiveSession = initialStats.RootElement
             .GetProperty("globalStatistics")
             .GetProperty("summary")
@@ -104,7 +103,7 @@ public class SessionStatisticsTrackingTests : IClassFixture<WebApplicationFactor
             .GetProperty("queryTypes");
 
         queryTypes.ValueKind.ShouldBe(JsonValueKind.Object);
-        
+
         // Should have GetProductByIdQuery and GetProductsQuery tracked
         var queryTypesDict = JsonSerializer.Deserialize<Dictionary<string, long>>(queryTypes.GetRawText());
         queryTypesDict.ShouldNotBeEmpty("Should have tracked some query types");
@@ -217,25 +216,25 @@ public class SessionStatisticsTrackingTests : IClassFixture<WebApplicationFactor
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         var stats = JsonDocument.Parse(content);
         var root = stats.RootElement;
 
         root.GetProperty("message").GetString().ShouldBe("Real-Time Mediator Statistics");
-        
+
         var globalStats = root.GetProperty("globalStatistics");
         var summary = globalStats.GetProperty("summary");
-        
+
         summary.GetProperty("totalQueryExecutions").GetInt64().ShouldBeGreaterThan(0);
         summary.GetProperty("uniqueQueryTypes").GetInt32().ShouldBeGreaterThan(0);
         summary.GetProperty("activeSessions").GetInt32().ShouldBeGreaterThanOrEqualTo(1);
 
         var trackingInfo = root.GetProperty("trackingInfo");
-        trackingInfo.GetProperty("method").GetString().ShouldContain("StatisticsTrackingMiddleware");
-        trackingInfo.GetProperty("sessionTracking").GetString().ShouldContain("Enabled");
+        trackingInfo.GetProperty("method").GetString()!.ShouldContain("StatisticsTrackingMiddleware");
+        trackingInfo.GetProperty("sessionTracking").GetString()!.ShouldContain("Enabled");
 
         var instructions = root.GetProperty("instructions");
-        instructions.GetProperty("getSessionId").GetString().ShouldContain("/api/mediator/session");
+        instructions.GetProperty("getSessionId").GetString()!.ShouldContain("/api/mediator/session");
     }
 
     /// <summary>

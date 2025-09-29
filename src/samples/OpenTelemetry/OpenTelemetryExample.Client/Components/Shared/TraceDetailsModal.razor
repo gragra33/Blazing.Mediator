@@ -1,0 +1,108 @@
+<!-- Trace Details Modal -->
+<div class="modal fade" id="@ModalId" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-diagram-3 me-2"></i>Trace Details
+                    @if (SelectedTrace != null)
+                    {
+                        <small class="text-muted ms-2">@SelectedTrace.OperationName</small>
+                    }
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="overflow-x: hidden;">
+                @if (SelectedTrace != null)
+                {
+                    <!-- Single Column Layout -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h6>Basic Information</h6>
+                            <table class="table table-sm">
+                                <tr><td style="width: 150px;"><strong>Operation:</strong></td><td style="word-break: break-word;">@SelectedTrace.OperationName</td></tr>
+                                <tr><td><strong>Trace ID:</strong></td><td style="word-break: break-all;">
+                                    <code>@SelectedTrace.TraceId</code>
+                                    <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                            @onclick="() => CopyToClipboard(SelectedTrace.TraceId)"
+                                            title="Copy Trace ID">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </td></tr>
+                                <tr><td><strong>Span ID:</strong></td><td style="word-break: break-all;">
+                                    <code>@SelectedTrace.SpanId</code>
+                                    <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                            @onclick="() => CopyToClipboard(SelectedTrace.SpanId)"
+                                            title="Copy Span ID">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </td></tr>
+                                @if (!string.IsNullOrEmpty(SelectedTrace.ParentId))
+                                {
+                                    <tr><td><strong>Parent ID:</strong></td><td style="word-break: break-all;">
+                                        <code>@SelectedTrace.ParentId</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                                @onclick="() => CopyToClipboard(SelectedTrace.ParentId)"
+                                                title="Copy Parent ID">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                    </td></tr>
+                                }
+                                <tr><td><strong>Status:</strong></td><td><span class="badge @GetStatusBadgeClass(SelectedTrace.Status)">@SelectedTrace.Status</span></td></tr>
+                                <tr><td><strong>Duration:</strong></td><td>@SelectedTrace.Duration.TotalMilliseconds.ToString("#,##0")ms</td></tr>
+                                <tr><td><strong>Start Time:</strong></td><td>@SelectedTrace.StartTime.ToString("yyyy-MM-dd HH:mm:ss.fff")</td></tr>
+                                <tr><td><strong>Source:</strong></td><td><span class="badge @GetSourceBadgeClass(SelectedTrace.Source)">@GetSourceDisplayName(SelectedTrace.Source)</span></td></tr>
+                                <tr><td><strong>Mediator Trace:</strong></td><td>@(SelectedTrace.IsMediatorTrace ? "Yes" : "No")</td></tr>
+                            </table>
+                            
+                            <h6 class="mt-4">Tags & Attributes
+                                <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                        @onclick="() => CopyToClipboard(FormatDictionary(SelectedTrace.Tags))"
+                                        title="Copy Tags">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </h6>
+                            @if (SelectedTrace.Tags.Any())
+                            {
+                                <div class="table-responsive" style="max-height: 300px; overflow-y: auto; overflow-x: hidden;">
+                                    <table class="table table-sm">
+                                        @foreach (var tag in SelectedTrace.Tags)
+                                        {
+                                            <tr>
+                                                <td style="width: 200px; word-break: break-word;"><strong>@tag.Key:</strong></td>
+                                                <td style="word-break: break-word;">
+                                                    @if (tag.Key.Equals("middleware.pipeline", StringComparison.OrdinalIgnoreCase))
+                                                    {
+                                                        <code style="white-space: pre-wrap;">@FormatMiddlewarePipeline(tag.Value.ToString())</code>
+                                                    }
+                                                    else
+                                                    {
+                                                        <code style="white-space: pre-wrap;">@tag.Value</code>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted">No tags available</p>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                @if (SelectedTrace != null)
+                {
+                    <button type="button" class="btn btn-primary" 
+                            @onclick="() => CopyTraceSummary()">
+                        <i class="bi bi-clipboard me-2"></i>Copy Summary
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>

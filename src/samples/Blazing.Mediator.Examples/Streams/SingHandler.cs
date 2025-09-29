@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Blazing.Mediator.Examples.Streams;
 
 /// <summary>
@@ -26,6 +28,9 @@ public class SingHandler : IStreamRequestHandler<Sing, Song>
     /// <returns>An async enumerable of songs.</returns>
     public async IAsyncEnumerable<Song> Handle(Sing request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        var stopwatch = Stopwatch.StartNew();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - SingHandler starting");
+        
         await _writer.WriteLineAsync($"--- Handled Sing: {request.Message}, Song");
 
         var notes = new[] { "do", "re", "mi", "fa", "so", "la", "ti", "do" };
@@ -33,12 +38,24 @@ public class SingHandler : IStreamRequestHandler<Sing, Song>
         foreach (var note in notes)
         {
             if (cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - SingHandler cancelled after {stopwatch.ElapsedMilliseconds}ms");
                 yield break;
+            }
 
+            var noteStopwatch = Stopwatch.StartNew();
+            Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - SingHandler yielding note: {note}");
+            
             yield return new Song { Message = $"Singing {note}" };
 
             // Simulate some async work
             await Task.Delay(10, cancellationToken);
+            
+            noteStopwatch.Stop();
+            Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - SingHandler note '{note}' completed in {noteStopwatch.ElapsedMilliseconds}ms");
         }
+        
+        stopwatch.Stop();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - SingHandler completed all notes in {stopwatch.ElapsedMilliseconds}ms");
     }
 }

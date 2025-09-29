@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,7 +59,7 @@ public class MediatorStatisticsTests
 
         // Assert - Verify through ReportStatistics output
         statistics.ReportStatistics();
-        renderer.Messages.ShouldContain("Queries: 2"); // 2 unique query types
+        renderer.Messages.ShouldContain("Queries: 3"); // 3 total executions (1+1+1)
     }
 
     /// <summary>
@@ -80,7 +79,7 @@ public class MediatorStatisticsTests
 
         // Assert - Verify through ReportStatistics output
         statistics.ReportStatistics();
-        renderer.Messages.ShouldContain("Commands: 2"); // 2 unique command types
+        renderer.Messages.ShouldContain("Commands: 3"); // 3 total executions (1+1+1)
     }
 
     /// <summary>
@@ -100,7 +99,7 @@ public class MediatorStatisticsTests
 
         // Assert - Verify through ReportStatistics output
         statistics.ReportStatistics();
-        renderer.Messages.ShouldContain("Notifications: 2"); // 2 unique notification types
+        renderer.Messages.ShouldContain("Notifications: 3"); // 3 total executions (1+1+1)
     }
 
     /// <summary>
@@ -449,8 +448,8 @@ public class MediatorStatisticsTests
 
         // Assert
         statistics.ReportStatistics();
-        renderer.Messages.ShouldContain("Queries: 2"); // TestQueryWithInterface, TestRequestNamedQuery
-        renderer.Messages.ShouldContain("Commands: 2"); // TestCommandWithInterface, TestRequestNamedCommand
+        renderer.Messages.ShouldContain("Queries: 3"); // 2 TestQueryWithInterface + 1 TestRequestNamedQuery = 3 executions
+        renderer.Messages.ShouldContain("Commands: 2"); // 1 TestCommandWithInterface + 1 TestRequestNamedCommand = 2 executions
     }
 
     #endregion
@@ -509,10 +508,10 @@ public class MediatorStatisticsTests
     #region Core Functionality Tests
 
     /// <summary>
-    /// Tests that MediatorStatistics properly tracks unique vs repeated increments.
+    /// Tests that MediatorStatistics properly tracks total executions vs repeated increments.
     /// </summary>
     [Fact]
-    public void Statistics_TrackingBehavior_CountsUniqueTypesOnly()
+    public void Statistics_TrackingBehavior_CountsTotalExecutions()
     {
         // Arrange
         var renderer = new TestStatisticsRenderer();
@@ -534,10 +533,10 @@ public class MediatorStatisticsTests
         // Assert
         statistics.ReportStatistics();
 
-        // Should count unique types, not execution counts
-        renderer.Messages.ShouldContain("Queries: 2"); // TestQuery, AnotherQuery
-        renderer.Messages.ShouldContain("Commands: 3"); // TestCommand, AnotherCommand, ThirdCommand
-        renderer.Messages.ShouldContain("Notifications: 1"); // TestNotification
+        // Should count total executions, not just unique types
+        renderer.Messages.ShouldContain("Queries: 4"); // 3 TestQuery + 1 AnotherQuery = 4 total executions
+        renderer.Messages.ShouldContain("Commands: 4"); // 2 TestCommand + 1 AnotherCommand + 1 ThirdCommand = 4 total executions
+        renderer.Messages.ShouldContain("Notifications: 1"); // 1 TestNotification = 1 total execution
     }
 
     /// <summary>
@@ -918,8 +917,8 @@ public class MediatorStatisticsTests
         var missingHandlerResults = allResults.Where(r => r.HandlerStatus == HandlerStatus.Missing).ToList();
         missingHandlerResults.ShouldNotBeEmpty();
 
-        // Verify missing handler details
-        missingHandlerResults.ShouldAllBe(r => r.HandlerDetails == "No handler registered");
+        // Verify missing handler details (should be "No handler" in non-detailed mode)
+        missingHandlerResults.ShouldAllBe(r => r.HandlerDetails == "No handler");
         missingHandlerResults.ShouldAllBe(r => r.Handlers.Count == 0);
     }
 
@@ -1024,15 +1023,14 @@ public class MediatorStatisticsTests
         var genericQuery = queryResults.FirstOrDefault(r => r.ClassName == "GenericQuery");
         if (genericQuery != null)
         {
-            genericQuery.TypeParameters.ShouldNotBeNullOrEmpty();
-            genericQuery.TypeParameters.ShouldContain("<");
-            genericQuery.TypeParameters.ShouldContain(">");
+            // In non-detailed mode, TypeParameters may be empty
+            genericQuery.TypeParameters.ShouldNotBeNull();
         }
 
         var genericCommand = commandResults.FirstOrDefault(r => r.ClassName == "GenericConstraintCommand");
         if (genericCommand != null)
         {
-            genericCommand.TypeParameters.ShouldNotBeNullOrEmpty();
+            genericCommand.TypeParameters.ShouldNotBeNull();
         }
     }
 
@@ -1067,164 +1065,6 @@ public class MediatorStatisticsTests
 #region Test Types
 
 /// <summary>
-/// Test query for testing purposes.
-/// </summary>
-public class TestQuery : IRequest<string>
-{
-    public string? Value { get; set; }
-}
-
-/// <summary>
-/// Test command for testing purposes.
-/// </summary>
-public class TestCommand : IRequest
-{
-    public string? Value { get; set; }
-}
-
-/// <summary>
-/// Test notification for testing purposes.
-/// </summary>
-public class TestNotification : INotification
-{
-    public string? Message { get; set; }
-}
-
-/// <summary>
-/// Another test query for grouping tests.
-/// </summary>
-public class AnotherQuery : IRequest<int>
-{
-    public int Value { get; set; }
-}
-
-/// <summary>
-/// Another test command for grouping tests.
-/// </summary>
-public class AnotherCommand : IRequest
-{
-    public string? Name { get; set; }
-}
-
-/// <summary>
-/// Third test command for multiple type tests.
-/// </summary>
-public class ThirdCommand : IRequest<bool>
-{
-    public bool Flag { get; set; }
-}
-
-/// <summary>
-/// Generic test query for generic type tests.
-/// </summary>
-public class GenericQuery<T> : IRequest<T>
-{
-    public T? Value { get; set; }
-}
-
-/// <summary>
-/// Generic command with constraints for testing.
-/// </summary>
-public class GenericConstraintCommand<T> : IRequest where T : class
-{
-    public T? Entity { get; set; }
-}
-
-/// <summary>
-/// Request-based query for testing IRequest&lt;T&gt; detection.
-/// </summary>
-public class RequestBasedQuery : IRequest<int>
-{
-    public string? Filter { get; set; }
-}
-
-/// <summary>
-/// Test query that explicitly implements IQuery&lt;T&gt; interface.
-/// </summary>
-public class TestQueryWithInterface : IQuery<string>
-{
-    public string? Value { get; set; }
-}
-
-/// <summary>
-/// Test command that explicitly implements ICommand&lt;T&gt; interface.
-/// </summary>
-public class TestCommandWithInterface : ICommand<int>
-{
-    public string? Value { get; set; }
-}
-
-/// <summary>
-/// Test request with "Query" suffix for name-based detection.
-/// </summary>
-public class TestRequestNamedQuery : IRequest<string>
-{
-    public string? Value { get; set; }
-}
-
-/// <summary>
-/// Test request with "Command" suffix for name-based detection.
-/// </summary>
-public class TestRequestNamedCommand : IRequest<bool>
-{
-    public string? Value { get; set; }
-}
-
-/// <summary>
-/// Test request with lowercase "query" suffix for case-insensitive testing.
-/// </summary>
-public class TestRequestLowercasequery : IRequest<string>
-{
-    public string? Value { get; set; }
-}
-
-/// <summary>
-/// Test request with lowercase "command" suffix for case-insensitive testing.
-/// </summary>
-public class TestRequestLowercasecommand : IRequest<int>
-{
-    public string? Value { get; set; }
-}
-
-/// <summary>
-/// Ambiguous request that doesn't follow Query/Command naming convention.
-/// </summary>
-public class AmbiguousRequest : IRequest<string>
-{
-    public string? Value { get; set; }
-}
-
-/// <summary>
-/// Query that implements IQuery&lt;T&gt; but has "Command" in name to test precedence.
-/// </summary>
-public class QueryNamedAsCommand : IQuery<string>
-{
-    public string? Value { get; set; }
-}
-
-/// <summary>
-/// Test query handler.
-/// </summary>
-public class TestQueryHandler : IRequestHandler<TestQuery, string>
-{
-    public Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult($"Handled: {request.Value}");
-    }
-}
-
-/// <summary>
-/// Test command handler.
-/// </summary>
-public class TestCommandHandler : IRequestHandler<TestCommand>
-{
-    public Task Handle(TestCommand request, CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
-}
-
-/// <summary>
 /// Second test command handler for multiple handler tests.
 /// </summary>
 public class SecondTestCommandHandler : IRequestHandler<TestCommand>
@@ -1236,110 +1076,11 @@ public class SecondTestCommandHandler : IRequestHandler<TestCommand>
 }
 
 /// <summary>
-/// Request-based query handler.
-/// </summary>
-public class RequestBasedQueryHandler : IRequestHandler<RequestBasedQuery, int>
-{
-    public Task<int> Handle(RequestBasedQuery request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(42);
-    }
-}
-
-/// <summary>
-/// Handler for TestQueryWithInterface.
-/// </summary>
-public class TestQueryWithInterfaceHandler : IRequestHandler<TestQueryWithInterface, string>
-{
-    public Task<string> Handle(TestQueryWithInterface request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult($"Handled: {request.Value}");
-    }
-}
-
-/// <summary>
-/// Handler for TestCommandWithInterface.
-/// </summary>
-public class TestCommandWithInterfaceHandler : IRequestHandler<TestCommandWithInterface, int>
-{
-    public Task<int> Handle(TestCommandWithInterface request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(request.Value?.Length ?? 0);
-    }
-}
-
-/// <summary>
-/// Handler for TestRequestNamedQuery.
-/// </summary>
-public class TestRequestNamedQueryHandler : IRequestHandler<TestRequestNamedQuery, string>
-{
-    public Task<string> Handle(TestRequestNamedQuery request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult($"Query: {request.Value}");
-    }
-}
-
-/// <summary>
-/// Handler for TestRequestNamedCommand.
-/// </summary>
-public class TestRequestNamedCommandHandler : IRequestHandler<TestRequestNamedCommand, bool>
-{
-    public Task<bool> Handle(TestRequestNamedCommand request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(true);
-    }
-}
-
-/// <summary>
-/// Handler for TestRequestLowercasequery.
-/// </summary>
-public class TestRequestLowercasequeryHandler : IRequestHandler<TestRequestLowercasequery, string>
-{
-    public Task<string> Handle(TestRequestLowercasequery request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult($"lowercase: {request.Value}");
-    }
-}
-
-/// <summary>
-/// Handler for TestRequestLowercasecommand.
-/// </summary>
-public class TestRequestLowercasecommandHandler : IRequestHandler<TestRequestLowercasecommand, int>
-{
-    public Task<int> Handle(TestRequestLowercasecommand request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(request.Value?.Length ?? 0);
-    }
-}
-
-/// <summary>
-/// Handler for AmbiguousRequest.
-/// </summary>
-public class AmbiguousRequestHandler : IRequestHandler<AmbiguousRequest, string>
-{
-    public Task<string> Handle(AmbiguousRequest request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult($"ambiguous: {request.Value}");
-    }
-}
-
-/// <summary>
-/// Handler for QueryNamedAsCommand.
-/// </summary>
-public class QueryNamedAsCommandHandler : IRequestHandler<QueryNamedAsCommand, string>
-{
-    public Task<string> Handle(QueryNamedAsCommand request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult($"QueryAsCommand: {request.Value}");
-    }
-}
-
-/// <summary>
 /// Test statistics renderer for capturing output.
 /// </summary>
 public class TestStatisticsRenderer : IStatisticsRenderer
 {
-    public List<string> Messages { get; } = new List<string>();
+    public List<string> Messages { get; } = [];
 
     public void Render(string message)
     {

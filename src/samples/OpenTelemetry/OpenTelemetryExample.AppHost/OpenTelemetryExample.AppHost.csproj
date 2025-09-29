@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.4.2" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>03f15814-f01b-4b11-90d1-71596ea746d2</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+		<PackageReference Include="Aspire.Hosting.AppHost" />
+		<PackageReference Include="Arshid.Aspire.ApiDocs.Extensions" IsAspireProjectResource="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenTelemetryExample.Client\OpenTelemetryExample.Client.csproj" />
+    <ProjectReference Include="..\OpenTelemetryExample\OpenTelemetryExample.csproj" />
+  </ItemGroup>
+
+</Project>

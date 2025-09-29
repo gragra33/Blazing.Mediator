@@ -1,0 +1,143 @@
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <div class="row align-items-center">
+            <div class="col">
+                <h4 class="mb-2">
+                    <i class="bi bi-cloud text-warning me-2"></i>
+                    API Streaming Demo
+                </h4>
+                <p class="mb-0">
+                    <i class="bi bi-server me-1"></i>
+                    Real-time user data streaming via Mediator with OpenTelemetry tracing
+                </p>
+            </div>
+            <div class="col-auto">
+                <span class="badge bg-light text-primary">
+                    <i class="bi bi-arrow-right me-1"></i>
+                    Via Blazing.Mediator Pipeline
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Configuration Controls -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="apiCount" class="form-label">
+                    <i class="bi bi-list-ol me-1 text-primary"></i>
+                    Number of items to stream:
+                </label>
+                <input @bind="Count" id="apiCount" type="number" class="form-control" min="1" max="1000" />
+            </div>
+            <div class="col-md-6">
+                <label for="apiDelay" class="form-label">
+                    <i class="bi bi-clock me-1 text-info"></i>
+                    Delay between items (ms):
+                </label>
+                <input @bind="Delay" id="apiDelay" type="number" class="form-control" min="10" max="5000" />
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="mb-3">
+            <button @onclick="StartStreaming" disabled="@IsStreaming" class="btn btn-primary me-2">
+                @if (IsStreaming)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                    <i class="bi bi-pause me-1"></i>
+                }
+                else
+                {
+                    <i class="bi bi-play me-1"></i>
+                }
+                @(IsStreaming ? "Streaming..." : "Start API Streaming")
+            </button>
+            <button @onclick="StopStreaming" disabled="@(!IsStreaming)" class="btn btn-danger">
+                <i class="bi bi-stop me-1"></i>
+                Stop
+            </button>
+        </div>
+        
+        <!-- Streaming Status Cards -->
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="card bg-light border">
+                    <div class="card-body text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <i class="bi bi-download text-primary me-2"></i>
+                            <h6 class="mb-0">Items Received</h6>
+                        </div>
+                        <h4 class="text-primary">@ItemsReceived</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light border">
+                    <div class="card-body text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <i class="bi bi-@(IsStreaming ? "play-circle text-success" : "stop-circle text-secondary") me-2"></i>
+                            <h6 class="mb-0">Status</h6>
+                        </div>
+                        <h6 class="@(IsStreaming ? "text-success" : "text-secondary")">
+                            @(IsStreaming ? "Streaming" : "Stopped")
+                        </h6>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light border">
+                    <div class="card-body text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <i class="bi bi-stopwatch text-info me-2"></i>
+                            <h6 class="mb-0">Duration</h6>
+                        </div>
+                        <h6 class="text-info">@Duration.ToString("#,##0") ms</h6>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light border">
+                    <div class="card-body text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <i class="bi bi-speedometer2 text-warning me-2"></i>
+                            <h6 class="mb-0">Throughput</h6>
+                        </div>
+                        <h6 class="text-warning">@Throughput.ToString("#,##0.##") items/sec</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Display -->
+        <div class="border rounded bg-light p-3" style="max-height: 300px; overflow-y: auto;">
+            <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-broadcast text-primary me-2"></i>
+                <h6 class="mb-0">Live Stream Results (Last 50 items)</h6>
+            </div>
+            @if (Results.Any())
+            {
+                @foreach (var item in Results.TakeLast(50))
+                {
+                    <div class="alert alert-info py-1 mb-1">
+                        <small>
+                            <i class="bi bi-clock me-1"></i>
+                            <strong>[@item.Metadata.Timestamp.ToString("HH:mm:ss.fff")]</strong>
+                            <i class="bi bi-person ms-2 me-1"></i>
+                            @item.Data
+                            <span class="badge bg-secondary ms-2">
+                                <i class="bi bi-hash me-1"></i>@item.Metadata.ItemNumber
+                            </span>
+                        </small>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-info-circle fa-2x mb-2"></i>
+                    <p class="mb-0">No streaming data yet. Click "Start API Streaming" to begin.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>

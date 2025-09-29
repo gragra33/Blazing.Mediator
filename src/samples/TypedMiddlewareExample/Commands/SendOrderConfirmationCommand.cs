@@ -1,9 +1,10 @@
 namespace TypedMiddlewareExample.Commands;
 
 /// <summary>
-/// Command for sending order confirmation emails.
+/// Command to send order confirmation email.
+/// Uses custom IOrderRequest interface to demonstrate type constraints.
 /// </summary>
-public class SendOrderConfirmationCommand : ICommand
+public class SendOrderConfirmationCommand : IOrderRequest
 {
     /// <summary>
     /// Gets or sets the order ID.
@@ -11,7 +12,7 @@ public class SendOrderConfirmationCommand : ICommand
     public required string OrderId { get; set; }
 
     /// <summary>
-    /// Gets or sets the customer's email address.
+    /// Gets or sets the customer email address.
     /// </summary>
     public required string CustomerEmail { get; set; }
 }

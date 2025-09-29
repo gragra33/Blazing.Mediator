@@ -22,7 +22,7 @@ public class ErrorHandlingMiddleware<TRequest> : IRequestMiddleware<TRequest>
         {
             await next();
         }
-        catch (ValidationException ex)
+        catch (FluentValidation.ValidationException ex)
         {
             _logger.LogError("!! {RequestType} failed due to validation errors: {ErrorMessage}",
                 typeof(TRequest).Name, ex.Message);
@@ -60,7 +60,7 @@ public class ErrorHandlingMiddleware<TRequest, TResponse> : IRequestMiddleware<T
         {
             return await next();
         }
-        catch (ValidationException ex)
+        catch (FluentValidation.ValidationException ex)
         {
             _logger.LogError("!! {RequestType} failed due to validation errors: {ErrorMessage}",
                 typeof(TRequest).Name, ex.Message);

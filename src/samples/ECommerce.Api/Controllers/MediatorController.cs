@@ -1,4 +1,4 @@
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
 using Blazing.Mediator.Statistics;
 using ECommerce.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -37,8 +37,8 @@ public class MediatorController(MediatorStatistics mediatorStatistics, MediatorS
         }
 
         // Also check HttpContext.Items as backup
-        if (string.IsNullOrEmpty(sessionId) && 
-            HttpContext.Items.TryGetValue("StatisticsSessionId", out var sessionIdObj) && 
+        if (string.IsNullOrEmpty(sessionId) &&
+            HttpContext.Items.TryGetValue("StatisticsSessionId", out var sessionIdObj) &&
             sessionIdObj is string itemsSessionId)
         {
             sessionId = itemsSessionId;
@@ -49,7 +49,7 @@ public class MediatorController(MediatorStatistics mediatorStatistics, MediatorS
         {
             Message = string.IsNullOrEmpty(sessionId) ? "Session ID Not Yet Assigned" : "Current Session ID",
             SessionId = sessionId,
-            Note = string.IsNullOrEmpty(sessionId) 
+            Note = string.IsNullOrEmpty(sessionId)
                 ? "No session ID has been assigned yet. Make a request that triggers mediator operations to initialize session tracking."
                 : "This session ID is used for tracking your mediator statistics across requests",
             Usage = string.IsNullOrEmpty(sessionId) ? null : new
@@ -140,7 +140,7 @@ public class MediatorController(MediatorStatistics mediatorStatistics, MediatorS
     public IActionResult GetSessionStatistics(string sessionId)
     {
         var sessionStats = statisticsTracker.GetSessionStatistics(sessionId);
-        
+
         if (sessionStats == null)
         {
             return NotFound(new { Error = $"Session '{sessionId}' not found or has no activity" });

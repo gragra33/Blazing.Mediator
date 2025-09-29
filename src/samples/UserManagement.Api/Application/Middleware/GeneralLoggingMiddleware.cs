@@ -1,5 +1,4 @@
 using Blazing.Mediator;
-using Blazing.Mediator.Abstractions;
 using System.Text.Json;
 
 namespace UserManagement.Api.Application.Middleware;
@@ -27,8 +26,8 @@ public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<
         var requestType = request.GetType().Name;
         var startTime = DateTime.UtcNow;
 
-        // Log the request
-        Console.WriteLine($"🔍 REQUEST: {requestType} started at {startTime:yyyy-MM-dd HH:mm:ss.fff}");
+        // Log the request - using ASCII instead of Unicode
+        Console.WriteLine($">> REQUEST: {requestType} started at {startTime:yyyy-MM-dd HH:mm:ss.fff}");
 
         try
         {
@@ -38,11 +37,11 @@ public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<
                 WriteIndented = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
-            Console.WriteLine($"🔍 REQUEST DATA: {requestJson}");
+            Console.WriteLine($">> REQUEST DATA: {requestJson}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔍 Could not serialize request: {ex.Message}");
+            Console.WriteLine($">> Could not serialize request: {ex.Message}");
         }
 
         TResponse response;
@@ -55,7 +54,7 @@ public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<
             var duration = endTime - startTime;
 
             // Log successful response
-            Console.WriteLine($"🔍 RESPONSE: {requestType} completed successfully in {duration.TotalMilliseconds}ms at {endTime:yyyy-MM-dd HH:mm:ss.fff}");
+            Console.WriteLine($"<< RESPONSE: {requestType} completed successfully in {duration.TotalMilliseconds}ms at {endTime:yyyy-MM-dd HH:mm:ss.fff}");
 
             try
             {
@@ -65,11 +64,11 @@ public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<
                     WriteIndented = true,
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
-                Console.WriteLine($"🔍 RESPONSE DATA: {responseJson}");
+                Console.WriteLine($"<< RESPONSE DATA: {responseJson}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"🔍 Could not serialize response: {ex.Message}");
+                Console.WriteLine($"<< Could not serialize response: {ex.Message}");
             }
         }
         catch (Exception ex)
@@ -78,7 +77,7 @@ public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<
             var duration = endTime - startTime;
 
             // Log error response
-            Console.WriteLine($"🔍 ERROR: {requestType} failed after {duration.TotalMilliseconds}ms at {endTime:yyyy-MM-dd HH:mm:ss.fff} - {ex.Message}");
+            Console.WriteLine($"!! ERROR: {requestType} failed after {duration.TotalMilliseconds}ms at {endTime:yyyy-MM-dd HH:mm:ss.fff} - {ex.Message}");
 
             throw;
         }

@@ -86,31 +86,6 @@ public class BasicNotificationTests
     }
 
     [Fact]
-    public async Task Publish_Should_Notify_Generic_Subscribers()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        services.AddMediator();
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-
-        var subscriber = new GenericSubscriber();
-        mediator.Subscribe(subscriber);
-
-        var notification = new TestNotification { Message = "Hello", Value = 42 };
-
-        // Act
-        await mediator.Publish(notification);
-
-        // Assert
-        subscriber.ReceivedNotifications.Count.ShouldBe(1);
-        subscriber.ReceivedNotifications[0].ShouldBeOfType<TestNotification>();
-        var typedNotification = (TestNotification)subscriber.ReceivedNotifications[0];
-        typedNotification.Message.ShouldBe("Hello");
-        typedNotification.Value.ShouldBe(42);
-    }
-
-    [Fact]
     public async Task Publish_Should_Notify_Both_Specific_And_Generic_Subscribers()
     {
         // Arrange

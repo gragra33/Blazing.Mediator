@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
@@ -469,7 +468,10 @@ public class MediatorComprehensiveTests
         var services = new ServiceCollection();
         services.AddSingleton(statistics);
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddMediator(configureMiddleware: null, enableStatisticsTracking: true, Array.Empty<Assembly>());
+        services.AddMediator(config =>
+        {
+            config.WithStatisticsTracking();
+        }, Array.Empty<Assembly>());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -486,125 +488,3 @@ public class MediatorComprehensiveTests
 
     #endregion
 }
-
-#region Test Helper Classes
-
-/// <summary>
-/// Empty pipeline builder that doesn't have ExecutePipeline methods for testing fallback behavior.
-/// </summary>
-public class EmptyPipelineBuilder : IMiddlewarePipelineBuilder
-{
-    public IMiddlewarePipelineBuilder AddMiddleware<TMiddleware>() where TMiddleware : class
-    {
-        return this;
-    }
-
-    public IMiddlewarePipelineBuilder AddMiddleware(Type middlewareType)
-    {
-        return this;
-    }
-
-    public RequestHandlerDelegate<TResponse> Build<TRequest, TResponse>(IServiceProvider serviceProvider, RequestHandlerDelegate<TResponse> finalHandler) where TRequest : IRequest<TResponse>
-    {
-        return finalHandler;
-    }
-
-    public RequestHandlerDelegate Build<TRequest>(IServiceProvider serviceProvider, RequestHandlerDelegate finalHandler) where TRequest : IRequest
-    {
-        return finalHandler;
-    }
-
-    public StreamRequestHandlerDelegate<TResponse> BuildStreamPipeline<TRequest, TResponse>(IServiceProvider serviceProvider, StreamRequestHandlerDelegate<TResponse> finalHandler) where TRequest : IStreamRequest<TResponse>
-    {
-        return finalHandler;
-    }
-
-    public Task<TResponse> ExecutePipeline<TRequest, TResponse>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate<TResponse> finalHandler, CancellationToken cancellationToken) where TRequest : IRequest<TResponse>
-    {
-        return finalHandler();
-    }
-
-    public Task ExecutePipeline<TRequest>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate finalHandler, CancellationToken cancellationToken) where TRequest : IRequest
-    {
-        return finalHandler();
-    }
-
-    public IAsyncEnumerable<TResponse> ExecuteStreamPipeline<TRequest, TResponse>(TRequest request, IServiceProvider serviceProvider, StreamRequestHandlerDelegate<TResponse> finalHandler, CancellationToken cancellationToken) where TRequest : IStreamRequest<TResponse>
-    {
-        return finalHandler();
-    }
-
-    // Note: This class intentionally doesn't have ExecutePipeline methods to test fallback behavior
-}
-
-/// <summary>
-/// Second test command handler for multiple handler tests.
-/// </summary>
-public class SecondTestCommandHandler : IRequestHandler<TestCommand>
-{
-    public Task Handle(TestCommand request, CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
-}
-
-/// <summary>
-/// Second test query handler for multiple handler tests.
-/// </summary>
-public class SecondTestQueryHandler : IRequestHandler<TestQuery, string>
-{
-    public Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult($"Second: {request.Value}");
-    }
-}
-
-/// <summary>
-/// Test stream request for testing streaming functionality.
-/// </summary>
-public class TestStreamRequest : IStreamRequest<string>
-{
-    public string? Value { get; set; }
-}
-
-/// <summary>
-/// Test stream handler.
-/// </summary>
-public class TestStreamHandler : IStreamRequestHandler<TestStreamRequest, string>
-{
-    public async IAsyncEnumerable<string> Handle(TestStreamRequest request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        for (int i = 1; i <= 3; i++)
-        {
-            yield return $"{request.Value}-{i}";
-            await Task.Yield();
-        }
-    }
-}
-
-/// <summary>
-/// Second test stream handler for multiple handler tests.
-/// </summary>
-public class SecondTestStreamHandler : IStreamRequestHandler<TestStreamRequest, string>
-{
-    public async IAsyncEnumerable<string> Handle(TestStreamRequest request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        yield return $"Second-{request.Value}";
-        await Task.Yield();
-    }
-}
-
-/// <summary>
-/// Test statistics renderer for capturing output.
-/// </summary>
-public class TestStatisticsRenderer : IStatisticsRenderer
-{
-    public List<string> Messages { get; } = new List<string>();
-
-    public void Render(string message)
-    {
-        Messages.Add(message);
-    }
-}
-
-#endregion

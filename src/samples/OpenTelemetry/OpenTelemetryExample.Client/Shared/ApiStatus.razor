@@ -1,0 +1,62 @@
+@using OpenTelemetryExample.Client.Services
+@inject ITelemetryService TelemetryService
+@implements IDisposable
+
+<span class="api-status @_statusClass">
+    <i class="bi @_statusIcon me-1"></i>
+    @_statusText
+</span>
+
+@code {
+    private string _statusClass = "disconnected";
+    private string _statusIcon = "bi-wifi-off";
+    private string _statusText = "Checking...";
+    private Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check initial status
+        await CheckApiStatus();
+        
+        // Set up periodic status checks
+        _timer = new Timer(async _ => 
+        {
+            await InvokeAsync(async () =>
+            {
+                await CheckApiStatus();
+                StateHasChanged();
+            });
+        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private async Task CheckApiStatus()
+    {
+        try
+        {
+            var isHealthy = await TelemetryService.CheckApiHealthAsync();
+            if (isHealthy)
+            {
+                _statusClass = "connected";
+                _statusIcon = "bi-wifi";
+                _statusText = "Connected";
+            }
+            else
+            {
+                _statusClass = "disconnected";
+                _statusIcon = "bi-wifi-off";
+                _statusText = "Disconnected";
+            }
+        }
+        catch
+        {
+            _statusClass = "disconnected";
+            _statusIcon = "bi-wifi-off";
+            _statusText = "Error";
+        }
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+}

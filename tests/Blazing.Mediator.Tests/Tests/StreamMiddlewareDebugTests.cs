@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Tests.Tests;
@@ -82,11 +81,11 @@ public class StreamMiddlewareDebugTests
         results.Count.ShouldBeGreaterThan(0);
 
         // Print results for debugging
-        Console.WriteLine("Actual results:");
-        for (int i = 0; i < results.Count; i++)
-        {
-            Console.WriteLine($"  [{i}] = \"{results[i]}\"");
-        }
+        //Console.WriteLine("Actual results:");
+        //for (int i = 0; i < results.Count; i++)
+        //{
+        //    Console.WriteLine($"  [{i}] = \"{results[i]}\"");
+        //}
 
         // For now, just verify we got some results
         results.ShouldNotBeEmpty();

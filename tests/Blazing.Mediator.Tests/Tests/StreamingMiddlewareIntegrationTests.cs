@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -228,12 +227,10 @@ public class StreamingMiddlewareIntegrationTests
         var services = new ServiceCollection();
 
         // Enable auto-discovery for request middleware (should include streaming middleware)
-        services.AddMediator(
-            configureMiddleware: null,
-            discoverMiddleware: true,
-            discoverNotificationMiddleware: false,
-            _testAssembly
-        );
+        services.AddMediator(config =>
+        {
+            config.WithMiddlewareDiscovery();
+        }, _testAssembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -293,11 +290,11 @@ public class StreamingMiddlewareIntegrationTests
                 results.Add(item);
                 if (results.Count >= 3)
                 {
-                    cts.Cancel(); // Cancel after 3 items
+                    await cts.CancelAsync(); // Cancel after 3 items
                     break;
                 }
             }
-        });
+        }, cts.Token);
 
         // Wait for cancellation to propagate
         try

@@ -1,4 +1,5 @@
-using Blazing.Mediator.Abstractions;
+using Blazing.Mediator;
+using System.Diagnostics;
 
 namespace Blazing.Mediator.Examples;
 
@@ -38,8 +39,15 @@ public class GenericRequestPreProcessor<TRequest, TResponse> : IRequestMiddlewar
     /// <returns>The response from the pipeline.</returns>
     public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
+        var stopwatch = Stopwatch.StartNew();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - GenericRequestPreProcessor starting for {typeof(TRequest).Name}");
+        
         await _writer.WriteLineAsync("- Starting Up");
         var result = await next();
+        
+        stopwatch.Stop();
+        Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - GenericRequestPreProcessor completed for {typeof(TRequest).Name} in {stopwatch.ElapsedMilliseconds}ms");
+        
         return result;
     }
 }

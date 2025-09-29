@@ -12,21 +12,35 @@ var writer = new WrappingWriter(Console.Out);
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((_, services) =>
     {
-        // Register Blazing.Mediator with middleware
+        // Register Blazing.Mediator with middleware and proper handler discovery
         services.AddMediator(config =>
         {
+            config.WithMiddlewareDiscovery();
+            //config.WithConstrainedMiddlewareDiscovery();
+            //config.WithNotificationMiddlewareDiscovery();
+
             // Add request middleware (equivalent to MediatR pipeline behaviors)
-            config.AddMiddleware(typeof(GenericRequestPreProcessor<,>));
-            config.AddMiddleware(typeof(GenericRequestMiddleware<,>));
-            config.AddMiddleware(typeof(GenericRequestPostProcessor<,>));
+            //config.AddMiddleware(typeof(GenericRequestPreProcessor<,>));
+            //config.AddMiddleware(typeof(GenericRequestMiddleware<,>));
+            //config.AddMiddleware(typeof(GenericRequestPostProcessor<,>));
 
             // Add conditional middleware for specific request types
-            config.AddMiddleware(typeof(ConstrainedRequestPostProcessor));
+            //config.AddMiddleware(typeof(ConstrainedRequestPostProcessor));
 
             // Add stream request middleware for streaming functionality
-            config.AddMiddleware(typeof(GenericStreamRequestMiddleware<,>));
+            //config.AddMiddleware(typeof(GenericStreamRequestMiddleware<,>));
 
-        }, typeof(Program).Assembly);
+            // Enable proper notification handler discovery
+            config.WithNotificationHandlerDiscovery();
+
+            // Disable telemetry to improve performance
+            config.WithoutTelemetry();
+            config.WithoutStatistics();
+            config.WithoutLogging();
+
+            config.AddFromAssembly(typeof(Program).Assembly);
+        });
+    //}, typeof(Program).Assembly);
 
         // Register the WrappingWriter for dependency injection
         services.AddSingleton<TextWriter>(writer);
@@ -42,32 +56,17 @@ var host = Host.CreateDefaultBuilder(args)
 // Get the mediator and run examples
 var mediator = host.Services.GetRequiredService<IMediator>();
 
-// Manually subscribe notification handlers (Blazing.Mediator requires explicit subscription)
-var pingedHandler = new PingedHandler(writer);
-var pingedAlsoHandler = new PingedAlsoHandler(writer);
-var pongedConstrainedHandler = new PongedConstrainedHandler(writer);
-var covariantHandler = new CovariantNotificationHandler(writer);
-
-mediator.Subscribe(pingedHandler);
-mediator.Subscribe(pingedAlsoHandler);
-mediator.Subscribe(pongedConstrainedHandler);
-mediator.Subscribe(covariantHandler); // Generic subscription for all notifications
-mediator.Subscribe<Pinged>(covariantHandler); // Also subscribe to specific notification for testing
 
 const string separator = "==============================================";
 
 Console.WriteLine(separator);
-Console.WriteLine("Blazing.Mediator Examples");
+Console.WriteLine("Blazing.Mediator Examples - Handler-Based System");
 Console.WriteLine(separator);
 Console.WriteLine();
 Console.WriteLine("This project demonstrates the core features of Blazing.Mediator");
-Console.WriteLine("converted from the original MediatR examples.");
+Console.WriteLine("converted from subscription-based to handler-based notifications.");
 Console.WriteLine();
-Console.WriteLine("Key differences from MediatR:");
-Console.WriteLine("- Uses Blazing.Mediator.IMediator instead of MediatR.IMediator");
-Console.WriteLine("- Uses Blazing.Mediator.IRequest<T> instead of MediatR.IRequest<T>");
-Console.WriteLine("- Uses middleware instead of pipeline behaviors");
-Console.WriteLine("- Better performance and lower memory allocation");
+Console.WriteLine();
 Console.WriteLine();
 
 try
@@ -86,7 +85,6 @@ catch (Exception ex)
 
 /// <summary>
 /// Entry point for the Blazing.Mediator examples application.
-/// This demonstrates all core features of Blazing.Mediator converted from MediatR examples.
 /// </summary>
 public static partial class Program
 {

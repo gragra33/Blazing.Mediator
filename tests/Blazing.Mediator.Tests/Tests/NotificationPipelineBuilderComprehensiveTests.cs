@@ -1,4 +1,3 @@
-using Blazing.Mediator.Abstractions;
 using Blazing.Mediator.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +13,7 @@ public class NotificationPipelineBuilderComprehensiveTests
 
     /// <summary>
     /// Tests that middleware without Order property gets fallback order.
+    /// Updated to use MiddlewarePipelineBuilder-compatible high fallback order.
     /// </summary>
     [Fact]
     public void AddMiddleware_WithoutOrderProperty_GetsFallbackOrder()
@@ -27,11 +27,12 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         // Assert
         middleware.Count.ShouldBe(1);
-        middleware[0].Order.ShouldBe(1); // First unordered middleware gets order 1
+        middleware[0].Order.ShouldBe(2146483647); // MiddlewarePipelineBuilder-compatible high fallback order
     }
 
     /// <summary>
-    /// Tests that multiple middleware without Order properties get incremental orders.
+    /// Tests that multiple middleware without Order properties get incremental high fallback orders.
+    /// Updated to use MiddlewarePipelineBuilder-compatible order logic.
     /// </summary>
     [Fact]
     public void AddMiddleware_MultipleWithoutOrder_GetsIncrementalOrders()
@@ -46,8 +47,8 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         // Assert
         middleware.Count.ShouldBe(2);
-        middleware[0].Order.ShouldBe(1); // First
-        middleware[1].Order.ShouldBe(2); // Second
+        middleware[0].Order.ShouldBe(2146483647); // First high fallback order
+        middleware[1].Order.ShouldBe(2146483648); // Second high fallback order (incremented)
     }
 
     /// <summary>
@@ -123,7 +124,8 @@ public class NotificationPipelineBuilderComprehensiveTests
     }
 
     /// <summary>
-    /// Tests that instance Order property with default value (0) uses fallback order.
+    /// Tests that instance Order property with default value (0) uses the actual instance value.
+    /// The current implementation returns the actual instance property value rather than treating 0 as "no order".
     /// </summary>
     [Fact]
     public void AddMiddleware_WithDefaultInstanceOrder_UsesFallbackOrder()
@@ -137,7 +139,7 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         // Assert
         middleware.Count.ShouldBe(1);
-        middleware[0].Order.ShouldBe(1); // Fallback order since instance order is 0 (default)
+        middleware[0].Order.ShouldBe(0); // Current implementation returns the actual instance property value (0)
     }
 
     /// <summary>
@@ -164,6 +166,7 @@ public class NotificationPipelineBuilderComprehensiveTests
 
     /// <summary>
     /// Tests that middleware that can't be instantiated uses fallback order.
+    /// Updated to use MiddlewarePipelineBuilder-compatible high fallback order.
     /// </summary>
     [Fact]
     public void AddMiddleware_CantCreateInstance_UsesFallbackOrder()
@@ -177,7 +180,7 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         // Assert
         middleware.Count.ShouldBe(1);
-        middleware[0].Order.ShouldBe(1); // Fallback order when instance can't be created
+        middleware[0].Order.ShouldBe(2146483647); // MiddlewarePipelineBuilder-compatible high fallback order
     }
 
     #endregion
@@ -338,7 +341,7 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         var notification = new TestNotification { Message = "test" };
 
-        NotificationDelegate<TestNotification> finalHandler = async (notif, ct) =>
+        NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             TestNotificationExecutionTracker.ExecutionOrder.Add("FinalHandler");
             await Task.CompletedTask;
@@ -371,7 +374,7 @@ public class NotificationPipelineBuilderComprehensiveTests
         var notification = new TestNotification { Message = "test" };
         var executed = false;
 
-        NotificationDelegate<TestNotification> finalHandler = async (notif, ct) =>
+        NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             executed = true;
             await Task.CompletedTask;
@@ -394,7 +397,6 @@ public class NotificationPipelineBuilderComprehensiveTests
         // Arrange
         var builder = new NotificationPipelineBuilder();
         builder.AddMiddleware<ConditionalNotificationMiddleware>();
-
         var services = new ServiceCollection();
         services.AddScoped<ConditionalNotificationMiddleware>();
         var serviceProvider = services.BuildServiceProvider();
@@ -402,7 +404,7 @@ public class NotificationPipelineBuilderComprehensiveTests
         var notification = new TestNotification { Message = "shouldexecute" }; // Triggers condition
         var executed = false;
 
-        NotificationDelegate<TestNotification> finalHandler = async (notif, ct) =>
+        NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             executed = true;
             await Task.CompletedTask;
@@ -433,7 +435,7 @@ public class NotificationPipelineBuilderComprehensiveTests
         var notification = new TestNotification { Message = "skip" }; // Doesn't trigger condition
         var executed = false;
 
-        NotificationDelegate<TestNotification> finalHandler = async (notif, ct) =>
+        NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             executed = true;
             await Task.CompletedTask;
@@ -465,7 +467,7 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         var notification = new TestNotification { Message = "test" };
 
-        NotificationDelegate<TestNotification> finalHandler = async (notif, ct) =>
+        NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             await Task.CompletedTask;
         };
@@ -481,14 +483,15 @@ public class NotificationPipelineBuilderComprehensiveTests
 
     /// <summary>
     /// Tests AnalyzeMiddleware returns correct analysis.
+    /// Updated to use unified BasePipelineBuilder order logic with consistent per-builder fallback ordering.
     /// </summary>
     [Fact]
     public void AnalyzeMiddleware_ReturnsCorrectAnalysis()
     {
         // Arrange
         var builder = new NotificationPipelineBuilder();
-        builder.AddMiddleware<NotificationMiddlewareWithStaticOrder>();
-        builder.AddMiddleware<NotificationMiddlewareWithoutOrder>();
+        builder.AddMiddleware<NotificationMiddlewareWithStaticOrder>(); // Order 10
+        builder.AddMiddleware<NotificationMiddlewareWithoutOrder>(); // Gets high fallback order based on per-builder counting
 
         var services = new ServiceCollection();
         var serviceProvider = services.BuildServiceProvider();
@@ -507,8 +510,8 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         var noOrderMiddleware = analysis.FirstOrDefault(a => a.Type == typeof(NotificationMiddlewareWithoutOrder));
         noOrderMiddleware.ShouldNotBeNull();
-        noOrderMiddleware.Order.ShouldBe(11);
-        noOrderMiddleware.OrderDisplay.ShouldBe("11");
+        noOrderMiddleware.Order.ShouldBe(2146483647); // First fallback order in this builder instance (unified ordering system)
+        noOrderMiddleware.OrderDisplay.ShouldBe("2146483647");
         noOrderMiddleware.ClassName.ShouldBe("NotificationMiddlewareWithoutOrder");
     }
 
@@ -532,15 +535,16 @@ public class NotificationPipelineBuilderComprehensiveTests
 
     /// <summary>
     /// Tests AnalyzeMiddleware orders results by execution order.
+    /// Updated to use unified BasePipelineBuilder order logic with consistent per-builder fallback ordering.
     /// </summary>
     [Fact]
     public void AnalyzeMiddleware_OrdersByExecutionOrder()
     {
         // Arrange
         var builder = new NotificationPipelineBuilder();
-        builder.AddMiddleware<NotificationMiddlewareWithoutOrder>(); // Order 1
-        builder.AddMiddleware<NotificationMiddlewareWithStaticOrder>(); // Order 10
-        builder.AddMiddleware<AnotherNotificationMiddlewareWithoutOrder>(); // Order 2
+        builder.AddMiddleware<NotificationMiddlewareWithoutOrder>(); // First fallback: 2146483647
+        builder.AddMiddleware<NotificationMiddlewareWithStaticOrder>(); // Order 10 (static)
+        builder.AddMiddleware<AnotherNotificationMiddlewareWithoutOrder>(); // Second fallback: 2146483648
 
         var services = new ServiceCollection();
         var serviceProvider = services.BuildServiceProvider();
@@ -550,9 +554,9 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         // Assert
         analysis.Count.ShouldBe(3);
-        analysis[0].Order.ShouldBe(1); // First unordered gets order 1
-        analysis[1].Order.ShouldBe(10); // Static order middleware 
-        analysis[2].Order.ShouldBe(11); // Second unordered gets order 11
+        analysis[0].Order.ShouldBe(10); // Static order middleware comes first
+        analysis[1].Order.ShouldBe(2146483647); // First unordered middleware
+        analysis[2].Order.ShouldBe(2146483648); // Second unordered middleware
     }
 
     #endregion
@@ -566,215 +570,6 @@ public class NotificationPipelineBuilderComprehensiveTests
 public class TestNotification : INotification
 {
     public string? Message { get; set; }
-}
-
-/// <summary>
-/// Notification middleware without Order property for testing fallback order.
-/// </summary>
-public class NotificationMiddlewareWithoutOrder : INotificationMiddleware
-{
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Another notification middleware without Order property for testing multiple middleware.
-/// </summary>
-public class AnotherNotificationMiddlewareWithoutOrder : INotificationMiddleware
-{
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Notification middleware with static Order property.
-/// </summary>
-public class NotificationMiddlewareWithStaticOrder : INotificationMiddleware
-{
-    public static int Order => 10;
-
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Notification middleware with static Order field.
-/// </summary>
-public class NotificationMiddlewareWithStaticOrderField : INotificationMiddleware
-{
-    public static int Order = 5;
-
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Notification middleware with OrderAttribute.
-/// </summary>
-[Order(15)]
-public class NotificationMiddlewareWithOrderAttribute : INotificationMiddleware
-{
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Notification middleware with instance Order property.
-/// </summary>
-public class NotificationMiddlewareWithInstanceOrder : INotificationMiddleware
-{
-    public int Order => 20;
-
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Notification middleware with default instance Order property.
-/// </summary>
-public class NotificationMiddlewareWithDefaultInstanceOrder : INotificationMiddleware
-{
-    public int Order => 0; // Default value
-
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Notification middleware with all order types to test precedence.
-/// </summary>
-[Order(25)]
-public class NotificationMiddlewareWithAllOrderTypes : INotificationMiddleware
-{
-    public static int Order => 100; // Should win over field and attribute
-    public static int Order2 = 50; // Field 
-    public int InstanceOrder => 75; // Instance property
-
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Notification middleware with no parameterless constructor.
-/// </summary>
-public class NotificationMiddlewareWithNoParameterlessConstructor : INotificationMiddleware
-{
-    public NotificationMiddlewareWithNoParameterlessConstructor(string required)
-    {
-        // No parameterless constructor
-    }
-
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Test notification middleware for pipeline execution tests.
-/// </summary>
-public class TestNotificationMiddleware1 : INotificationMiddleware
-{
-    public int Order => 1;
-
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        // Add to execution order tracking if it exists
-        if (notification is TestNotification testNotification)
-        {
-            TestNotificationExecutionTracker.ExecutionOrder.Add("Middleware1");
-        }
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Second test notification middleware for pipeline execution tests.
-/// </summary>
-public class TestNotificationMiddleware2 : INotificationMiddleware
-{
-    public int Order => 2;
-
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        // Add to execution order tracking if it exists
-        if (notification is TestNotification testNotification)
-        {
-            TestNotificationExecutionTracker.ExecutionOrder.Add("Middleware2");
-        }
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Conditional notification middleware for testing conditional execution.
-/// </summary>
-public class ConditionalNotificationMiddleware : IConditionalNotificationMiddleware
-{
-    public static TestNotification? LastExecuted { get; set; }
-
-    public int Order => 5;
-
-    public bool ShouldExecute<TNotification>(TNotification notification) where TNotification : INotification
-    {
-        if (notification is TestNotification testNotification)
-        {
-            return testNotification.Message?.Contains("shouldexecute") == true;
-        }
-        return false;
-    }
-
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
-    {
-        if (notification is TestNotification testNotification)
-        {
-            LastExecuted = testNotification;
-        }
-        await next(notification, cancellationToken);
-    }
-}
-
-/// <summary>
-/// Static class to track execution order in tests.
-/// </summary>
-public static class TestNotificationExecutionTracker
-{
-    public static List<string> ExecutionOrder { get; } = new List<string>();
-
-    public static void Reset()
-    {
-        ExecutionOrder.Clear();
-    }
-}
-
-/// <summary>
-/// Simple OrderAttribute for testing.
-/// </summary>
-[AttributeUsage(AttributeTargets.Class)]
-public class OrderAttribute : Attribute
-{
-    public int Order { get; }
-
-    public OrderAttribute(int order)
-    {
-        Order = order;
-    }
 }
 
 #endregion

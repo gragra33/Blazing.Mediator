@@ -37,14 +37,14 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     #region Basic Extension Method Tests
 
     [Fact]
-    public void GetFormattedTypeName_WithGenericMiddleware_ShouldFormatCorrectly()
+    public void NormalizeTypeName_WithGenericMiddleware_ShouldFormatCorrectly()
     {
         // Arrange
         var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
         var genericMiddleware = middlewareAnalysis.FirstOrDefault(m => m.Type.IsGenericType || m.Type.IsGenericTypeDefinition);
 
         // Act
-        var formattedName = genericMiddleware?.GetFormattedTypeName();
+        var formattedName = genericMiddleware?.NormalizeTypeName();
 
         // Assert
         Assert.NotNull(formattedName);
@@ -56,14 +56,14 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedTypeName_WithNonGenericMiddleware_ShouldReturnCleanName()
+    public void NormalizeTypeName_WithNonGenericMiddleware_ShouldReturnCleanName()
     {
         // Arrange
         var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
         var nonGenericMiddleware = middlewareAnalysis.FirstOrDefault(m => !m.Type.IsGenericType && !m.Type.IsGenericTypeDefinition);
 
         // Act
-        var formattedName = nonGenericMiddleware?.GetFormattedTypeName();
+        var formattedName = nonGenericMiddleware?.NormalizeTypeName();
 
         // Assert
         Assert.NotNull(formattedName);
@@ -89,14 +89,14 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedClassName_ShouldRemoveGenericSuffix()
+    public void NormalizeClassName_ShouldRemoveGenericSuffix()
     {
         // Arrange
         var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
         var genericMiddleware = middlewareAnalysis.FirstOrDefault(m => m.Type.IsGenericType || m.Type.IsGenericTypeDefinition);
 
         // Act
-        var className = genericMiddleware?.GetFormattedClassName();
+        var className = genericMiddleware?.NormalizeClassName();
 
         // Assert
         Assert.NotNull(className);
@@ -106,14 +106,14 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedTypeParameters_WithGenericMiddleware_ShouldFormatCorrectly()
+    public void NormalizeTypeParameters_WithGenericMiddleware_ShouldFormatCorrectly()
     {
         // Arrange
         var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
         var genericMiddleware = middlewareAnalysis.FirstOrDefault(m => m.Type.IsGenericType || m.Type.IsGenericTypeDefinition);
 
         // Act
-        var typeParameters = genericMiddleware?.GetFormattedTypeParameters();
+        var typeParameters = genericMiddleware?.NormalizeTypeParameters();
 
         // Assert
         Assert.NotNull(typeParameters);
@@ -126,14 +126,14 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedTypeParameters_WithNonGenericMiddleware_ShouldReturnEmpty()
+    public void NormalizeTypeParameters_WithNonGenericMiddleware_ShouldReturnEmpty()
     {
         // Arrange
         var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
         var nonGenericMiddleware = middlewareAnalysis.FirstOrDefault(m => !m.Type.IsGenericType && !m.Type.IsGenericTypeDefinition);
 
         // Act
-        var typeParameters = nonGenericMiddleware?.GetFormattedTypeParameters();
+        var typeParameters = nonGenericMiddleware?.NormalizeTypeParameters();
 
         // Assert
         Assert.NotNull(typeParameters);
@@ -145,7 +145,7 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     #region Order Display Tests
 
     [Fact]
-    public void GetFormattedOrderDisplay_WithSpecialValues_ShouldFormatCorrectly()
+    public void NormalizeOrderDisplay_WithSpecialValues_ShouldFormatCorrectly()
     {
         // Test with manually created MiddlewareAnalysis objects for special order values
         var intMinValueAnalysis = new MiddlewareAnalysis(
@@ -185,10 +185,10 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
             Configuration: null);
 
         // Act & Assert
-        Assert.Equal("int.MinValue", intMinValueAnalysis.GetFormattedOrderDisplay());
-        Assert.Equal("int.MaxValue", intMaxValueAnalysis.GetFormattedOrderDisplay());
-        Assert.Equal("Default", defaultOrderAnalysis.GetFormattedOrderDisplay());
-        Assert.Equal("100", normalOrderAnalysis.GetFormattedOrderDisplay());
+        Assert.Equal("int.MinValue", intMinValueAnalysis.NormalizeOrderDisplay());
+        Assert.Equal("int.MaxValue", intMaxValueAnalysis.NormalizeOrderDisplay());
+        Assert.Equal("Default", defaultOrderAnalysis.NormalizeOrderDisplay());
+        Assert.Equal("100", normalOrderAnalysis.NormalizeOrderDisplay());
     }
 
     #endregion
@@ -348,14 +348,14 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     #region Summary Tests
 
     [Fact]
-    public void GetFormattedSummary_WithoutNamespace_ShouldReturnBasicSummary()
+    public void NormalizeSummary_WithoutNamespace_ShouldReturnBasicSummary()
     {
         // Arrange
         var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
         var middleware = middlewareAnalysis.FirstOrDefault();
 
         // Act
-        var summary = middleware?.GetFormattedSummary();
+        var summary = middleware?.NormalizeSummary();
 
         // Assert
         Assert.NotNull(summary);
@@ -366,14 +366,14 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedSummary_WithNamespace_ShouldIncludeNamespaceInfo()
+    public void NormalizeSummary_WithNamespace_ShouldIncludeNamespaceInfo()
     {
         // Arrange
         var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
         var middleware = middlewareAnalysis.FirstOrDefault();
 
         // Act
-        var summary = middleware?.GetFormattedSummary(includeNamespace: true);
+        var summary = middleware?.NormalizeSummary(includeNamespace: true);
 
         // Assert
         Assert.NotNull(summary);
@@ -390,14 +390,14 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     #region Notification Middleware Tests
 
     [Fact]
-    public void NotificationMiddleware_GetFormattedGenericConstraints_ShouldFormatCorrectly()
+    public void NotificationMiddleware_NormalizeGenericConstraints_ShouldFormatCorrectly()
     {
         // Arrange
         var middlewareAnalysis = _notificationPipelineInspector.AnalyzeMiddleware(_serviceProvider);
         var middleware = middlewareAnalysis.FirstOrDefault();
 
         // Act
-        var constraints = middleware?.GetFormattedGenericConstraints();
+        var constraints = middleware?.NormalizeGenericConstraints();
 
         // Assert
         Assert.NotNull(constraints);
@@ -414,18 +414,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
         // Act & Assert
         Assert.NotNull(middleware);
         
-        var formattedTypeName = middleware.GetFormattedTypeName();
+        var formattedTypeName = middleware.NormalizeTypeName();
         Assert.NotNull(formattedTypeName);
         Assert.DoesNotContain("`", formattedTypeName);
         
-        var className = middleware.GetFormattedClassName();
+        var className = middleware.NormalizeClassName();
         Assert.NotNull(className);
         Assert.DoesNotContain("`", className);
         
         var isGeneric = middleware.IsGeneric();
         Assert.True(isGeneric || !isGeneric); // Should not throw
         
-        var summary = middleware.GetFormattedSummary();
+        var summary = middleware.NormalizeSummary();
         Assert.NotNull(summary);
         Assert.DoesNotContain("`", summary);
     }
@@ -441,15 +441,15 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
         MiddlewareAnalysis? nullAnalysis = null;
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetFormattedTypeName());
-        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetFormattedClassName());
-        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetFormattedTypeParameters());
-        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetFormattedOrderDisplay());
+        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.NormalizeTypeName());
+        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.NormalizeClassName());
+        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.NormalizeTypeParameters());
+        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.NormalizeOrderDisplay());
         Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetAssemblyName());
         Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetNamespace());
         Assert.Throws<ArgumentNullException>(() => nullAnalysis!.IsGeneric());
         Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetGenericParameterCount());
-        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetFormattedSummary());
+        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.NormalizeSummary());
         Assert.Throws<ArgumentNullException>(() => nullAnalysis!.HasConfiguration());
         Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetConfigurationTypeName());
     }
@@ -469,11 +469,11 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
         // Act & Assert
         if (complexMiddleware != null)
         {
-            var formattedTypeName = complexMiddleware.GetFormattedTypeName();
+            var formattedTypeName = complexMiddleware.NormalizeTypeName();
             Assert.NotNull(formattedTypeName);
             Assert.DoesNotContain("`", formattedTypeName);
             
-            var typeParameters = complexMiddleware.GetFormattedTypeParameters();
+            var typeParameters = complexMiddleware.NormalizeTypeParameters();
             Assert.NotNull(typeParameters);
             if (!string.IsNullOrEmpty(typeParameters))
             {
@@ -482,7 +482,7 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
                 Assert.Contains(",", typeParameters); // Should have multiple parameters
             }
             
-            var summary = complexMiddleware.GetFormattedSummary();
+            var summary = complexMiddleware.NormalizeSummary();
             Assert.NotNull(summary);
             Assert.DoesNotContain("`", summary);
         }
@@ -500,15 +500,15 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
         foreach (var middleware in allMiddleware)
         {
             // All extension methods should work without throwing
-            var formattedTypeName = middleware.GetFormattedTypeName();
-            var className = middleware.GetFormattedClassName();
-            var typeParameters = middleware.GetFormattedTypeParameters();
-            var orderDisplay = middleware.GetFormattedOrderDisplay();
+            var formattedTypeName = middleware.NormalizeTypeName();
+            var className = middleware.NormalizeClassName();
+            var typeParameters = middleware.NormalizeTypeParameters();
+            var orderDisplay = middleware.NormalizeOrderDisplay();
             var assemblyName = middleware.GetAssemblyName();
             var namespaceName = middleware.GetNamespace();
             var isGeneric = middleware.IsGeneric();
             var paramCount = middleware.GetGenericParameterCount();
-            var summary = middleware.GetFormattedSummary();
+            var summary = middleware.NormalizeSummary();
             var hasConfig = middleware.HasConfiguration();
             var configTypeName = middleware.GetConfigurationTypeName();
             

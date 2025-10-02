@@ -27,14 +27,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     #region QueryCommandAnalysis Extension Tests
 
     [Fact]
-    public void GetFormattedResponseTypeName_WithGenericType_ShouldFormatCorrectly()
+    public void NormalizeResponseTypeName_WithGenericType_ShouldFormatCorrectly()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeQueries(_serviceProvider, isDetailed: true);
         var listQuery = analysis.FirstOrDefault(a => a.ClassName == "GetUserListQuery");
 
         // Act
-        var formattedName = listQuery?.GetFormattedResponseTypeName();
+        var formattedName = listQuery?.NormalizeResponseTypeName();
 
         // Assert
         Assert.NotNull(formattedName);
@@ -44,28 +44,28 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedResponseTypeName_WithNullResponseType_ShouldReturnNull()
+    public void NormalizeResponseTypeName_WithNullResponseType_ShouldReturnNull()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeCommands(_serviceProvider, isDetailed: true);
         var voidCommand = analysis.FirstOrDefault(a => a.ClassName == "DeleteUserCommand");
 
         // Act
-        var formattedName = voidCommand?.GetFormattedResponseTypeName();
+        var formattedName = voidCommand?.NormalizeResponseTypeName();
 
         // Assert
         Assert.Null(formattedName);
     }
 
     [Fact]
-    public void GetFormattedResponseTypeName_WithNestedGenericType_ShouldFormatCorrectly()
+    public void NormalizeResponseTypeName_WithNestedGenericType_ShouldFormatCorrectly()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeQueries(_serviceProvider, isDetailed: true);
         var nestedGenericQuery = analysis.FirstOrDefault(a => a.ClassName == "GetNestedGenericQuery");
 
         // Act
-        var formattedName = nestedGenericQuery?.GetFormattedResponseTypeName();
+        var formattedName = nestedGenericQuery?.NormalizeResponseTypeName();
 
         // Assert
         Assert.NotNull(formattedName);
@@ -75,14 +75,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedPrimaryInterfaceName_WithGenericInterface_ShouldFormatCorrectly()
+    public void NormalizePrimaryInterfaceName_WithGenericInterface_ShouldFormatCorrectly()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeQueries(_serviceProvider, isDetailed: true);
         var userQuery = analysis.FirstOrDefault(a => a.ClassName == "GetUserQuery");
 
         // Act
-        var formattedInterface = userQuery?.GetFormattedPrimaryInterfaceName();
+        var formattedInterface = userQuery?.NormalizePrimaryInterfaceName();
 
         // Assert
         Assert.NotNull(formattedInterface);
@@ -91,14 +91,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedPrimaryInterfaceName_WithCustomDomainInterface_ShouldFormatCorrectly()
+    public void NormalizePrimaryInterfaceName_WithCustomDomainInterface_ShouldFormatCorrectly()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeQueries(_serviceProvider, isDetailed: true);
         var customerQuery = analysis.FirstOrDefault(a => a.ClassName == "GetCustomerInfoQuery");
 
         // Act
-        var formattedInterface = customerQuery?.GetFormattedPrimaryInterfaceName();
+        var formattedInterface = customerQuery?.NormalizePrimaryInterfaceName();
 
         // Assert
         Assert.NotNull(formattedInterface);
@@ -107,14 +107,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedPrimaryInterfaceName_WithMalformedGenericInterface_ShouldReconstructCorrectly()
+    public void NormalizePrimaryInterfaceName_WithMalformedGenericInterface_ShouldReconstructCorrectly()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeQueries(_serviceProvider, isDetailed: true);
         var complexQuery = analysis.FirstOrDefault(a => a.ClassName == "GetComplexQuery");
 
         // Act
-        var formattedInterface = complexQuery?.GetFormattedPrimaryInterfaceName();
+        var formattedInterface = complexQuery?.NormalizePrimaryInterfaceName();
 
         // Assert
         Assert.NotNull(formattedInterface);
@@ -124,14 +124,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedHandlerNames_WithMultipleHandlers_ShouldFormatAllCorrectly()
+    public void NormalizeHandlerNames_WithMultipleHandlers_ShouldFormatAllCorrectly()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeQueries(_serviceProvider, isDetailed: true);
         var queryWithHandlers = analysis.FirstOrDefault(a => a.Handlers.Count > 0);
 
         // Act
-        var formattedHandlers = queryWithHandlers?.GetFormattedHandlerNames();
+        var formattedHandlers = queryWithHandlers?.NormalizeHandlerNames();
 
         // Assert
         Assert.NotNull(formattedHandlers);
@@ -140,14 +140,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedHandlerNames_WithGenericHandlers_ShouldFormatCorrectly()
+    public void NormalizeHandlerNames_WithGenericHandlers_ShouldFormatCorrectly()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeQueries(_serviceProvider, isDetailed: true);
         var genericQuery = analysis.FirstOrDefault(a => a.ClassName == "GetGenericQuery");
 
         // Act
-        var formattedHandlers = genericQuery?.GetFormattedHandlerNames();
+        var formattedHandlers = genericQuery?.NormalizeHandlerNames();
 
         // Assert
         Assert.NotNull(formattedHandlers);
@@ -162,14 +162,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedHandlerDetails_WithSingleHandler_ShouldReturnFormattedHandlerName()
+    public void NormalizeHandlerDetails_WithSingleHandler_ShouldReturnFormattedHandlerName()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeQueries(_serviceProvider, isDetailed: true);
         var singleHandlerQuery = analysis.FirstOrDefault(a => a.HandlerStatus == HandlerStatus.Single);
 
         // Act
-        var handlerDetails = singleHandlerQuery?.GetFormattedHandlerDetails();
+        var handlerDetails = singleHandlerQuery?.NormalizeHandlerDetails();
 
         // Assert
         Assert.NotNull(handlerDetails);
@@ -178,21 +178,21 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void GetFormattedHandlerDetails_WithMissingHandler_ShouldReturnStandardMessage()
+    public void NormalizeHandlerDetails_WithMissingHandler_ShouldReturnStandardMessage()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeQueries(_serviceProvider, isDetailed: true);
         var missingHandlerQuery = analysis.FirstOrDefault(a => a.HandlerStatus == HandlerStatus.Missing);
 
         // Act
-        var handlerDetails = missingHandlerQuery?.GetFormattedHandlerDetails();
+        var handlerDetails = missingHandlerQuery?.NormalizeHandlerDetails();
 
         // Assert
         Assert.Equal("No handler registered", handlerDetails);
     }
 
     [Fact]
-    public void GetFormattedHandlerDetails_WithMultipleHandlers_ShouldReturnFormattedList()
+    public void NormalizeHandlerDetails_WithMultipleHandlers_ShouldReturnFormattedList()
     {
         // This test would require a scenario with multiple handlers for the same request type
         // which is typically an error condition, but we can test the formatting logic
@@ -206,7 +206,7 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
         Assert.NotNull(queryAnalysis);
         
         // Act & Assert - The method should handle Multiple status correctly
-        var handlerDetails = queryAnalysis.GetFormattedHandlerDetails();
+        var handlerDetails = queryAnalysis.NormalizeHandlerDetails();
         Assert.NotNull(handlerDetails);
     }
 
@@ -279,14 +279,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     #region NotificationAnalysis Extension Tests
 
     [Fact]
-    public void NotificationAnalysis_GetFormattedHandlerNames_ShouldFormatCorrectly()
+    public void NotificationAnalysis_NormalizeHandlerNames_ShouldFormatCorrectly()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeNotifications(_serviceProvider, isDetailed: true);
         var notification = analysis.FirstOrDefault(a => a.Handlers.Count > 0);
 
         // Act
-        var formattedHandlers = notification?.GetFormattedHandlerNames();
+        var formattedHandlers = notification?.NormalizeHandlerNames();
 
         // Assert
         Assert.NotNull(formattedHandlers);
@@ -294,14 +294,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void NotificationAnalysis_GetFormattedHandlerDetails_WithSingleHandler_ShouldReturnFormattedName()
+    public void NotificationAnalysis_NormalizeHandlerDetails_WithSingleHandler_ShouldReturnFormattedName()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeNotifications(_serviceProvider, isDetailed: true);
         var singleHandlerNotification = analysis.FirstOrDefault(a => a.HandlerStatus == HandlerStatus.Single);
 
         // Act
-        var handlerDetails = singleHandlerNotification?.GetFormattedHandlerDetails();
+        var handlerDetails = singleHandlerNotification?.NormalizeHandlerDetails();
 
         // Assert
         Assert.NotNull(handlerDetails);
@@ -309,14 +309,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void NotificationAnalysis_GetFormattedHandlerDetails_WithMissingHandler_ShouldReturnStandardMessage()
+    public void NotificationAnalysis_NormalizeHandlerDetails_WithMissingHandler_ShouldReturnStandardMessage()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeNotifications(_serviceProvider, isDetailed: true);
         var missingHandlerNotification = analysis.FirstOrDefault(a => a.HandlerStatus == HandlerStatus.Missing);
 
         // Act
-        var handlerDetails = missingHandlerNotification?.GetFormattedHandlerDetails();
+        var handlerDetails = missingHandlerNotification?.NormalizeHandlerDetails();
 
         // Assert
         if (missingHandlerNotification != null)
@@ -345,14 +345,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void NotificationAnalysis_GetFormattedPrimaryInterfaceName_ShouldReturnCleanName()
+    public void NotificationAnalysis_NormalizePrimaryInterfaceName_ShouldReturnCleanName()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeNotifications(_serviceProvider, isDetailed: true);
         var notification = analysis.FirstOrDefault();
 
         // Act
-        var formattedInterface = notification?.GetFormattedPrimaryInterfaceName();
+        var formattedInterface = notification?.NormalizePrimaryInterfaceName();
 
         // Assert
         Assert.NotNull(formattedInterface);
@@ -377,14 +377,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void NotificationAnalysis_GetFormattedSubscriberNames_WithValidSubscribers_ShouldParseCorrectly()
+    public void NotificationAnalysis_NormalizeSubscriberNames_WithValidSubscribers_ShouldParseCorrectly()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeNotifications(_serviceProvider, isDetailed: true);
         var notificationWithSubscribers = analysis.FirstOrDefault(a => a.SubscriberStatus == SubscriberStatus.Present);
 
         // Act
-        var subscriberNames = notificationWithSubscribers?.GetFormattedSubscriberNames();
+        var subscriberNames = notificationWithSubscribers?.NormalizeSubscriberNames();
 
         // Assert
         if (notificationWithSubscribers != null)
@@ -396,14 +396,14 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void NotificationAnalysis_GetFormattedSubscriberNames_WithNoSubscribers_ShouldReturnEmpty()
+    public void NotificationAnalysis_NormalizeSubscriberNames_WithNoSubscribers_ShouldReturnEmpty()
     {
         // Arrange
         var analysis = _mediatorStatistics.AnalyzeNotifications(_serviceProvider, isDetailed: true);
         var notificationWithoutSubscribers = analysis.FirstOrDefault(a => a.SubscriberStatus != SubscriberStatus.Present);
 
         // Act
-        var subscriberNames = notificationWithoutSubscribers?.GetFormattedSubscriberNames();
+        var subscriberNames = notificationWithoutSubscribers?.NormalizeSubscriberNames();
 
         // Assert
         if (notificationWithoutSubscribers != null)
@@ -414,7 +414,7 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     }
 
     [Fact]
-    public void NotificationAnalysis_GetFormattedSubscriberNames_WithSubscriberTypes_ShouldReturnTypes()
+    public void NotificationAnalysis_NormalizeSubscriberNames_WithSubscriberTypes_ShouldReturnTypes()
     {
         // This test would need a notification with actual SubscriberTypes populated
         // For now, we'll test the method doesn't throw and handles the case properly
@@ -425,7 +425,7 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
 
         // Act & Assert
         Assert.NotNull(notification);
-        var subscriberNames = notification.GetFormattedSubscriberNames();
+        var subscriberNames = notification.NormalizeSubscriberNames();
         Assert.NotNull(subscriberNames);
     }
 
@@ -440,10 +440,10 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
         QueryCommandAnalysis? nullAnalysis = null;
 
         // Act & Assert - Should not throw, but will throw ArgumentNullException as expected for extension methods
-        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetFormattedResponseTypeName());
-        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetFormattedPrimaryInterfaceName());
-        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetFormattedHandlerNames());
-        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.GetFormattedHandlerDetails());
+        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.NormalizeResponseTypeName());
+        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.NormalizePrimaryInterfaceName());
+        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.NormalizeHandlerNames());
+        Assert.Throws<ArgumentNullException>(() => nullAnalysis!.NormalizeHandlerDetails());
     }
 
     [Fact]
@@ -454,8 +454,8 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
         var complexQuery = analysis.FirstOrDefault(a => a.ClassName == "GetNestedGenericQuery");
 
         // Act
-        var responseType = complexQuery?.GetFormattedResponseTypeName();
-        var handlerNames = complexQuery?.GetFormattedHandlerNames();
+        var responseType = complexQuery?.NormalizeResponseTypeName();
+        var handlerNames = complexQuery?.NormalizeHandlerNames();
 
         // Assert
         Assert.NotNull(responseType);
@@ -473,7 +473,7 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
         var queryWithoutHandlers = analysis.FirstOrDefault(a => a.Handlers.Count == 0);
 
         // Act
-        var handlerNames = queryWithoutHandlers?.GetFormattedHandlerNames();
+        var handlerNames = queryWithoutHandlers?.NormalizeHandlerNames();
         var fullyQualifiedNames = queryWithoutHandlers?.GetFullyQualifiedHandlerNames();
 
         // Assert

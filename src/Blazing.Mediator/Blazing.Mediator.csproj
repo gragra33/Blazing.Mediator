@@ -13,7 +13,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
     <Copyright>Copyright (c) 2025 Graeme Grant</Copyright>
-    <PackageReleaseNotes>Version 1.8.1: Minor release with bug fixes and performance improvements. Addressed issues with middleware execution order and improved diagnostics for async operations. Enhanced documentation with additional examples and clarifications. Updated dependencies to their latest versions for improved stability and security.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.8.1: Added new MiddlewareAnalysisExtensions and QueryCommandAnalysisExtensions extension helpers for comprehensive type normalization. Fixed edge case bug in RegistrationService with generic type definitions. New AnalyzerExample demonstrates analyzer capabilities across 92 components in 5 projects with enhanced debugging tools and missing handler detection. Improved developer experience with visual missing handler identification and comprehensive pipeline analysis capabilities.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

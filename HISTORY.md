@@ -1,5 +1,15 @@
 ﻿# Version History
 
+### V1.8.1 - 2 October, 2025
+
+-   **MiddlewareAnalysisExtensions**: New extension methods providing comprehensive type normalization for middleware analysis with clean formatting across assemblies
+-   **QueryCommandAnalysisExtensions**: New extension methods for normalizing query and command analysis output with proper generic type formatting
+-   **Bug Fix - RegistrationService**: Fixed edge case bug in RegistrationService with generic type definitions that could cause registration failures
+-   **AnalyzerExample Sample**: New comprehensive multi-assembly sample demonstrating analyzer capabilities across 92 mediator components in 5 projects with intentionally missing handlers to showcase debugging benefits
+-   **Enhanced Type Normalization**: Improved cross-assembly type formatting with backtick removal, clean generic syntax, and proper namespace identification
+-   **Comprehensive Test Coverage**: Added extensive test coverage for new extension methods and normalization functionality
+-   **Developer Experience**: Enhanced debugging capabilities with visual missing handler identification and comprehensive pipeline analysis tools
+
 ### V1.8.0 - 30 September, 2025
 
 -   **OpenTelemetry Integration**: Full observability support with distributed tracing, metrics collection, and performance monitoring for enhanced debugging and monitoring capabilities with seamless integration for modern cloud-native applications

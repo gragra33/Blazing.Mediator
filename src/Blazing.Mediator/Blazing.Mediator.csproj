@@ -3,7 +3,7 @@
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Blazing.Mediator</PackageId>
-    <Version>1.8.0</Version>
+    <Version>1.8.1</Version>
     <Authors>Graeme Grant</Authors>
     <Product>Blazing.Mediator</Product>
     <Description>A high-performance, feature-rich implementation of the Mediator pattern for .NET applications. Built for modern development with comprehensive CQRS support, advanced middleware pipelines, real-time streaming, event-driven architecture, and full observability. Features include OpenTelemetry integration with distributed tracing and metrics collection, extensive debug logging infrastructure, advanced statistics tracking, fluent configuration API with environment-aware settings, type-constrained middleware for selective execution, comprehensive notification system with hybrid patterns, native streaming capabilities with IAsyncEnumerable support, and automatic handler discovery. Perfect for cloud-native applications requiring high performance, comprehensive observability, and production-ready architecture patterns.</Description>
@@ -13,7 +13,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
     <Copyright>Copyright (c) 2025 Graeme Grant</Copyright>
-    <PackageReleaseNotes>Version 1.8.0: Major release with comprehensive observability and configuration enhancements. Added full OpenTelemetry integration with distributed tracing, metrics collection, and cloud-native monitoring support. Introduced extensive debug logging infrastructure with configurable levels and performance tracking. Enhanced statistics system with advanced tracking, execution counters, and runtime insights. New modern fluent configuration API with environment-aware settings, automatic preset detection, and JSON configuration support. Added type-constrained middleware for selective execution based on interface types. Enhanced notification system with automatic handler discovery alongside manual subscription patterns. Six new comprehensive sample projects demonstrating OpenTelemetry, configuration features, notification patterns, and type-constrained middleware. Complete documentation with dedicated guides for OpenTelemetry, statistics, logging, and configuration. Production-ready architecture patterns for modern cloud-native applications.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.8.1: Added new MiddlewareAnalysisExtensions and QueryCommandAnalysisExtensions extension helpers for comprehensive type normalization. Fixed edge case bug in RegistrationService with generic type definitions. New AnalyzerExample demonstrates analyzer capabilities across 92 components in 5 projects with enhanced debugging tools and missing handler detection. Improved developer experience with visual missing handler identification and comprehensive pipeline analysis capabilities.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

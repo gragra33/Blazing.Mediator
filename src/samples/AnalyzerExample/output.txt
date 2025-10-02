@@ -1,0 +1,819 @@
+BLAZING.MEDIATOR MULTI-ASSEMBLY ANALYZER EXAMPLE
+====================================================
+
+This example demonstrates comprehensive analysis capabilities across multiple assemblies:
+  - AnalyzerExample.Common - Shared middleware and interfaces
+  - AnalyzerExample.Products - Product domain with queries, commands, and handlers
+  - AnalyzerExample.Users - User management with complex domain models
+  - AnalyzerExample.Orders - Order processing with status tracking
+  - Main Assembly - Coordination and cross-cutting concerns
+
+Key Analysis Features:
+  - Cross-assembly type normalization without backticks
+  - Namespace and assembly identification
+  - Middleware pipeline analysis across projects
+  - Handler discovery and registration validation
+  - Generic type parameter analysis
+  - Configuration and order display formatting
+
+Starting comprehensive multi-assembly analysis...
+
+COMPREHENSIVE MULTI-ASSEMBLY ANALYSIS
+=========================================
+
+CROSS-ASSEMBLY QUERY ANALYSIS
+==================================
+
+[INFO] Found 22 query types across 3 assemblies:
+
+Assembly: AnalyzerExample.Orders
+  Namespace: AnalyzerExample.Orders.Queries
+    - Query: GetOrderByIdQuery
+       Response: OrderDetailDto
+       Interface: IOrderQuery<OrderDetailDto>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: OrderDetailDto
+       [NORMALIZED] Interface: IOrderQuery<OrderDetailDto>
+       [NORMALIZED] Handlers: []
+
+    - Query: GetOrderByNumberQuery
+       Response: OrderDetailDto
+       Interface: ICacheableQuery<OrderDetailDto>
+       Handler: Single - GetOrderByNumberQueryHandler
+       [NORMALIZED] Response: OrderDetailDto
+       [NORMALIZED] Interface: ICacheableQuery<OrderDetailDto>
+       [NORMALIZED] Handlers: [GetOrderByNumberQueryHandler]
+
+    - Query: GetOrdersByStatusQuery
+       Response: List`1
+       Interface: IOrderQuery<List`1>
+       Handler: Single - GetOrdersByStatusQueryHandler
+       [NORMALIZED] Response: List<OrderSummaryDto>
+       [NORMALIZED] Interface: IOrderQuery<List<OrderSummaryDto>>
+       [NORMALIZED] Handlers: [GetOrdersByStatusQueryHandler]
+
+    - Query: GetOrdersQuery
+       Response: PagedResult`1
+       Interface: IPaginatedQuery<PagedResult`1>
+       Handler: Single - GetOrdersQueryHandler
+       [NORMALIZED] Response: PagedResult<OrderSummaryDto>
+       [NORMALIZED] Interface: IPaginatedQuery<PagedResult<OrderSummaryDto>>
+       [NORMALIZED] Handlers: [GetOrdersQueryHandler]
+
+    - Query: GetOrderStatsQuery
+       Response: OrderStatsDto
+       Interface: IOrderQuery<OrderStatsDto>
+       Handler: Single - GetOrderStatsQueryHandler
+       [NORMALIZED] Response: OrderStatsDto
+       [NORMALIZED] Interface: IOrderQuery<OrderStatsDto>
+       [NORMALIZED] Handlers: [GetOrderStatsQueryHandler]
+
+    - Query: GetPendingOrdersQuery
+       Response: List`1
+       Interface: IOrderQuery<List`1>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: List<OrderSummaryDto>
+       [NORMALIZED] Interface: IOrderQuery<List<OrderSummaryDto>>
+       [NORMALIZED] Handlers: []
+
+    - Query: GetUserOrdersQuery
+       Response: PagedResult`1
+       Interface: IPaginatedQuery<PagedResult`1>
+       Handler: Single - GetUserOrdersQueryHandler
+       [NORMALIZED] Response: PagedResult<OrderSummaryDto>
+       [NORMALIZED] Interface: IPaginatedQuery<PagedResult<OrderSummaryDto>>
+       [NORMALIZED] Handlers: [GetUserOrdersQueryHandler]
+
+    - Query: SearchOrdersQuery
+       Response: PagedResult`1
+       Interface: IPaginatedQuery<PagedResult`1>
+       Handler: Single - SearchOrdersQueryHandler
+       [NORMALIZED] Response: PagedResult<OrderSummaryDto>
+       [NORMALIZED] Interface: IPaginatedQuery<PagedResult<OrderSummaryDto>>
+       [NORMALIZED] Handlers: [SearchOrdersQueryHandler]
+
+
+Assembly: AnalyzerExample.Products
+  Namespace: AnalyzerExample.Products.Queries
+    - Query: GetLowStockProductsQuery
+       Response: List`1
+       Interface: IProductQuery<List`1>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: List<ProductSummaryDto>
+       [NORMALIZED] Interface: IProductQuery<List<ProductSummaryDto>>
+       [NORMALIZED] Handlers: []
+
+    - Query: GetProductByIdQuery
+       Response: ProductDetailDto
+       Interface: IProductQuery<ProductDetailDto>
+       Handler: Single - GetProductByIdQueryHandler
+       [NORMALIZED] Response: ProductDetailDto
+       [NORMALIZED] Interface: IProductQuery<ProductDetailDto>
+       [NORMALIZED] Handlers: [GetProductByIdQueryHandler]
+
+    - Query: GetProductReviewsQuery
+       Response: PagedResult`1
+       Interface: IPaginatedQuery<PagedResult`1>
+       Handler: Single - GetProductReviewsQueryHandler
+       [NORMALIZED] Response: PagedResult<ProductReviewDto>
+       [NORMALIZED] Interface: IPaginatedQuery<PagedResult<ProductReviewDto>>
+       [NORMALIZED] Handlers: [GetProductReviewsQueryHandler]
+
+    - Query: GetProductsByCategoryQuery
+       Response: List`1
+       Interface: ICacheableQuery<List`1>
+       Handler: Single - GetProductsByCategoryQueryHandler
+       [NORMALIZED] Response: List<ProductSummaryDto>
+       [NORMALIZED] Interface: ICacheableQuery<List<ProductSummaryDto>>
+       [NORMALIZED] Handlers: [GetProductsByCategoryQueryHandler]
+
+    - Query: GetProductsQuery
+       Response: PagedResult`1
+       Interface: IPaginatedQuery<PagedResult`1>
+       Handler: Single - GetProductsQueryHandler
+       [NORMALIZED] Response: PagedResult<ProductSummaryDto>
+       [NORMALIZED] Interface: IPaginatedQuery<PagedResult<ProductSummaryDto>>
+       [NORMALIZED] Handlers: [GetProductsQueryHandler]
+
+    - Query: GetProductStatsQuery
+       Response: ProductStatsDto
+       Interface: IProductQuery<ProductStatsDto>
+       Handler: Single - GetProductStatsQueryHandler
+       [NORMALIZED] Response: ProductStatsDto
+       [NORMALIZED] Interface: IProductQuery<ProductStatsDto>
+       [NORMALIZED] Handlers: [GetProductStatsQueryHandler]
+
+    - Query: SearchProductsQuery
+       Response: PagedResult`1
+       Interface: IPaginatedQuery<PagedResult`1>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: PagedResult<ProductSummaryDto>
+       [NORMALIZED] Interface: IPaginatedQuery<PagedResult<ProductSummaryDto>>
+       [NORMALIZED] Handlers: []
+
+
+Assembly: AnalyzerExample.Users
+  Namespace: AnalyzerExample.Users.Queries
+    - Query: GetInactiveUsersQuery
+       Response: List`1
+       Interface: IUserQuery<List`1>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: List<UserSummaryDto>
+       [NORMALIZED] Interface: IUserQuery<List<UserSummaryDto>>
+       [NORMALIZED] Handlers: []
+
+    - Query: GetUserByEmailQuery
+       Response: UserDetailDto
+       Interface: ICacheableQuery<UserDetailDto>
+       Handler: Single - GetUserByEmailQueryHandler
+       [NORMALIZED] Response: UserDetailDto
+       [NORMALIZED] Interface: ICacheableQuery<UserDetailDto>
+       [NORMALIZED] Handlers: [GetUserByEmailQueryHandler]
+
+    - Query: GetUserByIdQuery
+       Response: UserDetailDto
+       Interface: IUserQuery<UserDetailDto>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: UserDetailDto
+       [NORMALIZED] Interface: IUserQuery<UserDetailDto>
+       [NORMALIZED] Handlers: []
+
+    - Query: GetUsersByRoleQuery
+       Response: List`1
+       Interface: IUserQuery<List`1>
+       Handler: Single - GetUsersByRoleQueryHandler
+       [NORMALIZED] Response: List<UserSummaryDto>
+       [NORMALIZED] Interface: IUserQuery<List<UserSummaryDto>>
+       [NORMALIZED] Handlers: [GetUsersByRoleQueryHandler]
+
+    - Query: GetUsersQuery
+       Response: PagedResult`1
+       Interface: IPaginatedQuery<PagedResult`1>
+       Handler: Single - GetUsersQueryHandler
+       [NORMALIZED] Response: PagedResult<UserSummaryDto>
+       [NORMALIZED] Interface: IPaginatedQuery<PagedResult<UserSummaryDto>>
+       [NORMALIZED] Handlers: [GetUsersQueryHandler]
+
+    - Query: GetUserStatsQuery
+       Response: UserStatsDto
+       Interface: IUserQuery<UserStatsDto>
+       Handler: Single - GetUserStatsQueryHandler
+       [NORMALIZED] Response: UserStatsDto
+       [NORMALIZED] Interface: IUserQuery<UserStatsDto>
+       [NORMALIZED] Handlers: [GetUserStatsQueryHandler]
+
+    - Query: SearchUsersQuery
+       Response: PagedResult`1
+       Interface: IPaginatedQuery<PagedResult`1>
+       Handler: Single - SearchUsersQueryHandler
+       [NORMALIZED] Response: PagedResult<UserSummaryDto>
+       [NORMALIZED] Interface: IPaginatedQuery<PagedResult<UserSummaryDto>>
+       [NORMALIZED] Handlers: [SearchUsersQueryHandler]
+
+
+CROSS-ASSEMBLY COMMAND ANALYSIS
+===================================
+
+[INFO] Found 25 command types across 3 assemblies:
+
+Assembly: AnalyzerExample.Orders
+  Namespace: AnalyzerExample.Orders.Commands
+    - Command: AddOrderItemCommand
+       Response: OperationResult
+       Interface: ITransactionalCommand<OperationResult>
+       Handler: Single - AddOrderItemCommandHandler
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: [AddOrderItemCommandHandler]
+
+    - Command: CancelOrderCommand
+       Response: void
+       Interface: ITransactionalCommand
+       Handler: Single - CancelOrderCommandHandler
+       [NORMALIZED] Response: void
+       [NORMALIZED] Handlers: [CancelOrderCommandHandler]
+
+    - Command: CompleteOrderCommand
+       Response: OperationResult
+       Interface: IAuditableCommand<OperationResult>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: []
+
+    - Command: CreateOrderCommand
+       Response: OperationResult`1
+       Interface: ITransactionalCommand<OperationResult`1>
+       Handler: Single - CreateOrderCommandHandler
+       [NORMALIZED] Response: OperationResult<Int32>
+       [NORMALIZED] Handlers: [CreateOrderCommandHandler]
+
+    - Command: ProcessBulkOrdersCommand
+       Response: OperationResult`1
+       Interface: ITransactionalCommand<OperationResult`1>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: OperationResult<Int32>
+       [NORMALIZED] Handlers: []
+
+    - Command: RemoveOrderItemCommand
+       Response: OperationResult
+       Interface: ITransactionalCommand<OperationResult>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: []
+
+    - Command: ShipOrderCommand
+       Response: OperationResult
+       Interface: IAuditableCommand<OperationResult>
+       Handler: Single - ShipOrderCommandHandler
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: [ShipOrderCommandHandler]
+
+    - Command: UpdateOrderAddressCommand
+       Response: OperationResult
+       Interface: IAuditableCommand<OperationResult>
+       Handler: Single - UpdateOrderAddressCommandHandler
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: [UpdateOrderAddressCommandHandler]
+
+    - Command: UpdateOrderStatusCommand
+       Response: OperationResult
+       Interface: ITransactionalCommand<OperationResult>
+       Handler: Single - UpdateOrderStatusCommandHandler
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: [UpdateOrderStatusCommandHandler]
+
+
+Assembly: AnalyzerExample.Products
+  Namespace: AnalyzerExample.Products.Commands
+    - Command: AddProductReviewCommand
+       Response: OperationResult`1
+       Interface: IAuditableCommand<OperationResult`1>
+       Handler: Single - AddProductReviewCommandHandler
+       [NORMALIZED] Response: OperationResult<Int32>
+       [NORMALIZED] Handlers: [AddProductReviewCommandHandler]
+
+    - Command: BulkUpdateProductsCommand
+       Response: OperationResult`1
+       Interface: ITransactionalCommand<OperationResult`1>
+       Handler: Single - BulkUpdateProductsCommandHandler
+       [NORMALIZED] Response: OperationResult<Int32>
+       [NORMALIZED] Handlers: [BulkUpdateProductsCommandHandler]
+
+    - Command: CreateProductCommand
+       Response: OperationResult`1
+       Interface: ITransactionalCommand<OperationResult`1>
+       Handler: Single - CreateProductCommandHandler
+       [NORMALIZED] Response: OperationResult<Int32>
+       [NORMALIZED] Handlers: [CreateProductCommandHandler]
+
+    - Command: DeleteProductCommand
+       Response: void
+       Interface: ITransactionalCommand
+       Handler: Single - DeleteProductCommandHandler
+       [NORMALIZED] Response: void
+       [NORMALIZED] Handlers: [DeleteProductCommandHandler]
+
+    - Command: ImportProductsCommand
+       Response: OperationResult`1
+       Interface: ITransactionalCommand<OperationResult`1>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: OperationResult<ImportResult>
+       [NORMALIZED] Handlers: []
+
+    - Command: UpdateProductCommand
+       Response: OperationResult
+       Interface: ITransactionalCommand<OperationResult>
+       Handler: Single - UpdateProductCommandHandler
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: [UpdateProductCommandHandler]
+
+    - Command: UpdateProductPriceCommand
+       Response: OperationResult
+       Interface: IAuditableCommand<OperationResult>
+       Handler: Single - UpdateProductPriceCommandHandler
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: [UpdateProductPriceCommandHandler]
+
+    - Command: UpdateProductStockCommand
+       Response: OperationResult`1
+       Interface: ICommand<OperationResult`1>
+       Handler: Single - UpdateProductStockCommandHandler
+       [NORMALIZED] Response: OperationResult<Int32>
+       [NORMALIZED] Handlers: [UpdateProductStockCommandHandler]
+
+
+Assembly: AnalyzerExample.Users
+  Namespace: AnalyzerExample.Users.Commands
+    - Command: AssignUserRoleCommand
+       Response: OperationResult
+       Interface: IAuditableCommand<OperationResult>
+       Handler: Single - AssignUserRoleCommandHandler
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: [AssignUserRoleCommandHandler]
+
+    - Command: BulkUpdateUsersCommand
+       Response: OperationResult`1
+       Interface: ITransactionalCommand<OperationResult`1>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: OperationResult<Int32>
+       [NORMALIZED] Handlers: []
+
+    - Command: CreateUserCommand
+       Response: OperationResult`1
+       Interface: ITransactionalCommand<OperationResult`1>
+       Handler: Single - CreateUserCommandHandler
+       [NORMALIZED] Response: OperationResult<Int32>
+       [NORMALIZED] Handlers: [CreateUserCommandHandler]
+
+    - Command: DeactivateUserCommand
+       Response: void
+       Interface: ITransactionalCommand
+       Handler: Single - DeactivateUserCommandHandler
+       [NORMALIZED] Response: void
+       [NORMALIZED] Handlers: [DeactivateUserCommandHandler]
+
+    - Command: ResetUserPasswordCommand
+       Response: OperationResult
+       Interface: IAuditableCommand<OperationResult>
+       Handler: Missing - No handler registered
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: []
+
+    - Command: UpdateUserCommand
+       Response: OperationResult
+       Interface: ITransactionalCommand<OperationResult>
+       Handler: Single - UpdateUserCommandHandler
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: [UpdateUserCommandHandler]
+
+    - Command: UpdateUserPreferencesCommand
+       Response: OperationResult
+       Interface: IUserCommand<OperationResult>
+       Handler: Single - UpdateUserPreferencesCommandHandler
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: [UpdateUserPreferencesCommandHandler]
+
+    - Command: VerifyUserEmailCommand
+       Response: OperationResult
+       Interface: IUserCommand<OperationResult>
+       Handler: Single - VerifyUserEmailCommandHandler
+       [NORMALIZED] Response: OperationResult
+       [NORMALIZED] Handlers: [VerifyUserEmailCommandHandler]
+
+
+CROSS-ASSEMBLY NOTIFICATION ANALYSIS
+========================================
+
+[INFO] Found 27 notification types across 3 assemblies:
+
+Assembly: AnalyzerExample.Orders
+  Namespace: AnalyzerExample.Orders.Notifications
+    - Notification: OrderCancelledEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: OrderCreatedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: OrderDelayedNotification
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: OrderDeliveredEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: OrderItemAddedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: OrderItemRemovedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: OrderProcessingCompletedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: OrderShippedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: OrderStatusChangedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: PaymentRequiredNotification
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+
+Assembly: AnalyzerExample.Products
+  Namespace: AnalyzerExample.Products.Notifications
+    - Notification: LowStockNotification
+       Interface: INotification
+       Handlers: Single - LowStockNotificationHandler
+       Pattern: AutomaticHandlers
+       Broadcast: False
+       [NORMALIZED] Handlers: [LowStockNotificationHandler]
+       [NORMALIZED] Interface: INotification
+
+    - Notification: ProductCreatedEvent
+       Interface: INotification
+       Handlers: Single - ProductCreatedEventHandler
+       Pattern: AutomaticHandlers
+       Broadcast: False
+       [NORMALIZED] Handlers: [ProductCreatedEventHandler]
+       [NORMALIZED] Interface: INotification
+
+    - Notification: ProductDeletedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: ProductImportCompletedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: ProductPriceChangedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: ProductReviewAddedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: ProductStockChangedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: ProductUpdatedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+
+Assembly: AnalyzerExample.Users
+  Namespace: AnalyzerExample.Users.Notifications
+    - Notification: InactiveUserNotification
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: UserCreatedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: UserDeactivatedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: UserEmailVerifiedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: UserLoginEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: UserPasswordResetEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: UserRegistrationCompletedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: UserRoleAssignedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+    - Notification: UserUpdatedEvent
+       Interface: INotification
+       Handlers: Missing - No handlers registered
+       Pattern: None
+       Broadcast: False
+       [NORMALIZED] Handlers: []
+       [NORMALIZED] Interface: INotification
+
+
+MULTI-PROJECT REQUEST MIDDLEWARE ANALYSIS
+=============================================
+
+[INFO] Found 8 request middleware across 2 assemblies:
+
+Assembly: AnalyzerExample.Common
+  Namespace: AnalyzerExample.Common.Middleware
+    - Middleware: AuditMiddleware
+       Type: AuditMiddleware`1
+       Order: 2146483647
+       Generic: True, Parameters: 1
+       Configuration: None
+       [NORMALIZED] Type: AuditMiddleware<TRequest>
+       [NORMALIZED] Class: AuditMiddleware
+       [NORMALIZED] Parameters: <TRequest>
+       [NORMALIZED] Order: 2146483647
+       [NORMALIZED] Summary: [2146483647] AuditMiddleware<TRequest>
+       [NORMALIZED] Full Summary: [2146483647] AuditMiddleware<TRequest> (AnalyzerExample.Common.Middleware, AnalyzerExample.Common)
+
+    - Middleware: GlobalLoggingMiddleware
+       Type: GlobalLoggingMiddleware`1
+       Order: 2146483648
+       Generic: True, Parameters: 1
+       Configuration: None
+       [NORMALIZED] Type: GlobalLoggingMiddleware<TRequest>
+       [NORMALIZED] Class: GlobalLoggingMiddleware
+       [NORMALIZED] Parameters: <TRequest>
+       [NORMALIZED] Order: 2146483648
+       [NORMALIZED] Summary: [2146483648] GlobalLoggingMiddleware<TRequest>
+       [NORMALIZED] Full Summary: [2146483648] GlobalLoggingMiddleware<TRequest> (AnalyzerExample.Common.Middleware, AnalyzerExample.Common)
+
+    - Middleware: GlobalLoggingMiddleware
+       Type: GlobalLoggingMiddleware`2
+       Order: 2146483649
+       Generic: True, Parameters: 2
+       Configuration: None
+       [NORMALIZED] Type: GlobalLoggingMiddleware<TRequest, TResponse>
+       [NORMALIZED] Class: GlobalLoggingMiddleware
+       [NORMALIZED] Parameters: <TRequest, TResponse>
+       [NORMALIZED] Order: 2146483649
+       [NORMALIZED] Summary: [2146483649] GlobalLoggingMiddleware<TRequest, TResponse>
+       [NORMALIZED] Full Summary: [2146483649] GlobalLoggingMiddleware<TRequest, TResponse> (AnalyzerExample.Common.Middleware, AnalyzerExample.Common)
+
+    - Middleware: TransactionMiddleware
+       Type: TransactionMiddleware`1
+       Order: 2146483650
+       Generic: True, Parameters: 1
+       Configuration: None
+       [NORMALIZED] Type: TransactionMiddleware<TRequest>
+       [NORMALIZED] Class: TransactionMiddleware
+       [NORMALIZED] Parameters: <TRequest>
+       [NORMALIZED] Order: 2146483650
+       [NORMALIZED] Summary: [2146483650] TransactionMiddleware<TRequest>
+       [NORMALIZED] Full Summary: [2146483650] TransactionMiddleware<TRequest> (AnalyzerExample.Common.Middleware, AnalyzerExample.Common)
+
+
+Assembly: AnalyzerExample.Products
+  Namespace: AnalyzerExample.Products.Middleware
+    - Middleware: ProductOperationMiddleware
+       Type: ProductOperationMiddleware`2
+       Order: 2146483651
+       Generic: True, Parameters: 2
+       Configuration: None
+       [NORMALIZED] Type: ProductOperationMiddleware<TRequest, TResponse>
+       [NORMALIZED] Class: ProductOperationMiddleware
+       [NORMALIZED] Parameters: <TRequest, TResponse>
+       [NORMALIZED] Order: 2146483651
+       [NORMALIZED] Summary: [2146483651] ProductOperationMiddleware<TRequest, TResponse>
+       [NORMALIZED] Full Summary: [2146483651] ProductOperationMiddleware<TRequest, TResponse> (AnalyzerExample.Products.Middleware, AnalyzerExample.Products)
+
+    - Middleware: ProductQueryCacheMiddleware
+       Type: ProductQueryCacheMiddleware`2
+       Order: 2146483652
+       Generic: True, Parameters: 2
+       Configuration: None
+       [NORMALIZED] Type: ProductQueryCacheMiddleware<TRequest, TResponse>
+       [NORMALIZED] Class: ProductQueryCacheMiddleware
+       [NORMALIZED] Parameters: <TRequest, TResponse>
+       [NORMALIZED] Order: 2146483652
+       [NORMALIZED] Summary: [2146483652] ProductQueryCacheMiddleware<TRequest, TResponse>
+       [NORMALIZED] Full Summary: [2146483652] ProductQueryCacheMiddleware<TRequest, TResponse> (AnalyzerExample.Products.Middleware, AnalyzerExample.Products)
+
+    - Middleware: ProductValidationMiddleware
+       Type: ProductValidationMiddleware`1
+       Order: 2146483653
+       Generic: True, Parameters: 1
+       Configuration: None
+       [NORMALIZED] Type: ProductValidationMiddleware<TRequest>
+       [NORMALIZED] Class: ProductValidationMiddleware
+       [NORMALIZED] Parameters: <TRequest>
+       [NORMALIZED] Order: 2146483653
+       [NORMALIZED] Summary: [2146483653] ProductValidationMiddleware<TRequest>
+       [NORMALIZED] Full Summary: [2146483653] ProductValidationMiddleware<TRequest> (AnalyzerExample.Products.Middleware, AnalyzerExample.Products)
+
+    - Middleware: ProductInventoryMiddleware
+       Type: ProductInventoryMiddleware`1
+       Order: 2146483654
+       Generic: True, Parameters: 1
+       Configuration: None
+       [NORMALIZED] Type: ProductInventoryMiddleware<TRequest>
+       [NORMALIZED] Class: ProductInventoryMiddleware
+       [NORMALIZED] Parameters: <TRequest>
+       [NORMALIZED] Order: 2146483654
+       [NORMALIZED] Summary: [2146483654] ProductInventoryMiddleware<TRequest>
+       [NORMALIZED] Full Summary: [2146483654] ProductInventoryMiddleware<TRequest> (AnalyzerExample.Products.Middleware, AnalyzerExample.Products)
+
+
+[PIPELINE STATS]:
+   Total Middleware: 8
+   Assemblies: 2
+   Namespaces: 2
+   Generic: 8
+   With Configuration: 0
+   Average Order: 2146483650.5
+
+MULTI-PROJECT NOTIFICATION MIDDLEWARE ANALYSIS
+==================================================
+
+[INFO] Found 2 notification middleware across 1 assemblies:
+
+Assembly: AnalyzerExample.Common
+  Namespace: AnalyzerExample.Common.Middleware
+    - Middleware: GlobalNotificationMiddleware
+       Type: GlobalNotificationMiddleware
+       Order: -2147483148
+       Generic: False, Parameters: 0
+       Constraints: 
+       [NORMALIZED] Type: GlobalNotificationMiddleware
+       [NORMALIZED] Constraints: 
+       [NORMALIZED] Order: -2147483148
+       [NORMALIZED] Summary: [-2147483148] GlobalNotificationMiddleware
+       [NORMALIZED] Fully Qualified: AnalyzerExample.Common.Middleware.GlobalNotificationMiddleware
+
+    - Middleware: DomainEventMiddleware
+       Type: DomainEventMiddleware`1
+       Order: 2146483647
+       Generic: True, Parameters: 1
+       Constraints: where TNotification : IDomainEvent
+       [NORMALIZED] Type: DomainEventMiddleware<TNotification>
+       [NORMALIZED] Constraints: where TNotification : IDomainEvent
+       [NORMALIZED] Order: 2146483647
+       [NORMALIZED] Summary: [2146483647] DomainEventMiddleware<TNotification>
+       [NORMALIZED] Fully Qualified: AnalyzerExample.Common.Middleware.DomainEventMiddleware<TNotification>
+
+
+ADVANCED CROSS-ASSEMBLY TYPE FORMATTING
+===========================================
+
+[DEMO] Before vs After Formatting Examples:
+
+Complex Query Example from AnalyzerExample.Orders:
+   Raw Response Type: System.Collections.Generic.List`1[AnalyzerExample.Orders.Domain.OrderSummaryDto]
+   Normalized Response: List<OrderSummaryDto>
+   Raw Interface: IOrderQuery<List`1>
+   Normalized Interface: IOrderQuery<List<OrderSummaryDto>>
+   Fully Qualified Response: System.Collections.Generic.List<AnalyzerExample.Orders.Domain.OrderSummaryDto>
+
+Complex Middleware Example from AnalyzerExample.Common:
+   Raw Type: AnalyzerExample.Common.Middleware.GlobalLoggingMiddleware`2[TRequest,TResponse]
+   Normalized Type: GlobalLoggingMiddleware<TRequest, TResponse>
+   Raw Parameters: <TRequest, TResponse>
+   Normalized Parameters: <TRequest, TResponse>
+   Clean Summary: [2146483649] GlobalLoggingMiddleware<TRequest, TResponse>
+   Full Summary: [2146483649] GlobalLoggingMiddleware<TRequest, TResponse> (AnalyzerExample.Common.Middleware, AnalyzerExample.Common)
+
+[CROSS-ASSEMBLY DISTRIBUTION]:
+   Queries across 3 assemblies
+   Commands across 3 assemblies
+   Notifications across 3 assemblies
+   Request middleware across 2 assemblies
+   Notification middleware across 1 assemblies
+
+[FORMATTING BENEFITS DEMONSTRATED]:
+   - Clean type names without backticks across all assemblies
+   - Proper generic syntax for complex types
+   - Assembly and namespace identification
+   - Consistent formatting across all analysis types
+   - Summary formats for quick overviews
+   - Special order value formatting
+   - Configuration type analysis
+
+====================================================================
+[COMPLETE] Multi-assembly analysis complete! Press any key to exit...
+Unhandled exception. System.InvalidOperationException: Cannot read keys when either application does not have a console or when console input has been redirected. Try Console.Read.
+   at System.ConsolePal.ReadKey(Boolean intercept)
+   at AnalyzerExample.Program.Main(String[] args) in C:\wip\Blazing.Mediator\src\samples\AnalyzerExample\Program.cs:line 53
+   at AnalyzerExample.Program.<Main>(String[] args)

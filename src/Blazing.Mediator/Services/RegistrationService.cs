@@ -711,17 +711,35 @@ internal static class RegistrationService
     /// </summary>
     private static int CalculateOrderOnce(Type middlewareType)
     {
-        // Try to get order from a static Order property or field first
-        var orderProperty = middlewareType.GetProperty("Order", BindingFlags.Public | BindingFlags.Static);
-        if (orderProperty != null && orderProperty.PropertyType == typeof(int))
+        // Skip static property/field access for generic type definitions to avoid reflection errors
+        if (!middlewareType.ContainsGenericParameters)
         {
-            return (int)orderProperty.GetValue(null)!;
-        }
+            // Try to get order from a static Order property or field first
+            var orderProperty = middlewareType.GetProperty("Order", BindingFlags.Public | BindingFlags.Static);
+            if (orderProperty != null && orderProperty.PropertyType == typeof(int))
+            {
+                try
+                {
+                    return (int)orderProperty.GetValue(null)!;
+                }
+                catch (InvalidOperationException)
+                {
+                    // Fallback if property access fails
+                }
+            }
 
-        var orderField = middlewareType.GetField("Order", BindingFlags.Public | BindingFlags.Static);
-        if (orderField != null && orderField.FieldType == typeof(int))
-        {
-            return (int)orderField.GetValue(null)!;
+            var orderField = middlewareType.GetField("Order", BindingFlags.Public | BindingFlags.Static);
+            if (orderField != null && orderField.FieldType == typeof(int))
+            {
+                try
+                {
+                    return (int)orderField.GetValue(null)!;
+                }
+                catch (InvalidOperationException)
+                {
+                    // Fallback if field access fails
+                }
+            }
         }
 
         // Check for OrderAttribute if it exists (common pattern)
@@ -732,7 +750,14 @@ internal static class RegistrationService
             var orderProp = orderAttribute.GetType().GetProperty("Order");
             if (orderProp != null && orderProp.PropertyType == typeof(int))
             {
-                return (int)orderProp.GetValue(orderAttribute)!;
+                try
+                {
+                    return (int)orderProp.GetValue(orderAttribute)!;
+                }
+                catch (InvalidOperationException)
+                {
+                    // Fallback if attribute property access fails
+                }
             }
         }
 

@@ -162,6 +162,73 @@ builder.Services.AddMediator(config =>
 
 For comprehensive configuration patterns and advanced scenarios, see the **[Configuration Guide](docs/MEDIATOR_CONFIGURATION_GUIDE.md)**.
 
+### **Multi-Assembly Configuration**
+
+For applications with multiple assemblies and complex domain structures, Blazing.Mediator provides powerful multi-project configuration patterns that automatically discover handlers and middleware across assembly boundaries.
+
+#### Manual Assembly Registration
+```csharp
+services.AddMediator(config =>
+{
+    // Enable comprehensive statistics tracking across all assemblies
+    config.WithStatisticsTracking();
+    
+    // Register common middleware that works across all assemblies
+    config.AddMiddleware(typeof(Common.Middleware.GlobalLoggingMiddleware<>));
+    config.AddMiddleware(typeof(Common.Middleware.AuditMiddleware<>));
+    config.AddMiddleware(typeof(Common.Middleware.TransactionMiddleware<>));
+    
+    // Register domain-specific middleware
+    config.AddMiddleware(typeof(Products.Middleware.ProductValidationMiddleware<>));
+    config.AddMiddleware(typeof(Orders.Middleware.OrderValidationMiddleware<>));
+    
+    // Register notification middleware
+    config.AddNotificationMiddleware<Common.Middleware.GlobalNotificationMiddleware>();
+    config.AddNotificationMiddleware(typeof(Common.Middleware.DomainEventMiddleware<>));
+    
+},
+// Discover from all related assemblies
+typeof(Common.Domain.BaseEntity).Assembly,        // Common
+typeof(Products.Domain.Product).Assembly,         // Products  
+typeof(Users.Domain.User).Assembly,               // Users
+typeof(Orders.Domain.Order).Assembly,             // Orders
+typeof(Program).Assembly                           // Main
+);
+```
+
+#### Fully Automated Multi-Assembly Discovery
+```csharp
+// Register Blazing.Mediator with comprehensive discovery across all assemblies
+services.AddMediator(config =>
+{
+    // Enable detailed statistics tracking for comprehensive analysis
+    config.WithStatisticsTracking();
+
+    // Enable middleware discovery
+    config.WithMiddlewareDiscovery();
+
+    // Enable notification middleware discovery
+    config.WithNotificationMiddlewareDiscovery();
+
+    // Register assemblies for handler and middleware discovery
+    config.AddAssemblies(
+            typeof(Common.Domain.BaseEntity).Assembly, // Common
+            typeof(Products.Domain.Product).Assembly, // Products  
+            typeof(Users.Domain.User).Assembly, // Users
+            typeof(Orders.Domain.Order).Assembly, // Orders
+            typeof(Program).Assembly // Main
+        );
+});
+```
+
+This automated approach provides:
+- **Zero Configuration**: Automatic discovery eliminates manual middleware registration
+- **Cross-Assembly Analysis**: Built-in support for analyzing components across multiple projects  
+- **Domain Separation**: Clean boundaries while maintaining shared infrastructure
+- **Development Efficiency**: Comprehensive debugging tools for multi-project solutions
+
+See the **[AnalyzerExample](src/samples/AnalyzerExample/)** for a complete demonstration of multi-assembly configuration with 92 components across 5 projects, including intentionally missing handlers to showcase the powerful debugging capabilities of the analyzer tools.
+
 ### **🌊 Streaming Support**
 
 Native streaming support enables memory-efficient processing of large datasets through `IAsyncEnumerable<T>`. Perfect for real-time data feeds, large file processing, and server-sent events. The streaming infrastructure includes full middleware pipeline support, allowing you to apply cross-cutting concerns like logging, validation, and metrics to your streaming operations. This eliminates the need to load entire datasets into memory, providing superior performance for data-intensive applications.

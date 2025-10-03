@@ -160,7 +160,7 @@ builder.Services.AddMediator(config =>
 });
 ```
 
-For comprehensive configuration patterns and advanced scenarios, see the **[Configuration Guide](docs/MEDIATOR_CONFIGURATION_GUIDE.md)**.
+For comprehensive configuration patterns and advanced scenarios, see the **[Configuration Guide](docs/MEDIATOR_CONFIGURATION.md)**.
 
 ### **Multi-Assembly Configuration**
 
@@ -401,7 +401,7 @@ Comprehensive guides and documentation are available to help you master Blazing.
 - **[OpenTelemetry Integration Guide](docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md)** - Full observability support with distributed tracing, metrics collection, and cloud-native monitoring
 - **[Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md)** - Comprehensive debug logging infrastructure with configurable levels and performance tracking
 - **[Statistics Guide](docs/MEDIATOR_STATISTICS_GUIDE.md)** - Advanced statistics tracking with detailed performance metrics and runtime insights
-- **[Configuration Guide](docs/MEDIATOR_CONFIGURATION_GUIDE.md)** - In-depth guide to advanced configuration features, environment-specific settings, and JSON integration
+- **[Configuration Guide](docs/MEDIATOR_CONFIGURATION.md)** - In-depth guide to advanced configuration features, environment-specific settings, and JSON integration
 
 ### CQRS Implementation
 
@@ -629,6 +629,6 @@ All of the Example Console applications demonstrate comprehensive **MediatorStat
 -   **ConfigurationExample Sample**: Demonstrates configuration features with environment-aware settings, JSON configuration, preset integration, and advanced diagnostics capabilities
 -   **OpenTelemetryExample Sample**: New comprehensive sample project demonstrating OpenTelemetry integration with web API server, Blazor client, and .NET Aspire support for modern cloud-native applications with real-time telemetry visualization
 -   **New Documentation Guides**: Added comprehensive [OpenTelemetry Integration Guide](docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md), [Mediator Statistics Configuration Guide
-](docs/MEDIATOR_STATISTICS_GUIDE.md), [Mediator Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md), and [Mediator Configuration Guide](docs/MEDIATOR_CONFIGURATION_GUIDE.md) with detailed implementation examples, best practices, and troubleshooting scenarios
+](docs/MEDIATOR_STATISTICS_GUIDE.md), [Mediator Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md), and [Mediator Configuration Guide](docs/MEDIATOR_CONFIGURATION.md) with detailed implementation examples, best practices, and troubleshooting scenarios
 -   **Enhanced Documentation**: Updated all documentation with new fluent configuration examples, OpenTelemetry integration patterns, logging configuration, notification system patterns, and comprehensive migration guidance from legacy registration methods
 -   **Improved Developer Experience**: Streamlined configuration process with better IntelliSense support, compile-time validation through fluent API design, enhanced debugging capabilities, and comprehensive observability features

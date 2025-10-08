@@ -1,5 +1,10 @@
 # Blazing.Mediator
 
+[![NuGet Version](https://img.shields.io/nuget/v/Blazing.Mediator.svg)](https://www.nuget.org/packages/Blazing.Mediator)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Blazing.Mediator.svg)](https://www.nuget.org/packages/Blazing.Mediator)
+
+## Overview
+
 A high-performance, feature-rich implementation of the Mediator pattern for .NET applications. Built for modern development with comprehensive CQRS support, advanced middleware pipelines, real-time streaming, event-driven architecture, and full observability.
 
 ## 🚀 Key Features

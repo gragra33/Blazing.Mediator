@@ -121,7 +121,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
             var allMiddleware = middlewareInfo
                 .Where(m => IsMiddlewareApplicable(m.Type, _request.GetType(), typeof(TResponse)))
                 .OrderBy(m => m.Order)
-                .Select(m => SanitizeMiddlewareName(m.Type.Name))
+                .Select(m => SanitizeMiddlewareName(m.Type))
                 .ToList();
 
             activity.SetTag(MiddlewarePipelineTag, string.Join(CommaDelimiter, allMiddleware));
@@ -397,7 +397,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
     /// Helper methods for telemetry context (duplicated from Mediator for encapsulation).
     /// </summary>
     private static string SanitizeTypeName(string typeName) => typeName.Replace('`', '_').Replace('<', '_').Replace('>', '_').Replace('+', '.');
-    private static string SanitizeMiddlewareName(string middlewareName) => middlewareName.Replace("Middleware", "").Replace("middleware", "");
+    private static string SanitizeMiddlewareName(Type middlewareType) => PipelineUtilities.FormatTypeName(middlewareType);
     private static string SanitizeExceptionMessage(string message) => message.Length > 500 ? message[..497] + "..." : message;
 
     /// <summary>

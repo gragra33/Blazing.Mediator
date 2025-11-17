@@ -3,17 +3,13 @@
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Blazing.Mediator</PackageId>
-    <Version>1.8.1</Version>
-    <Authors>Graeme Grant</Authors>
     <Product>Blazing.Mediator</Product>
     <Description>A high-performance, feature-rich implementation of the Mediator pattern for .NET applications. Built for modern development with comprehensive CQRS support, advanced middleware pipelines, real-time streaming, event-driven architecture, and full observability. Features include OpenTelemetry integration with distributed tracing and metrics collection, extensive debug logging infrastructure, advanced statistics tracking, fluent configuration API with environment-aware settings, type-constrained middleware for selective execution, comprehensive notification system with hybrid patterns, native streaming capabilities with IAsyncEnumerable support, and automatic handler discovery. Perfect for cloud-native applications requiring high performance, comprehensive observability, and production-ready architecture patterns.</Description>
     <PackageTags>mediator;cqrs;command;query;middleware;pipeline;dependency-injection;streaming;async-enumerable;real-time;json-streaming;sse;server-sent-events;notifications;observer-pattern;event-driven;publish-subscribe;pattern;architecture;clean-code;conditional;type-constrained;samples;minimal-api;controllers;ai-streaming;high-performance;subscription-management;opentelemetry;observability;distributed-tracing;metrics;logging;statistics;fluent-configuration;environment-aware;cloud-native;production-ready</PackageTags>
-    <RepositoryUrl>https://github.com/gragra33/blazing.mediator</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
-    <Copyright>Copyright (c) 2025 Graeme Grant</Copyright>
-    <PackageReleaseNotes>Version 1.8.1: Added new MiddlewareAnalysisExtensions and QueryCommandAnalysisExtensions extension helpers for comprehensive type normalization. Fixed edge case bug in RegistrationService with generic type definitions. New AnalyzerExample demonstrates analyzer capabilities across 92 components in 5 projects with enhanced debugging tools and missing handler detection. Improved developer experience with visual missing handler identification and comprehensive pipeline analysis capabilities.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 2.0.0: Added Net 10 support; new MiddlewareAnalysisExtensions and QueryCommandAnalysisExtensions extension helpers for comprehensive type normalization. Fixed edge case bug in RegistrationService with generic type definitions. New AnalyzerExample demonstrates analyzer capabilities across 92 components in 5 projects with enhanced debugging tools and missing handler detection. Improved developer experience with visual missing handler identification and comprehensive pipeline analysis capabilities.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

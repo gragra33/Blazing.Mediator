@@ -3,6 +3,20 @@
 [![NuGet Version](https://img.shields.io/nuget/v/Blazing.Mediator.svg)](https://www.nuget.org/packages/Blazing.Mediator)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Blazing.Mediator.svg)](https://www.nuget.org/packages/Blazing.Mediator)
 
+## Table of Contents
+
+- [Overview](#overview)
+- [🚀 Key Features](#-key-features)
+- [⚡ Quick Start](#-quick-start)
+- [🌟 Feature Highlights](#-feature-highlights)
+- [🎯 Why Choose Blazing.Mediator?](#-why-choose-blazingmediator)
+- [📈 Performance Benchmarks](#-performance-benchmarks)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [📚 Documentation](#-documentation)
+- [Sample Projects](#sample-projects)
+- [History](#history)
+
 ## Overview
 
 A high-performance, feature-rich implementation of the Mediator pattern for .NET applications. Built for modern development with comprehensive CQRS support, advanced middleware pipelines, real-time streaming, event-driven architecture, and full observability.
@@ -34,6 +48,8 @@ A high-performance, feature-rich implementation of the Mediator pattern for .NET
 -   **Type Safety**: Compile-time type checking with generic constraints and validation
 
 ## ⚡ Quick Start
+
+**Blazing.Mediator** supports both .NET 9 and .NET 10, providing a modern, high-performance mediator implementation for current and next-generation .NET applications. The library leverages the latest language features and runtime optimizations to deliver exceptional performance and developer experience across both target frameworks.
 
 ### Installation
 
@@ -378,7 +394,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Setup
 
 1. Clone the repository
-2. Install .NET 9.0 SDK
+2. Install .NET 9.0 or .NET 10.0 SDK
 3. Run `dotnet restore`
 4. Run `dotnet test`
 
@@ -401,7 +417,7 @@ Also, if you find this library useful, and you're feeling really generous, then 
 Comprehensive guides and documentation are available to help you master Blazing.Mediator:
 
 - **[Mediator Pattern Guide](docs/MEDIATOR_PATTERN_GUIDE.md)** - Complete implementation guide with CQRS patterns, middleware pipelines, and testing strategies
-- **[Streaming Guide](docs/MEDIATOR_STREAMING_GUIDE.md)** - Advanced streaming capabilities with `IAsyncEnumerable<T>` for real-time data processing
+- **[Streaming Guide](docs/MEDIATOR_STREAMING_GUIDE.md)** - Advanced streaming capabilities with `IAsyncEnumerable<T>` for real-time data processing  
 - **[Notification System Guide](docs/MEDIATOR_NOTIFICATION_GUIDE.md)** - Event-driven architecture with domain events, observer patterns, and automatic/manual handlers
 - **[OpenTelemetry Integration Guide](docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md)** - Full observability support with distributed tracing, metrics collection, and cloud-native monitoring
 - **[Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md)** - Comprehensive debug logging infrastructure with configurable levels and performance tracking
@@ -445,7 +461,7 @@ Blazing.Mediator naturally implements the **Command Query Responsibility Segrega
 - Runtime subscription control via `mediator.Subscribe()` and `mediator.Unsubscribe()`
 
 #### Type-Constrained Middleware Support
-- **Request Middleware**: Can be constrained to `ICommand`, `IQuery<T>`, or other interfaces
+- **Request Middleware**: Can be constrained to `ICommand`, `IQuery<T>` or other interfaces
 - **Notification Middleware**: Can be constrained to specific notification categories
 - **Performance Benefits**: Only executes middleware relevant to the request type
 
@@ -608,6 +624,13 @@ The library includes comprehensive sample projects demonstrating different appro
 All of the Example Console applications demonstrate comprehensive **MediatorStatistics** analysis and **middleware analyzers** with detailed performance statistics, execution tracking, and pipeline inspection capabilities. These examples showcase real-time monitoring of queries, commands, and notifications with success rates, timing metrics, and handler discovery analysis. For complete details on implementing statistics tracking and performance monitoring in your applications, see the **[Statistics Guide](docs/MEDIATOR_STATISTICS_GUIDE.md)**.
 
 ## History
+
+### V2.0.0
+
+-   **.NET 10 Support**: Now supports .NET 10 with multi-targeting for both .NET 9 and .NET 10, providing developers with the latest framework features and performance improvements while maintaining backward compatibility
+-   **OpenTelemetry Middleware Pipeline Enhancement**: Updated OpenTelemetry middleware information traces to show full generic signature for requests, streaming, and notifications
+-   **Bug Fix - Duplicate OpenTelemetry Middleware Traces**: Fixed issue where generic middleware types (e.g., `ErrorHandlingMiddleware<TRequest, TResponse>`) appeared multiple times in telemetry traces due to open generic type definitions being instantiated as multiple closed generic types during execution
+-   **Documentation Updates**: Updated all documentation guides to reflect .NET 10 support alongside .NET 9, including Configuration Guide, Logging Guide, Notification Guide, OpenTelemetry Guide, Pattern Guide, Statistics Guide, and Streaming Guide
 
 ### V1.8.1
 

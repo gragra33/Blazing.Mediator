@@ -1,5 +1,12 @@
 ﻿# Version History
 
+### V2.0.0 - November 17, 2025
+
+-   **.NET 10 Support**: Now supports .NET 10 with multi-targeting for both .NET 9 and .NET 10, providing developers with the latest framework features and performance improvements while maintaining backward compatibility
+-   **OpenTelemetry Middleware Pipeline Enhancement**: Updated OpenTelemetry middleware information traces to show full generic signature for requests, streaming, and notifications
+-   **Bug Fix - Duplicate OpenTelemetry Middleware Traces**: Fixed issue where generic middleware types (e.g., `ErrorHandlingMiddleware<TRequest, TResponse>`) appeared multiple times in telemetry traces due to open generic type definitions being instantiated as multiple closed generic types during execution
+-   **Documentation Updates**: Updated all documentation guides to reflect .NET 10 support alongside .NET 9, including Configuration Guide, Logging Guide, Notification Guide, OpenTelemetry Guide, Pattern Guide, Statistics Guide, and Streaming Guide
+
 ### V1.8.1 - 2 October, 2025
 
 -   **MiddlewareAnalysisExtensions**: New extension methods providing comprehensive type normalization for middleware analysis with clean formatting across assemblies

@@ -1,5 +1,36 @@
 # OpenTelemetry Support Guide
 
+```
+Trace Summary
+=============
+Operation: Mediator.Send:CreateUserCommand
+Trace ID: ab5447e34b6f55171e0f676f806ec43b
+Span ID: 43791b05003a30c9
+Parent ID: c6a3d368006a4a7e
+Status: Error
+Duration: 703ms
+Start Time: 2025-11-17 07:45:55.444
+Source: Mediator
+Mediator Trace: Yes
+
+Tags & Attributes:- middleware.pipeline: ErrorHandlingMiddleware<TRequest, TResponse>,ValidationMiddleware<TRequest, TResponse>,TracingMiddleware<TRequest, TResponse>,LoggingMiddleware<TRequest, TResponse>,PerformanceMiddleware<TRequest, TResponse>
+- request.type: CreateUserCommand
+- response.type: Int32
+- handler.type: CreateUserHandler
+- request.error: Simulated CreateUser error for testing telemetry
+- error.type: InvalidOperationException
+- error.message: Simulated CreateUser error for testing telemetry
+- exception.type: InvalidOperationException
+- exception.message: Simulated CreateUser error for testing telemetry
+- request_name: CreateUserCommand
+- request_type: command
+- response_type: Int32
+- activity.kind: Internal
+- activity.status: Error
+- activity.duration_ms: 701.5924
+
+```
+
 ## Table of Contents
 
 1. [Overview](#overview)

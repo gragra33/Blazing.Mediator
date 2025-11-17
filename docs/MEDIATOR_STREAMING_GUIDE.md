@@ -4,7 +4,7 @@
 
 **Blazing.Mediator** provides powerful streaming capabilities through `IAsyncEnumerable<T>`, enabling real-time data processing with minimal memory overhead. The streaming implementation allows you to process large datasets efficiently, send data to clients as it becomes available, and build responsive real-time applications.
 
-Streaming in **Blazing.Mediator** is built on top of the standard CQRS pattern with specialised interfaces for stream requests and handlers, supporting middleware pipelines and maintaining the same clean architecture principles.
+Streaming in **Blazing.Mediator** is built on top of the standard CQRS pattern with specialised interfaces for stream requests and handlers, supporting middleware pipelines and maintaining the same clean architecture principles. The streaming infrastructure is fully optimized for both .NET 9 and .NET 10, leveraging the latest runtime performance enhancements and language features.
 
 ### Key Streaming Features
 

@@ -1,4 +1,5 @@
 using Blazing.Mediator.OpenTelemetry;
+using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
@@ -268,13 +269,10 @@ public sealed class Mediator : IMediator
             if (IsTelemetryEnabled && ShouldCaptureMiddlewareDetails && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
             {
                 var middlewareInfo = inspector.GetDetailedMiddlewareInfo(_serviceProvider);
-                List<string> allMiddleware = middlewareInfo
-                    .Where(m => IsMiddlewareApplicable(m.Type, requestType))
-                    .OrderBy(m => m.Order)
-                    .Select(m => SanitizeMiddlewareName(m.Type.Name))
-                    .ToList();
+                var applicableMiddleware = middlewareInfo.Where(m => IsMiddlewareApplicable(m.Type, requestType));
+                var distinctMiddleware = GetDistinctMiddlewareNames(applicableMiddleware);
 
-                activity?.SetTag("middleware.pipeline", string.Join(",", allMiddleware));
+                activity?.SetTag("middleware.pipeline", string.Join(",", distinctMiddleware));
             }
 
             async Task FinalHandler()
@@ -489,13 +487,10 @@ public sealed class Mediator : IMediator
             if (IsTelemetryEnabled && ShouldCaptureMiddlewareDetails && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
             {
                 var middlewareInfo = inspector.GetDetailedMiddlewareInfo(_serviceProvider);
-                List<string> allMiddleware = middlewareInfo
-                    .Where(m => IsMiddlewareApplicable(m.Type, requestType, typeof(TResponse)))
-                    .OrderBy(m => m.Order)
-                    .Select(m => SanitizeMiddlewareName(m.Type.Name))
-                    .ToList();
+                var applicableMiddleware = middlewareInfo.Where(m => IsMiddlewareApplicable(m.Type, requestType, typeof(TResponse)));
+                var distinctMiddleware = GetDistinctMiddlewareNames(applicableMiddleware);
 
-                activity?.SetTag("middleware.pipeline", string.Join(",", allMiddleware));
+                activity?.SetTag("middleware.pipeline", string.Join(",", distinctMiddleware));
             }
 
             async Task<TResponse> FinalHandler()
@@ -919,7 +914,7 @@ public sealed class Mediator : IMediator
             var middlewareInfo = pipelineInspector?.GetDetailedMiddlewareInfo(_serviceProvider);
             if (middlewareInfo != null && IsTelemetryEnabled && ShouldCaptureNotificationMiddlewareDetails)
             {
-                allMiddleware = middlewareInfo.OrderBy(m => m.Order).Select(m => SanitizeMiddlewareName(m.Type.Name)).ToList();
+                allMiddleware = middlewareInfo.OrderBy(m => m.Order).Select(m => SanitizeMiddlewareName(m.Type)).ToList();
                 activity?.SetTag("notification_middleware.pipeline", string.Join(",", allMiddleware));
             }
 
@@ -1508,13 +1503,26 @@ public sealed class Mediator : IMediator
     }
 
     /// <summary>
-    /// Sanitizes middleware names for telemetry.
+    /// Sanitizes middleware names for telemetry with full generic signature.
     /// </summary>
-    /// <param name="middlewareName">The middleware name to sanitize.</param>
-    /// <returns>A sanitized middleware name safe for telemetry.</returns>
-    private string SanitizeMiddlewareName(string middlewareName)
+    /// <param name="middlewareType">The middleware type to sanitize.</param>
+    /// <returns>A sanitized middleware name safe for telemetry with full generic signature.</returns>
+    private string SanitizeMiddlewareName(Type middlewareType)
     {
-        return SanitizeTypeName(middlewareName);
+        // Use PipelineUtilities to format the type name with full generic signature
+        // This ensures ErrorHandlingMiddleware<TRequest> is distinguished from ErrorHandlingMiddleware<TRequest, TResponse>
+        var formattedName = PipelineUtilities.FormatTypeName(middlewareType);
+        
+        // Apply sensitive data pattern filtering
+        foreach (var pattern in SensitiveDataPatterns)
+        {
+            if (formattedName.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                formattedName = formattedName.Replace(pattern, "***", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        
+        return formattedName;
     }
 
     /// <summary>
@@ -1878,6 +1886,55 @@ public sealed class Mediator : IMediator
         var subscriberTracker = _serviceProvider.GetService<ISubscriberTracker>();
         // Use a marker type for generic subscribers
         subscriberTracker?.TrackUnsubscription(typeof(INotification), subscriber.GetType(), subscriber);
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    /// <summary>
+    /// Gets distinct middleware names for telemetry, removing duplicates and normalizing generic types.
+    /// </summary>
+    /// <param name="middlewareTypes">The middleware types to process.</param>
+    /// <returns>A list of distinct, normalized middleware names.</returns>
+    private List<string> GetDistinctMiddlewareNames(IEnumerable<(Type Type, int Order, object? Configuration)> middlewareTypes)
+    {
+        // Use a HashSet to track unique middleware names (normalized)
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<string>();
+
+        foreach (var (type, order, _) in middlewareTypes.OrderBy(m => m.Order))
+        {
+            var normalizedName = SanitizeMiddlewareName(type);
+            
+            // Only add if we haven't seen this normalized name before
+            if (seen.Add(normalizedName))
+            {
+                result.Add(normalizedName);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Gets whether a specific request type is a query based on its interface implementation.
+    /// </summary>
+    /// <param name="requestType">The request type to check.</param>
+    /// <returns>True if the request is a query, false otherwise.</returns>
+    private static bool IsQueryRequest(Type requestType)
+    {
+        return typeof(IRequest<>).IsAssignableFrom(requestType) && requestType.GetGenericArguments().Length == 1;
+    }
+
+    /// <summary>
+    /// Gets whether a specific request type is a command based on its interface implementation.
+    /// </summary>
+    /// <param name="requestType">The request type to check.</param>
+    /// <returns>True if the request is a command, false otherwise.</returns>
+    private static bool IsCommandRequest(Type requestType)
+    {
+        return typeof(IRequest).IsAssignableFrom(requestType) && !IsQueryRequest(requestType);
     }
 
     #endregion

@@ -2,7 +2,7 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/Blazing.Mediator.svg)](https://www.nuget.org/packages/Blazing.Mediator)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Blazing.Mediator.svg)](https://www.nuget.org/packages/Blazing.Mediator)
-[![.NET 8+](https://img.shields.io/badge/.NET-8%2B-512BD4)](https://dotnet.microsoft.com/download)
+[![.NET 9+](https://img.shields.io/badge/.NET-9%2B-512BD4)](https://dotnet.microsoft.com/download)
 
 ## Table of Contents
 

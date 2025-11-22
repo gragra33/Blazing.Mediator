@@ -9,6 +9,7 @@
 - [Overview](#overview)
 - [🚀 Key Features](#-key-features)
 - [⚡ Quick Start](#-quick-start)
+- [Give a ⭐](#give-a-)
 - [🌟 Feature Highlights](#-feature-highlights)
 - [🎯 Why Choose Blazing.Mediator?](#-why-choose-blazingmediator)
 - [📈 Performance Benchmarks](#-performance-benchmarks)
@@ -164,6 +165,12 @@ public class UsersController : ControllerBase
     }
 }
 ```
+
+## Give a ⭐
+
+If you like or are using this project to learn or start your solution, please give it a star. Thanks!
+
+Also, if you find this library useful and you're feeling really generous, please consider [buying me a coffee ☕](https://bmc.link/gragra33).
 
 ## 🌟 Feature Highlights
 

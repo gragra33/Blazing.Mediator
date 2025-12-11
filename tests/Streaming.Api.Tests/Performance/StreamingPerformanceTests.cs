@@ -21,14 +21,14 @@ public class StreamingPerformanceTests(StreamingApiWebApplicationFactory factory
         var maxAllowedTime = TimeSpan.FromSeconds(30); // 30 seconds max
 
         // Act
-        var response = await _client.GetAsync($"/api/contacts/stream?batchSize={BatchSize}").ConfigureAwait(false);
+        var response = await _client.GetAsync($"/api/contacts/stream?batchSize={BatchSize}");
         stopwatch.Stop();
 
         // Assert
         response.EnsureSuccessStatusCode();
         stopwatch.Elapsed.ShouldBeLessThan(maxAllowedTime);
 
-        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var content = await response.Content.ReadAsStringAsync();
         content.ShouldNotBeNullOrEmpty();
         var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         contacts.ShouldNotBeNull();
@@ -44,13 +44,13 @@ public class StreamingPerformanceTests(StreamingApiWebApplicationFactory factory
         int dataCount = 0;
 
         // Act
-        using var response = await _client.GetAsync($"/api/contacts/stream/sse?batchSize={BatchSize}", HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+        using var response = await _client.GetAsync($"/api/contacts/stream/sse?batchSize={BatchSize}", HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
 
-        await using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+        await using var stream = await response.Content.ReadAsStreamAsync();
         using var reader = new StreamReader(stream);
 
-        while (await reader.ReadLineAsync().ConfigureAwait(false) is { } line)
+        while (await reader.ReadLineAsync() is { } line)
         {
             if (line.StartsWith("data: {") && firstDataReceived == TimeSpan.Zero)
             {
@@ -86,7 +86,7 @@ public class StreamingPerformanceTests(StreamingApiWebApplicationFactory factory
             tasks.Add(_client.GetAsync($"/api/contacts/stream?batchSize={BatchSize}"));
         }
 
-        var responses = await Task.WhenAll(tasks).ConfigureAwait(false);
+        var responses = await Task.WhenAll(tasks);
         stopwatch.Stop();
 
         // Assert
@@ -96,7 +96,7 @@ public class StreamingPerformanceTests(StreamingApiWebApplicationFactory factory
         // Verify all responses have content and return all available contacts
         foreach (var response in responses)
         {
-            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var content = await response.Content.ReadAsStringAsync();
             content.ShouldNotBeNullOrEmpty();
             var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
             contacts.ShouldNotBeNull();
@@ -111,21 +111,21 @@ public class StreamingPerformanceTests(StreamingApiWebApplicationFactory factory
         var bulkStopwatch = Stopwatch.StartNew();
 
         // Act - Bulk request
-        var bulkResponse = await _client.GetAsync("/api/contacts/all").ConfigureAwait(false);
+        var bulkResponse = await _client.GetAsync("/api/contacts/all");
         bulkStopwatch.Stop();
 
         var streamStopwatch = Stopwatch.StartNew();
 
         // Act - Stream request
-        var streamResponse = await _client.GetAsync($"/api/contacts/stream?batchSize={BatchSize}").ConfigureAwait(false);
+        var streamResponse = await _client.GetAsync($"/api/contacts/stream?batchSize={BatchSize}");
         streamStopwatch.Stop();
 
         // Assert
         bulkResponse.EnsureSuccessStatusCode();
         streamResponse.EnsureSuccessStatusCode();
 
-        var bulkContent = await bulkResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-        var streamContent = await streamResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var bulkContent = await bulkResponse.Content.ReadAsStringAsync();
+        var streamContent = await streamResponse.Content.ReadAsStringAsync();
 
         // Both should return same data structure with all 50 contacts
         var bulkContacts = JsonSerializer.Deserialize<ContactDto[]>(bulkContent, new JsonSerializerOptions
@@ -155,15 +155,15 @@ public class StreamingPerformanceTests(StreamingApiWebApplicationFactory factory
         var cts = new CancellationTokenSource(connectionDuration);
 
         // Act
-        using var response = await _client.GetAsync($"/api/contacts/stream/sse?batchSize={BatchSize}", HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
+        using var response = await _client.GetAsync($"/api/contacts/stream/sse?batchSize={BatchSize}", HttpCompletionOption.ResponseHeadersRead, cts.Token);
         response.EnsureSuccessStatusCode();
 
-        await using var stream = await response.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
+        await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
         using var reader = new StreamReader(stream);
 
         try
         {
-            while (await reader.ReadLineAsync(cts.Token).ConfigureAwait(false) is { } line && !cts.Token.IsCancellationRequested)
+            while (await reader.ReadLineAsync(cts.Token) is { } line && !cts.Token.IsCancellationRequested)
             {
                 if (line.StartsWith("data: {"))
                 {
@@ -199,7 +199,7 @@ public class StreamingPerformanceTests(StreamingApiWebApplicationFactory factory
             tasks.Add(_client.GetAsync($"/api/contacts/stream/sse?search={searchTerm}&batchSize={BatchSize}"));
         }
 
-        var responses = await Task.WhenAll(tasks).ConfigureAwait(false);
+        var responses = await Task.WhenAll(tasks);
         stopwatch.Stop();
 
         // Assert
@@ -209,7 +209,7 @@ public class StreamingPerformanceTests(StreamingApiWebApplicationFactory factory
         // Verify filtered responses have content and are within available data limits
         foreach (var response in responses)
         {
-            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var content = await response.Content.ReadAsStringAsync();
             content.ShouldNotBeNullOrEmpty();
             
             // Check if this is an SSE response or JSON response

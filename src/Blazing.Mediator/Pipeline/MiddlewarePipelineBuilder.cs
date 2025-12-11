@@ -10,7 +10,7 @@ public sealed class MiddlewarePipelineBuilder
     /// <summary>
     /// CRTP (Curiously Recurring Template Pattern) implementation for fluent API.
     /// </summary>
-    protected override MiddlewarePipelineBuilder Self => this;
+    private MiddlewarePipelineBuilder Self => this;
 
     /// <summary>
     /// Initializes a new instance of the MiddlewarePipelineBuilder class.

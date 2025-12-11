@@ -101,7 +101,7 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
                 _subscriptions.TryUpdate(notificationType, newSubscribers, subscribers);
             }
         }
-        catch (Exception ex)
+        catch
         {
             // Log the exception but don't throw to avoid breaking unsubscription
             //Debug.WriteLine($"Error tracking unsubscription for {notificationType.Name}: {ex.Message}");
@@ -125,7 +125,7 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
                 .Where(info => info.Subscriber.Target != null)
                 .ToArray();
         }
-        catch (Exception ex)
+        catch
         {
             //Debug.WriteLine($"Error getting active subscribers for {notificationType.Name}: {ex.Message}");
             return [];
@@ -159,7 +159,7 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             //Debug.WriteLine($"Error getting all subscriptions: {ex.Message}");
             return new Dictionary<Type, IReadOnlyList<SubscriberInfo>>();
@@ -212,7 +212,7 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
                     _subscriptions.TryRemove(type, out _);
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 //Debug.WriteLine($"Error during subscriber cleanup: {ex.Message}");
             }

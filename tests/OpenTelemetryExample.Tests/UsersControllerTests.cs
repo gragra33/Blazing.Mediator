@@ -329,7 +329,7 @@ public class UsersControllerTests : IClassFixture<OpenTelemetryWebApplicationFac
 
     /// <summary>
     /// Tests that updating a user with invalid data returns BadRequest with validation errors.
-    /// Note: Currently validation middleware has issues with void commands (IRequest vs IRequest<T>)
+    /// Note: Currently validation middleware has issues with void commands (IRequest vs IRequest with TResponse).
     /// </summary>
     [Fact]
     public async Task UpdateUser_WithInvalidData_ReturnsBadRequestWithValidationErrors()
@@ -416,7 +416,9 @@ public class UsersControllerTests : IClassFixture<OpenTelemetryWebApplicationFac
         var errorResponse = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
 
         errorResponse.GetProperty("message").GetString().ShouldBe("Simulated error for telemetry testing");
-        errorResponse.GetProperty("details").GetString().ShouldContain("simulated error");
+        var detailsValue = errorResponse.GetProperty("details").GetString();
+        detailsValue.ShouldNotBeNull();
+        detailsValue.ShouldContain("simulated error");
     }
 
     /// <summary>
@@ -456,7 +458,7 @@ public class UsersControllerTests : IClassFixture<OpenTelemetryWebApplicationFac
         var getUserResponse = await _client.GetAsync("/api/users/1");
         var getUsersResponse = await _client.GetAsync("/api/users");
 
-        // Assert - All endpoints should work correctly with telemetry enabled
+        // Assert - All requests should succeed
         getUserResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         getUsersResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 

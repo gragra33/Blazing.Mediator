@@ -1,5 +1,4 @@
 using Blazing.Mediator;
-using Blazing.Mediator;
 using ECommerce.Api.Services;
 
 namespace ECommerce.Api.Middleware;

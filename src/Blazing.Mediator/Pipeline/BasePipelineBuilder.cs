@@ -18,19 +18,9 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
     
     // Thread-safe caching for frequently accessed operations  
     private static readonly ConcurrentDictionary<Type, bool> _genericTypeCache = new();
-    
-    // Per-builder instance fallback order counter to maintain test isolation
-    // Each builder instance gets its own sequential fallback order values
-    private static readonly int _instanceFallbackOrderCounter = int.MaxValue - 1000000;
 
     // Constants to avoid magic strings
-    private const string OrderPropertyName = "Order";
-    private const string OrderAttributeName = "OrderAttribute";
-
-    /// <summary>
-    /// CRTP pattern property for fluent API support
-    /// </summary>
-    protected abstract TBuilder Self { get; }
+    private const string _orderPropertyName = "Order";
 
     /// <summary>
     /// Initializes a new instance of the BasePipelineBuilder.
@@ -91,7 +81,7 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
         Type typeToCheck = middlewareType;
 
         // Try to get order from a static Order property first
-        var orderProperty = typeToCheck.GetProperty(OrderPropertyName, BindingFlags.Public | BindingFlags.Static);
+        var orderProperty = typeToCheck.GetProperty(_orderPropertyName, BindingFlags.Public | BindingFlags.Static);
         if (orderProperty != null && orderProperty.PropertyType == typeof(int))
         {
             try
@@ -175,7 +165,7 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
                                 }
                             }
                         }
-                        catch (Exception ex)
+                        catch
                         {
                             // Debug: Log instantiation failure 
                             // Do we need to add debug logging when available - failed to instantiate {concreteType.Name}: {ex.Message}?
@@ -187,7 +177,7 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
                         // Do we need to add debug logging when available - failed to create concrete type for {middlewareType.Name}?
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // Debug: Log overall failure 
                     // Do we need to add debug logging when available - constraint-aware creation failed for {middlewareType.Name}: {ex.Message}?
@@ -368,7 +358,7 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
     /// <summary>
     /// Checks if a type satisfies all the given generic parameter constraints.
     /// This mirrors the constraint checking logic from your example.
-    /// Enhanced to properly handle IRequest<T> constraints.
+    /// Enhanced to properly handle IRequest&lt;TResponse&gt; constraints.
     /// </summary>
     private static bool SatisfiesAllConstraints(Type candidateType, Type[] constraints)
     {

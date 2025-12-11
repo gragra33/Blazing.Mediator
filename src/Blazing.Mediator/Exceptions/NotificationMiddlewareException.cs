@@ -69,7 +69,9 @@ public class NotificationMiddlewareException : Exception
     /// </summary>
     /// <param name="info">The SerializationInfo that holds the serialized object data about the exception being thrown.</param>
     /// <param name="context">The StreamingContext that contains contextual information about the source or destination.</param>
+#pragma warning disable SYSLIB0051
     protected NotificationMiddlewareException(SerializationInfo info, StreamingContext context) : base(info, context)
+#pragma warning restore SYSLIB0051
     {
         MiddlewareName = info.GetString(nameof(MiddlewareName));
         NotificationType = (Type?)info.GetValue(nameof(NotificationType), typeof(Type));
@@ -81,9 +83,13 @@ public class NotificationMiddlewareException : Exception
     /// </summary>
     /// <param name="info">The SerializationInfo that holds the serialized object data about the exception being thrown.</param>
     /// <param name="context">The StreamingContext that contains contextual information about the source or destination.</param>
+#pragma warning disable CS0672 // Member overrides obsolete member
     public override void GetObjectData(SerializationInfo info, StreamingContext context)
+#pragma warning restore CS0672 // Member overrides obsolete member
     {
+#pragma warning disable SYSLIB0051
         base.GetObjectData(info, context);
+#pragma warning restore SYSLIB0051
         info.AddValue(nameof(MiddlewareName), MiddlewareName);
         info.AddValue(nameof(NotificationType), NotificationType);
         info.AddValue(nameof(ActualNotificationType), ActualNotificationType);

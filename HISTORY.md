@@ -1,6 +1,11 @@
 ﻿# Version History
 
-### V2.0.0 - November 17, 2025
+### V2.0.1 - 11 December, 2025
+
+- Updated package dependencies to latest versions for improved security and performance
+- Updated pipeline logging to enhance debug output formatting of generic middleware names
+
+### V2.0.0 - 17November, 2025
 
 -   **.NET 10 Support**: Now supports .NET 10 with multi-targeting for both .NET 9 and .NET 10, providing developers with the latest framework features and performance improvements while maintaining backward compatibility
 -   **OpenTelemetry Middleware Pipeline Enhancement**: Updated OpenTelemetry middleware information traces to show full generic signature for requests, streaming, and notifications

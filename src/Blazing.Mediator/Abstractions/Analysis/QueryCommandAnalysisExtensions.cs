@@ -10,7 +10,7 @@ public static class QueryCommandAnalysisExtensions
 {
     /// <summary>
     /// Gets a normalized, human-readable name for the response type without backticks.
-    /// Converts generic type names like "List`1[User]" to "List<User>".
+    /// Converts generic type names like "List[User]" to "List&lt;User&gt;".
     /// </summary>
     /// <param name="analysis">The QueryCommandAnalysis instance.</param>
     /// <returns>A normalized response type name, or null if there is no response type.</returns>
@@ -22,7 +22,7 @@ public static class QueryCommandAnalysisExtensions
 
     /// <summary>
     /// Gets a normalized, human-readable name for the primary interface without backticks.
-    /// Converts interface names like "IQuery<List`1>" to "IQuery<List<User>>".
+    /// Converts interface names like "IQuery" to "IQuery&lt;List&lt;User&gt;&gt;".
     /// </summary>
     /// <param name="analysis">The QueryCommandAnalysis instance.</param>
     /// <returns>A normalized primary interface name.</returns>
@@ -58,7 +58,7 @@ public static class QueryCommandAnalysisExtensions
 
     /// <summary>
     /// Gets normalized, human-readable names for all handler types without backticks.
-    /// Converts handler names like "GetUsersQueryHandler`1" to "GetUsersQueryHandler<T>".
+    /// Converts handler names like "GetUsersQueryHandler" to "GetUsersQueryHandler&lt;T&gt;".
     /// </summary>
     /// <param name="analysis">The QueryCommandAnalysis instance.</param>
     /// <returns>A list of normalized handler type names.</returns>
@@ -138,7 +138,8 @@ public static class QueryCommandAnalysisExtensions
     /// </summary>
     /// <param name="analysis">The QueryCommandAnalysis instance.</param>
     /// <returns>A list of fully qualified handler type names.</returns>
-    public static IReadOnlyList<string> GetFullyQualifiedHandlerNames(this QueryCommandAnalysis analysis)
+    public static IReadOnlyList<string> GetFullyQualifiedHandlerNames(this QueryCommandAnalysis analysis
+    )
     {
         ArgumentNullException.ThrowIfNull(analysis);
         return analysis.Handlers.Select(h => h.FormatTypeNameWithNamespace()).ToList();
@@ -153,7 +154,7 @@ public static class NotificationAnalysisExtensions
 {
     /// <summary>
     /// Gets normalized, human-readable names for all handler types without backticks.
-    /// Converts handler names like "OrderCreatedNotificationHandler`1" to "OrderCreatedNotificationHandler<T>".
+    /// Converts handler names like "OrderCreatedNotificationHandler" to "OrderCreatedNotificationHandler&lt;T&gt;".
     /// </summary>
     /// <param name="analysis">The NotificationAnalysis instance.</param>
     /// <returns>A list of normalized handler type names.</returns>
@@ -291,7 +292,7 @@ internal static class TypeFormattingExtensions
 
     /// <summary>
     /// Formats a Type to a human-readable string with namespace and without backticks.
-    /// Converts "System.Collections.Generic.List`1[MyNamespace.User]" to "System.Collections.Generic.List<MyNamespace.User>".
+    /// Converts "System.Collections.Generic.List[MyNamespace.User]" to "System.Collections.Generic.List&lt;MyNamespace.User&gt;".
     /// </summary>
     /// <param name="type">The Type to format.</param>
     /// <returns>A formatted type name with namespace.</returns>

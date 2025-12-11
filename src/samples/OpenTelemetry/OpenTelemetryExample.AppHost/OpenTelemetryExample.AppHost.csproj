@@ -4,6 +4,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <UserSecretsId>03f15814-f01b-4b11-90d1-71596ea746d2</UserSecretsId>
   </PropertyGroup>
 

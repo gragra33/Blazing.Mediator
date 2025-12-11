@@ -47,7 +47,7 @@ public class StreamContactsHandlerTests
         var results = new List<ContactDto>();
 
         // Act
-        await foreach (var contact in _mediator.SendStream(request).ConfigureAwait(false))
+        await foreach (var contact in _mediator.SendStream(request))
         {
             results.Add(contact);
         }
@@ -72,7 +72,7 @@ public class StreamContactsHandlerTests
         var results = new List<ContactDto>();
 
         // Act
-        await foreach (var contact in _mediator.SendStream(request).ConfigureAwait(false))
+        await foreach (var contact in _mediator.SendStream(request))
         {
             results.Add(contact);
         }
@@ -98,7 +98,7 @@ public class StreamContactsHandlerTests
         // Act & Assert
         try
         {
-            await foreach (var contact in _mediator.SendStream(request, cancellationTokenSource.Token).ConfigureAwait(false))
+            await foreach (var contact in _mediator.SendStream(request, cancellationTokenSource.Token))
             {
                 results.Add(contact);
                 if (results.Count == 5) // Cancel after 5 items
@@ -125,7 +125,7 @@ public class StreamContactsHandlerTests
         var results = new List<StreamResponse<ContactDto>>();
 
         // Act
-        await foreach (var response in _mediator.SendStream(request).ConfigureAwait(false))
+        await foreach (var response in _mediator.SendStream(request))
         {
             results.Add(response);
         }
@@ -151,7 +151,7 @@ public class StreamContactsHandlerTests
         var request = new GetContactCountRequest();
 
         // Act
-        var count = await _mediator.Send(request).ConfigureAwait(false);
+        var count = await _mediator.Send(request);
 
         // Assert - Mock_Contacts.json contains exactly 50 contacts
         count.ShouldBe(50);
@@ -164,7 +164,7 @@ public class StreamContactsHandlerTests
         var request = new GetAllContactsRequest();
 
         // Act
-        var contacts = await _mediator.Send(request).ConfigureAwait(false);
+        var contacts = await _mediator.Send(request);
 
         // Assert - Mock_Contacts.json contains exactly 50 contacts
         contacts.ShouldNotBeNull();
@@ -185,7 +185,7 @@ public class StreamContactsHandlerTests
         var request = new GetAllContactsRequest { SearchTerm = "doe" };
 
         // Act
-        var contacts = await _mediator.Send(request).ConfigureAwait(false);
+        var contacts = await _mediator.Send(request);
 
         // Assert
         contacts.ShouldNotBeNull();

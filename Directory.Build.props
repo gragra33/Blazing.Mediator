@@ -11,11 +11,11 @@
 
 
     <!-- Default versioning (can be overridden in individual projects) -->
-    <ApplicationDisplayVersion>2.0.0</ApplicationDisplayVersion>
-    <ApplicationVersion>2</ApplicationVersion>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.0.0.0</FileVersion>
-    <Version>2.0.0</Version>
+    <ApplicationDisplayVersion>2.0.1</ApplicationDisplayVersion>
+    <ApplicationVersion>2,0,1</ApplicationVersion>
+    <AssemblyVersion>2.0.1.0</AssemblyVersion>
+    <FileVersion>2.0.1.0</FileVersion>
+    <Version>2.0.1</Version>
 
     <!-- Repository information -->
     <RepositoryUrl>https://github.com/gragra33/Blazing.Mediator</RepositoryUrl>

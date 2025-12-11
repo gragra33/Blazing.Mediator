@@ -13,7 +13,7 @@ public sealed class NotificationPipelineBuilder
     /// <summary>
     /// CRTP pattern implementation for fluent API.
     /// </summary>
-    protected override NotificationPipelineBuilder Self => this;
+    protected NotificationPipelineBuilder Self => this;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NotificationPipelineBuilder"/> class with optional logging.

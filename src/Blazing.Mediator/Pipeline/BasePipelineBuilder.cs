@@ -20,13 +20,7 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
     private static readonly ConcurrentDictionary<Type, bool> _genericTypeCache = new();
 
     // Constants to avoid magic strings
-    private const string OrderPropertyName = "Order";
-    private const string OrderAttributeName = "OrderAttribute";
-
-    /// <summary>
-    /// CRTP pattern property for fluent API support
-    /// </summary>
-    protected abstract TBuilder Self { get; }
+    private const string _orderPropertyName = "Order";
 
     /// <summary>
     /// Initializes a new instance of the BasePipelineBuilder.
@@ -87,7 +81,7 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
         Type typeToCheck = middlewareType;
 
         // Try to get order from a static Order property first
-        var orderProperty = typeToCheck.GetProperty(OrderPropertyName, BindingFlags.Public | BindingFlags.Static);
+        var orderProperty = typeToCheck.GetProperty(_orderPropertyName, BindingFlags.Public | BindingFlags.Static);
         if (orderProperty != null && orderProperty.PropertyType == typeof(int))
         {
             try

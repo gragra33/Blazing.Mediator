@@ -15,11 +15,11 @@ public class ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
     public async Task GetContactCount_ReturnsValidCount()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/count").ConfigureAwait(false);
+        var response = await _client.GetAsync("/api/contacts/count");
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var content = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<dynamic>(content);
 
         // Should return a count object
@@ -30,13 +30,13 @@ public class ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
     public async Task GetAllContacts_ReturnsBulkContactData()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/all").ConfigureAwait(false);
+        var response = await _client.GetAsync("/api/contacts/all");
 
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
 
-        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var content = await response.Content.ReadAsStringAsync();
         var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -57,11 +57,11 @@ public class ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
     public async Task GetAllContacts_WithSearchTerm_ReturnsFilteredResults()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/all?search=john").ConfigureAwait(false);
+        var response = await _client.GetAsync("/api/contacts/all?search=john");
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var content = await response.Content.ReadAsStringAsync();
         var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -83,13 +83,13 @@ public class ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
     public async Task StreamContacts_ReturnsJsonStreamData()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/stream").ConfigureAwait(false);
+        var response = await _client.GetAsync("/api/contacts/stream");
 
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
 
-        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var content = await response.Content.ReadAsStringAsync();
         var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -110,11 +110,11 @@ public class ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
     public async Task StreamContacts_WithSearchTerm_ReturnsFilteredStream()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/stream?search=doe").ConfigureAwait(false);
+        var response = await _client.GetAsync("/api/contacts/stream?search=doe");
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var content = await response.Content.ReadAsStringAsync();
         var contacts = JsonSerializer.Deserialize<ContactDto[]>(content, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -136,13 +136,13 @@ public class ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
     public async Task StreamContactsSSE_ReturnsServerSentEvents()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/stream/sse").ConfigureAwait(false);
+        var response = await _client.GetAsync("/api/contacts/stream/sse");
 
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("text/event-stream");
 
-        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var content = await response.Content.ReadAsStringAsync();
 
         // Verify SSE format
         content.ShouldContain("event: start");
@@ -180,13 +180,13 @@ public class ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
     public async Task StreamContactsSSE_WithSearchTerm_ReturnsFilteredSSE()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/stream/sse?search=china").ConfigureAwait(false);
+        var response = await _client.GetAsync("/api/contacts/stream/sse?search=china");
 
         // Assert
         response.EnsureSuccessStatusCode();
         response.Content.Headers.ContentType?.MediaType.ShouldBe("text/event-stream");
 
-        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var content = await response.Content.ReadAsStringAsync();
 
         // Verify SSE format and filtering
         content.ShouldContain("event: start");
@@ -236,11 +236,11 @@ public class ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
     public async Task StreamContactsSSE_IncludesProgressEvents()
     {
         // Act
-        var response = await _client.GetAsync("/api/contacts/stream/sse").ConfigureAwait(false);
+        var response = await _client.GetAsync("/api/contacts/stream/sse");
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var content = await response.Content.ReadAsStringAsync();
 
         // Should include progress events for datasets with batch processing
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -272,7 +272,7 @@ public class ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
             tasks.Add(_client.GetAsync("/api/contacts/stream"));
         }
 
-        var responses = await Task.WhenAll(tasks).ConfigureAwait(false);
+        var responses = await Task.WhenAll(tasks);
 
         // Assert
         responses.ShouldAllBe(r => r.IsSuccessStatusCode);
@@ -293,7 +293,7 @@ public class ContactEndpointsTests(StreamingApiWebApplicationFactory factory)
         foreach (var testCase in testCases)
         {
             // Act
-            var response = await _client.GetAsync(testCase).ConfigureAwait(false);
+            var response = await _client.GetAsync(testCase);
 
             // Assert
             response.EnsureSuccessStatusCode();

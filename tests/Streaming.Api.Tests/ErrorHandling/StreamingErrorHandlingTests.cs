@@ -17,9 +17,9 @@ public class StreamingErrorHandlingTests(StreamingApiWebApplicationFactory facto
         var longSearchTerm = new string('a', 1000); // 1000 character search term
 
         // Act & Assert - Should handle gracefully without crashing
-        var response1 = await _client.GetAsync($"/api/contacts/all?search={longSearchTerm}").ConfigureAwait(false);
-        var response2 = await _client.GetAsync($"/api/contacts/stream?search={longSearchTerm}").ConfigureAwait(false);
-        var response3 = await _client.GetAsync($"/api/contacts/stream/sse?search={longSearchTerm}").ConfigureAwait(false);
+        var response1 = await _client.GetAsync($"/api/contacts/all?search={longSearchTerm}");
+        var response2 = await _client.GetAsync($"/api/contacts/stream?search={longSearchTerm}");
+        var response3 = await _client.GetAsync($"/api/contacts/stream/sse?search={longSearchTerm}");
 
         response1.EnsureSuccessStatusCode();
         response2.EnsureSuccessStatusCode();
@@ -46,8 +46,8 @@ public class StreamingErrorHandlingTests(StreamingApiWebApplicationFactory facto
         {
             // Act
             var encodedSearchTerm = Uri.EscapeDataString(searchTerm);
-            var response1 = await _client.GetAsync($"/api/contacts/all?search={encodedSearchTerm}").ConfigureAwait(false);
-            var response2 = await _client.GetAsync($"/api/contacts/stream?search={encodedSearchTerm}").ConfigureAwait(false);
+            var response1 = await _client.GetAsync($"/api/contacts/all?search={encodedSearchTerm}");
+            var response2 = await _client.GetAsync($"/api/contacts/stream?search={encodedSearchTerm}");
 
             // Assert
             response1.EnsureSuccessStatusCode();
@@ -62,24 +62,24 @@ public class StreamingErrorHandlingTests(StreamingApiWebApplicationFactory facto
         var cts = new CancellationTokenSource();
 
         // Act - Start SSE stream and cancel quickly
-        using var response = await _client.GetAsync("/api/contacts/stream/sse", HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
+        using var response = await _client.GetAsync("/api/contacts/stream/sse", HttpCompletionOption.ResponseHeadersRead, cts.Token);
         response.EnsureSuccessStatusCode();
 
-        await using var stream = await response.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
+        await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
         using var reader = new StreamReader(stream);
 
         // Read a few lines then cancel
         var linesRead = 0;
         try
         {
-            while (linesRead < 5 && await reader.ReadLineAsync(cts.Token).ConfigureAwait(false) != null)
+            while (linesRead < 5 && await reader.ReadLineAsync(cts.Token) != null)
             {
                 linesRead++;
             }
             await cts.CancelAsync(); // Simulate client disconnection
 
             // Try to read more - should handle cancellation gracefully
-            await reader.ReadLineAsync(cts.Token).ConfigureAwait(false);
+            await reader.ReadLineAsync(cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -97,9 +97,9 @@ public class StreamingErrorHandlingTests(StreamingApiWebApplicationFactory facto
         var noResultsSearchTerm = "zzzznonexistentterm12345";
 
         // Act
-        var response1 = await _client.GetAsync($"/api/contacts/all?search={noResultsSearchTerm}").ConfigureAwait(false);
-        var response2 = await _client.GetAsync($"/api/contacts/stream?search={noResultsSearchTerm}").ConfigureAwait(false);
-        var response3 = await _client.GetAsync($"/api/contacts/stream/sse?search={noResultsSearchTerm}").ConfigureAwait(false);
+        var response1 = await _client.GetAsync($"/api/contacts/all?search={noResultsSearchTerm}");
+        var response2 = await _client.GetAsync($"/api/contacts/stream?search={noResultsSearchTerm}");
+        var response3 = await _client.GetAsync($"/api/contacts/stream/sse?search={noResultsSearchTerm}");
 
         // Assert
         response1.EnsureSuccessStatusCode();
@@ -107,9 +107,9 @@ public class StreamingErrorHandlingTests(StreamingApiWebApplicationFactory facto
         response3.EnsureSuccessStatusCode();
 
         // Verify responses handle empty results gracefully
-        var content1 = await response1.Content.ReadAsStringAsync().ConfigureAwait(false);
-        var content2 = await response2.Content.ReadAsStringAsync().ConfigureAwait(false);
-        var content3 = await response3.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var content1 = await response1.Content.ReadAsStringAsync();
+        var content2 = await response2.Content.ReadAsStringAsync();
+        var content3 = await response3.Content.ReadAsStringAsync();
 
         // Should return empty arrays or appropriate empty responses
         var contacts1 = JsonSerializer.Deserialize<ContactDto[]>(content1, new JsonSerializerOptions
@@ -133,9 +133,9 @@ public class StreamingErrorHandlingTests(StreamingApiWebApplicationFactory facto
     public async Task StreamEndpoints_HandleInvalidHttpMethods()
     {
         // Act & Assert - Test non-GET methods
-        var postResponse = await _client.PostAsync("/api/contacts/stream", null).ConfigureAwait(false);
-        var putResponse = await _client.PutAsync("/api/contacts/stream", null).ConfigureAwait(false);
-        var deleteResponse = await _client.DeleteAsync("/api/contacts/stream").ConfigureAwait(false);
+        var postResponse = await _client.PostAsync("/api/contacts/stream", null);
+        var putResponse = await _client.PutAsync("/api/contacts/stream", null);
+        var deleteResponse = await _client.DeleteAsync("/api/contacts/stream");
 
         postResponse.StatusCode.ShouldBe(HttpStatusCode.MethodNotAllowed);
         putResponse.StatusCode.ShouldBe(HttpStatusCode.MethodNotAllowed);
@@ -157,7 +157,7 @@ public class StreamingErrorHandlingTests(StreamingApiWebApplicationFactory facto
         foreach (var url in malformedUrls)
         {
             // Act
-            var response = await _client.GetAsync(url).ConfigureAwait(false);
+            var response = await _client.GetAsync(url);
 
             // Assert - Should handle gracefully, not crash
             response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest);
@@ -175,14 +175,14 @@ public class StreamingErrorHandlingTests(StreamingApiWebApplicationFactory facto
         try
         {
             // Act
-            using var response = await _client.GetAsync("/api/contacts/stream/sse", HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
+            using var response = await _client.GetAsync("/api/contacts/stream/sse", HttpCompletionOption.ResponseHeadersRead, cts.Token);
             response.EnsureSuccessStatusCode();
 
-            await using var stream = await response.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
+            await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
             using var reader = new StreamReader(stream);
 
             string? line;
-            while ((line = await reader.ReadLineAsync(cts.Token).ConfigureAwait(false)) != null && !cts.Token.IsCancellationRequested)
+            while ((line = await reader.ReadLineAsync(cts.Token)) != null && !cts.Token.IsCancellationRequested)
             {
                 if (line.StartsWith("data: {"))
                 {
@@ -215,13 +215,13 @@ public class StreamingErrorHandlingTests(StreamingApiWebApplicationFactory facto
             tasks.Add(_client.GetAsync("/api/contacts/count"));
         }
 
-        var responses = await Task.WhenAll(tasks).ConfigureAwait(false);
+        var responses = await Task.WhenAll(tasks);
 
         // Assert
         responses.ShouldAllBe(r => r.IsSuccessStatusCode);
 
         // All responses should return the same count
-        var contents = await Task.WhenAll(responses.Select(r => r.Content.ReadAsStringAsync())).ConfigureAwait(false);
+        var contents = await Task.WhenAll(responses.Select(r => r.Content.ReadAsStringAsync()));
         var firstContent = contents.First();
         contents.ShouldAllBe(c => c == firstContent);
     }
@@ -236,15 +236,15 @@ public class StreamingErrorHandlingTests(StreamingApiWebApplicationFactory facto
         // Act & Assert - Very short timeout should trigger cancellation
         await Should.ThrowAsync<OperationCanceledException>(async () =>
         {
-            var response = await _client.GetAsync("/api/contacts/stream/sse", cts.Token).ConfigureAwait(false);
-            await using var stream = await response.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
+            var response = await _client.GetAsync("/api/contacts/stream/sse", cts.Token);
+            await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
             using var reader = new StreamReader(stream);
 
             // Try to read the entire stream with short timeout
-            while (await reader.ReadLineAsync(cts.Token).ConfigureAwait(false) != null)
+            while (await reader.ReadLineAsync(cts.Token) != null)
             {
                 // Keep reading until timeout
             }
-        }).ConfigureAwait(false);
+        });
     }
 }

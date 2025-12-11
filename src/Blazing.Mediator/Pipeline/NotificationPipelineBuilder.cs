@@ -597,7 +597,7 @@ public sealed class NotificationPipelineBuilder
     /// </summary>
     /// <param name="middlewareType">The middleware type to add.</param>
     /// <param name="configuration">Optional configuration object.</param>
-    protected new void AddMiddlewareCore(Type middlewareType, object? configuration = null)
+    private new void AddMiddlewareCore(Type middlewareType, object? configuration = null)
     {
         // Use base class order calculation with context-aware caching for optimal performance
         // This ensures consistent behavior across both pipeline types while maintaining performance

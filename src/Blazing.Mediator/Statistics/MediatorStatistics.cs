@@ -657,7 +657,7 @@ public sealed class MediatorStatistics : IDisposable
                 handlers.AddRange(handlerServices.Select(h => h?.GetType()).Distinct()!);
             }
         }
-        catch (Exception ex)
+        catch
         {
             // For debugging: log the exception details (in production this would be logged)
             //Debug.WriteLine($"Error finding handlers for {requestType.Name}: {ex.Message}");
@@ -808,7 +808,7 @@ public sealed class MediatorStatistics : IDisposable
             var handlerServices = serviceProvider.GetServices(handlerInterfaceType);
             handlers.AddRange(handlerServices.Where(h => h != null).Select(h => h!.GetType()).Distinct());
         }
-        catch (Exception ex)
+        catch
         {
             // For debugging: log the exception details
             //Debug.WriteLine($"Error finding handlers for notification {notificationType.Name}: {ex.Message}");

@@ -1,5 +1,4 @@
 using Blazing.Mediator;
-using Blazing.Mediator;
 using System.Text.Json;
 
 namespace UserManagement.Api.Application.Middleware;

@@ -155,15 +155,15 @@ public class NotificationHandlerInterfaceTests
     }
 
     [Fact]
-    public void ExceptionThrowingHandler_CanThrowExceptions()
+    public async Task ExceptionThrowingHandler_CanThrowExceptions()
     {
         // Arrange
         var handler = new ExceptionThrowingHandler();
         var notification = new TestNotification("Test message");
 
         // Act & Assert
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(notification));
-        Assert.Equal("Test exception", exception.Result.Message);
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(notification));
+        Assert.Equal("Test exception", exception.Message);
     }
 
     [Fact]

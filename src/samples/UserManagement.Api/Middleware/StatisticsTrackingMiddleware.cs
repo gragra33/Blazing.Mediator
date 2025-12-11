@@ -1,5 +1,4 @@
 using Blazing.Mediator;
-using Blazing.Mediator;
 using UserManagement.Api.Services;
 
 namespace UserManagement.Api.Middleware;

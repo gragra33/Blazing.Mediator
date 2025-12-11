@@ -7,7 +7,7 @@ using System.Diagnostics.Metrics;
 namespace Blazing.Mediator;
 
 /// <summary>
-/// Implementation of the Mediator pattern that dispatches requests to their corresponding handlers and publishes notifications to handlers & subscribers.
+/// Implementation of the Mediator pattern that dispatches requests to their corresponding handlers and publishes notifications to handlers &amp; subscribers.
 /// </summary>
 /// <remarks>
 /// The Mediator class serves as a centralized dispatcher that decouples senders from receivers for both requests (commands, queries, streams) and notifications.

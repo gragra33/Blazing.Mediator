@@ -1,5 +1,4 @@
 using Blazing.Mediator;
-using Blazing.Mediator;
 using System.Runtime.CompilerServices;
 
 namespace OpenTelemetryExample.Application.Middleware;

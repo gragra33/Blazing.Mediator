@@ -175,11 +175,7 @@ public class NotificationTelemetryTests : IDisposable
         activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
         activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
         activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => 
-        {
-            testActivities.Add(activity);
-            Console.WriteLine($"Activity recorded: {activity.DisplayName} with tags: {string.Join(", ", activity.Tags.Select(t => $"{t.Key}={t.Value}"))}");
-        };
+        activityListener.ActivityStopped = activity => testActivities.Add(activity);
         ActivitySource.AddActivityListener(activityListener);
 
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -281,28 +277,34 @@ public class NotificationTelemetryTests : IDisposable
     [Fact]
     public async Task Publish_Should_Record_Success_Metrics()
     {
-        // Arrange - Use completely isolated service provider to avoid cross-contamination
+        // Arrange - Use completely isolated service provider with unique notification type to avoid cross-contamination
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
         services.AddMediator(); // No discovery to avoid cross-contamination
-        services.AddSingleton<INotificationHandler<TestNotification>, TestNotificationHandler>();
+        
+        // Use a unique notification type for this specific test to ensure complete isolation
+        services.AddSingleton<INotificationHandler<SuccessMetricsTestNotification>, SuccessMetricsTestHandler>();
 
         await using var serviceProvider = services.BuildServiceProvider();
         
         // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
+        var testActivities = new ConcurrentBag<Activity>();
         using var activityListener = new ActivityListener();
 
+        // Create a unique ID for this test run to ensure we only capture our activities
+        var testRunId = Guid.NewGuid().ToString("N")[..8];
+        
         activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
         activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
         activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
+        activityListener.ActivityStopped = activity => testActivities.Add(activity)
+        ;
         ActivitySource.AddActivityListener(activityListener);
 
         var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var testHandler = serviceProvider.GetRequiredService<INotificationHandler<TestNotification>>() as TestNotificationHandler;
-        var notification = new TestNotification { Message = "Test success metrics" };
+        var testHandler = serviceProvider.GetRequiredService<INotificationHandler<SuccessMetricsTestNotification>>() as SuccessMetricsTestHandler;
+        var notification = new SuccessMetricsTestNotification { Message = $"Test success metrics {testRunId}" };
 
         // Act
         await mediator.Publish(notification);
@@ -310,10 +312,17 @@ public class NotificationTelemetryTests : IDisposable
         // Wait for activities to be recorded
         await Task.Delay(100);
 
-        // Assert
-        var activity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("TestNotification"));
-        activity.ShouldNotBeNull();
-        activity.Status.ShouldBe(ActivityStatusCode.Ok);
+        // Assert - Be very specific about finding OUR activity by looking for the unique notification type name
+        var activity = testActivities.FirstOrDefault(a => 
+            a.DisplayName.Contains("SuccessMetricsTestNotification", StringComparison.Ordinal) &&
+            !a.DisplayName.Contains("Handler")); // Exclude handler child spans
+            
+        activity.ShouldNotBeNull("Activity for SuccessMetricsTestNotification should be created");
+        
+        // Verify the activity status is Ok (this is what was failing intermittently)
+        activity.Status.ShouldBe(ActivityStatusCode.Ok, 
+            $"Activity status should be Ok. Activity: {activity.DisplayName}, " +
+            $"Tags: {string.Join(", ", activity.Tags.Select(t => $"{t.Key}={t.Value}"))}");
         
         // Verify handler execution
         testHandler.ShouldNotBeNull();
@@ -707,6 +716,31 @@ public class NotificationTelemetryTests : IDisposable
         public bool LastSuccess { get; private set; }
 
         public async Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            LastSuccess = true;
+            await Task.Delay(5, cancellationToken); // Simulate work
+        }
+
+        public void Reset()
+        {
+            CallCount = 0;
+            LastSuccess = false;
+        }
+    }
+
+    // Unique notification type for success metrics test to ensure complete isolation
+    public class SuccessMetricsTestNotification : INotification
+    {
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class SuccessMetricsTestHandler : INotificationHandler<SuccessMetricsTestNotification>
+    {
+        public int CallCount { get; private set; }
+        public bool LastSuccess { get; private set; }
+
+        public async Task Handle(SuccessMetricsTestNotification notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
             LastSuccess = true;

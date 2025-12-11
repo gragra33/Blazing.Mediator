@@ -24,7 +24,7 @@
     <Authors>Graeme Grant (@gragra33)</Authors>
   
 	<!-- Global warning suppressions -->
-    <NoWarn>$(NoWarn);NETSDK1057;NU1608;CS1591</NoWarn>
+    <NoWarn>$(NoWarn);NETSDK1057;NU1608;CS1591;NU1605</NoWarn>
     
     <!-- Treat all warnings as errors -->
     <!--- <TreatWarningsAsErrors>true</TreatWarningsAsErrors> -->

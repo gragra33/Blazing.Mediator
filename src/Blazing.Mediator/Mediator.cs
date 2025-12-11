@@ -263,7 +263,7 @@ public sealed class Mediator : IMediator
             _logger?.SendRequestTypeClassification(requestType.Name, "command");
 
             // Debug logging: Handler resolution
-            _logger?.SendHandlerResolution(handlerType.Name, requestType.Name);
+            _logger?.SendHandlerResolution(PipelineUtilities.FormatTypeName(handlerType), requestType.Name);
 
             // Get middleware pipeline information for telemetry
             if (IsTelemetryEnabled && ShouldCaptureMiddlewareDetails && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
@@ -481,7 +481,7 @@ public sealed class Mediator : IMediator
             Type handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
 
             // Debug logging: Handler resolution
-            _logger?.SendHandlerResolution(handlerType.Name, requestType.Name);
+            _logger?.SendHandlerResolution(PipelineUtilities.FormatTypeName(handlerType), requestType.Name);
 
             // Get middleware pipeline information for telemetry
             if (IsTelemetryEnabled && ShouldCaptureMiddlewareDetails && _pipelineBuilder is IMiddlewarePipelineInspector inspector)
@@ -663,7 +663,7 @@ public sealed class Mediator : IMediator
         Type handlerType = typeof(IStreamRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
 
         // Debug logging: Stream handler resolution
-        _logger?.SendStreamHandlerResolution(handlerType.Name, requestType.Name);
+        _logger?.SendStreamHandlerResolution(PipelineUtilities.FormatTypeName(handlerType), requestType.Name);
 
         // Create final handler delegate that executes the actual stream handler
         IAsyncEnumerable<TResponse> FinalHandler()

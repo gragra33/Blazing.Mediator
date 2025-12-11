@@ -62,6 +62,8 @@
     <PackageVersion Include="System.Text.Json" Version="9.0.7" />
     <PackageVersion Include="System.Net.Http.Json" Version="9.0.7" />
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="9.0.7" />
+    <!-- SourceLink package for symbol publishing -->
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <!-- Stream processing packages -->
     <PackageVersion Include="Utf8JsonAsyncStreamReader" Version="1.0.0" />
   </ItemGroup>

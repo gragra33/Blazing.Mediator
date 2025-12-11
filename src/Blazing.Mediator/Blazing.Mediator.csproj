@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>Blazing.Mediator</PackageId>
     <Product>Blazing.Mediator</Product>
     <Description>A high-performance, feature-rich implementation of the Mediator pattern for .NET applications. Built for modern development with comprehensive CQRS support, advanced middleware pipelines, real-time streaming, event-driven architecture, and full observability. Features include OpenTelemetry integration with distributed tracing and metrics collection, extensive debug logging infrastructure, advanced statistics tracking, fluent configuration API with environment-aware settings, type-constrained middleware for selective execution, comprehensive notification system with hybrid patterns, native streaming capabilities with IAsyncEnumerable support, and automatic handler discovery. Perfect for cloud-native applications requiring high performance, comprehensive observability, and production-ready architecture patterns.</Description>
@@ -11,6 +12,8 @@
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
     <PackageReleaseNotes>Version 2.0.0: Added Net 10 support; new MiddlewareAnalysisExtensions and QueryCommandAnalysisExtensions extension helpers for comprehensive type normalization. Fixed edge case bug in RegistrationService with generic type definitions. New AnalyzerExample demonstrates analyzer capabilities across 92 components in 5 projects with enhanced debugging tools and missing handler detection. Improved developer experience with visual missing handler identification and comprehensive pipeline analysis capabilities.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,16 +22,12 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Include main README in the package -->
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
-    
-    <!-- Include LICENSE file -->
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
-    
-    <!-- Include contributing and other important files -->
     <None Include="..\..\CONTRIBUTING.md" Pack="true" PackagePath="\" />
     <None Include="..\..\CODE_OF_CONDUCT.md" Pack="true" PackagePath="\" />
     <None Include="..\..\HISTORY.md" Pack="true" PackagePath="\" />

@@ -1,7 +1,8 @@
 namespace TypedNotificationHandlerExample.Services;
 
 public class NotificationPipelineDisplayer(
-    INotificationMiddlewarePipelineInspector pipelineInspector,
+    IMediatorTypeCatalog catalog,
+    MediatorStatistics mediatorStatistics,
     IServiceProvider serviceProvider)
 {
     /// <summary>
@@ -98,7 +99,7 @@ public class NotificationPipelineDisplayer(
     {
         try
         {
-            var middlewareInfo = pipelineInspector.AnalyzeMiddleware(serviceProvider);
+            var middlewareInfo = mediatorStatistics.AnalyzeNotificationMiddleware(catalog);
             
             Console.WriteLine($">> {friendlyName}:");
             

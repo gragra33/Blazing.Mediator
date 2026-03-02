@@ -14,7 +14,7 @@ public class NotificationMetricsMiddleware(ILogger<NotificationMetricsMiddleware
     private static readonly Dictionary<string, MetricData> _metrics = new();
     private static readonly object _lock = new();
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {

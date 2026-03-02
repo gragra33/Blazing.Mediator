@@ -9,7 +9,7 @@ public class NotificationErrorHandlingMiddleware(ILogger<NotificationErrorHandli
 {
     public int Order => int.MinValue; // Execute first
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {

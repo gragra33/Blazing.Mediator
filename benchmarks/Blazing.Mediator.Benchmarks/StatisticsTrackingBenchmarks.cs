@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
+using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Benchmarks;
@@ -33,16 +34,15 @@ public class StatisticsTrackingBenchmarks
 
         // Setup mediator WITHOUT statistics tracking
         var servicesWithoutStats = new ServiceCollection();
-        servicesWithoutStats.AddMediator(typeof(StatisticsTrackingBenchmarks).Assembly);
+        servicesWithoutStats.AddMediator();
         var providerWithoutStats = servicesWithoutStats.BuildServiceProvider();
         _mediatorWithoutStats = providerWithoutStats.GetRequiredService<IMediator>();
 
         // Setup mediator WITH statistics tracking
         var servicesWithStats = new ServiceCollection();
-        servicesWithStats.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, typeof(StatisticsTrackingBenchmarks).Assembly);
+        var statsConfig = new MediatorConfiguration();
+        statsConfig.WithStatisticsTracking();
+        servicesWithStats.AddMediator(statsConfig);
 
         var providerWithStats = servicesWithStats.BuildServiceProvider();
         _mediatorWithStats = providerWithStats.GetRequiredService<IMediator>();
@@ -216,7 +216,7 @@ public class StatisticsTrackingBenchmarks
 
     public class StatisticsTestCommandHandler : IRequestHandler<StatisticsTestCommand>
     {
-        public async Task Handle(StatisticsTestCommand request, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(StatisticsTestCommand request, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken);
         }
@@ -229,7 +229,7 @@ public class StatisticsTrackingBenchmarks
 
     public class StatisticsTestQueryHandler : IRequestHandler<StatisticsTestQuery, string>
     {
-        public async Task<string> Handle(StatisticsTestQuery request, CancellationToken cancellationToken = default)
+        public async ValueTask<string> Handle(StatisticsTestQuery request, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken);
             return $"Processed: {request.Value}";

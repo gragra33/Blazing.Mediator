@@ -32,13 +32,13 @@ public class StreamProcessingBenchmarks
 
         // Setup mediator WITHOUT stream middleware
         var servicesNoMiddleware = new ServiceCollection();
-        servicesNoMiddleware.AddMediator(typeof(StreamProcessingBenchmarks).Assembly);
+        servicesNoMiddleware.AddMediator();
         var providerNoMiddleware = servicesNoMiddleware.BuildServiceProvider();
         _mediatorNoMiddleware = providerNoMiddleware.GetRequiredService<IMediator>();
 
         // Setup mediator WITH stream middleware
         var servicesWithMiddleware = new ServiceCollection();
-        servicesWithMiddleware.AddMediator(typeof(StreamProcessingBenchmarks).Assembly);
+        servicesWithMiddleware.AddMediator();
         servicesWithMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(StreamLoggingMiddleware<,>));
         var providerWithMiddleware = servicesWithMiddleware.BuildServiceProvider();
         _mediatorWithMiddleware = providerWithMiddleware.GetRequiredService<IMediator>();
@@ -401,7 +401,7 @@ public class StreamProcessingBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // For stream requests, we just pass through to the handler
             // Stream-specific middleware would need to be implemented differently

@@ -1,6 +1,7 @@
 using System.Reflection;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
+using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests.Tests;
 
@@ -52,7 +53,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediator(_ => { }, enableStatisticsTracking: true, null!);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -73,7 +74,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediator(_ => { }, enableStatisticsTracking: false, null!);
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -99,7 +100,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         Assembly assembly = typeof(TestCommand).Assembly;
 
         // Act
-        services.AddMediator(config => { config.WithStatisticsTracking(); }, assembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -117,7 +118,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediator(config => { config.WithStatisticsTracking(); }, typeof(TestCommand));
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -136,10 +137,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         Assembly assembly = typeof(TestCommand).Assembly;
 
         // Act
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, assembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -160,7 +158,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorWithNotificationMiddleware(bool, Assembly[]) with statistics tracking.
+    /// Tests AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery()) with statistics tracking.
     /// </summary>
     [Fact]
     public void AddMediatorWithNotificationMiddleware_WithAssemblies_EnablesStatisticsByDefault()
@@ -173,7 +171,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorWithNotificationMiddleware(bool, Type[]) with statistics tracking.
+    /// Tests AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery()) with statistics tracking.
     /// </summary>
     [Fact]
     public void AddMediatorWithNotificationMiddleware_WithTypes_EnablesStatisticsByDefault()
@@ -221,7 +219,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         Assembly assembly = typeof(TestCommand).Assembly;
 
         // Act
-        services.AddMediator(null, enableStatisticsTracking: false, assembly);
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -239,7 +237,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediator(_ => { }, enableStatisticsTracking: true, typeof(TestCommand));
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -257,7 +255,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediator(null, enableStatisticsTracking: true, typeof(TestCommand));
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -275,7 +273,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediator(null, enableStatisticsTracking: false, typeof(TestCommand));
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -294,10 +292,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         Assembly assembly = typeof(TestCommand).Assembly;
 
         // Act
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, assembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -316,7 +311,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         Assembly assembly = typeof(TestCommand).Assembly;
 
         // Act
-        services.AddMediator(null, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -335,7 +330,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         Assembly assembly = typeof(TestCommand).Assembly;
 
         // Act
-        services.AddMediator(null, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -348,7 +343,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     #region Calling Assembly Tests
 
     /// <summary>
-    /// Tests AddMediatorFromCallingAssembly() with statistics tracking.
+    /// Tests AddMediator() with statistics tracking.
     /// </summary>
     [Fact]
     public void AddMediatorFromCallingAssembly_Default_EnablesStatisticsByDefault()
@@ -357,7 +352,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromCallingAssembly(config => config.WithStatisticsTracking());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -366,7 +361,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorFromCallingAssembly(bool) with statistics tracking.
+    /// Tests AddMediator() with statistics tracking.
     /// </summary>
     [Fact]
     public void AddMediatorFromCallingAssembly_WithDiscoverMiddleware_EnablesStatisticsByDefault()
@@ -375,7 +370,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromCallingAssembly(config => config.WithStatisticsTracking());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -384,7 +379,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorFromCallingAssembly(Action) with statistics tracking disabled by default.
+    /// Tests AddMediator() with statistics tracking disabled by default.
     /// </summary>
     [Fact]
     public void AddMediatorFromCallingAssembly_WithConfiguration_DisablesStatisticsByDefault()
@@ -393,7 +388,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromCallingAssembly(_ => { });
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -402,7 +397,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorFromCallingAssembly(Action, bool) with statistics tracking.
+    /// Tests AddMediator() with statistics tracking.
     /// </summary>
     [Fact]
     public void AddMediatorFromCallingAssembly_WithConfigurationAndDiscoverMiddleware_EnablesStatisticsByDefault()
@@ -411,7 +406,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromCallingAssembly(config => config.WithStatisticsTracking());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -420,7 +415,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorFromCallingAssembly(Action, bool, bool, bool) with statistics enabled.
+    /// Tests AddMediator() with statistics enabled.
     /// </summary>
     [Fact]
     public void AddMediatorFromCallingAssembly_WithAllParametersAndStatisticsEnabled_EnablesStatisticsTracking()
@@ -429,7 +424,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromCallingAssembly(null, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -438,7 +433,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorFromCallingAssembly(Action, bool, bool, bool) with statistics disabled.
+    /// Tests AddMediator() with statistics disabled.
     /// </summary>
     [Fact]
     public void AddMediatorFromCallingAssembly_WithAllParametersAndStatisticsDisabled_DisablesStatisticsTracking()
@@ -447,7 +442,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromCallingAssembly(null, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false);
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -460,7 +455,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     #region Loaded Assemblies Tests
 
     /// <summary>
-    /// Tests AddMediatorFromLoadedAssemblies() with statistics tracking.
+    /// Tests AddMediator() with statistics tracking.
     /// </summary>
     [Fact]
     public void AddMediatorFromLoadedAssemblies_Default_EnablesStatisticsByDefault()
@@ -469,7 +464,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies(config => config.WithStatisticsTracking());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -478,7 +473,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorFromLoadedAssemblies(Func) with statistics tracking.
+    /// Tests AddMediator() with statistics tracking.
     /// </summary>
     [Fact]
     public void AddMediatorFromLoadedAssemblies_WithFilter_EnablesStatisticsByDefault()
@@ -487,7 +482,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies(config => config.WithStatisticsTracking(), assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -496,7 +491,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorFromLoadedAssemblies(bool) with statistics tracking.
+    /// Tests AddMediator() with statistics tracking.
     /// </summary>
     [Fact]
     public void AddMediatorFromLoadedAssemblies_WithDiscoverMiddleware_EnablesStatisticsByDefault()
@@ -505,7 +500,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies(config => config.WithStatisticsTracking());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -514,7 +509,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorFromLoadedAssemblies(Action, Func) with statistics tracking.
+    /// Tests AddMediator() with statistics tracking.
     /// </summary>
     [Fact]
     public void AddMediatorFromLoadedAssemblies_WithConfigurationAndFilter_EnablesStatisticsByDefault()
@@ -523,7 +518,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies(_ => { }, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -532,7 +527,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorFromLoadedAssemblies(Action, bool, Func) with statistics tracking.
+    /// Tests AddMediator() with statistics tracking.
     /// </summary>
     [Fact]
     public void AddMediatorFromLoadedAssemblies_WithConfigurationDiscoverMiddlewareAndFilter_EnablesStatisticsByDefault()
@@ -541,7 +536,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies(null, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -550,7 +545,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorFromLoadedAssemblies(Action, bool, bool, bool, Func) with statistics enabled.
+    /// Tests AddMediator() with statistics enabled.
     /// </summary>
     [Fact]
     public void AddMediatorFromLoadedAssemblies_WithAllParametersAndStatisticsEnabled_EnablesStatisticsTracking()
@@ -559,7 +554,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies(null, enableStatisticsTracking: true, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -568,7 +563,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     }
 
     /// <summary>
-    /// Tests AddMediatorFromLoadedAssemblies(Action, bool, bool, bool, Func) with statistics disabled.
+    /// Tests AddMediator() with statistics disabled.
     /// </summary>
     [Fact]
     public void AddMediatorFromLoadedAssemblies_WithAllParametersAndStatisticsDisabled_DisablesStatisticsTracking()
@@ -577,7 +572,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies(null, enableStatisticsTracking: false, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly => assembly.GetName().Name!.Contains("Blazing.Mediator"));
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -601,7 +596,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         services.AddSingleton<IStatisticsRenderer>(customRenderer);
 
         // Act
-        services.AddMediator(_ => { }, enableStatisticsTracking: true, typeof(TestCommand));
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -623,7 +618,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         services.AddSingleton(customStatistics);
 
         // Act
-        services.AddMediator(_ => { }, enableStatisticsTracking: true, typeof(TestCommand));
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -645,7 +640,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         ServiceCollection services = new();
         var customRenderer = new TestStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(customRenderer);
-        services.AddMediator(_ => { }, enableStatisticsTracking: true, typeof(TestCommand).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -667,7 +662,7 @@ public class ServiceCollectionExtensionsStatisticsTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(_ => { }, enableStatisticsTracking: false, typeof(TestCommand).Assembly);
+        services.AddMediator();
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();

@@ -17,7 +17,7 @@ public class NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware
     /// <param name="next">The next middleware in the pipeline.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
         where TNotification : INotification
     {
         var notificationName = typeof(TNotification).Name;
@@ -82,7 +82,7 @@ public class NotificationMetricsMiddleware : INotificationMiddleware
     /// <param name="next">The next middleware in the pipeline.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
         where TNotification : INotification
     {
         var notificationName = typeof(TNotification).Name;

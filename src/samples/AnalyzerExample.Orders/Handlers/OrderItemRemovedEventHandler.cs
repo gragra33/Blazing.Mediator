@@ -16,7 +16,7 @@ public class OrderItemRemovedEventHandler : INotificationHandler<OrderItemRemove
         _logger = logger;
     }
 
-    public async Task Handle(OrderItemRemovedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderItemRemovedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Item removed from order {OrderId}: Product {ProductName} by {RemovedBy}. Reason: {Reason}",
             notification.OrderId, notification.ProductName, notification.RemovedBy, notification.Reason);

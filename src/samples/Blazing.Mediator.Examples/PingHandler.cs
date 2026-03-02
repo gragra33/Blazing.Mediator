@@ -26,7 +26,7 @@ public class PingHandler : IRequestHandler<Ping, Pong>
     /// <param name="request">The ping request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A pong response.</returns>
-    public async Task<Pong> Handle(Ping request, CancellationToken cancellationToken)
+    public async ValueTask<Pong> Handle(Ping request, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
         Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - PingHandler starting");

@@ -8,7 +8,6 @@ public class Runner
 {
     private readonly IMediator _mediator;
     private readonly ILogger<Runner> _logger;
-    private readonly INotificationMiddlewarePipelineInspector _notificationPipelineInspector;
     private readonly IServiceProvider _serviceProvider;
     private readonly MediatorStatistics _mediatorStatistics;
 
@@ -21,7 +20,6 @@ public class Runner
     public Runner(
         IMediator mediator,
         ILogger<Runner> logger,
-        INotificationMiddlewarePipelineInspector notificationPipelineInspector,
         IServiceProvider serviceProvider,
         MediatorStatistics mediatorStatistics,
         EmailNotificationHandler emailHandler,
@@ -31,7 +29,6 @@ public class Runner
     {
         _mediator = mediator;
         _logger = logger;
-        _notificationPipelineInspector = notificationPipelineInspector;
         _serviceProvider = serviceProvider;
         _mediatorStatistics = mediatorStatistics;
         _emailHandler = emailHandler;
@@ -45,7 +42,9 @@ public class Runner
     /// </summary>
     public void InspectNotificationPipeline()
     {
-        var middlewareAnalysis = NotificationPipelineAnalyzer.AnalyzeMiddleware(_notificationPipelineInspector, _serviceProvider);
+        var middlewareAnalysis = NotificationPipelineAnalyzer.AnalyzeMiddleware(
+            _serviceProvider.GetRequiredService<IMediatorTypeCatalog>(),
+            _mediatorStatistics);
 
         Console.WriteLine("Registered notification middleware:");
         foreach (var middleware in middlewareAnalysis)

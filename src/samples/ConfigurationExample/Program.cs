@@ -55,14 +55,11 @@ public class Program
                 })
                 .ConfigureServices((context, services) =>
                 {
-                    services.AddMediator(config =>
-                    {
-                        // Use environment-aware configuration
-                        config.WithEnvironmentConfiguration(context.Configuration, context.HostingEnvironment)
-                              .AddAssembly(typeof(Program).Assembly);
-                        
-                        Console.WriteLine($"   [+] Configured for {envName} environment");
-                    });
+                    var mediatorConfig = new MediatorConfiguration()
+                        .WithEnvironmentConfiguration(context.Configuration, context.HostingEnvironment)
+                        .AddAssembly(typeof(Program).Assembly);
+                    Console.WriteLine($"   [+] Configured for {envName} environment");
+                    services.AddMediator(mediatorConfig);
 
                     services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
                 })
@@ -112,13 +109,11 @@ public class Program
             })
             .ConfigureServices((context, services) =>
             {
-                services.AddMediator(config =>
-                {
-                    // Apply development preset first
-                    config.WithDevelopmentPreset()
-                          .WithConfiguration(context.Configuration) // Then apply JSON overrides
-                          .AddAssembly(typeof(Program).Assembly);
-                });
+                var mediatorConfig = new MediatorConfiguration()
+                    .WithDevelopmentPreset()
+                    .WithConfiguration(context.Configuration) // Then apply JSON overrides
+                    .AddAssembly(typeof(Program).Assembly);
+                services.AddMediator(mediatorConfig);
 
                 services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
             })
@@ -152,11 +147,10 @@ public class Program
             .UseEnvironment("Development")
             .ConfigureServices((_, services) =>
             {
-                services.AddMediator(config =>
-                {
-                    config.WithDevelopmentPreset()
-                          .AddAssembly(typeof(Program).Assembly);
-                });
+                var mediatorConfig = new MediatorConfiguration()
+                    .WithDevelopmentPreset()
+                    .AddAssembly(typeof(Program).Assembly);
+                services.AddMediator(mediatorConfig);
 
                 services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
             })
@@ -183,7 +177,7 @@ public class Program
             Console.WriteLine("   [!] Validation Errors:");
             foreach (var error in diagnostics.ValidationErrors)
             {
-                Console.WriteLine($"      • {error}");
+                Console.WriteLine($"      ï¿½ {error}");
             }
         }
 
@@ -192,7 +186,7 @@ public class Program
             Console.WriteLine("   [!] Logging Warnings:");
             foreach (var warning in diagnostics.LoggingWarnings)
             {
-                Console.WriteLine($"      • {warning}");
+                Console.WriteLine($"      ï¿½ {warning}");
             }
         }
 
@@ -399,8 +393,8 @@ public record SampleNotification : INotification;
 
 public class SampleNotificationHandler : INotificationHandler<SampleNotification>
 {
-    public Task Handle(SampleNotification notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(SampleNotification notification, CancellationToken cancellationToken = default)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

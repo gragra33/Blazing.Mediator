@@ -16,7 +16,7 @@ public class ErrorHandlingMiddleware<TRequest> : IRequestMiddleware<TRequest>
 
     public int Order => int.MinValue; // Execute first
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         try
         {
@@ -54,7 +54,7 @@ public class ErrorHandlingMiddleware<TRequest, TResponse> : IRequestMiddleware<T
 
     public int Order => int.MinValue; // Execute first
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         try
         {

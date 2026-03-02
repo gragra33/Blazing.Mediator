@@ -3,6 +3,7 @@ global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Logging;
 global using Blazing.Mediator;
+global using Blazing.Mediator.Configuration;
 global using Blazing.Mediator.Statistics;
 global using FluentValidation;
 global using Example.Common;

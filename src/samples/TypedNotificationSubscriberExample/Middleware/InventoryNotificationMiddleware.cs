@@ -9,7 +9,7 @@ public class InventoryNotificationMiddleware(ILogger<InventoryNotificationMiddle
 {
     public int Order => 70;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {

@@ -16,7 +16,7 @@ public class ProductOperationMiddleware<TRequest, TResponse> : IRequestMiddlewar
         _logger = logger;
     }
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var commandType = typeof(TRequest).Name;
         _logger.LogInformation("?? [Products] Starting product operation: {CommandType} for ProductId: {ProductId}", 

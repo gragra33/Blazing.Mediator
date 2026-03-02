@@ -16,7 +16,7 @@ public class ProductCreatedEventHandler : INotificationHandler<ProductCreatedEve
         _logger = logger;
     }
 
-    public async Task Handle(ProductCreatedEvent notification, CancellationToken cancellationToken)
+    public async ValueTask Handle(ProductCreatedEvent notification, CancellationToken cancellationToken)
     {
         _logger.LogInformation("?? [Products] Product created event received: {ProductName} (ID: {ProductId})", 
             notification.ProductName, notification.ProductId);

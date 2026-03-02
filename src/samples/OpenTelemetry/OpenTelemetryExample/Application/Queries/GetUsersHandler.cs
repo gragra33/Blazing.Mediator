@@ -1,4 +1,4 @@
-﻿using Blazing.Mediator;
+using Blazing.Mediator;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetryExample.Infrastructure.Data;
 using OpenTelemetryExample.Infrastructure.Telemetry;
@@ -15,7 +15,7 @@ internal sealed class GetUsersHandler(ApplicationDbContext context, ILogger<GetU
 {
     private const string ActivityName = "GetUsersHandler.Handle";
 
-    public async Task<List<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<List<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken = default)
     {
         LogProcessing(logger, request.IncludeInactive, request.SearchTerm ?? "none", null);
         using var activity = ApplicationActivitySources.Handlers.StartActivity(ActivityName);

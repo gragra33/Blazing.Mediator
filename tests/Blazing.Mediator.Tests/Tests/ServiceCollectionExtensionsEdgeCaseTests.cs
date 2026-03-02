@@ -19,8 +19,8 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act & Assert - Should not throw
-        services.AddMediator((Assembly[])null!);
-        services.AddMediator(config => { }, (Assembly[])null!);
+        services.AddMediator();
+        services.AddMediator();
     }
 
     /// <summary>
@@ -33,8 +33,8 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act & Assert - Should not throw
-        services.AddMediator(Array.Empty<Assembly>());
-        services.AddMediator(config => { }, Array.Empty<Assembly>());
+        services.AddMediator();
+        services.AddMediator();
     }
 
     /// <summary>
@@ -47,8 +47,8 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act & Assert - Should not throw
-        services.AddMediator((Type[])null!);
-        services.AddMediator(config => { }, (Type[])null!);
+        services.AddMediator();
+        services.AddMediator();
     }
 
     /// <summary>
@@ -61,8 +61,8 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act & Assert - Should not throw
-        services.AddMediator([]);
-        services.AddMediator(config => { }, Array.Empty<Type>());
+        services.AddMediator();
+        services.AddMediator();
     }
 
     /// <summary>
@@ -76,7 +76,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         Assembly testAssembly = typeof(TestCommandHandler).Assembly;
 
         // Act
-        services.AddMediator(testAssembly, testAssembly, testAssembly); // Same assembly multiple times
+        services.AddMediator(); // Assembly param no longer needed (source generator scans at build time)
 
         // Assert - Should not throw and should work correctly
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -94,7 +94,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediator(typeof(TestCommandHandler), typeof(TestCommandHandler)); // Same type multiple times
+        services.AddMediator(); // Same type multiple times
 
         // Assert - Should not throw and should work correctly
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -112,7 +112,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromCallingAssembly();
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -130,10 +130,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromCallingAssembly(config =>
-        {
-            config.PipelineBuilder.AddMiddleware<FirstQueryMiddleware>();
-        });
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -151,7 +148,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies();
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -169,8 +166,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies(assembly =>
-            assembly.GetName().Name?.Contains("Blazing.Mediator") == true);
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -188,9 +184,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediatorFromLoadedAssemblies(
-            config => config.PipelineBuilder.AddMiddleware<FirstQueryMiddleware>(),
-            assembly => assembly.GetName().Name?.Contains("Blazing.Mediator") == true);
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -208,7 +202,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediator(typeof(AbstractHandler).Assembly);
+        services.AddMediator();
 
         // Assert - Should not register abstract handler
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -226,7 +220,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediator(typeof(ITestInterface).Assembly);
+        services.AddMediator();
 
         // Assert - Should not register interface as handler
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -246,7 +240,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         services.AddScoped<TestCommandHandler>(); // Pre-register the handler
 
         // Act
-        services.AddMediator(typeof(TestCommandHandler).Assembly);
+        services.AddMediator();
 
         // Assert - Should only have one registration
         ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -264,7 +258,7 @@ public class ServiceCollectionExtensionsEdgeCaseTests
         ServiceCollection services = new();
 
         // Act
-        services.AddMediator(typeof(TestMultiInterfaceHandler).Assembly);
+        services.AddMediator();
 
         // Assert
         ServiceProvider serviceProvider = services.BuildServiceProvider();

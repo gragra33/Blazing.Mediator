@@ -1,5 +1,7 @@
 global using System.Reflection;
 global using Blazing.Mediator;
+global using Blazing.Mediator.Configuration;
+global using Blazing.Mediator.Statistics;
 global using Example.Common;
 global using Example.Common.Analysis;
 global using Microsoft.Extensions.DependencyInjection;

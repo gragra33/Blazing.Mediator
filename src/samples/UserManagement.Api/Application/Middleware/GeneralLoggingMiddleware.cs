@@ -20,7 +20,7 @@ public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<
     /// <summary>
     /// Handles all requests by logging them
     /// </summary>
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         // Use Console.WriteLine for simple logging since we can't easily inject ILogger
         var requestType = request.GetType().Name;

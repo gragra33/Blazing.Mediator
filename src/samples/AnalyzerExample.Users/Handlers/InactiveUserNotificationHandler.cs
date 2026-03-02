@@ -16,7 +16,7 @@ public class InactiveUserNotificationHandler : INotificationHandler<InactiveUser
         _logger = logger;
     }
 
-    public async Task Handle(InactiveUserNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(InactiveUserNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogWarning("User {UserId} ({FullName}) has been inactive for {DaysInactive} days. Last login: {LastLoginAt}",
             notification.UserId, notification.FullName, notification.DaysInactive, notification.LastLoginAt);

@@ -12,5 +12,5 @@ public abstract class TestAbstractHandler : IRequestHandler<TestAbstractCommand>
     /// <param name="request">The test abstract command to handle.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public abstract Task Handle(TestAbstractCommand request, CancellationToken cancellationToken = default);
+    public abstract ValueTask Handle(TestAbstractCommand request, CancellationToken cancellationToken = default);
 }

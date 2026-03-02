@@ -16,7 +16,7 @@ public class UserLoginEventHandler : INotificationHandler<UserLoginEvent>
         _logger = logger;
     }
 
-    public async Task Handle(UserLoginEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UserLoginEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("User {UserId} logged in from {IpAddress}", 
             notification.UserId, notification.IpAddress);

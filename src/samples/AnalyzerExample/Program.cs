@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using AnalyzerExample.Services;
 using Blazing.Mediator;
+using Blazing.Mediator.Configuration;
 using System.Text;
 
 namespace AnalyzerExample;
@@ -64,27 +65,19 @@ public class Program
             .ConfigureServices((context, services) =>
             {
                 // Register Blazing.Mediator with comprehensive discovery across all assemblies
-                services.AddMediator(config =>
-                {
-                    // Enable detailed statistics tracking for comprehensive analysis
-                    config.WithStatisticsTracking();
+                var mediatorConfig = new MediatorConfiguration();
+                // Enable detailed statistics tracking for comprehensive analysis
+                mediatorConfig.WithStatisticsTracking();
 
-                    // Enable middleware discovery
-                    config.WithMiddlewareDiscovery();
+                // Enable middleware discovery
+                mediatorConfig.WithMiddlewareDiscovery();
 
-                    // Enable notification middleware discovery
-                    config.WithNotificationMiddlewareDiscovery();
+                // Enable notification middleware discovery
+                mediatorConfig.WithNotificationMiddlewareDiscovery();
 
-                    // Register assemblies for handler and middleware discovery
-                    config.AddAssemblies(
-                            typeof(Common.Domain.BaseEntity).Assembly, // Common
-                            typeof(Products.Domain.Product).Assembly, // Products  
-                            typeof(Users.Domain.User).Assembly, // Users
-                            typeof(Orders.Domain.Order).Assembly, // Orders
-                            typeof(Program).Assembly // Main
-                        );
-                });
-                
+                // Cross-assembly handler discovery is automatic via source generation
+                services.AddMediator(mediatorConfig);
+
                 // Register the analysis service
                 services.AddScoped<AnalysisService>();
             })

@@ -474,7 +474,7 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            builder.ExecutePipeline(notification, serviceProvider, finalHandler, CancellationToken.None));
+            builder.ExecutePipeline(notification, serviceProvider, finalHandler, CancellationToken.None).AsTask());
     }
 
     #endregion

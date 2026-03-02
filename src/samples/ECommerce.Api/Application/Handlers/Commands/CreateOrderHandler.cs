@@ -25,7 +25,7 @@ public class CreateOrderHandler(ECommerceDbContext context, IValidator<CreateOrd
     /// <param name="request">The command containing order creation details.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The operation result with the created order ID if successful.</returns>
-    public async Task<OperationResult<int>> Handle(CreateOrderCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult<int>> Handle(CreateOrderCommand request, CancellationToken cancellationToken = default)
     {
         try
         {

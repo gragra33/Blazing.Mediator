@@ -16,7 +16,7 @@ public class OrderStatusChangedEventHandler : INotificationHandler<OrderStatusCh
         _logger = logger;
     }
 
-    public async Task Handle(OrderStatusChangedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderStatusChangedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Order {OrderId} status changed from {FromStatus} to {ToStatus}", 
             notification.OrderId, notification.FromStatus, notification.ToStatus);

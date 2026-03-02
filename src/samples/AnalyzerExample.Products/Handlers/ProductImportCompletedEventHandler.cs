@@ -16,7 +16,7 @@ public class ProductImportCompletedEventHandler : INotificationHandler<ProductIm
         _logger = logger;
     }
 
-    public async Task Handle(ProductImportCompletedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(ProductImportCompletedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Product import completed: {FileName}. Total: {TotalRecords}, Successful: {SuccessfulImports}, Failed: {FailedImports}",
             notification.FileName, notification.TotalRecords, notification.SuccessfulImports, notification.FailedImports);

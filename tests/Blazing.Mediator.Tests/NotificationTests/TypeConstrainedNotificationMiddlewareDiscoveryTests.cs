@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using static Blazing.Mediator.Tests.NotificationTests.NotificationMiddlewareTests;
+using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests.NotificationTests;
 
@@ -21,10 +22,7 @@ public class TypeConstrainedNotificationMiddlewareDiscoveryTests
         var services = new ServiceCollection();
 
         // Act - Enable auto-discovery of notification middleware
-        services.AddMediator(config =>
-        {
-            config.WithNotificationMiddlewareDiscovery();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -50,10 +48,7 @@ public class TypeConstrainedNotificationMiddlewareDiscoveryTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config =>
-        {
-            config.WithNotificationMiddlewareDiscovery();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -80,13 +75,7 @@ public class TypeConstrainedNotificationMiddlewareDiscoveryTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config =>
-        {
-            // Manually add regular middleware
-            config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
-            // Auto-discover constrained middleware
-            config.WithNotificationMiddlewareDiscovery();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration().AddNotificationMiddleware<LoggingNotificationMiddleware>().WithNotificationMiddlewareDiscovery());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -123,12 +112,12 @@ public class TestOrderConstrainedMiddleware : INotificationMiddleware<ITestOrder
 {
     public int Order => 50;
 
-    public Task InvokeAsync(ITestOrderNotification notification, NotificationDelegate<ITestOrderNotification> next, CancellationToken cancellationToken)
+    public ValueTask InvokeAsync(ITestOrderNotification notification, NotificationDelegate<ITestOrderNotification> next, CancellationToken cancellationToken)
     {
         return next(notification, cancellationToken);
     }
 
-    Task INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    ValueTask INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         throw new InvalidOperationException("Should be handled by pipeline execution logic");
     }
@@ -138,12 +127,12 @@ public class TestCustomerConstrainedMiddleware : INotificationMiddleware<ITestCu
 {
     public int Order => 60;
 
-    public Task InvokeAsync(ITestCustomerNotification notification, NotificationDelegate<ITestCustomerNotification> next, CancellationToken cancellationToken)
+    public ValueTask InvokeAsync(ITestCustomerNotification notification, NotificationDelegate<ITestCustomerNotification> next, CancellationToken cancellationToken)
     {
         return next(notification, cancellationToken);
     }
 
-    Task INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    ValueTask INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         throw new InvalidOperationException("Should be handled by pipeline execution logic");
     }
@@ -153,12 +142,12 @@ public class TestAuditConstrainedMiddleware : INotificationMiddleware<ITestAudit
 {
     public int Order => 100;
 
-    public Task InvokeAsync(ITestAuditableNotification notification, NotificationDelegate<ITestAuditableNotification> next, CancellationToken cancellationToken)
+    public ValueTask InvokeAsync(ITestAuditableNotification notification, NotificationDelegate<ITestAuditableNotification> next, CancellationToken cancellationToken)
     {
         return next(notification, cancellationToken);
     }
 
-    Task INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    ValueTask INotificationMiddleware.InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         throw new InvalidOperationException("Should be handled by pipeline execution logic");
     }

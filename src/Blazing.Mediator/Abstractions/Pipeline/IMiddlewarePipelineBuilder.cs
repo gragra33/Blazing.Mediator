@@ -30,8 +30,8 @@ public interface IMiddlewarePipelineBuilder
     /// <param name="serviceProvider">The service provider for dependency resolution</param>
     /// <param name="finalHandler">The final handler to execute after all middleware</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>The response from the pipeline</returns>
-    Task<TResponse> ExecutePipeline<TRequest, TResponse>(
+    /// <returns>A <see cref="ValueTask{TResponse}"/> containing the response from the pipeline</returns>
+    ValueTask<TResponse> ExecutePipeline<TRequest, TResponse>(
         TRequest request,
         IServiceProvider serviceProvider,
         RequestHandlerDelegate<TResponse> finalHandler,
@@ -59,8 +59,8 @@ public interface IMiddlewarePipelineBuilder
     /// <param name="serviceProvider">The service provider for dependency resolution</param>
     /// <param name="finalHandler">The final handler to execute after all middleware</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A task representing the completion of the command</returns>
-    Task ExecutePipeline<TRequest>(
+    /// <returns>A <see cref="ValueTask"/> representing the completion of the command</returns>
+    ValueTask ExecutePipeline<TRequest>(
         TRequest request,
         IServiceProvider serviceProvider,
         RequestHandlerDelegate finalHandler,

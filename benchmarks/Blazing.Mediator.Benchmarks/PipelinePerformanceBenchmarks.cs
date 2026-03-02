@@ -90,9 +90,9 @@ public class PipelinePerformanceBenchmarks
         _testCommand = new TestCommand { Message = "Benchmark test command" };
         _testNotification = new TestNotification { Message = "Benchmark test notification" };
         
-        _finalQueryHandler = () => Task.FromResult("Final query result");
-        _finalCommandHandler = () => Task.CompletedTask;
-        _finalNotificationHandler = (notification, ct) => Task.CompletedTask;
+        _finalQueryHandler = () => new ValueTask<string>("Final query result");
+        _finalCommandHandler = () => ValueTask.CompletedTask;
+        _finalNotificationHandler = (notification, ct) => ValueTask.CompletedTask;
     }
 
     [GlobalCleanup]
@@ -191,7 +191,7 @@ public class PipelinePerformanceBenchmarks
 
     /// <summary>
     /// Micro-benchmark for the optimized sorting algorithm in MiddlewarePipelineBuilder.
-    /// Tests the O(n²) to O(1) optimization we applied.
+    /// Tests the O(nï¿½) to O(1) optimization we applied.
     /// </summary>
     [Benchmark(Description = "Middleware Sorting Algorithm - O(1) Lookup Optimization")]
     public void MiddlewarePipeline_SortingPerformance()
@@ -300,13 +300,13 @@ public class FastTestMiddleware : IRequestMiddleware<TestRequest, string>, IRequ
 {
     public static int Order => 1;
 
-    public async Task<string> HandleAsync(TestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+    public async ValueTask<string> HandleAsync(TestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
     {
         // Minimal processing to focus on pipeline performance
         return await next().ConfigureAwait(false);
     }
 
-    public async Task HandleAsync(TestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         // Minimal processing to focus on pipeline performance
         await next().ConfigureAwait(false);
@@ -321,7 +321,7 @@ public class GenericTestMiddleware<TRequest, TResponse> : IRequestMiddleware<TRe
 {
     public static int Order => 2;
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         // Minimal processing to focus on pipeline performance
         return await next().ConfigureAwait(false);
@@ -336,7 +336,7 @@ public class GenericCommandMiddleware<TRequest> : IRequestMiddleware<TRequest>
 {
     public static int Order => 3;
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         // Minimal processing to focus on pipeline performance
         await next().ConfigureAwait(false);
@@ -350,7 +350,7 @@ public class TestNotificationMiddleware : INotificationMiddleware
 {
     public static int Order => 1;
 
-    public Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) 
+    public ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) 
         where TNotification : INotification
     {
         // Minimal processing to focus on pipeline performance
@@ -366,14 +366,14 @@ public class GenericNotificationMiddleware<TNotification> : INotificationMiddlew
 {
     public static int Order => 2;
 
-    public Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    public ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         // Minimal processing to focus on pipeline performance
         return next(notification, cancellationToken);
     }
 
     // Explicit implementation of the generic base interface method
-    Task INotificationMiddleware.InvokeAsync<T>(T notification, NotificationDelegate<T> next, CancellationToken cancellationToken)
+    ValueTask INotificationMiddleware.InvokeAsync<T>(T notification, NotificationDelegate<T> next, CancellationToken cancellationToken)
     {
         if (notification is TNotification typedNotification)
         {

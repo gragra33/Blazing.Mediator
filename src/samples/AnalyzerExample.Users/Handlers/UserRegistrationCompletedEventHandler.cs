@@ -16,7 +16,7 @@ public class UserRegistrationCompletedEventHandler : INotificationHandler<UserRe
         _logger = logger;
     }
 
-    public async Task Handle(UserRegistrationCompletedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UserRegistrationCompletedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Registration completed for user {UserId} ({FirstName} {LastName}) at {Email}",
             notification.UserId, notification.FirstName, notification.LastName, notification.Email);

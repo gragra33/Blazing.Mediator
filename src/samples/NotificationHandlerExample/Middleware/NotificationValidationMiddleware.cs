@@ -9,7 +9,7 @@ public class NotificationValidationMiddleware(ILogger<NotificationValidationMidd
 {
     public int Order => 200; // Execute after logging but before business logic
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
         CancellationToken cancellationToken = default) where TNotification : INotification
     {
         logger.LogInformation("[VALIDATE] Validating notification: {NotificationType}", typeof(TNotification).Name);

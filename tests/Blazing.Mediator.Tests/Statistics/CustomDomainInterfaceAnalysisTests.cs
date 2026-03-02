@@ -17,7 +17,7 @@ public class CustomDomainInterfaceAnalysisTests : IDisposable
     public CustomDomainInterfaceAnalysisTests()
     {
         _services = new ServiceCollection();
-        _services.AddMediator(typeof(CustomDomainInterfaceAnalysisTests).Assembly);
+        _services.AddMediator();
         _services.AddLogging();
         
         _serviceProvider = _services.BuildServiceProvider();
@@ -279,62 +279,62 @@ public class StandardRequestCommand : IRequest<string>
 
 public class GetCustomerQueryHandler : IRequestHandler<GetCustomerQuery, CustomerDto>
 {
-    public Task<CustomerDto> Handle(GetCustomerQuery request, CancellationToken cancellationToken)
+    public async ValueTask<CustomerDto> Handle(GetCustomerQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new CustomerDto { Id = request.CustomerId, Name = "Test Customer" });
+        return new CustomerDto { Id = request.CustomerId, Name = "Test Customer" };
     }
 }
 
 public class GetProductQueryHandler : IRequestHandler<GetProductQuery, ProductDto>
 {
-    public Task<ProductDto> Handle(GetProductQuery request, CancellationToken cancellationToken)
+    public async ValueTask<ProductDto> Handle(GetProductQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new ProductDto { Id = request.ProductId, Name = "Test Product" });
+        return new ProductDto { Id = request.ProductId, Name = "Test Product" };
     }
 }
 
 public class GetInventoryQueryHandler : IRequestHandler<GetInventoryQuery, InventoryDto>
 {
-    public Task<InventoryDto> Handle(GetInventoryQuery request, CancellationToken cancellationToken)
+    public async ValueTask<InventoryDto> Handle(GetInventoryQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new InventoryDto { ProductId = request.ProductId, Quantity = 100 });
+        return new InventoryDto { ProductId = request.ProductId, Quantity = 100 };
     }
 }
 
 public class GetPremiumCustomerQueryHandler : IRequestHandler<GetPremiumCustomerQuery, PremiumCustomerDto>
 {
-    public Task<PremiumCustomerDto> Handle(GetPremiumCustomerQuery request, CancellationToken cancellationToken)
+    public async ValueTask<PremiumCustomerDto> Handle(GetPremiumCustomerQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new PremiumCustomerDto 
+        return new PremiumCustomerDto 
         { 
             Id = request.CustomerId, 
             Name = "Premium Customer", 
             PremiumLevel = "Gold" 
-        });
+        };
     }
 }
 
 public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerCommand, bool>
 {
-    public Task<bool> Handle(UpdateCustomerCommand request, CancellationToken cancellationToken)
+    public async ValueTask<bool> Handle(UpdateCustomerCommand request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(true);
+        return true;
     }
 }
 
 public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerCommand>
 {
-    public Task Handle(CreateCustomerCommand request, CancellationToken cancellationToken)
+    public ValueTask Handle(CreateCustomerCommand request, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
 public class StandardRequestCommandHandler : IRequestHandler<StandardRequestCommand, string>
 {
-    public Task<string> Handle(StandardRequestCommand request, CancellationToken cancellationToken)
+    public async ValueTask<string> Handle(StandardRequestCommand request, CancellationToken cancellationToken)
     {
-        return Task.FromResult("Processed");
+        return "Processed";
     }
 }
 

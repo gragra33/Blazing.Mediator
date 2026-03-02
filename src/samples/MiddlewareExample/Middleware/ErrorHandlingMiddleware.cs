@@ -59,7 +59,7 @@ public class ErrorHandlingMiddleware<TRequest>(ILogger<ErrorHandlingMiddleware<T
     : ErrorHandlingMiddlewareBase<TRequest>(logger), IRequestMiddleware<TRequest>
     where TRequest : IRequest
 {
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         LogStart();
         try
@@ -84,7 +84,7 @@ public class ErrorHandlingMiddleware<TRequest, TResponse>(ILogger<ErrorHandlingM
     : ErrorHandlingMiddlewareBase<TRequest>(logger), IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         LogStart();
         try

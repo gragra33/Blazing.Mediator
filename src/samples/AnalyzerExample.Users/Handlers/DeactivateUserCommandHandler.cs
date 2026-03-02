@@ -8,7 +8,7 @@ namespace AnalyzerExample.Users.Handlers;
 /// </summary>
 public class DeactivateUserCommandHandler : IRequestHandler<DeactivateUserCommand>
 {
-    public async Task Handle(DeactivateUserCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(DeactivateUserCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate user deactivation
         await Task.Delay(50, cancellationToken);

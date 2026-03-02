@@ -7,10 +7,8 @@ namespace AnalyzerExample.Services;
 /// Service that demonstrates all analysis capabilities of Blazing.Mediator across multiple assemblies
 /// </summary>
 public class AnalysisService(
-    IServiceProvider serviceProvider,
     MediatorStatistics statistics,
-    IMiddlewarePipelineInspector middlewarePipelineInspector,
-    INotificationMiddlewarePipelineInspector notificationPipelineInspector)
+    IMediatorTypeCatalog catalog)
 {
     public async Task RunAllAnalysisExamples()
     {
@@ -44,7 +42,7 @@ public class AnalysisService(
         Console.WriteLine();
         
         // Analyze all queries with detailed information across assemblies
-        var queries = statistics.AnalyzeQueries(serviceProvider, isDetailed: true);
+        var queries = statistics.AnalyzeQueries(catalog, isDetailed: true);
         
         Console.WriteLine($"[INFO] Found {queries.Count} query types across {queries.GroupBy(q => q.Assembly).Count()} assemblies:");
         Console.WriteLine();
@@ -99,7 +97,7 @@ public class AnalysisService(
         Console.WriteLine("===================================");
         Console.WriteLine();
         
-        var commands = statistics.AnalyzeCommands(serviceProvider, isDetailed: true);
+        var commands = statistics.AnalyzeCommands(catalog, isDetailed: true);
         
         Console.WriteLine($"[INFO] Found {commands.Count} command types across {commands.GroupBy(c => c.Assembly).Count()} assemblies:");
         Console.WriteLine();
@@ -164,7 +162,7 @@ public class AnalysisService(
         Console.WriteLine("========================================");
         Console.WriteLine();
         
-        var notifications = statistics.AnalyzeNotifications(serviceProvider, isDetailed: true);
+        var notifications = statistics.AnalyzeNotifications(catalog, isDetailed: true);
         
         Console.WriteLine($"[INFO] Found {notifications.Count} notification types across {notifications.GroupBy(n => n.AssemblyName).Count()} assemblies:");
         Console.WriteLine();
@@ -218,7 +216,7 @@ public class AnalysisService(
         Console.WriteLine("=============================================");
         Console.WriteLine();
         
-        var middlewareAnalysis = middlewarePipelineInspector.AnalyzeMiddleware(serviceProvider);
+        var middlewareAnalysis = statistics.AnalyzeRequestMiddleware(catalog);
         
         Console.WriteLine($"[INFO] Found {middlewareAnalysis.Count} request middleware across {middlewareAnalysis.GroupBy(m => m.GetAssemblyName()).Count()} assemblies:");
         Console.WriteLine();
@@ -261,7 +259,7 @@ public class AnalysisService(
         Console.WriteLine($"   Namespaces: {middlewareAnalysis.GroupBy(m => m.GetNamespace()).Count()}");
         Console.WriteLine($"   Generic: {middlewareAnalysis.Count(m => m.IsGeneric())}");
         Console.WriteLine($"   With Configuration: {middlewareAnalysis.Count(m => m.HasConfiguration())}");
-        Console.WriteLine($"   Average Order: {middlewareAnalysis.Average(m => m.Order):F1}");
+        Console.WriteLine($"   Average Order: {(middlewareAnalysis.Count > 0 ? middlewareAnalysis.Average(m => m.Order).ToString("F1") : "N/A")}");
         
         Console.WriteLine();
         await Task.Delay(2000);
@@ -273,7 +271,7 @@ public class AnalysisService(
         Console.WriteLine("==================================================");
         Console.WriteLine();
         
-        var middlewareAnalysis = notificationPipelineInspector.AnalyzeMiddleware(serviceProvider);
+        var middlewareAnalysis = statistics.AnalyzeNotificationMiddleware(catalog);
         
         Console.WriteLine($"[INFO] Found {middlewareAnalysis.Count} notification middleware across {middlewareAnalysis.GroupBy(m => m.GetAssemblyName()).Count()} assemblies:");
         Console.WriteLine();
@@ -319,11 +317,11 @@ public class AnalysisService(
         Console.WriteLine("===========================================");
         Console.WriteLine();
         
-        var queries = statistics.AnalyzeQueries(serviceProvider, isDetailed: true);
-        var commands = statistics.AnalyzeCommands(serviceProvider, isDetailed: true);
-        var notifications = statistics.AnalyzeNotifications(serviceProvider, isDetailed: true);
-        var requestMiddleware = middlewarePipelineInspector.AnalyzeMiddleware(serviceProvider);
-        var notificationMiddleware = notificationPipelineInspector.AnalyzeMiddleware(serviceProvider);
+        var queries = statistics.AnalyzeQueries(catalog, isDetailed: true);
+        var commands = statistics.AnalyzeCommands(catalog, isDetailed: true);
+        var notifications = statistics.AnalyzeNotifications(catalog, isDetailed: true);
+        var requestMiddleware = statistics.AnalyzeRequestMiddleware(catalog);
+        var notificationMiddleware = statistics.AnalyzeNotificationMiddleware(catalog);
         
         // Count missing handlers
         var missingQueries = queries.Count(q => q.HandlerStatus == HandlerStatus.Missing);

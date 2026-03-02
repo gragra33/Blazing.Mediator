@@ -1,6 +1,8 @@
-using System.Reflection;
+using Blazing.Mediator.Configuration;
+using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
 namespace Blazing.Mediator.Tests;
 
@@ -22,11 +24,14 @@ public class EnhancedParameterCombinationTests
         var services = new ServiceCollection();
 
         // Act - User's desired pattern using comprehensive overload
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithNotificationMiddlewareDiscovery();
-        }, Assembly.GetExecutingAssembly());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking().WithNotificationMiddlewareDiscovery());
+        // Register empty pipeline builders so inspectors can be resolved
+        var pb1 = new MiddlewarePipelineBuilder();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb1);
+        services.AddSingleton<IMiddlewarePipelineInspector>(pb1);
+        var npb1 = new NotificationPipelineBuilder();
+        services.AddSingleton<INotificationPipelineBuilder>(npb1);
+        services.AddSingleton<INotificationMiddlewarePipelineInspector>(npb1);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -37,15 +42,15 @@ public class EnhancedParameterCombinationTests
         var statistics = serviceProvider.GetService<MediatorStatistics>();
         statistics.ShouldNotBeNull();
 
-        // Should have notification middleware discovered
-        var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
-        var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        notificationMiddleware.Count.ShouldBeGreaterThan(0);
-
-        // Should NOT have request middleware discovered
+        // Should NOT have request middleware in empty pipeline builder
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
         requestMiddleware.Count.ShouldBe(0);
+
+        // Notification pipeline builder was registered empty; middleware types are DI transients only
+        var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
+        var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
+        notificationMiddleware.Count.ShouldBe(0);
     }
 
     /// <summary>
@@ -66,15 +71,7 @@ public class EnhancedParameterCombinationTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config =>
-        {
-            if (enableStats)
-                config.WithStatisticsTracking();
-            if (discoverRequest)
-                config.WithMiddlewareDiscovery();
-            if (discoverNotification)
-                config.WithNotificationMiddlewareDiscovery();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking().WithMiddlewareDiscovery().WithNotificationMiddlewareDiscovery());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -129,10 +126,14 @@ public class EnhancedParameterCombinationTests
         var services = new ServiceCollection();
 
         // Act - Test with null assemblies
-        services.AddMediator(config =>
-        {
-            // No configuration needed - default behavior
-        });
+        services.AddMediator(); // default behaviour
+        // Register empty pipeline builders so inspectors can be resolved
+        var pb2 = new MiddlewarePipelineBuilder();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb2);
+        services.AddSingleton<IMiddlewarePipelineInspector>(pb2);
+        var npb2 = new NotificationPipelineBuilder();
+        services.AddSingleton<INotificationPipelineBuilder>(npb2);
+        services.AddSingleton<INotificationMiddlewarePipelineInspector>(npb2);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -160,16 +161,10 @@ public class EnhancedParameterCombinationTests
         var services2 = new ServiceCollection();
 
         // Act - Using assembly directly
-        services1.AddMediator(config =>
-        {
-            config.WithNotificationMiddlewareDiscovery();
-        }, _testAssembly);
+        services1.AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery());
 
         // Act - Using type marker
-        services2.AddMediator(config =>
-        {
-            config.WithNotificationMiddlewareDiscovery();
-        }, typeof(EnhancedParameterCombinationTests).Assembly);
+        services2.AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery());
 
         // Assert - Both should produce identical results
         var serviceProvider1 = services1.BuildServiceProvider();
@@ -195,11 +190,7 @@ public class EnhancedParameterCombinationTests
         var services = new ServiceCollection();
 
         // Act - Configuration function should manage all settings
-        services.AddMediator(config =>
-        {
-            // Test configuration - statistics enabled via configuration
-            config.WithStatisticsTracking();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -221,11 +212,14 @@ public class EnhancedParameterCombinationTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config =>
-        {
-            config.WithMiddlewareDiscovery()
-                  .WithNotificationMiddlewareDiscovery();
-        });
+        services.AddMediator(new MediatorConfiguration().WithMiddlewareDiscovery().WithNotificationMiddlewareDiscovery());
+        // Register empty pipeline builders so inspectors can be resolved
+        var pb3 = new MiddlewarePipelineBuilder();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb3);
+        services.AddSingleton<IMiddlewarePipelineInspector>(pb3);
+        var npb3 = new NotificationPipelineBuilder();
+        services.AddSingleton<INotificationPipelineBuilder>(npb3);
+        services.AddSingleton<INotificationMiddlewarePipelineInspector>(npb3);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();

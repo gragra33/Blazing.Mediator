@@ -163,7 +163,7 @@ public sealed class NotificationPipelineBuilder
     /// <param name="finalHandler">Final handler to execute after all middleware.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task ExecutePipeline<TNotification>(
+    public async ValueTask ExecutePipeline<TNotification>(
         TNotification notification,
         IServiceProvider serviceProvider,
         NotificationDelegate<TNotification> finalHandler,

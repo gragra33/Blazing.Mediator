@@ -16,7 +16,7 @@ public class UserPasswordResetEventHandler : INotificationHandler<UserPasswordRe
         _logger = logger;
     }
 
-    public async Task Handle(UserPasswordResetEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UserPasswordResetEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Password reset for user {UserId} at {Email} by {RequestedBy}",
             notification.UserId, notification.Email, notification.RequestedBy);

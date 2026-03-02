@@ -1,3 +1,5 @@
+using Blazing.Mediator.Configuration;
+using Blazing.Mediator.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Statistics;
 
@@ -18,15 +20,20 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     public MiddlewareAnalysisExtensionsTests()
     {
         _services = new ServiceCollection();
-        _services.AddMediator(config =>
-        {
-            // Add various middleware types for testing
-            config.AddMiddleware<TestRequestMiddleware>();
-            config.AddMiddleware(typeof(TestGenericRequestMiddleware<>));
-            config.AddMiddleware(typeof(TestTwoParameterMiddleware<,>));
-            config.AddNotificationMiddleware<TestNotificationMiddleware>();
-            config.AddNotificationMiddleware(typeof(TestGenericNotificationMiddleware<>));
-        }, typeof(MiddlewareAnalysisExtensionsTests).Assembly);
+        _services.AddMediator();
+        // Register request middleware pipeline
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<TestRequestMiddleware>();
+        pb.AddMiddleware(typeof(TestGenericRequestMiddleware<>));
+        pb.AddMiddleware(typeof(TestTwoParameterMiddleware<,>));
+        _services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
+        _services.AddSingleton<IMiddlewarePipelineInspector>(pb);
+        // Register notification middleware pipeline
+        var npb = new NotificationPipelineBuilder();
+        npb.AddMiddleware<TestNotificationMiddleware>();
+        npb.AddMiddleware(typeof(TestGenericNotificationMiddleware<>));
+        _services.AddSingleton<INotificationPipelineBuilder>(npb);
+        _services.AddSingleton<INotificationMiddlewarePipelineInspector>(npb);
         
         _services.AddLogging();
         _serviceProvider = _services.BuildServiceProvider();
@@ -554,7 +561,7 @@ public class TestRequestMiddleware : IRequestMiddleware<TestRequest>
 {
     public static int Order => 100;
     
-    public async Task HandleAsync(TestRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TestRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         await next();
     }
@@ -564,7 +571,7 @@ public class TestGenericRequestMiddleware<TRequest> : IRequestMiddleware<TReques
 {
     public static int Order => 200;
     
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         await next();
     }
@@ -575,7 +582,7 @@ public class TestTwoParameterMiddleware<TRequest, TResponse> : IRequestMiddlewar
 {
     public static int Order => 300;
     
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         return await next();
     }
@@ -585,7 +592,7 @@ public class TestNotificationMiddleware : INotificationMiddleware
 {
     public static int Order => 100;
     
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) where TNotification : INotification
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) where TNotification : INotification
     {
         await next(notification, cancellationToken);
     }
@@ -596,12 +603,12 @@ public class TestGenericNotificationMiddleware<TNotification> : INotificationMid
 {
     public static int Order => 200;
     
-    public async Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    public async ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         await next(notification, cancellationToken);
     }
     
-    public async Task InvokeAsync<TNotificationGeneric>(TNotificationGeneric notification, NotificationDelegate<TNotificationGeneric> next, CancellationToken cancellationToken) where TNotificationGeneric : INotification
+    public async ValueTask InvokeAsync<TNotificationGeneric>(TNotificationGeneric notification, NotificationDelegate<TNotificationGeneric> next, CancellationToken cancellationToken) where TNotificationGeneric : INotification
     {
         if (notification is TNotification typedNotification)
         {
@@ -622,9 +629,9 @@ public class TestRequest : IRequest
 
 public class TestRequestHandler : IRequestHandler<TestRequest>
 {
-    public Task Handle(TestRequest request, CancellationToken cancellationToken)
+    public ValueTask Handle(TestRequest request, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 

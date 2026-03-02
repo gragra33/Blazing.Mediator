@@ -1,4 +1,5 @@
 using System.Reflection;
+using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Tests.NotificationTests;
@@ -17,7 +18,7 @@ public class NotificationMiddlewareTests
         public int Order => 10;
         public List<string> LoggedMessages { get; } = new();
 
-        public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) where TNotification : INotification
+        public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) where TNotification : INotification
         {
             LoggedMessages.Add($"Before: {typeof(TNotification).Name}");
             await next(notification, cancellationToken);
@@ -36,7 +37,7 @@ public class NotificationMiddlewareTests
             return notification is TestNotification testNotification && testNotification.Message.StartsWith("IMPORTANT");
         }
 
-        public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) where TNotification : INotification
+        public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) where TNotification : INotification
         {
             ProcessedMessages.Add($"Processing: {typeof(TNotification).Name}");
             await next(notification, cancellationToken);
@@ -62,10 +63,7 @@ public class NotificationMiddlewareTests
         var services = new ServiceCollection();
         var loggingMiddleware = new LoggingNotificationMiddleware();
 
-        services.AddMediator(config =>
-        {
-            config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
-        });
+        services.AddMediator(new MediatorConfiguration().AddNotificationMiddleware<LoggingNotificationMiddleware>());
 
         services.AddSingleton(loggingMiddleware);
 
@@ -94,10 +92,7 @@ public class NotificationMiddlewareTests
         var services = new ServiceCollection();
         var conditionalMiddleware = new ConditionalNotificationMiddleware();
 
-        services.AddMediator(config =>
-        {
-            config.AddNotificationMiddleware<ConditionalNotificationMiddleware>();
-        });
+        services.AddMediator(new MediatorConfiguration().AddNotificationMiddleware<ConditionalNotificationMiddleware>());
 
         services.AddSingleton(conditionalMiddleware);
 
@@ -131,11 +126,7 @@ public class NotificationMiddlewareTests
         var loggingMiddleware = new LoggingNotificationMiddleware();
         var conditionalMiddleware = new ConditionalNotificationMiddleware();
 
-        services.AddMediator(config =>
-        {
-            config.AddNotificationMiddleware<ConditionalNotificationMiddleware>(); // Order 5
-            config.AddNotificationMiddleware<LoggingNotificationMiddleware>(); // Order 10
-        });
+        services.AddMediator(new MediatorConfiguration().AddNotificationMiddleware<ConditionalNotificationMiddleware>().AddNotificationMiddleware<LoggingNotificationMiddleware>());
 
         services.AddSingleton(loggingMiddleware);
         services.AddSingleton(conditionalMiddleware);
@@ -168,11 +159,7 @@ public class NotificationMiddlewareTests
         var loggingMiddleware = new LoggingNotificationMiddleware();
         var conditionalMiddleware = new ConditionalNotificationMiddleware();
 
-        services.AddMediator(config =>
-        {
-            config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
-            config.AddNotificationMiddleware<ConditionalNotificationMiddleware>();
-        });
+        services.AddMediator(new MediatorConfiguration().AddNotificationMiddleware<LoggingNotificationMiddleware>().AddNotificationMiddleware<ConditionalNotificationMiddleware>());
 
         services.AddSingleton(loggingMiddleware);
         services.AddSingleton(conditionalMiddleware);
@@ -239,11 +226,7 @@ public class NotificationMiddlewareTests
 
         var config = "test-configuration";
 
-        services.AddMediator(mediatorConfig =>
-        {
-            mediatorConfig.AddNotificationMiddleware<LoggingNotificationMiddleware>(config);
-            mediatorConfig.AddNotificationMiddleware<ConditionalNotificationMiddleware>();
-        });
+        services.AddMediator(new MediatorConfiguration().AddNotificationMiddleware<LoggingNotificationMiddleware>(config).AddNotificationMiddleware<ConditionalNotificationMiddleware>());
 
         services.AddSingleton(loggingMiddleware);
         services.AddSingleton(conditionalMiddleware);
@@ -285,7 +268,7 @@ public class NotificationMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(null, Assembly.GetExecutingAssembly());
+        services.AddMediator();
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -320,10 +303,7 @@ public class NotificationMiddlewareTests
         // Arrange
         var loggingMiddleware = new LoggingNotificationMiddleware();
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
-        });
+        services.AddMediator(new MediatorConfiguration().AddNotificationMiddleware<LoggingNotificationMiddleware>());
         services.AddSingleton(loggingMiddleware);
 
         var serviceProvider = services.BuildServiceProvider();
@@ -366,12 +346,7 @@ public class NotificationMiddlewareTests
         var conditionalMiddleware = new ConditionalNotificationMiddleware(); // Order 5
 
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            // Add in reverse order to test sorting
-            config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
-            config.AddNotificationMiddleware<ConditionalNotificationMiddleware>();
-        });
+        services.AddMediator(new MediatorConfiguration().AddNotificationMiddleware<LoggingNotificationMiddleware>().AddNotificationMiddleware<ConditionalNotificationMiddleware>());
         services.AddSingleton(loggingMiddleware);
         services.AddSingleton(conditionalMiddleware);
 

@@ -78,8 +78,8 @@ public class Runner(
         mediator.Subscribe(auditSubscriber);
 
         logger.LogInformation("Manual subscribers registered:");
-        logger.LogInformation("   • InventoryNotificationSubscriber (manual)");
-        logger.LogInformation("   • AuditNotificationSubscriber (manual)");
+        logger.LogInformation("   ï¿½ InventoryNotificationSubscriber (manual)");
+        logger.LogInformation("   ï¿½ AuditNotificationSubscriber (manual)");
         logger.LogInformation("");
 
         logger.LogInformation("UPDATED ANALYSIS (After Manual Subscription - Now Hybrid!):");
@@ -139,44 +139,30 @@ public class Runner(
     {
         logger.LogInformation("=== Notification Middleware Pipeline Inspection ===");
 
-        // Get the notification pipeline inspector from the mediator using reflection
-        var mediatorType = mediator.GetType();
-        var notificationPipelineBuilderField = mediatorType.GetField("_notificationPipelineBuilder", BindingFlags.NonPublic | BindingFlags.Instance);
+        var catalog = serviceProvider.GetRequiredService<IMediatorTypeCatalog>();
+        var mediatorStats = serviceProvider.GetRequiredService<MediatorStatistics>();
+        var middlewareAnalysis = mediatorStats.AnalyzeNotificationMiddleware(catalog);
 
-        if (notificationPipelineBuilderField?.GetValue(mediator) is INotificationMiddlewarePipelineInspector inspector)
+        logger.LogInformation("Auto-discovered notification middleware (in execution order):");
+        foreach (var middleware in middlewareAnalysis)
         {
-            // Use the built-in analysis method from the core library
-            var middlewareAnalysis = inspector.AnalyzeMiddleware(serviceProvider);
-
-            logger.LogInformation("Auto-discovered notification middleware (in execution order):");
-            foreach (var middleware in middlewareAnalysis)
-            {
-                logger.LogInformation("  - [{OrderDisplay}] {ClassName}{TypeParameters}",
-                    middleware.OrderDisplay,
-                    middleware.ClassName,
-                    middleware.TypeParameters);
-            }
-
-            // Show additional inspection details
-            var registeredTypes = inspector.GetRegisteredMiddleware();
-            var configurations = inspector.GetMiddlewareConfiguration();
-
-            logger.LogInformation("");
-            logger.LogInformation("Total registered notification middleware: {Count}", registeredTypes.Count);
-
-            var configuredMiddleware = configurations.Where(config => config.Configuration != null).ToList();
-            if (configuredMiddleware.Any())
-            {
-                logger.LogInformation("Middleware with configuration:");
-                foreach (var config in configuredMiddleware)
-                {
-                    logger.LogInformation("  - {MiddlewareName}: {Configuration}", config.Type.Name, config.Configuration);
-                }
-            }
+            logger.LogInformation("  - [{OrderDisplay}] {ClassName}{TypeParameters}",
+                middleware.OrderDisplay,
+                middleware.ClassName,
+                middleware.TypeParameters);
         }
-        else
+
+        logger.LogInformation("");
+        logger.LogInformation("Total registered notification middleware: {Count}", middlewareAnalysis.Count);
+
+        var configuredMiddleware = middlewareAnalysis.Where(m => m.Configuration != null).ToList();
+        if (configuredMiddleware.Any())
         {
-            logger.LogWarning("Could not access notification pipeline inspector");
+            logger.LogInformation("Middleware with configuration:");
+            foreach (var config in configuredMiddleware)
+            {
+                logger.LogInformation("  - {MiddlewareName}: {Configuration}", config.ClassName, config.Configuration);
+            }
         }
 
         logger.LogInformation("");

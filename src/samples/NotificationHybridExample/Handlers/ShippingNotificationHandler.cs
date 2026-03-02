@@ -8,7 +8,7 @@ namespace NotificationHybridExample.Handlers;
 public class ShippingNotificationHandler(ILogger<ShippingNotificationHandler> logger) 
     : INotificationHandler<OrderCreatedNotification>
 {
-    public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
     {
         try
         {

@@ -1,6 +1,6 @@
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 namespace Blazing.Mediator.Tests;
 
@@ -28,11 +28,9 @@ public class UserIssueResolutionTests
         // );
         //
         // This works using the new configuration approach:
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithNotificationMiddlewareDiscovery();
-        }, Assembly.GetExecutingAssembly());
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking()
+            .WithNotificationMiddlewareDiscovery());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -64,11 +62,9 @@ public class UserIssueResolutionTests
         var services = new ServiceCollection();
 
         // Act - This pattern is from their SimpleNotificationExample
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithNotificationMiddlewareDiscovery();         // DO discover notification middleware
-        }, Assembly.GetExecutingAssembly());
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking()
+            .WithNotificationMiddlewareDiscovery());         // DO discover notification middleware
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -114,13 +110,12 @@ public class UserIssueResolutionTests
         var services = new ServiceCollection();
 
         // Act - Test various combinations the user might want to use
-        services.AddMediator(config =>
-        {
-            if (enableStats)
-                config.WithStatisticsTracking();
-            if (discoverNotifications)
-                config.WithNotificationMiddlewareDiscovery();
-        }, Assembly.GetExecutingAssembly());
+        var cfg = new MediatorConfiguration();
+        if (enableStats)
+            cfg.WithStatisticsTracking();
+        if (discoverNotifications)
+            cfg.WithNotificationMiddlewareDiscovery();
+        services.AddMediator(cfg);
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -176,15 +171,14 @@ public class UserIssueResolutionTests
             var services = new ServiceCollection();
 
             // Act
-            services.AddMediator(config =>
-            {
-                if (enableStats)
-                    config.WithStatisticsTracking();
-                if (discoverRequest)
-                    config.WithMiddlewareDiscovery();
-                if (discoverNotification)
-                    config.WithNotificationMiddlewareDiscovery();
-            }, Assembly.GetExecutingAssembly());
+            var cfg = new MediatorConfiguration();
+            if (enableStats)
+                cfg.WithStatisticsTracking();
+            if (discoverRequest)
+                cfg.WithMiddlewareDiscovery();
+            if (discoverNotification)
+                cfg.WithNotificationMiddlewareDiscovery();
+            services.AddMediator(cfg);
 
             // Assert
             var serviceProvider = services.BuildServiceProvider();
@@ -206,11 +200,9 @@ public class UserIssueResolutionTests
         var services = new ServiceCollection();
 
         // This works now with the new configuration approach:
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithNotificationMiddlewareDiscovery();
-        }, Assembly.GetExecutingAssembly());
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking()
+            .WithNotificationMiddlewareDiscovery());
 
         // Assert - Verify this produces the exact configuration the user wanted
         var serviceProvider = services.BuildServiceProvider();

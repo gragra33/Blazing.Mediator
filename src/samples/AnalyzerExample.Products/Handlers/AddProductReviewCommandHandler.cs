@@ -9,7 +9,7 @@ namespace AnalyzerExample.Products.Handlers;
 /// </summary>
 public class AddProductReviewCommandHandler : IRequestHandler<AddProductReviewCommand, OperationResult<int>>
 {
-    public async Task<OperationResult<int>> Handle(AddProductReviewCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult<int>> Handle(AddProductReviewCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate review creation
         await Task.Delay(50, cancellationToken);

@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
+using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Benchmarks;
@@ -37,20 +38,20 @@ public class MiddlewarePipelineBenchmarks
 
         // Setup mediator with NO middleware
         var servicesNoMiddleware = new ServiceCollection();
-        servicesNoMiddleware.AddMediator(typeof(MiddlewarePipelineBenchmarks).Assembly);
+        servicesNoMiddleware.AddMediator();
         var providerNoMiddleware = servicesNoMiddleware.BuildServiceProvider();
         _mediatorNoMiddleware = providerNoMiddleware.GetRequiredService<IMediator>();
 
         // Setup mediator with SINGLE middleware
         var servicesSingleMiddleware = new ServiceCollection();
-        servicesSingleMiddleware.AddMediator(typeof(MiddlewarePipelineBenchmarks).Assembly);
+        servicesSingleMiddleware.AddMediator();
         servicesSingleMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         var providerSingleMiddleware = servicesSingleMiddleware.BuildServiceProvider();
         _mediatorSingleMiddleware = providerSingleMiddleware.GetRequiredService<IMediator>();
 
         // Setup mediator with MULTIPLE middleware (3 middlewares)
         var servicesMultipleMiddleware = new ServiceCollection();
-        servicesMultipleMiddleware.AddMediator(typeof(MiddlewarePipelineBenchmarks).Assembly);
+        servicesMultipleMiddleware.AddMediator();
         servicesMultipleMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         servicesMultipleMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
         servicesMultipleMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(PerformanceMiddleware<,>));
@@ -59,7 +60,7 @@ public class MiddlewarePipelineBenchmarks
 
         // Setup mediator with CONDITIONAL middleware
         var servicesConditionalMiddleware = new ServiceCollection();
-        servicesConditionalMiddleware.AddMediator(typeof(MiddlewarePipelineBenchmarks).Assembly);
+        servicesConditionalMiddleware.AddMediator();
         servicesConditionalMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(ConditionalLoggingMiddleware<,>));
         var providerConditionalMiddleware = servicesConditionalMiddleware.BuildServiceProvider();
         _mediatorConditionalMiddleware = providerConditionalMiddleware.GetRequiredService<IMediator>();
@@ -72,26 +73,24 @@ public class MiddlewarePipelineBenchmarks
     {
         // Minimal configuration (basic setup)
         var servicesMinimal = new ServiceCollection();
-        servicesMinimal.AddMediator(typeof(MiddlewarePipelineBenchmarks).Assembly);
+        servicesMinimal.AddMediator();
         var providerMinimal = servicesMinimal.BuildServiceProvider();
         _mediatorMinimalConfig = providerMinimal.GetRequiredService<IMediator>();
 
         // Standard configuration (middleware + stats)
         var servicesStandard = new ServiceCollection();
-        servicesStandard.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, typeof(MiddlewarePipelineBenchmarks).Assembly);
+        var standardConfig = new MediatorConfiguration();
+        standardConfig.WithStatisticsTracking();
+        servicesStandard.AddMediator(standardConfig);
         servicesStandard.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         var providerStandard = servicesStandard.BuildServiceProvider();
         _mediatorStandardConfig = providerStandard.GetRequiredService<IMediator>();
 
         // Full configuration (all features enabled)
         var servicesFull = new ServiceCollection();
-        servicesFull.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, typeof(MiddlewarePipelineBenchmarks).Assembly);
+        var fullConfig = new MediatorConfiguration();
+        fullConfig.WithStatisticsTracking();
+        servicesFull.AddMediator(fullConfig);
         servicesFull.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         servicesFull.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
         var providerFull = servicesFull.BuildServiceProvider();
@@ -99,10 +98,9 @@ public class MiddlewarePipelineBenchmarks
 
         // Enterprise configuration (complex middleware chain)
         var servicesEnterprise = new ServiceCollection();
-        servicesEnterprise.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, typeof(MiddlewarePipelineBenchmarks).Assembly);
+        var enterpriseConfig = new MediatorConfiguration();
+        enterpriseConfig.WithStatisticsTracking();
+        servicesEnterprise.AddMediator(enterpriseConfig);
         servicesEnterprise.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         servicesEnterprise.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
         servicesEnterprise.AddScoped(typeof(IRequestMiddleware<,>), typeof(PerformanceMiddleware<,>));
@@ -237,7 +235,7 @@ public class MiddlewarePipelineBenchmarks
 
     public class MiddlewareTestCommandHandler : IRequestHandler<MiddlewareTestCommand>
     {
-        public async Task Handle(MiddlewareTestCommand request, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(MiddlewareTestCommand request, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         }
@@ -250,7 +248,7 @@ public class MiddlewarePipelineBenchmarks
 
     public class MiddlewareTestQueryHandler : IRequestHandler<MiddlewareTestQuery, string>
     {
-        public async Task<string> Handle(MiddlewareTestQuery request, CancellationToken cancellationToken = default)
+        public async ValueTask<string> Handle(MiddlewareTestQuery request, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             return $"Processed: {request.Value}";
@@ -266,7 +264,7 @@ public class MiddlewarePipelineBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal logging overhead
             var result = await next().ConfigureAwait(false);
@@ -279,7 +277,7 @@ public class MiddlewarePipelineBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal validation overhead
             if (request is null)
@@ -294,7 +292,7 @@ public class MiddlewarePipelineBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal performance tracking overhead
             var result = await next().ConfigureAwait(false);
@@ -307,7 +305,7 @@ public class MiddlewarePipelineBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Only logs commands
             if (request.GetType().Name.Contains("Command", StringComparison.OrdinalIgnoreCase))

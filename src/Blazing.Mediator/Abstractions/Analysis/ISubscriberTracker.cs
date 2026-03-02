@@ -22,7 +22,23 @@ public sealed record SubscriberInfo(
 public interface ISubscriberTracker
 {
     /// <summary>
-    /// Tracks a subscription event for analytics and statistics.
+    /// Tracks a typed subscription event using compile-time type information (AOT-safe).
+    /// </summary>
+    /// <typeparam name="TNotification">The notification type — passed statically, no GetInterfaces() needed.</typeparam>
+    /// <param name="subscriber">The typed subscriber instance.</param>
+    void TrackSubscription<TNotification>(INotificationSubscriber<TNotification> subscriber)
+        where TNotification : INotification;
+
+    /// <summary>
+    /// Tracks a typed unsubscription event using compile-time type information (AOT-safe).
+    /// </summary>
+    /// <typeparam name="TNotification">The notification type — passed statically, no GetInterfaces() needed.</typeparam>
+    /// <param name="subscriber">The typed subscriber instance.</param>
+    void TrackUnsubscription<TNotification>(INotificationSubscriber<TNotification> subscriber)
+        where TNotification : INotification;
+
+    /// <summary>
+    /// Tracks a generic subscription event (for <see cref="INotificationSubscriber"/> subscribers).
     /// </summary>
     /// <param name="notificationType">The notification type being subscribed to.</param>
     /// <param name="subscriberType">The type of the subscriber.</param>
@@ -30,7 +46,7 @@ public interface ISubscriberTracker
     void TrackSubscription(Type notificationType, Type subscriberType, object subscriber);
 
     /// <summary>
-    /// Tracks an unsubscription event for analytics and statistics.
+    /// Tracks a generic unsubscription event (for <see cref="INotificationSubscriber"/> subscribers).
     /// </summary>
     /// <param name="notificationType">The notification type being unsubscribed from.</param>
     /// <param name="subscriberType">The type of the subscriber.</param>

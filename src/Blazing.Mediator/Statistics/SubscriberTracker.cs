@@ -25,7 +25,82 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
     }
 
     /// <summary>
-    /// Tracks a subscription event for analytics and statistics.
+    /// Tracks a typed subscription event using compile-time type information — no reflection required.
+    /// </summary>
+    /// <typeparam name="TNotification">The notification type inferred from the subscriber's generic parameter.</typeparam>
+    /// <param name="subscriber">The typed subscriber instance.</param>
+    public void TrackSubscription<TNotification>(INotificationSubscriber<TNotification> subscriber)
+        where TNotification : INotification
+    {
+        if (_disposed)
+            return;
+
+        try
+        {
+            // typeof(TNotification) from compile-time type param — no GetInterfaces() needed
+            var subscriberInfo = new SubscriberInfo(
+                typeof(TNotification),
+                subscriber.GetType(),
+                new WeakReference(subscriber),
+                DateTime.UtcNow,
+                IsGeneric: false          // typed subscriber — never generic
+            );
+
+            _subscriptions.AddOrUpdate(
+                typeof(TNotification),
+                [subscriberInfo],
+                (_, existing) =>
+                {
+                    existing.Add(subscriberInfo);
+                    return existing;
+                });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error tracking typed subscription for {typeof(TNotification).Name}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Tracks a typed unsubscription event using compile-time type information — no reflection required.
+    /// </summary>
+    /// <typeparam name="TNotification">The notification type inferred from the subscriber's generic parameter.</typeparam>
+    /// <param name="subscriber">The typed subscriber instance.</param>
+    public void TrackUnsubscription<TNotification>(INotificationSubscriber<TNotification> subscriber)
+        where TNotification : INotification
+    {
+        if (_disposed)
+            return;
+
+        try
+        {
+            if (!_subscriptions.TryGetValue(typeof(TNotification), out var subscribers))
+                return;
+
+            var newSubscribers = new ConcurrentBag<SubscriberInfo>();
+            foreach (var info in subscribers)
+            {
+                var target = info.Subscriber.Target;
+                if (target != null && !ReferenceEquals(target, subscriber))
+                    newSubscribers.Add(info);
+            }
+
+            if (newSubscribers.IsEmpty)
+                _subscriptions.TryRemove(typeof(TNotification), out _);
+            else
+                _subscriptions.TryUpdate(typeof(TNotification), newSubscribers, subscribers);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error tracking typed unsubscription for {typeof(TNotification).Name}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Tracks a generic subscription event for analytics and statistics.
+    /// Used for <see cref="INotificationSubscriber"/> (all-notification) subscribers.
+    /// This overload is only ever called from the non-generic <c>Subscribe(INotificationSubscriber)</c>
+    /// path, so <c>IsGeneric</c> is always <see langword="true"/> — no reflection required.
     /// </summary>
     /// <param name="notificationType">The notification type being subscribed to.</param>
     /// <param name="subscriberType">The type of the subscriber.</param>
@@ -42,7 +117,7 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
                 subscriberType,
                 new WeakReference(subscriber),
                 DateTime.UtcNow,
-                IsGenericSubscriber(subscriberType)
+                IsGeneric: true // always an INotificationSubscriber (all-notifications) at this call site
             );
 
             _subscriptions.AddOrUpdate(
@@ -217,28 +292,6 @@ public sealed class SubscriberTracker : ISubscriberTracker, IDisposable
                 //Debug.WriteLine($"Error during subscriber cleanup: {ex.Message}");
             }
         }
-    }
-
-    /// <summary>
-    /// Determines if a subscriber type is a generic subscriber (handles all notifications).
-    /// </summary>
-    /// <param name="subscriberType">The subscriber type to check.</param>
-    /// <returns>True if the subscriber is generic, false if specific to a notification type.</returns>
-    private static bool IsGenericSubscriber(Type subscriberType)
-    {
-        // Check if the type implements INotificationSubscriber (generic) vs INotificationSubscriber<T> (specific)
-        var interfaces = subscriberType.GetInterfaces();
-        
-        // Generic subscriber implements INotificationSubscriber directly
-        if (interfaces.Contains(typeof(INotificationSubscriber)))
-        {
-            return true;
-        }
-
-        // Specific subscriber implements INotificationSubscriber<T>
-        return interfaces.Any(i => 
-            i.IsGenericType && 
-            i.GetGenericTypeDefinition() == typeof(INotificationSubscriber<>));
     }
 
     /// <summary>

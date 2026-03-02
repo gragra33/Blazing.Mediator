@@ -17,7 +17,7 @@ public class GlobalAnalyticsEventHandler : INotificationHandler<IIntegrationEven
         _logger = logger;
     }
 
-    public async Task Handle(IIntegrationEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(IIntegrationEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("ANALYTICS: Integration event {EventType} tracked at {Timestamp}", 
             notification.GetType().Name, DateTime.UtcNow);

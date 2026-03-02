@@ -77,16 +77,9 @@ public static class ServiceCollectionExtensions
     /// </summary>
     private static void AddMediatorServices(this IServiceCollection services)
     {
-        services.AddMediator(config =>
-        {
-            // Keep existing middleware that was working - use typeof for generic middleware
-            config.AddMiddleware(typeof(GeneralLoggingMiddleware<,>));
-            config.AddMiddleware(typeof(GeneralCommandLoggingMiddleware<>));
-
-            // Add statistics tracking middleware for both typed and void requests
-            config.AddMiddleware(typeof(StatisticsTrackingMiddleware<,>));
-            config.AddMiddleware(typeof(StatisticsTrackingVoidMiddleware<>));
-        }, Assembly.GetExecutingAssembly());
+        // Middleware (GeneralLoggingMiddleware, StatisticsTrackingMiddleware, etc.) is discovered
+        // automatically by the source generator at compile time.
+        services.AddMediator();
     }
 
     /// <summary>

@@ -11,8 +11,8 @@ public interface IRequestHandler<in TRequest> where TRequest : IRequest
     /// </summary>
     /// <param name="request">The request to handle.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    Task Handle(TRequest request, CancellationToken cancellationToken = default);
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask Handle(TRequest request, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -27,6 +27,6 @@ public interface IRequestHandler<in TRequest, TResponse> where TRequest : IReque
     /// </summary>
     /// <param name="request">The request to handle.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation and contains the response.</returns>
-    Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken = default);
+    /// <returns>A <see cref="ValueTask{TResponse}"/> that represents the asynchronous operation and contains the response.</returns>
+    ValueTask<TResponse> Handle(TRequest request, CancellationToken cancellationToken = default);
 }

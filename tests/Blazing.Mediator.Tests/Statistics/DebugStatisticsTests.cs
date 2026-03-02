@@ -1,3 +1,4 @@
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,20 +15,20 @@ public class DebugStatisticsTests
 
     public class TestQueryHandler : IRequestHandler<TestQuery, string>
     {
-        public Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
-            => Task.FromResult($"Response: {request.Message}");
+        public ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
+            => ValueTask.FromResult($"Response: {request.Message}");
     }
 
     public class TestCommandHandler : IRequestHandler<TestCommand>
     {
-        public Task Handle(TestCommand request, CancellationToken cancellationToken)
-            => Task.CompletedTask;
+        public ValueTask Handle(TestCommand request, CancellationToken cancellationToken)
+            => ValueTask.CompletedTask;
     }
 
     public class TestNotificationHandler : INotificationHandler<TestNotification>
     {
-        public Task Handle(TestNotification notification, CancellationToken cancellationToken)
-            => Task.CompletedTask;
+        public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken)
+            => ValueTask.CompletedTask;
     }
 
     [Fact]
@@ -37,14 +38,13 @@ public class DebugStatisticsTests
         var services = new ServiceCollection();
         var renderer = new DebugStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddMediator(config =>
+        var cfg = new MediatorConfiguration();
+        cfg.WithStatisticsTracking(options =>
         {
-            config.WithStatisticsTracking(options =>
-            {
-                options.EnableRequestMetrics = true;
-                options.EnableNotificationMetrics = true;
-            }).WithNotificationHandlerDiscovery();
-        }, typeof(DebugStatisticsTests).Assembly);
+            options.EnableRequestMetrics = true;
+            options.EnableNotificationMetrics = true;
+        }).WithNotificationHandlerDiscovery();
+        services.AddMediator(cfg);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

@@ -7,7 +7,7 @@ public class TestNotificationMiddleware1 : INotificationMiddleware
 {
     public int Order => 1;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         // Add to execution order tracking if it exists
         if (notification is TestNotification testNotification)

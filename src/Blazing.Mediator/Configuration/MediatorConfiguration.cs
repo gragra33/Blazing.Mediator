@@ -9,14 +9,14 @@ public sealed class MediatorConfiguration : MediatorConfigurationSection, IEnvir
     private readonly HashSet<Assembly> _assemblies = new();
 
     /// <summary>
-    /// Gets the middleware pipeline builder.
+    /// Gets the middleware pipeline builder. Null when using source generators (pipeline is pre-baked at compile time).
     /// </summary>
-    public IMiddlewarePipelineBuilder PipelineBuilder { get; } = new MiddlewarePipelineBuilder();
+    public IMiddlewarePipelineBuilder? PipelineBuilder { get; }
 
     /// <summary>
-    /// Gets the notification middleware pipeline builder.
+    /// Gets the notification middleware pipeline builder. Null when using source generators (pipeline is pre-baked at compile time).
     /// </summary>
-    public INotificationPipelineBuilder NotificationPipelineBuilder { get; } = new NotificationPipelineBuilder();
+    public INotificationPipelineBuilder? NotificationPipelineBuilder { get; }
 
     /// <summary>
     /// Gets the assemblies configured for handler and middleware scanning.
@@ -590,7 +590,8 @@ public sealed class MediatorConfiguration : MediatorConfigurationSection, IEnvir
     public MediatorConfiguration AddMiddleware<TMiddleware>()
         where TMiddleware : class
     {
-        PipelineBuilder.AddMiddleware<TMiddleware>();
+        // Pipeline builder is null when using source generators (pipeline is pre-baked at compile time).
+        PipelineBuilder?.AddMiddleware<TMiddleware>();
 
         // Automatically register the middleware in DI if services collection is available
         if (_services != null)
@@ -608,7 +609,8 @@ public sealed class MediatorConfiguration : MediatorConfigurationSection, IEnvir
     /// <returns>The configuration for chaining</returns>
     public MediatorConfiguration AddMiddleware(Type middlewareType)
     {
-        PipelineBuilder.AddMiddleware(middlewareType);
+        // Pipeline builder is null when using source generators (pipeline is pre-baked at compile time).
+        PipelineBuilder?.AddMiddleware(middlewareType);
 
         // Automatically register the middleware in DI if services collection is available
         if (_services != null)
@@ -642,7 +644,8 @@ public sealed class MediatorConfiguration : MediatorConfigurationSection, IEnvir
     public MediatorConfiguration AddNotificationMiddleware<TMiddleware>()
         where TMiddleware : class, INotificationMiddleware
     {
-        NotificationPipelineBuilder.AddMiddleware<TMiddleware>();
+        // Pipeline builder is null when using source generators (pipeline is pre-baked at compile time).
+        NotificationPipelineBuilder?.AddMiddleware<TMiddleware>();
 
         // Automatically register the middleware in DI if services collection is available
         if (_services != null)
@@ -662,7 +665,8 @@ public sealed class MediatorConfiguration : MediatorConfigurationSection, IEnvir
     public MediatorConfiguration AddNotificationMiddleware<TMiddleware>(object? configuration)
         where TMiddleware : class, INotificationMiddleware
     {
-        NotificationPipelineBuilder.AddMiddleware<TMiddleware>(configuration);
+        // Pipeline builder is null when using source generators (pipeline is pre-baked at compile time).
+        NotificationPipelineBuilder?.AddMiddleware<TMiddleware>(configuration);
 
         // Automatically register the middleware in DI if services collection is available
         if (_services != null)
@@ -680,7 +684,8 @@ public sealed class MediatorConfiguration : MediatorConfigurationSection, IEnvir
     /// <returns>The configuration for chaining</returns>
     public MediatorConfiguration AddNotificationMiddleware(Type middlewareType)
     {
-        NotificationPipelineBuilder.AddMiddleware(middlewareType);
+        // Pipeline builder is null when using source generators (pipeline is pre-baked at compile time).
+        NotificationPipelineBuilder?.AddMiddleware(middlewareType);
 
         // Automatically register the middleware in DI if services collection is available
         if (_services != null)

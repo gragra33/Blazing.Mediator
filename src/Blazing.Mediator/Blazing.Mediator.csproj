@@ -14,7 +14,27 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    
+    <!-- Enable source generator execution for debugging -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
+    
+    <!-- DO NOT define USE_SOURCE_GENERATORS in the library itself -->
+    <!-- It should only be defined in consuming projects that have handlers -->
+    <!-- The library code has #if USE_SOURCE_GENERATORS blocks that fall back to reflection -->
+    <!-- <DefineConstants>$(DefineConstants);USE_SOURCE_GENERATORS</DefineConstants> -->
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Expose internals to test projects -->
+    <InternalsVisibleTo Include="Blazing.Mediator.Tests" />
+    <InternalsVisibleTo Include="Blazing.Mediator.AotTests" />
+    <!-- Expose internals to benchmark projects for source generation testing -->
+    <InternalsVisibleTo Include="Blazing.Mediator.Benchmarks" />
+    <InternalsVisibleTo Include="Blazing.Mediator.Benchmarks.Temp" />
+    <!-- Cross-library comparison benchmark (benchmarks/ComparisonBenchmarks/) -->
+    <InternalsVisibleTo Include="ComparisonBenchmarks" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
@@ -24,7 +44,14 @@
     <PackageReference Include="OpenTelemetry" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
-
+  
+  <ItemGroup>
+    <!-- Source generator is NOT run against the runtime library itself.                    -->
+    <!-- Running the source gen here would export MediatorServiceCollectionExtensions from  -->
+    <!-- Blazing.Mediator.dll, causing CS0121 ambiguity in every consuming project that     -->
+    <!-- also runs the source gen.  Each consuming project provides its own Analyzer ref.   -->
+  </ItemGroup>
+  
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />

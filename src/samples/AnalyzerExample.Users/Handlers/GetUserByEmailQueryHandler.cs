@@ -9,7 +9,7 @@ namespace AnalyzerExample.Users.Handlers;
 /// </summary>
 public class GetUserByEmailQueryHandler : IRequestHandler<GetUserByEmailQuery, UserDetailDto?>
 {
-    public async Task<UserDetailDto?> Handle(GetUserByEmailQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<UserDetailDto?> Handle(GetUserByEmailQuery request, CancellationToken cancellationToken = default)
     {
         // Simulate database query
         await Task.Delay(40, cancellationToken);

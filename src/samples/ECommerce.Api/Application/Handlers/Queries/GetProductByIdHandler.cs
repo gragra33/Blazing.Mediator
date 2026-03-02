@@ -24,7 +24,7 @@ public class GetProductByIdHandler(ECommerceDbContext context)
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task containing the product details as a ProductDto.</returns>
     /// <remarks>Throws a NotFoundException when the product is not found.</remarks>
-    public async Task<ProductDto> Handle(GetProductByIdQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<ProductDto> Handle(GetProductByIdQuery request, CancellationToken cancellationToken = default)
     {
         Product? product = await context.Products
             .AsNoTracking()

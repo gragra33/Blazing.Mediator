@@ -829,7 +829,7 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
 
         // Use AddMediator to ensure proper registration
-        services.AddMediator(typeof(TestQuery).Assembly);
+        services.AddMediator();
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
 
         var serviceProvider = services.BuildServiceProvider();
@@ -867,7 +867,7 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
 
         // Use AddMediator to ensure proper registration
-        services.AddMediator(typeof(TestCommand).Assembly);
+        services.AddMediator();
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
 
         var serviceProvider = services.BuildServiceProvider();
@@ -934,7 +934,7 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
 
         // Use AddMediator to ensure proper registration
-        services.AddMediator(typeof(TestCommand).Assembly);
+        services.AddMediator();
 
         // Register multiple handlers for the same command - this will actually cause DI issues,
         // but we want to test the detection logic
@@ -1069,9 +1069,9 @@ public class MediatorStatisticsTests
 /// </summary>
 public class SecondTestCommandHandler : IRequestHandler<TestCommand>
 {
-    public Task Handle(TestCommand request, CancellationToken cancellationToken)
+    public ValueTask Handle(TestCommand request, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 

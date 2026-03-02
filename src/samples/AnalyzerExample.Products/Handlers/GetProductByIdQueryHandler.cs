@@ -17,7 +17,7 @@ public class GetProductByIdQueryHandler : IQueryHandler<GetProductByIdQuery, Pro
         _logger = logger;
     }
 
-    public async Task<ProductDetailDto?> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
+    public async ValueTask<ProductDetailDto?> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("?? [Products] Getting product details for ID: {ProductId}", request.ProductId);
         

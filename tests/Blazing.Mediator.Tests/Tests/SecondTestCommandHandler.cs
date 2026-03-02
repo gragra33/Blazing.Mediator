@@ -5,8 +5,8 @@ namespace Blazing.Mediator.Tests;
 /// </summary>
 public class SecondTestCommandHandler : IRequestHandler<TestCommand>
 {
-    public Task Handle(TestCommand request, CancellationToken cancellationToken)
+    public ValueTask Handle(TestCommand request, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

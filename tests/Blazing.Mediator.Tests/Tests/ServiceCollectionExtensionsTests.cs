@@ -1,744 +1,190 @@
-using System.Reflection;
 using Blazing.Mediator.Configuration;
-using Blazing.Mediator.Tests.Middleware;
+using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Tests;
 
 /// <summary>
-/// Tests for ServiceCollectionExtensions functionality.
-/// Covers registration scenarios, handler discovery, and dependency injection integration.
+/// Core registration tests for the source-generated AddMediator() extension methods.
+/// Verifies that IMediator, handlers, and the type catalog are registered correctly.
 /// </summary>
 public class ServiceCollectionExtensionsTests
 {
-    /// <summary>
-    /// Tests that AddMediator with assemblies registers the mediator service.
-    /// </summary>
+    /// <summary>Tests that AddMediator() registers IMediator.</summary>
     [Fact]
-    public void AddMediator_WithAssemblies_RegistersMediator()
+    public void AddMediator_NoArgs_RegistersIMediator()
     {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(TestRegistrationCommand).Assembly;
+        var services = new ServiceCollection();
+        services.AddMediator();
+        var sp = services.BuildServiceProvider();
 
-        // Act
-        services.AddMediator(assembly);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator? mediator = serviceProvider.GetService<IMediator>();
-        mediator.ShouldNotBeNull();
-        mediator.ShouldBeOfType<Mediator>();
+        sp.GetRequiredService<IMediator>().ShouldNotBeNull();
     }
 
-    /// <summary>
-    /// Tests that AddMediator with assemblies registers the request handlers.
-    /// </summary>
+    /// <summary>Tests that the resolved IMediator is of the concrete Mediator type.</summary>
     [Fact]
-    public void AddMediator_WithAssemblies_RegistersHandlers()
+    public void AddMediator_NoArgs_MediatorIsCorrectType()
     {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(TestRegistrationCommand).Assembly;
+        var services = new ServiceCollection();
+        services.AddMediator();
+        var sp = services.BuildServiceProvider();
 
-        // Act
-        services.AddMediator(assembly);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IRequestHandler<TestRegistrationCommand>? commandHandler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
-        IRequestHandler<TestRegistrationQuery, string>? queryHandler = serviceProvider.GetService<IRequestHandler<TestRegistrationQuery, string>>();
-
-        commandHandler.ShouldNotBeNull();
-        queryHandler.ShouldNotBeNull();
+        sp.GetRequiredService<IMediator>().ShouldBeOfType<Mediator>();
     }
 
-    /// <summary>
-    /// Tests that AddMediator with types registers from the correct assemblies.
-    /// </summary>
+    /// <summary>Tests that AddMediator() registers all compile-time-discovered handlers.</summary>
     [Fact]
-    public void AddMediator_WithTypes_RegistersFromCorrectAssemblies()
+    public void AddMediator_NoArgs_RegistersDiscoveredHandlers()
     {
-        // Arrange
-        ServiceCollection services = new();
+        var services = new ServiceCollection();
+        services.AddMediator();
+        var sp = services.BuildServiceProvider();
 
-        // Act
-        services.AddMediator(typeof(TestRegistrationCommand), typeof(ServiceCollectionExtensionsTests));
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator? mediator = serviceProvider.GetService<IMediator>();
-        IRequestHandler<TestRegistrationCommand>? handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
-
-        mediator.ShouldNotBeNull();
-        handler.ShouldNotBeNull();
+        // These handlers are discovered and registered by the source generator
+        sp.GetRequiredService<TestRegistrationCommandHandler>().ShouldNotBeNull();
+        sp.GetRequiredService<TestRegistrationQueryHandler>().ShouldNotBeNull();
     }
 
-    /// <summary>
-    /// Tests that AddMediator with null assemblies registers only the mediator service.
-    /// </summary>
+    /// <summary>Tests that AddMediator() allows IMediator.Send to execute a query handler.</summary>
     [Fact]
-    public void AddMediator_WithNullAssemblies_RegistersMediatorOnly()
+    public async Task AddMediator_NoArgs_CanSendQuery()
     {
-        // Arrange
-        ServiceCollection services = new();
+        var services = new ServiceCollection();
+        services.AddMediator();
+        var sp = services.BuildServiceProvider();
+        var mediator = sp.GetRequiredService<IMediator>();
 
-        // Act
-        services.AddMediator((Assembly[])null!);
+        var result = await mediator.Send(new TestRegistrationQuery());
 
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator? mediator = serviceProvider.GetService<IMediator>();
-        mediator.ShouldNotBeNull();
+        result.ShouldNotBeNull();
     }
 
-    /// <summary>
-    /// Tests that AddMediator with empty assemblies registers only the mediator service.
-    /// </summary>
+    /// <summary>Tests that AddMediator() registers the IMediatorTypeCatalog singleton.</summary>
     [Fact]
-    public void AddMediator_WithEmptyAssemblies_RegistersMediatorOnly()
+    public void AddMediator_NoArgs_RegistersTypeCatalog()
     {
-        // Arrange
-        ServiceCollection services = new();
+        var services = new ServiceCollection();
+        services.AddMediator();
+        var sp = services.BuildServiceProvider();
 
-        // Act
-        services.AddMediator(Array.Empty<Assembly>());
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator? mediator = serviceProvider.GetService<IMediator>();
-        mediator.ShouldNotBeNull();
+        sp.GetRequiredService<IMediatorTypeCatalog>().ShouldNotBeNull();
     }
 
-    /// <summary>
-    /// Tests that AddMediator with null types registers only the mediator service.
-    /// </summary>
+    /// <summary>Tests that AddMediator(config) succeeds with statistics enabled.</summary>
     [Fact]
-    public void AddMediator_WithNullTypes_RegistersMediatorOnly()
+    public void AddMediator_WithStatisticsConfig_RegistersSuccessfully()
     {
-        // Arrange
-        ServiceCollection services = new();
+        var services = new ServiceCollection();
+        var config = new MediatorConfiguration();
+        config.WithStatisticsTracking();
 
-        // Act
-        services.AddMediator((Type[])null!);
+        services.AddMediator(config);
+        var sp = services.BuildServiceProvider();
 
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator? mediator = serviceProvider.GetService<IMediator>();
-        mediator.ShouldNotBeNull();
+        sp.GetRequiredService<IMediator>().ShouldNotBeNull();
     }
 
-    /// <summary>
-    /// Tests that AddMediatorFromCallingAssembly registers both mediator and handlers.
-    /// </summary>
+    /// <summary>Tests that AddMediator(config) succeeds with logging enabled.</summary>
     [Fact]
-    public void AddMediatorFromCallingAssembly_RegistersMediatorAndHandlers()
+    public void AddMediator_WithLoggingConfig_RegistersSuccessfully()
     {
-        // Arrange
-        ServiceCollection services = new();
+        var services = new ServiceCollection();
+        var config = new MediatorConfiguration();
+        config.WithLogging();
 
-        // Act
-        services.AddMediatorFromCallingAssembly();
+        services.AddMediator(config);
+        var sp = services.BuildServiceProvider();
 
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator? mediator = serviceProvider.GetService<IMediator>();
-        IRequestHandler<TestRegistrationCommand>? handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
-
-        mediator.ShouldNotBeNull();
-        handler.ShouldNotBeNull();
+        sp.GetRequiredService<IMediator>().ShouldNotBeNull();
     }
 
-    /// <summary>
-    /// Tests that AddMediatorFromLoadedAssemblies without filter registers from all assemblies.
-    /// </summary>
+    /// <summary>Tests that AddMediator(config) succeeds with telemetry enabled.</summary>
     [Fact]
-    public void AddMediatorFromLoadedAssemblies_WithoutFilter_RegistersFromAllAssemblies()
+    public void AddMediator_WithTelemetryConfig_RegistersSuccessfully()
     {
-        // Arrange
-        ServiceCollection services = new();
+        var services = new ServiceCollection();
+        var config = new MediatorConfiguration();
+        config.WithTelemetry();
 
-        // Act
-        services.AddMediatorFromLoadedAssemblies();
+        services.AddMediator(config);
+        var sp = services.BuildServiceProvider();
 
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator? mediator = serviceProvider.GetService<IMediator>();
-        mediator.ShouldNotBeNull();
+        sp.GetRequiredService<IMediator>().ShouldNotBeNull();
     }
 
-    /// <summary>
-    /// Tests that AddMediatorFromLoadedAssemblies with filter registers from filtered assemblies.
-    /// </summary>
+    /// <summary>Tests that AddMediator() can be called multiple times without throwing.</summary>
     [Fact]
-    public void AddMediatorFromLoadedAssemblies_WithFilter_RegistersFromFilteredAssemblies()
+    public void AddMediator_CalledTwice_DoesNotThrow()
     {
-        // Arrange
-        ServiceCollection services = new();
-
-        // Act
-        services.AddMediatorFromLoadedAssemblies(assembly =>
-            assembly.FullName?.Contains("Blazing.Mediator.Tests") == true);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator? mediator = serviceProvider.GetService<IMediator>();
-        IRequestHandler<TestRegistrationCommand>? handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
-
-        mediator.ShouldNotBeNull();
-        handler.ShouldNotBeNull();
+        var services = new ServiceCollection();
+        services.AddMediator();
+        Should.NotThrow(() => services.AddMediator());
     }
 
-    /// <summary>
-    /// Tests that AddMediator with duplicate assemblies registers handlers only once.
-    /// </summary>
+    /// <summary>Tests that AddMediator() registers IMediator as a singleton.</summary>
     [Fact]
-    public void AddMediator_WithDuplicateAssemblies_RegistersHandlersOnce()
+    public void AddMediator_IMediator_IsRegisteredAsSingleton()
     {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(TestRegistrationCommand).Assembly;
+        var services = new ServiceCollection();
+        services.AddMediator();
+        var sp = services.BuildServiceProvider();
 
-        // Act
-        services.AddMediator(assembly, assembly); // Same assembly twice
+        var mediator1 = sp.GetRequiredService<IMediator>();
+        var mediator2 = sp.GetRequiredService<IMediator>();
 
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IEnumerable<IRequestHandler<TestRegistrationCommand>> handlers = serviceProvider.GetServices<IRequestHandler<TestRegistrationCommand>>();
-        handlers.Count().ShouldBe(1); // Should only register once
+        mediator1.ShouldBeSameAs(mediator2);
     }
 
-    /// <summary>
-    /// Tests that AddMediator with multiple interfaces registers all interfaces for a handler.
-    /// </summary>
+    /// <summary>Tests that MediatorConfiguration preset methods produce a valid registration.</summary>
     [Fact]
-    public void AddMediator_WithMultipleInterfaces_RegistersAllInterfaces()
+    public void AddMediator_WithProductionPreset_RegistersSuccessfully()
     {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(TestMultiInterfaceHandler).Assembly;
+        var services = new ServiceCollection();
+        services.AddMediator(MediatorConfiguration.Production());
+        var sp = services.BuildServiceProvider();
 
-        // Act
-        services.AddMediator(assembly);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IRequestHandler<TestMultiCommand>? commandHandler = serviceProvider.GetService<IRequestHandler<TestMultiCommand>>();
-        IRequestHandler<TestMultiQuery, string>? queryHandler = serviceProvider.GetService<IRequestHandler<TestMultiQuery, string>>();
-
-        commandHandler.ShouldNotBeNull();
-        queryHandler.ShouldNotBeNull();
-        commandHandler.ShouldBeSameAs(queryHandler); // Same instance
+        sp.GetRequiredService<IMediator>().ShouldNotBeNull();
     }
 
-    /// <summary>
-    /// Tests that AddMediator with abstract handler does not register the handler.
-    /// </summary>
+    /// <summary>Tests that MediatorConfiguration.Development preset produces a valid registration.</summary>
     [Fact]
-    public void AddMediator_WithAbstractHandler_DoesNotRegisterHandler()
+    public void AddMediator_WithDevelopmentPreset_RegistersSuccessfully()
     {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(TestAbstractHandler).Assembly;
+        var services = new ServiceCollection();
+        services.AddMediator(MediatorConfiguration.Development());
+        var sp = services.BuildServiceProvider();
 
-        // Act
-        services.AddMediator(assembly);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IRequestHandler<TestAbstractCommand>? handler = serviceProvider.GetService<IRequestHandler<TestAbstractCommand>>();
-        handler.ShouldBeNull();
+        sp.GetRequiredService<IMediator>().ShouldNotBeNull();
     }
 
-    /// <summary>
-    /// Tests that AddMediator with interface handler does not register the handler.
-    /// </summary>
+    /// <summary>Tests that MediatorConfiguration.Minimal preset produces a valid registration.</summary>
     [Fact]
-    public void AddMediator_WithInterfaceHandler_DoesNotRegisterHandler()
+    public void AddMediator_WithMinimalPreset_RegistersSuccessfully()
     {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(ITestInterfaceHandler).Assembly;
+        var services = new ServiceCollection();
+        services.AddMediator(MediatorConfiguration.Minimal());
+        var sp = services.BuildServiceProvider();
 
-        // Act
-        services.AddMediator(assembly);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IRequestHandler<TestInterfaceCommand>? handler = serviceProvider.GetService<IRequestHandler<TestInterfaceCommand>>();
-        handler.ShouldBeNull();
+        sp.GetRequiredService<IMediator>().ShouldNotBeNull();
     }
 
-    /// <summary>
-    /// Tests that AddMediator with configuration-based assembly registration works correctly.
-    /// </summary>
+    /// <summary>Tests that MediatorConfiguration.Disabled preset produces a valid registration.</summary>
     [Fact]
-    public void AddMediator_WithConfigurationBasedAssemblyRegistration_RegistersHandlers()
+    public void AddMediator_WithDisabledPreset_RegistersSuccessfully()
     {
-        // Arrange
-        ServiceCollection services = new();
+        var services = new ServiceCollection();
+        services.AddMediator(MediatorConfiguration.Disabled());
+        var sp = services.BuildServiceProvider();
 
-        // Act - Using the new AddFromAssembly functionality
-        services.AddMediator(config =>
-        {
-            // Add notification middleware for cross-cutting concerns
-            config.AddNotificationMiddleware<NotificationLoggingMiddleware>();
-            config.AddNotificationMiddleware<NotificationMetricsMiddleware>();
-            config.AddNotificationMiddleware<NotificationErrorHandlingMiddleware>();
-
-            // Configure assemblies to scan for subscribers
-            config.AddFromAssembly(typeof(TestRegistrationCommand));
-            config.AddFromAssembly(typeof(ServiceCollectionExtensionsTests));
-        }); // Explicitly pass empty Assembly array to resolve ambiguity
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator? mediator = serviceProvider.GetService<IMediator>();
-        IRequestHandler<TestRegistrationCommand>? handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
-        MediatorConfiguration? configuration = serviceProvider.GetService<MediatorConfiguration>();
-
-        mediator.ShouldNotBeNull();
-        handler.ShouldNotBeNull();
-        configuration.ShouldNotBeNull();
-        configuration.Assemblies.Count.ShouldBeGreaterThan(0);
-        
-        // Verify the assemblies were registered
-        configuration.Assemblies.ShouldContain(typeof(TestRegistrationCommand).Assembly);
-        configuration.Assemblies.ShouldContain(typeof(ServiceCollectionExtensionsTests).Assembly);
+        sp.GetRequiredService<IMediator>().ShouldNotBeNull();
     }
 
-    /// <summary>
-    /// Tests that AddMediator merges configuration assemblies with parameter assemblies.
-    /// </summary>
+    /// <summary>Tests that null MediatorConfiguration throws ArgumentNullException.</summary>
     [Fact]
-    public void AddMediator_WithConfigurationAndParameterAssemblies_MergesAssemblies()
+    public void AddMediator_WithNullConfig_ThrowsArgumentNullException()
     {
-        // Arrange
-        ServiceCollection services = new();
-        var parameterAssembly = typeof(string).Assembly;
+        var services = new ServiceCollection();
 
-        // Act - Use a more specific overload to avoid ambiguity
-        services.AddMediator(config =>
-        {
-            config.AddFromAssembly<TestRegistrationCommand>();
-        });
-
-        // Add the parameter assembly separately for clarity
-        services.AddMediator(parameterAssembly);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator? mediator = serviceProvider.GetService<IMediator>();
-        IRequestHandler<TestRegistrationCommand>? handler = serviceProvider.GetService<IRequestHandler<TestRegistrationCommand>>();
-        MediatorConfiguration? configuration = serviceProvider.GetService<MediatorConfiguration>();
-
-        mediator.ShouldNotBeNull();
-        handler.ShouldNotBeNull();
-        configuration.ShouldNotBeNull();
-        
-        // Should contain assemblies from both configuration and parameters
-        configuration.Assemblies.ShouldContain(typeof(TestRegistrationCommand).Assembly);
+        Should.Throw<ArgumentNullException>(() => services.AddMediator((MediatorConfiguration)null!));
     }
-
-    #region Middleware Auto-Discovery Tests
-
-    /// <summary>
-    /// Tests that auto-discovery registers middleware from assemblies.
-    /// </summary>
-    [Fact]
-    public void AddMediator_WithAutoDiscovery_RegistersMiddleware()
-    {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(AutoDiscoveryStaticOrderMiddleware).Assembly;
-
-        // Act
-        services.AddMediator(null, discoverMiddleware: true, discoverNotificationMiddleware: false, assembly);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-        mediator.ShouldNotBeNull();
-
-        // Verify middleware was registered by checking the configuration
-        MediatorConfiguration? config = serviceProvider.GetService<MediatorConfiguration>();
-        config.ShouldNotBeNull();
-        config.PipelineBuilder.ShouldNotBeNull();
-    }
-
-    /// <summary>
-    /// Tests that auto-discovery respects middleware order from static Order property.
-    /// </summary>
-    [Fact]
-    public async Task AddMediator_WithAutoDiscovery_RespectsStaticOrderProperty()
-    {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(AutoDiscoveryStaticOrderMiddleware).Assembly;
-
-        // Only register our specific auto-discovery middleware and exclude problematic ones
-        services.AddMediator(config =>
-        {
-            // Clear any auto-discovered middleware and add only our test middleware
-            config.AddMiddleware<AutoDiscoveryStaticOrderMiddleware>();
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
-
-        // Act
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-
-        MiddlewareTestQuery query = new() { Value = "test" };
-        string result = await mediator.Send(query);
-
-        // Assert
-        // The middleware should execute in order based on Order property
-        result.ShouldContain("StaticOrder:");
-    }
-
-    /// <summary>
-    /// Tests that auto-discovery respects middleware order from instance Order property.
-    /// </summary>
-    [Fact]
-    public async Task AddMediator_WithAutoDiscovery_RespectsInstanceOrderProperty()
-    {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(AutoDiscoveryInstanceOrderMiddleware).Assembly;
-
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<AutoDiscoveryInstanceOrderMiddleware>();
-        }, null!);
-
-        // Register the handler for MiddlewareTestQuery
-        services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
-
-        // Act
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-
-        MiddlewareTestQuery query = new() { Value = "test" };
-        string result = await mediator.Send(query);
-
-        // Assert
-        result.ShouldContain("InstanceOrder:");
-    }
-
-    /// <summary>
-    /// Tests that auto-discovery handles middleware without Order property.
-    /// </summary>
-    [Fact]
-    public async Task AddMediator_WithAutoDiscovery_HandlesNoOrderProperty()
-    {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(AutoDiscoveryNoOrderMiddleware).Assembly;
-
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<AutoDiscoveryNoOrderMiddleware>();
-        }, null!);
-
-        // Register the handler for MiddlewareTestQuery
-        services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
-
-        // Act
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-
-        MiddlewareTestQuery query = new() { Value = "test" };
-        string result = await mediator.Send(query);
-
-        // Assert
-        result.ShouldContain("NoOrder:");
-    }
-
-    /// <summary>
-    /// Tests that auto-discovery registers conditional middleware correctly.
-    /// </summary>
-    [Fact]
-    public async Task AddMediator_WithAutoDiscovery_RegistersConditionalMiddleware()
-    {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(AutoDiscoveryConditionalMiddleware).Assembly;
-
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<AutoDiscoveryConditionalMiddleware>();
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
-
-        // Act
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-
-        // Test conditional execution - should execute
-        MiddlewareTestQuery queryWithAuto = new() { Value = "auto-test" };
-        string resultWithAuto = await mediator.Send(queryWithAuto);
-
-        // Test conditional execution - should not execute
-        MiddlewareTestQuery queryWithoutAuto = new() { Value = "manual-test" };
-        string resultWithoutAuto = await mediator.Send(queryWithoutAuto);
-
-        // Assert
-        resultWithAuto.ShouldContain("Conditional:");
-        resultWithoutAuto.ShouldNotContain("Conditional:");
-    }
-
-    /// <summary>
-    /// Tests that auto-discovery works with multiple middleware types in correct order.
-    /// </summary>
-    [Fact]
-    public async Task AddMediator_WithAutoDiscovery_ExecutesMultipleMiddlewareInOrder()
-    {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(AutoDiscoveryStaticOrderMiddleware).Assembly;
-
-        services.AddMediator(config =>
-        {
-            // Add our auto-discovery middleware in controlled way
-            config.AddMiddleware<AutoDiscoveryStaticOrderMiddleware>();
-            config.AddMiddleware<AutoDiscoveryInstanceOrderMiddleware>();
-            config.AddMiddleware<AutoDiscoveryConditionalMiddleware>();
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
-
-        // Act
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-
-        MiddlewareTestQuery query = new() { Value = "auto-test" };
-        string result = await mediator.Send(query);
-
-        // Assert
-        // Should contain middleware results in execution order
-        result.ShouldContain("StaticOrder:");
-        result.ShouldContain("InstanceOrder:");
-        result.ShouldContain("Conditional:");
-
-        // Verify execution order (static order 5 < instance order 10 < conditional order 15)
-        int staticPos = result.IndexOf("StaticOrder:", StringComparison.Ordinal);
-        int instancePos = result.IndexOf("InstanceOrder:", StringComparison.Ordinal);
-        int conditionalPos = result.IndexOf("Conditional:", StringComparison.Ordinal);
-
-        staticPos.ShouldBeLessThan(instancePos);
-        instancePos.ShouldBeLessThan(conditionalPos);
-    }
-
-    /// <summary>
-    /// Tests that manual configuration overrides auto-discovery.
-    /// </summary>
-    [Fact]
-    public async Task AddMediator_WithAutoDiscoveryAndManualConfig_AllowsOverrides()
-    {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(AutoDiscoveryStaticOrderMiddleware).Assembly;
-
-        services.AddMediator(config =>
-        {
-            // Manually add specific middleware without auto-discovery to avoid ThrowingQueryMiddleware
-            config.AddMiddleware<AutoDiscoveryStaticOrderMiddleware>();
-            config.AddMiddleware<FirstQueryMiddleware>();
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
-
-        // Act
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-
-        MiddlewareTestQuery query = new() { Value = "auto-test" };
-        string result = await mediator.Send(query);
-
-        // Assert
-        // Should contain both auto-discovered and manually configured middleware
-        result.ShouldContain("StaticOrder:");
-        result.ShouldContain("First:");
-    }
-
-    /// <summary>
-    /// Tests that auto-discovery with false flag does not register middleware.
-    /// </summary>
-    [Fact]
-    public async Task AddMediator_WithAutoDiscoveryDisabled_DoesNotRegisterMiddleware()
-    {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(AutoDiscoveryStaticOrderMiddleware).Assembly;
-
-        services.AddMediator(null, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly);
-
-        // Act
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-
-        MiddlewareTestQuery query = new() { Value = "auto-test" };
-        string result = await mediator.Send(query);
-
-        // Assert
-        // Should not contain auto-discovered middleware
-        result.ShouldNotContain("StaticOrder:");
-        result.ShouldNotContain("InstanceOrder:");
-        result.ShouldNotContain("NoOrder:");
-        result.ShouldNotContain("Conditional:");
-
-        // Should just return the base handler result
-        result.ShouldBe("Handler: auto-test");
-    }
-
-    /// <summary>
-    /// Tests that auto-discovery functionality works as expected with integration test.
-    /// </summary>
-    [Fact]
-    public void AddMediator_AutoDiscoveryIntegration_WorksCorrectly()
-    {
-        // Arrange
-        ServiceCollection services = new();
-
-        // Create a minimal assembly with just our test middleware by using a Type array
-        // This tests the auto-discovery mechanism without the problematic ThrowingQueryMiddleware
-
-        // Act - Use auto-discovery but limit the scope
-        services.AddMediator(config =>
-        {
-            // We can still manually add middleware after auto-discovery
-            config.AddMiddleware<FirstQueryMiddleware>();
-        }, discoverMiddleware: true, discoverNotificationMiddleware: false, typeof(ServiceCollectionExtensionsTests).Assembly);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-        mediator.ShouldNotBeNull();
-
-        // Verify that the configuration was created
-        MediatorConfiguration? config = serviceProvider.GetService<MediatorConfiguration>();
-        config.ShouldNotBeNull();
-    }
-
-    /// <summary>
-    /// Tests that auto-discovery works with multiple assemblies.
-    /// </summary>
-    [Fact]
-    public void AddMediator_WithAutoDiscoveryMultipleAssemblies_RegistersMiddleware()
-    {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly1 = typeof(AutoDiscoveryStaticOrderMiddleware).Assembly;
-        Assembly assembly2 = typeof(FirstQueryMiddleware).Assembly; // Should be same assembly but testing array
-
-        // Use manual registration to avoid ThrowingQueryMiddleware
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<AutoDiscoveryStaticOrderMiddleware>();
-            config.AddMiddleware<FirstQueryMiddleware>();
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, assembly1, assembly2);
-
-        // Act
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-
-        // Assert
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-        mediator.ShouldNotBeNull();
-
-        MediatorConfiguration? config = serviceProvider.GetService<MediatorConfiguration>();
-        config.ShouldNotBeNull();
-    }
-
-    /// <summary>
-    /// Tests that AddMediatorFromCallingAssembly with auto-discovery works.
-    /// </summary>
-    [Fact]
-    public void AddMediatorFromCallingAssembly_WithAutoDiscovery_RegistersMiddleware()
-    {
-        // Arrange
-        ServiceCollection services = new();
-
-        // Act - Use manual configuration to avoid problematic middleware
-        services.AddMediatorFromCallingAssembly(config =>
-        {
-            config.AddMiddleware<FirstQueryMiddleware>();
-        });
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-        mediator.ShouldNotBeNull();
-
-        MediatorConfiguration? config = serviceProvider.GetService<MediatorConfiguration>();
-        config.ShouldNotBeNull();
-    }
-
-    /// <summary>
-    /// Tests simple overload with discoverMiddleware parameter.
-    /// </summary>
-    [Fact]
-    public void AddMediator_SimpleOverloadWithDiscoverMiddleware_Works()
-    {
-        // Arrange
-        ServiceCollection services = new();
-        Assembly assembly = typeof(AutoDiscoveryStaticOrderMiddleware).Assembly;
-
-        // Act - Use the simple overload
-        services.AddMediator(config => { }, assembly);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-        mediator.ShouldNotBeNull();
-    }
-
-    /// <summary>
-    /// Tests simple overload with discoverMiddleware and Type array.
-    /// </summary>
-    [Fact]
-    public void AddMediator_SimpleOverloadWithTypesAndDiscoverMiddleware_Works()
-    {
-        // Arrange
-        ServiceCollection services = new();
-
-        // Act - Use the simple overload with types
-        services.AddMediator(discoverMiddleware: false, typeof(ServiceCollectionExtensionsTests));
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-        mediator.ShouldNotBeNull();
-    }
-
-    /// <summary>
-    /// Tests simple overload for AddMediatorFromCallingAssembly with discoverMiddleware.
-    /// </summary>
-    [Fact]
-    public void AddMediatorFromCallingAssembly_SimpleOverloadWithDiscoverMiddleware_Works()
-    {
-        // Arrange
-        ServiceCollection services = new();
-
-        // Act - Use the simple overload
-        services.AddMediatorFromCallingAssembly(discoverMiddleware: false);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-        mediator.ShouldNotBeNull();
-    }
-
-    /// <summary>
-    /// Tests simple overload for AddMediatorFromLoadedAssemblies with discoverMiddleware.
-    /// </summary>
-    [Fact]
-    public void AddMediatorFromLoadedAssemblies_SimpleOverloadWithDiscoverMiddleware_Works()
-    {
-        // Arrange
-        ServiceCollection services = new();
-
-        // Act - Use the simple overload
-        services.AddMediatorFromLoadedAssemblies(discoverMiddleware: false);
-
-        // Assert
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
-        mediator.ShouldNotBeNull();
-    }
-
-    #endregion
 }

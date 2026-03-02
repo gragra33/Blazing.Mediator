@@ -1,3 +1,4 @@
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
@@ -54,13 +55,10 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         services.AddLogging();
 
         // First add the mediator configuration without telemetry to avoid conflicts
-        services.AddMediator(config =>
-        {
-            // Add middleware in specific order
-            config.AddMiddleware<TestMiddleware>();
-            config.AddMiddleware<TestMiddlewareWithException>();
-            config.AddMiddleware<TestConditionalMiddleware>();
-        }, typeof(MediatorTelemetryMiddlewareTests).Assembly);
+        services.AddMediator(new MediatorConfiguration()
+            .AddMiddleware<TestMiddleware>()
+            .AddMiddleware<TestMiddlewareWithException>()
+            .AddMiddleware<TestConditionalMiddleware>());
 
         // Then configure telemetry
         services.AddMediatorTelemetry();
@@ -140,7 +138,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
 
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = false; // Don't throw exception
-        _conditionalMiddleware.ShouldExecute = true; // Execute conditional middleware
+        _conditionalMiddleware.ShouldExecuteFlag = true; // Execute conditional middleware
 
         // Act
         await _mediator.Send(command);
@@ -176,7 +174,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
 
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = true; // Throw exception to short-circuit pipeline
-        _conditionalMiddleware.ShouldExecute = true; // Would execute if reached
+        _conditionalMiddleware.ShouldExecuteFlag = true; // Would execute if reached
 
         // Act - Since middleware isn't actually executing, we won't get exceptions from middleware
         // Just execute the command normally
@@ -213,7 +211,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
 
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = false; // Don't throw exception
-        _conditionalMiddleware.ShouldExecute = false; // Skip conditional middleware
+        _conditionalMiddleware.ShouldExecuteFlag = false; // Skip conditional middleware
 
         // Act
         await _mediator.Send(command);
@@ -250,7 +248,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
 
         // Configure middleware behavior
         _exceptionMiddleware.ShouldThrow = false;
-        _conditionalMiddleware.ShouldExecute = true;
+        _conditionalMiddleware.ShouldExecuteFlag = true;
 
         // Act
         var result = await _mediator.Send(query);
@@ -284,7 +282,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         // Configure first middleware to throw, preventing later execution
         _testMiddleware.ShouldThrow = true;
         _exceptionMiddleware.ShouldThrow = false;
-        _conditionalMiddleware.ShouldExecute = true;
+        _conditionalMiddleware.ShouldExecuteFlag = true;
 
         // Act - Since middleware isn't actually executing, no exception will be thrown
         await _mediator.Send(command);
@@ -326,7 +324,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
 
     internal class MiddlewareTestCommandHandler : IRequestHandler<MiddlewareTestCommand>
     {
-        public async Task Handle(MiddlewareTestCommand request, CancellationToken cancellationToken)
+        public async ValueTask Handle(MiddlewareTestCommand request, CancellationToken cancellationToken)
         {
             await Task.Delay(5, cancellationToken);
         }
@@ -339,7 +337,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
 
     internal class MiddlewareTestQueryHandler : IRequestHandler<MiddlewareTestQuery, string>
     {
-        public async Task<string> Handle(MiddlewareTestQuery request, CancellationToken cancellationToken)
+        public async ValueTask<string> Handle(MiddlewareTestQuery request, CancellationToken cancellationToken)
         {
             await Task.Delay(5, cancellationToken);
             return $"Handled: {request.Value}";
@@ -352,7 +350,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         public int ExecutionCount { get; private set; }
         public bool ShouldThrow { get; set; }
 
-        public async Task HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+        public async ValueTask HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             if (ShouldThrow)
@@ -362,7 +360,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
             await next();
         }
 
-        public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public async ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             if (ShouldThrow)
@@ -381,7 +379,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         public int ExecutionCount { get; private set; }
         public bool ShouldThrow { get; set; }
 
-        public async Task HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+        public async ValueTask HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             if (ShouldThrow)
@@ -391,7 +389,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
             await next();
         }
 
-        public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public async ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             if (ShouldThrow)
@@ -410,18 +408,18 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
     {
         public int Order => 3;
         public int ExecutionCount { get; private set; }
-        public bool ShouldExecute { get; set; } = true;
+        public bool ShouldExecuteFlag { get; set; } = true;
 
-        bool IConditionalMiddleware<MiddlewareTestCommand>.ShouldExecute(MiddlewareTestCommand request) => ShouldExecute && request.Value != "skip_conditional";
-        bool IConditionalMiddleware<MiddlewareTestQuery, string>.ShouldExecute(MiddlewareTestQuery request) => ShouldExecute && request.Value != "skip_conditional";
+        public bool ShouldExecute(MiddlewareTestCommand request) => ShouldExecuteFlag && request.Value != "skip_conditional";
+        public bool ShouldExecute(MiddlewareTestQuery request) => ShouldExecuteFlag && request.Value != "skip_conditional";
 
-        public async Task HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+        public async ValueTask HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             await next();
         }
 
-        public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public async ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             return await next();

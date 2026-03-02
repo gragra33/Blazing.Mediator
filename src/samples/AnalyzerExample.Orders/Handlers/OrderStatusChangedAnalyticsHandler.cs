@@ -16,7 +16,7 @@ public class OrderStatusChangedAnalyticsHandler : INotificationHandler<OrderStat
         _logger = logger;
     }
 
-    public async Task Handle(OrderStatusChangedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderStatusChangedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Processing analytics for order {OrderId} status change: {FromStatus} ? {ToStatus}", 
             notification.OrderId, notification.FromStatus, notification.ToStatus);

@@ -10,7 +10,7 @@ public class NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware
 {
     public int Order => 100;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {
@@ -56,7 +56,7 @@ public class OrderNotificationMiddleware(ILogger<OrderNotificationMiddleware> lo
 {
     public int Order => 200;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {
@@ -116,7 +116,7 @@ public class CustomerNotificationMiddleware(ILogger<CustomerNotificationMiddlewa
 {
     public int Order => 250;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {
@@ -176,7 +176,7 @@ public class InventoryNotificationMiddleware(ILogger<InventoryNotificationMiddle
 {
     public int Order => 300;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {
@@ -245,7 +245,7 @@ public class NotificationMetricsMiddleware(ILogger<NotificationMetricsMiddleware
 
     public int Order => 400;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {

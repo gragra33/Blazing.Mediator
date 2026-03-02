@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Blazing.Mediator.Pipeline;
 
 namespace Blazing.Mediator.Tests.Tests;
 
@@ -191,12 +192,12 @@ public class StreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<HighOrderStreamMiddleware>(); // Order: 100
-            config.AddMiddleware<FirstStreamMiddleware>();     // Order: 1
-            config.AddMiddleware<SecondStreamMiddleware>();    // Order: 2
-        }, typeof(TestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<HighOrderStreamMiddleware>(); // Order: 100
+        pb.AddMiddleware<FirstStreamMiddleware>();     // Order: 1
+        pb.AddMiddleware<SecondStreamMiddleware>();    // Order: 2
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -227,11 +228,11 @@ public class StreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<FirstStreamMiddleware>();    // Order: 1
-            config.AddMiddleware<EnhancingStreamMiddleware>(); // Order: -1
-        }, typeof(TestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<FirstStreamMiddleware>();    // Order: 1
+        pb.AddMiddleware<EnhancingStreamMiddleware>(); // Order: -1
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -265,10 +266,10 @@ public class StreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<FilterStreamMiddleware>(); // Only items with "1" or "3"
-        }, typeof(TestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<FilterStreamMiddleware>(); // Only items with "1" or "3"
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -296,10 +297,10 @@ public class StreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<EnhancingStreamMiddleware>();
-        }, typeof(TestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<EnhancingStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -333,10 +334,10 @@ public class StreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<ExceptionStreamMiddleware>();
-        }, typeof(TestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<ExceptionStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -371,10 +372,10 @@ public class StreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<CancellationStreamMiddleware>();
-        }, typeof(TestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<CancellationStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -415,12 +416,12 @@ public class StreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<EnhancingStreamMiddleware>(); // Order: -1 (first)
-            config.AddMiddleware<FirstStreamMiddleware>();     // Order: 1
-            config.AddMiddleware<SecondStreamMiddleware>();    // Order: 2
-        }, typeof(TestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<EnhancingStreamMiddleware>(); // Order: -1 (first)
+        pb.AddMiddleware<FirstStreamMiddleware>();     // Order: 1
+        pb.AddMiddleware<SecondStreamMiddleware>();    // Order: 2
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -453,11 +454,11 @@ public class StreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<EnhancingStreamMiddleware>(); // Adds items
-            config.AddMiddleware<FirstStreamMiddleware>();
-        }, typeof(TestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<EnhancingStreamMiddleware>(); // Adds items
+        pb.AddMiddleware<FirstStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -489,12 +490,13 @@ public class StreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<FirstStreamMiddleware>();
-            config.AddMiddleware<SecondStreamMiddleware>();
-            config.AddMiddleware<EnhancingStreamMiddleware>();
-        }, typeof(TestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<FirstStreamMiddleware>();
+        pb.AddMiddleware<SecondStreamMiddleware>();
+        pb.AddMiddleware<EnhancingStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
+        services.AddSingleton<IMiddlewarePipelineInspector>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
@@ -524,17 +526,15 @@ public class StreamMiddlewareTests
 
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<FirstStreamMiddleware>();
-        }, typeof(TestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<FirstStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var request = new TestStreamRequest("integration", 3);
-
-        // Act
         var results = new List<string>();
         await foreach (var item in mediator.SendStream(request))
         {

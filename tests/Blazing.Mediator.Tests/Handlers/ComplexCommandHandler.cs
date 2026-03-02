@@ -17,9 +17,9 @@ public class ComplexCommandHandler : IRequestHandler<ComplexCommand>
     /// <param name="request">The complex command to handle.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A completed task.</returns>
-    public Task Handle(ComplexCommand request, CancellationToken cancellationToken = default)
+    public ValueTask Handle(ComplexCommand request, CancellationToken cancellationToken = default)
     {
         LastExecutedCommand = request;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

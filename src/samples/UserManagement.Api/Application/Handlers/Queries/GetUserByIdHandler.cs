@@ -12,7 +12,7 @@ namespace UserManagement.Api.Application.Handlers.Queries;
 // CQRS Query Handlers - Optimized for read operations
 public class GetUserByIdHandler(UserManagementDbContext context) : IRequestHandler<GetUserByIdQuery, UserDto>
 {
-    public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken = default)
     {
         User? user = await context.Users
             .AsNoTracking() // Read-only optimization

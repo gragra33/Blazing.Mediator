@@ -2,7 +2,9 @@ namespace Blazing.Mediator.Tests;
 
 /// <summary>
 /// Notification middleware with no parameterless constructor.
+/// Excluded from source-generator auto-discovery so it does not break global ContainerMetadata init.
 /// </summary>
+[ExcludeFromAutoDiscovery]
 public class NotificationMiddlewareWithNoParameterlessConstructor : INotificationMiddleware
 {
     public NotificationMiddlewareWithNoParameterlessConstructor(string required)
@@ -10,7 +12,7 @@ public class NotificationMiddlewareWithNoParameterlessConstructor : INotificatio
         // No parameterless constructor
     }
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         await next(notification, cancellationToken);
     }

@@ -9,7 +9,7 @@ public class EmailNotificationHandler(ILogger<EmailNotificationHandler> logger)
     : INotificationHandler<OrderCreatedNotification>,
       INotificationHandler<CustomerRegisteredNotification>
 {
-    public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -37,7 +37,7 @@ public class EmailNotificationHandler(ILogger<EmailNotificationHandler> logger)
         }
     }
 
-    public async Task Handle(CustomerRegisteredNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(CustomerRegisteredNotification notification, CancellationToken cancellationToken = default)
     {
         try
         {

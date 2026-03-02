@@ -3,9 +3,9 @@ var host = Host.CreateDefaultBuilder(args)
     {
         // Register Blazing.Mediator with automatic notification middleware discovery
         // and type constraint support with comprehensive statistics
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        var mediatorConfig = new MediatorConfiguration();
+        mediatorConfig
+            .WithStatisticsTracking(options =>
                 {
                     options.EnableRequestMetrics = true;
                     options.EnableNotificationMetrics = true;
@@ -15,8 +15,8 @@ var host = Host.CreateDefaultBuilder(args)
                     options.MetricsRetentionPeriod = TimeSpan.FromHours(1);
                     options.CleanupInterval = TimeSpan.FromMinutes(15);
                 })
-                  .WithNotificationMiddlewareDiscovery(); // Enable auto-discovery with type constraints
-        }, Assembly.GetExecutingAssembly());
+            .WithNotificationMiddlewareDiscovery(); // Enable auto-discovery with type constraints
+        services.AddMediator(mediatorConfig);
 
         // Register notification subscribers as scoped services
         services.AddScoped<EmailNotificationHandler>();

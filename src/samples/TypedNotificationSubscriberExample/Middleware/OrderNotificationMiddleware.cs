@@ -13,7 +13,7 @@ public class OrderNotificationMiddleware(ILogger<OrderNotificationMiddleware> lo
 {
     public int Order => 50;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {

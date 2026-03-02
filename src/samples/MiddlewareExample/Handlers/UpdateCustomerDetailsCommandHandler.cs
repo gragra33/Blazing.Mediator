@@ -7,7 +7,7 @@ public class UpdateCustomerDetailsCommandHandler(ILogger<UpdateCustomerDetailsCo
     : IRequestHandler<UpdateCustomerDetailsCommand, bool>
 {
     /// <inheritdoc />
-    public Task<bool> Handle(UpdateCustomerDetailsCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<bool> Handle(UpdateCustomerDetailsCommand request, CancellationToken cancellationToken = default)
     {
         logger.LogInformation(".. Updating customer details for ID: {CustomerId}", request.CustomerId);
         logger.LogInformation("-- Name: {FullName}, Email: {Email}, Contact Method: {ContactMethod}",
@@ -26,6 +26,6 @@ public class UpdateCustomerDetailsCommandHandler(ILogger<UpdateCustomerDetailsCo
             logger.LogWarning("-- Failed to update customer details for {CustomerId}", request.CustomerId);
         }
 
-        return Task.FromResult(isSuccess);
+        return isSuccess;
     }
 }

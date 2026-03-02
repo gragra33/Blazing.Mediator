@@ -26,7 +26,7 @@ public class CreateProductHandler(ECommerceDbContext context, IValidator<CreateP
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task containing the ID of the newly created product.</returns>
     /// <exception cref="Application.Exceptions.ValidationException">Thrown when the command validation fails.</exception>
-    public async Task<int> Handle(CreateProductCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<int> Handle(CreateProductCommand request, CancellationToken cancellationToken = default)
     {
         ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)

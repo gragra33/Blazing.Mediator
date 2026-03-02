@@ -12,7 +12,7 @@ public class GeneralNotificationMiddleware(ILogger<GeneralNotificationMiddleware
     private static readonly Dictionary<string, int> _notificationCounts = new();
     private static readonly Dictionary<string, List<double>> _executionTimes = new();
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
         CancellationToken cancellationToken = default) where TNotification : INotification
     {
         var notificationType = typeof(TNotification).Name;

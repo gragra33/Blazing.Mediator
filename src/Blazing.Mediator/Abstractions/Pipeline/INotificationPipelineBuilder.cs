@@ -50,8 +50,8 @@ public interface INotificationPipelineBuilder
     /// <param name="serviceProvider">The service provider for dependency resolution</param>
     /// <param name="finalHandler">The final handler to execute after all middleware</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A task that represents the asynchronous operation</returns>
-    Task ExecutePipeline<TNotification>(
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation</returns>
+    ValueTask ExecutePipeline<TNotification>(
         TNotification notification,
         IServiceProvider serviceProvider,
         NotificationDelegate<TNotification> finalHandler,

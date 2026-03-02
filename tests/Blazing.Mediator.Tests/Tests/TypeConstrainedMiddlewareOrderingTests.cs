@@ -1,5 +1,5 @@
+using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 namespace Blazing.Mediator.Tests;
 
@@ -9,8 +9,6 @@ namespace Blazing.Mediator.Tests;
 /// </summary>
 public class TypeConstrainedMiddlewareOrderingTests
 {
-    private readonly Assembly _testAssembly = typeof(TypeConstrainedMiddlewareOrderingTests).Assembly;
-
     #region Type-Constrained Middleware Order Tests
 
     /// <summary>
@@ -23,13 +21,10 @@ public class TypeConstrainedMiddlewareOrderingTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddMediator(config =>
-        {
-            // Add type-constrained middleware with explicit Order properties
-            config.AddMiddleware(typeof(TypeConstrainedWithOrderMiddleware<,>));
-            config.AddMiddleware(typeof(TypeConstrainedCommandOnlyMiddleware<>));
-            config.AddMiddleware(typeof(InterfaceConstrainedMiddleware<,>));
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, _testAssembly);
+        services.AddMediator(new MediatorConfiguration()
+            .AddMiddleware(typeof(TypeConstrainedWithOrderMiddleware<,>))
+            .AddMiddleware(typeof(TypeConstrainedCommandOnlyMiddleware<>))
+            .AddMiddleware(typeof(InterfaceConstrainedMiddleware<,>)));
 
         var serviceProvider = services.BuildServiceProvider();
         var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
@@ -74,11 +69,9 @@ public class TypeConstrainedMiddlewareOrderingTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware(typeof(TypeConstrainedWithoutOrderMiddleware<,>));
-            config.AddMiddleware(typeof(AnotherTypeConstrainedWithoutOrderMiddleware<>));
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, _testAssembly);
+        services.AddMediator(new MediatorConfiguration()
+            .AddMiddleware(typeof(TypeConstrainedWithoutOrderMiddleware<,>))
+            .AddMiddleware(typeof(AnotherTypeConstrainedWithoutOrderMiddleware<>)));
 
         var serviceProvider = services.BuildServiceProvider();
         var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
@@ -140,19 +133,12 @@ public class TypeConstrainedMiddlewareOrderingTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddMediator(config =>
-        {
-            // Generic middleware (works with any request)
-            config.AddMiddleware<FirstQueryMiddleware>(); // No order (fallback)
-            config.AddMiddleware<AutoDiscoveryStaticOrderMiddleware>(); // Order: 5
-            
-            // Conditional middleware (selective execution) - no Order property, will get fallback
-            config.AddMiddleware<ConditionalQueryMiddleware>(); 
-            
-            // Type-constrained middleware (compile-time constraints)
-            config.AddMiddleware(typeof(TypeConstrainedWithOrderMiddleware<,>)); // Order: 10
-            config.AddMiddleware(typeof(InterfaceConstrainedMiddleware<,>)); // Order: 20
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, _testAssembly);
+        services.AddMediator(new MediatorConfiguration()
+            .AddMiddleware<FirstQueryMiddleware>() // No order (fallback)
+            .AddMiddleware<AutoDiscoveryStaticOrderMiddleware>() // Order: 5
+            .AddMiddleware<ConditionalQueryMiddleware>() // Conditional middleware
+            .AddMiddleware(typeof(TypeConstrainedWithOrderMiddleware<,>)) // Order: 10
+            .AddMiddleware(typeof(InterfaceConstrainedMiddleware<,>))); // Order: 20
 
         var serviceProvider = services.BuildServiceProvider();
         var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
@@ -198,10 +184,8 @@ public class TypeConstrainedMiddlewareOrderingTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddMediator(config =>
-        {
-            config.WithMiddlewareDiscovery(); // Enable auto-discovery
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration()
+            .WithMiddlewareDiscovery()); // Enable auto-discovery
 
         var serviceProvider = services.BuildServiceProvider();
         var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
@@ -251,13 +235,9 @@ public class TypeConstrainedMiddlewareOrderingTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddMediator(config =>
-        {
-            // Register middleware in mixed order to test sorting
-            config.AddMiddleware(typeof(TypeConstrainedWithOrderMiddleware<,>)); // Order: 10
-            config.AddMiddleware<AutoDiscoveryStaticOrderMiddleware>(); // Order: 5
-            // Remove ConditionalQueryMiddleware as it doesn't have an explicit order
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration()
+            .AddMiddleware(typeof(TypeConstrainedWithOrderMiddleware<,>)) // Order: 10
+            .AddMiddleware<AutoDiscoveryStaticOrderMiddleware>()); // Order: 5
 
         var serviceProvider = services.BuildServiceProvider();
         var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
@@ -287,12 +267,10 @@ public class TypeConstrainedMiddlewareOrderingTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware(typeof(SameOrderTypeConstrainedMiddleware1<,>)); // Order: 50
-            config.AddMiddleware(typeof(SameOrderTypeConstrainedMiddleware2<,>)); // Order: 50
-            config.AddMiddleware(typeof(SameOrderTypeConstrainedMiddleware3<>));  // Order: 50
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, _testAssembly);
+        services.AddMediator(new MediatorConfiguration()
+            .AddMiddleware(typeof(SameOrderTypeConstrainedMiddleware1<,>)) // Order: 50
+            .AddMiddleware(typeof(SameOrderTypeConstrainedMiddleware2<,>)) // Order: 50
+            .AddMiddleware(typeof(SameOrderTypeConstrainedMiddleware3<>)));  // Order: 50
 
         var serviceProvider = services.BuildServiceProvider();
         var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
@@ -327,7 +305,7 @@ public class TypeConstrainedWithOrderMiddleware<TRequest, TResponse> : IRequestM
 {
     public int Order => 10;
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         return await next();
     }
@@ -341,7 +319,7 @@ public class TypeConstrainedCommandOnlyMiddleware<TRequest> : IRequestMiddleware
 {
     public int Order => 15;
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         await next();
     }
@@ -355,7 +333,7 @@ public class InterfaceConstrainedMiddleware<TRequest, TResponse> : IRequestMiddl
 {
     public int Order => 20;
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         return await next();
     }
@@ -367,7 +345,7 @@ public class InterfaceConstrainedMiddleware<TRequest, TResponse> : IRequestMiddl
 public class TypeConstrainedWithoutOrderMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : class, IRequest<TResponse>, ITestConstraintEntity
 {
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         return await next();
     }
@@ -379,7 +357,7 @@ public class TypeConstrainedWithoutOrderMiddleware<TRequest, TResponse> : IReque
 public class AnotherTypeConstrainedWithoutOrderMiddleware<TRequest> : IRequestMiddleware<TRequest>
     where TRequest : class, IRequest, ITestConstraintEntity
 {
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         await next();
     }
@@ -393,7 +371,7 @@ public class SameOrderTypeConstrainedMiddleware1<TRequest, TResponse> : IRequest
 {
     public int Order => 50;
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         return await next();
     }
@@ -407,7 +385,7 @@ public class SameOrderTypeConstrainedMiddleware2<TRequest, TResponse> : IRequest
 {
     public int Order => 50;
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         return await next();
     }
@@ -421,7 +399,7 @@ public class SameOrderTypeConstrainedMiddleware3<TRequest> : IRequestMiddleware<
 {
     public int Order => 50;
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         await next();
     }

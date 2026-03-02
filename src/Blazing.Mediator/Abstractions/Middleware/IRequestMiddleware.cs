@@ -21,8 +21,8 @@ public interface IRequestMiddleware<in TRequest, TResponse>
     /// <param name="request">The request to process</param>
     /// <param name="next">The next middleware in the pipeline</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>The response</returns>
-    Task<TResponse> HandleAsync(
+    /// <returns>A <see cref="ValueTask{TResponse}"/> containing the response</returns>
+    ValueTask<TResponse> HandleAsync(
         TRequest request,
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken);
@@ -48,8 +48,8 @@ public interface IRequestMiddleware<in TRequest>
     /// <param name="request">The command to process</param>
     /// <param name="next">The next middleware in the pipeline</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A task representing the completion of the command</returns>
-    Task HandleAsync(
+    /// <returns>A <see cref="ValueTask"/> representing the completion of the command</returns>
+    ValueTask HandleAsync(
         TRequest request,
         RequestHandlerDelegate next,
         CancellationToken cancellationToken);

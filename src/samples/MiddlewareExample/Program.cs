@@ -2,9 +2,9 @@ var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((_, services) =>
     {
         // Register the request handlers and middleware with comprehensive statistics tracking
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        var mediatorConfig = new MediatorConfiguration();
+        mediatorConfig
+            .WithStatisticsTracking(options =>
                 {
                     options.EnableRequestMetrics = true;
                     options.EnableNotificationMetrics = true;
@@ -14,11 +14,10 @@ var host = Host.CreateDefaultBuilder(args)
                     options.MetricsRetentionPeriod = TimeSpan.FromHours(1);
                     options.CleanupInterval = TimeSpan.FromMinutes(15);
                 })
-                  .WithMiddlewareDiscovery()
-                  .WithoutLogging()
-                  .WithoutTelemetry();
-
-        }, Assembly.GetExecutingAssembly());
+            .WithMiddlewareDiscovery()
+            .WithoutLogging()
+            .WithoutTelemetry();
+        services.AddMediator(mediatorConfig);
 
         // Register FluentValidation services
         services.AddValidatorsFromAssemblyContaining<Program>();

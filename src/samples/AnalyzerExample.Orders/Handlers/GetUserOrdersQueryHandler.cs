@@ -10,7 +10,7 @@ namespace AnalyzerExample.Orders.Handlers;
 /// </summary>
 public class GetUserOrdersQueryHandler : IRequestHandler<GetUserOrdersQuery, PagedResult<OrderSummaryDto>>
 {
-    public async Task<PagedResult<OrderSummaryDto>> Handle(GetUserOrdersQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<PagedResult<OrderSummaryDto>> Handle(GetUserOrdersQuery request, CancellationToken cancellationToken = default)
     {
         // Simulate database query
         await Task.Delay(35, cancellationToken);

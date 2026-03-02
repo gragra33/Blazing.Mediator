@@ -1,4 +1,4 @@
-﻿namespace Blazing.Mediator.Tests;
+namespace Blazing.Mediator.Tests;
 
 /// <summary>
 /// Test command handler that returns null to test null handling behavior.
@@ -12,8 +12,8 @@ public class TestNullCommandHandler : IRequestHandler<TestNullCommand>
     /// <param name="request">The test null command to handle.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A null task.</returns>
-    public Task Handle(TestNullCommand request, CancellationToken cancellationToken = default)
+    public ValueTask Handle(TestNullCommand request, CancellationToken cancellationToken = default)
     {
-        return null!;
+        return ValueTask.CompletedTask;
     }
 }

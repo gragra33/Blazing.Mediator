@@ -36,11 +36,11 @@ public class NotificationCoexistenceTests
         public bool WasCalled { get; private set; }
         public TestNotification? ReceivedNotification { get; private set; }
 
-        public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             WasCalled = true;
             ReceivedNotification = notification;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -51,10 +51,10 @@ public class NotificationCoexistenceTests
     {
         public bool WasCalled { get; private set; }
 
-        public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             WasCalled = true;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -188,7 +188,7 @@ public class NotificationCoexistenceTests
         var notification = new TestNotification("Test message");
 
         // Act & Assert - Should throw (first exception is propagated)
-        await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Publish(notification));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Publish(notification).AsTask());
 
         // Assert - Other processors should still have been called
         Assert.True(subscriber.WasCalled);
@@ -203,7 +203,7 @@ public class NotificationCoexistenceTests
     /// </summary>
     public class ExceptionThrowingHandler : INotificationHandler<TestNotification>
     {
-        public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             throw new InvalidOperationException("Test exception from handler");
         }
@@ -218,6 +218,6 @@ public class NotificationCoexistenceTests
         var pipelineBuilder = new Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder();
         var notificationPipelineBuilder = new Blazing.Mediator.Pipeline.NotificationPipelineBuilder();
 
-        return new Mediator(serviceProvider, pipelineBuilder, notificationPipelineBuilder, null);
+        return new Mediator(serviceProvider, null);
     }
 }

@@ -89,6 +89,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
 
     public string RequestTypeName { get; } = SanitizeTypeName(request.GetType().Name);
     public string ResponseTypeName { get; } = SanitizeTypeName(typeof(TResponse).Name);
+
     public int ItemCount => _itemCount; // Expose item count for telemetry
     public double AverageInterPacketTime => _interPacketTimes.Count > 0 ? _interPacketTimes.Average() : 0;
 
@@ -129,11 +130,15 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
 
         // Get handler information
         var handlerType = typeof(IStreamRequestHandler<,>).MakeGenericType(_request.GetType(), typeof(TResponse));
-        var handlers = serviceProvider.GetServices(handlerType);
-        var handler = handlers.FirstOrDefault();
-        if (handler != null)
+        if (handlerType != null)
         {
-            activity.SetTag(_handlerTypeTag, SanitizeTypeName(handler.GetType().Name));
+            var handlers = serviceProvider.GetServices(handlerType);
+            var handler = handlers.FirstOrDefault();
+            if (handler != null)
+            {
+                var handlerTypeName = SanitizeTypeName(handler.GetType().Name);
+                activity.SetTag(_handlerTypeTag, handlerTypeName);
+            }
         }
     }
 
@@ -172,12 +177,12 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
             { _packetNumberTag, _itemCount }
         };
 
-        Mediator._streamPacketCounter.Add(1, packetTags);
-        Mediator._streamPacketProcessingTimeHistogram.Record(packetProcessingTimeMs, packetTags);
+        MediatorMetrics.StreamPacketCounter.Add(1, packetTags);
+        MediatorMetrics.StreamPacketProcessingTimeHistogram.Record(packetProcessingTimeMs, packetTags);
 
         if (interPacketTime > 0)
         {
-            Mediator._streamInterPacketTimeHistogram.Record(interPacketTime, packetTags);
+            MediatorMetrics.StreamInterPacketTimeHistogram.Record(interPacketTime, packetTags);
         }
 
         // Create child span for packet if packet-level telemetry is enabled
@@ -209,8 +214,8 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
                     else if (item != null)
                     {
                         // Rough estimation based on type
-                        var typeName = item.GetType().Name;
-                        packetActivity.SetTag(_packetTypeTag, SanitizeTypeName(typeName));
+                        var typeName = SanitizeTypeName(item.GetType().Name);
+                        packetActivity.SetTag(_packetTypeTag, typeName);
                     }
                 }
                 catch
@@ -279,8 +284,10 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
     {
         if (!IsTelemetryEnabled) return;
 
+        var sanitizedExceptionType = SanitizeTypeName(ex.GetType().Name);
+
         activity?.SetStatus(ActivityStatusCode.Error, SanitizeExceptionMessage(ex.Message));
-        activity?.SetTag(_exceptionTypeTag, SanitizeTypeName(ex.GetType().Name));
+        activity?.SetTag(_exceptionTypeTag, sanitizedExceptionType);
         activity?.SetTag(_exceptionMessageTag, SanitizeExceptionMessage(ex.Message));
     }
 
@@ -365,32 +372,32 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
         };
 
         // Enhanced streaming metrics
-        Mediator._streamDurationHistogram.Record(totalDuration.TotalMilliseconds, tags);
-        Mediator._streamThroughputHistogram.Record(throughputItemsPerSec, tags);
+        MediatorMetrics.StreamDurationHistogram.Record(totalDuration.TotalMilliseconds, tags);
+        MediatorMetrics.StreamThroughputHistogram.Record(throughputItemsPerSec, tags);
 
         if (_timeToFirstByte.TotalMilliseconds > 0)
         {
-            Mediator._streamTtfbHistogram.Record(_timeToFirstByte.TotalMilliseconds, tags);
+            MediatorMetrics.StreamTtfbHistogram.Record(_timeToFirstByte.TotalMilliseconds, tags);
         }
 
         if (jitter > 0)
         {
-            Mediator._streamPacketJitterHistogram.Record(jitter, tags);
+            MediatorMetrics.StreamPacketJitterHistogram.Record(jitter, tags);
         }
 
         if (exception == null)
         {
-            Mediator._streamSuccessCounter.Add(1, tags);
+            MediatorMetrics.StreamSuccessCounter.Add(1, tags);
         }
         else
         {
             tags.Add(_exceptionTypeTag, SanitizeTypeName(exception.GetType().Name));
             tags.Add(_exceptionMessageTag, SanitizeExceptionMessage(exception.Message));
-            Mediator._streamFailureCounter.Add(1, tags);
+            MediatorMetrics.StreamFailureCounter.Add(1, tags);
         }
 
         // Health check counter
-        Mediator._telemetryHealthCounter.Add(1, new TagList { { _operationTag, _sendStreamOperation } });
+        MediatorMetrics.TelemetryHealthCounter.Add(1, new TagList { { _operationTag, _sendStreamOperation } });
     }
 
     /// <summary>
@@ -414,37 +421,50 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
                 if (genericParams.Length == 1 && responseType == null)
                 {
                     // Single parameter middleware for void requests
-                    try
+                    // Phase 7.3: Use PipelineUtilities for AOT-safe type creation
+                    if (PipelineUtilities.TryMakeGenericType(middlewareType, [requestType], out var concreteType) && concreteType != null)
                     {
-                        var concreteType = middlewareType.MakeGenericType(requestType);
-                        return typeof(IRequestMiddleware<>).MakeGenericType(requestType).IsAssignableFrom(concreteType);
+                        if (PipelineUtilities.TryMakeGenericType(typeof(IRequestMiddleware<>), [requestType], out var interfaceType) && interfaceType != null)
+                        {
+                            return interfaceType.IsAssignableFrom(concreteType);
+                        }
                     }
-                    catch
-                    {
-                        return false;
-                    }
+                    return false;
                 }
 
                 if (genericParams.Length == 2 && responseType != null)
                 {
                     // Two parameter middleware for requests with responses
-                    try
+                    // Phase 7.3: Use PipelineUtilities for AOT-safe type creation
+                    if (PipelineUtilities.TryMakeGenericType(middlewareType, [requestType, responseType], out var concreteType) && concreteType != null)
                     {
-                        var concreteType = middlewareType.MakeGenericType(requestType, responseType);
-                        return typeof(IRequestMiddleware<,>).MakeGenericType(requestType, responseType).IsAssignableFrom(concreteType);
+                        if (PipelineUtilities.TryMakeGenericType(typeof(IRequestMiddleware<,>), [requestType, responseType], out var interfaceType) && interfaceType != null)
+                        {
+                            return interfaceType.IsAssignableFrom(concreteType);
+                        }
                     }
-                    catch
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
             else
             {
                 // Non-generic middleware - check if it implements the correct interface
-                return responseType == null
-                    ? typeof(IRequestMiddleware<>).MakeGenericType(requestType).IsAssignableFrom(middlewareType)
-                    : typeof(IRequestMiddleware<,>).MakeGenericType(requestType, responseType).IsAssignableFrom(middlewareType);
+                // Phase 7.3: Use PipelineUtilities for AOT-safe type creation
+                if (responseType == null)
+                {
+                    if (PipelineUtilities.TryMakeGenericType(typeof(IRequestMiddleware<>), [requestType], out var interfaceType) && interfaceType != null)
+                    {
+                        return interfaceType.IsAssignableFrom(middlewareType);
+                    }
+                }
+                else
+                {
+                    if (PipelineUtilities.TryMakeGenericType(typeof(IRequestMiddleware<,>), [requestType, responseType], out var interfaceType) && interfaceType != null)
+                    {
+                        return interfaceType.IsAssignableFrom(middlewareType);
+                    }
+                }
+                return false;
             }
         }
         catch

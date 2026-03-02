@@ -10,7 +10,7 @@ public class EmailLoggingMiddleware(ILogger<EmailLoggingMiddleware> logger)
     public int Order => 10;
 
     /// <inheritdoc />
-    public async Task HandleAsync(SendOrderConfirmationCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(SendOrderConfirmationCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         logger.LogDebug(">> Email operation started for order: {OrderId} to: {CustomerEmail}",
             request.OrderId, request.CustomerEmail);

@@ -1151,8 +1151,8 @@ public async IAsyncEnumerable<DataDto> Handle(
 ## Sample Projects
 
 The **Streaming.Api** sample projects demonstrate comprehensive streaming capabilities across multiple scenarios:
-
-> **Important Note**: The **Streaming.Api** server must be running for the **Streaming.Api.WASM** project to work properly with live data.
+> [!IMPORTANT]
+> The **Streaming.Api** server must be running for the **Streaming.Api.WASM** project to work properly with live data.
 
 ### Project Structure
 

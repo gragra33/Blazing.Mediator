@@ -11,7 +11,7 @@ namespace OpenTelemetryExample.Application.Queries;
 internal sealed class GetRecentLogsHandler(ApplicationDbContext context, ILogger<GetRecentLogsHandler> logger)
     : IQueryHandler<GetRecentLogsQuery, RecentLogsDto>
 {
-    public async Task<RecentLogsDto> Handle(GetRecentLogsQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<RecentLogsDto> Handle(GetRecentLogsQuery request, CancellationToken cancellationToken = default)
     {
         // Use LoggerMessage delegate for CA1848
         LogRetrievingRecentLogs(logger, request.TimeWindowMinutes, request.MinimumLogLevel ?? string.Empty, request.SearchText ?? string.Empty, request.Page, request.PageSize, null);

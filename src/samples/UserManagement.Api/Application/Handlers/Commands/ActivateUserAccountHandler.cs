@@ -9,7 +9,7 @@ namespace UserManagement.Api.Application.Handlers.Commands;
 
 public class ActivateUserAccountHandler(UserManagementDbContext context) : IRequestHandler<ActivateUserAccountCommand>
 {
-    public async Task Handle(ActivateUserAccountCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(ActivateUserAccountCommand request, CancellationToken cancellationToken = default)
     {
         User? user = await context.Users
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);

@@ -17,7 +17,7 @@ public class LowOrderQueryMiddleware : IRequestMiddleware<MiddlewareTestQuery, s
     /// <param name="next">The next handler in the pipeline.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The response with "LowOrder: " prefix.</returns>
-    public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+    public async ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
     {
         string result = await next();
         return $"LowOrder: {result}";

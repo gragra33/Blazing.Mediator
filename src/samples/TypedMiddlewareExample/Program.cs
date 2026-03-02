@@ -3,9 +3,9 @@
     {
         // Register the request handlers and middleware with comprehensive statistics tracking
         // Use auto-discovery to demonstrate type constraint support
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        var mediatorConfig = new MediatorConfiguration();
+        mediatorConfig
+            .WithStatisticsTracking(options =>
                 {
                     options.EnableRequestMetrics = true;
                     options.EnableNotificationMetrics = true;
@@ -15,8 +15,8 @@
                     options.MetricsRetentionPeriod = TimeSpan.FromHours(1);
                     options.CleanupInterval = TimeSpan.FromMinutes(15);
                 })
-                  .WithMiddlewareDiscovery(); // Enable auto-discovery with type constraint support
-        }, Assembly.GetExecutingAssembly());
+            .WithMiddlewareDiscovery(); // Enable auto-discovery with type constraint support
+        services.AddMediator(mediatorConfig);
 
         // Register FluentValidation services
         services.AddValidatorsFromAssemblyContaining<Program>();

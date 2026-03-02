@@ -12,7 +12,7 @@ public class NotificationMiddlewareWithAllOrderTypes : INotificationMiddleware
     public static int Order2 = 50; // Field 
     public int InstanceOrder => 75; // Instance property
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         await next(notification, cancellationToken);
     }

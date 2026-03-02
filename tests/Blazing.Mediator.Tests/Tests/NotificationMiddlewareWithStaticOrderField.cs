@@ -7,7 +7,7 @@ public class NotificationMiddlewareWithStaticOrderField : INotificationMiddlewar
 {
     public static int Order = 5;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         await next(notification, cancellationToken);
     }

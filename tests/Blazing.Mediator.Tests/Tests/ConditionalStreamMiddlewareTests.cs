@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Blazing.Mediator.Configuration;
+using Blazing.Mediator.Pipeline;
 
 namespace Blazing.Mediator.Tests.Tests;
 
@@ -224,10 +226,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<SimpleConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<SimpleConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -255,10 +257,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<SimpleConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<SimpleConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -290,10 +292,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<ValueBasedConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<ValueBasedConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -321,10 +323,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<ValueBasedConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<ValueBasedConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -356,10 +358,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<CountBasedConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<CountBasedConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -387,10 +389,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<CountBasedConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<CountBasedConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -422,12 +424,12 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<CountBasedConditionalStreamMiddleware>(); // Order: 2
-            config.AddMiddleware<ValueBasedConditionalStreamMiddleware>(); // Order: 1
-            config.AddMiddleware<SimpleConditionalStreamMiddleware>();     // Order: 0
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<CountBasedConditionalStreamMiddleware>(); // Order: 2
+        pb.AddMiddleware<ValueBasedConditionalStreamMiddleware>(); // Order: 1
+        pb.AddMiddleware<SimpleConditionalStreamMiddleware>();     // Order: 0
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -457,12 +459,12 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<CountBasedConditionalStreamMiddleware>(); // Order: 2, should execute (count=5)
-            config.AddMiddleware<ValueBasedConditionalStreamMiddleware>(); // Order: 1, should NOT execute (no "special")
-            config.AddMiddleware<SimpleConditionalStreamMiddleware>();     // Order: 0, should execute (flag=true)
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<CountBasedConditionalStreamMiddleware>(); // Order: 2, should execute (count=5)
+        pb.AddMiddleware<ValueBasedConditionalStreamMiddleware>(); // Order: 1, should NOT execute (no "special")
+        pb.AddMiddleware<SimpleConditionalStreamMiddleware>();     // Order: 0, should execute (flag=true)
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -496,10 +498,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<FilteringConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<FilteringConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -528,10 +530,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<EnhancingConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<EnhancingConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -565,10 +567,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<ExceptionConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<ExceptionConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -595,10 +597,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<ExceptionConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<ExceptionConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -630,10 +632,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<CancellationConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<CancellationConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -665,10 +667,10 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<CancellationConditionalStreamMiddleware>();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<CancellationConditionalStreamMiddleware>();
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -704,10 +706,7 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithMiddlewareDiscovery();
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithMiddlewareDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -740,11 +739,11 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<SimpleConditionalStreamMiddleware>();  // Order: 0
-            config.AddMiddleware<RegularStreamMiddleware>();            // Order: 1
-        }, typeof(ConditionalTestStreamRequestHandler).Assembly);
+        services.AddMediator();
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<SimpleConditionalStreamMiddleware>();  // Order: 0
+        pb.AddMiddleware<RegularStreamMiddleware>();            // Order: 1
+        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

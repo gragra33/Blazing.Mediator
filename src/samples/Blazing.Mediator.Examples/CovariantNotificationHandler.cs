@@ -26,7 +26,7 @@ public class CovariantNotificationHandler : INotificationHandler<INotification>
     /// <param name="notification">Any notification implementing INotification.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task Handle(INotification notification, CancellationToken cancellationToken)
+    public async ValueTask Handle(INotification notification, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
         Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - CovariantNotificationHandler starting for {notification.GetType().Name}");

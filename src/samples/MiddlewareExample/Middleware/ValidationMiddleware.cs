@@ -72,7 +72,7 @@ public class ValidationMiddleware<TRequest>(
     : ValidationMiddlewareBase<TRequest>(serviceProvider, logger), IRequestMiddleware<TRequest>
     where TRequest : IRequest
 {
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         await ValidateRequestAsync(request, cancellationToken);
 
@@ -93,7 +93,7 @@ public class ValidationMiddleware<TRequest, TResponse>(
     : ValidationMiddlewareBase<TRequest>(serviceProvider, logger), IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         await ValidateRequestAsync(request, cancellationToken);
 

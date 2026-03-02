@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests;
 
@@ -94,10 +95,7 @@ public class StreamingMiddlewareIntegrationTests
         var loggingMiddleware = new StreamingLoggingMiddleware<TestStreamRequest, string>();
         var services = new ServiceCollection();
 
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<StreamingLoggingMiddleware<TestStreamRequest, string>>();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration());
 
         services.AddSingleton(loggingMiddleware);
 
@@ -138,10 +136,7 @@ public class StreamingMiddlewareIntegrationTests
         var conditionalMiddleware = new ConditionalStreamingMiddleware<TestStreamRequest, string>();
         var services = new ServiceCollection();
 
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<ConditionalStreamingMiddleware<TestStreamRequest, string>>();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration());
 
         services.AddSingleton(conditionalMiddleware);
 
@@ -184,11 +179,7 @@ public class StreamingMiddlewareIntegrationTests
 
         var services = new ServiceCollection();
 
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<StreamingLoggingMiddleware<TestStreamRequest, string>>(); // Order 1
-            config.AddMiddleware<ConditionalStreamingMiddleware<TestStreamRequest, string>>(); // Order 2
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration());
 
         services.AddSingleton(loggingMiddleware);
         services.AddSingleton(conditionalMiddleware);
@@ -227,10 +218,7 @@ public class StreamingMiddlewareIntegrationTests
         var services = new ServiceCollection();
 
         // Enable auto-discovery for request middleware (should include streaming middleware)
-        services.AddMediator(config =>
-        {
-            config.WithMiddlewareDiscovery();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration().WithMiddlewareDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -268,10 +256,7 @@ public class StreamingMiddlewareIntegrationTests
         var loggingMiddleware = new StreamingLoggingMiddleware<TestStreamRequest, string>();
         var services = new ServiceCollection();
 
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<StreamingLoggingMiddleware<TestStreamRequest, string>>();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration());
 
         services.AddSingleton(loggingMiddleware);
 

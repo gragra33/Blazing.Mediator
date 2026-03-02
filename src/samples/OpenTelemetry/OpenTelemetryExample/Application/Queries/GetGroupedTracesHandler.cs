@@ -14,7 +14,7 @@ namespace OpenTelemetryExample.Application.Handlers;
 public sealed class GetGroupedTracesHandler(ApplicationDbContext context, ILogger<GetGroupedTracesHandler> logger)
     : IRequestHandler<GetGroupedTracesQuery, GroupedTracesDto>
 {
-    public async Task<GroupedTracesDto> Handle(GetGroupedTracesQuery request, CancellationToken cancellationToken)
+    public async ValueTask<GroupedTracesDto> Handle(GetGroupedTracesQuery request, CancellationToken cancellationToken)
     {
         var cutoffTime = DateTime.UtcNow - request.TimeWindow;
 

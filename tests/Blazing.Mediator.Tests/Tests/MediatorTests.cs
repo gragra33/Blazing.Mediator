@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 namespace Blazing.Mediator.Tests;
 
@@ -16,7 +15,7 @@ public class MediatorTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(TestCommand).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -37,7 +36,7 @@ public class MediatorTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(TestQuery).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -58,7 +57,7 @@ public class MediatorTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(TestCancellableCommand).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -81,7 +80,7 @@ public class MediatorTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(TestCancellableQuery).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -105,14 +104,14 @@ public class MediatorTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
         TestCommand command = new() { Value = "test" };
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(command));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(command).AsTask());
     }
 
     /// <summary>
@@ -123,14 +122,14 @@ public class MediatorTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
         TestQuery query = new() { Value = 42 };
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(query));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(query).AsTask());
     }
 
     /// <summary>
@@ -141,7 +140,7 @@ public class MediatorTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(TestNullCommand).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -159,13 +158,13 @@ public class MediatorTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(TestNullQuery).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
         TestNullQuery query = new();
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(query));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(query).AsTask());
     }
 }

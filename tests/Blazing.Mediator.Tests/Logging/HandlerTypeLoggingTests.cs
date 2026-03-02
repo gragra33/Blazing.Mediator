@@ -1,3 +1,4 @@
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -18,9 +19,9 @@ public class HandlerTypeLoggingTests
 
     public class TestCommandHandler : IRequestHandler<TestCommand>
     {
-        public Task Handle(TestCommand request, CancellationToken cancellationToken)
+        public ValueTask Handle(TestCommand request, CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -29,9 +30,9 @@ public class HandlerTypeLoggingTests
 
     public class TestQueryHandler : IRequestHandler<TestQuery, string>
     {
-        public Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
+        public async ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
         {
-            return Task.FromResult($"Result: {request.Id}");
+            return $"Result: {request.Id}";
         }
     }
 
@@ -114,15 +115,12 @@ public class HandlerTypeLoggingTests
             builder.AddProvider(new TestLoggerProvider(testLogger));
         });
 
-        services.AddMediator(config =>
-        {
-            config.WithLogging(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithLogging(options =>
             {
                 options.EnableSend = true;
                 options.EnableDetailedHandlerInfo = true;
-            });
-            config.AddAssembly(typeof(HandlerTypeLoggingTests).Assembly);
-        });
+            }));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -162,15 +160,12 @@ public class HandlerTypeLoggingTests
             builder.AddProvider(new TestLoggerProvider(testLogger));
         });
 
-        services.AddMediator(config =>
-        {
-            config.WithLogging(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithLogging(options =>
             {
                 options.EnableSend = true;
                 options.EnableDetailedHandlerInfo = true;
-            });
-            config.AddAssembly(typeof(HandlerTypeLoggingTests).Assembly);
-        });
+            }));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -211,15 +206,12 @@ public class HandlerTypeLoggingTests
             builder.AddProvider(new TestLoggerProvider(testLogger));
         });
 
-        services.AddMediator(config =>
-        {
-            config.WithLogging(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithLogging(options =>
             {
                 options.EnableSendStream = true;
                 options.EnableDetailedHandlerInfo = true;
-            });
-            config.AddAssembly(typeof(HandlerTypeLoggingTests).Assembly);
-        });
+            }));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -264,15 +256,12 @@ public class HandlerTypeLoggingTests
             builder.AddProvider(new TestLoggerProvider(testLogger));
         });
 
-        services.AddMediator(config =>
-        {
-            config.WithLogging(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithLogging(options =>
             {
                 options.EnableSend = true;
                 options.EnableDetailedHandlerInfo = true;
-            });
-            config.AddAssembly(typeof(HandlerTypeLoggingTests).Assembly);
-        });
+            }));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -306,16 +295,13 @@ public class HandlerTypeLoggingTests
             builder.AddProvider(new TestLoggerProvider(testLogger));
         });
 
-        services.AddMediator(config =>
-        {
-            config.WithLogging(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithLogging(options =>
             {
                 options.EnableSend = true;
                 options.EnableSendStream = true;
                 options.EnableDetailedHandlerInfo = true;
-            });
-            config.AddAssembly(typeof(HandlerTypeLoggingTests).Assembly);
-        });
+            }));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -358,10 +344,7 @@ public class HandlerTypeLoggingTests
             builder.AddProvider(new TestLoggerProvider(testLogger));
         });
 
-        services.AddMediator(config =>
-        {
-            config.AddAssembly(typeof(HandlerTypeLoggingTests).Assembly);
-        });
+        services.AddMediator();
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -390,15 +373,12 @@ public class HandlerTypeLoggingTests
             builder.AddProvider(new TestLoggerProvider(testLogger));
         });
 
-        services.AddMediator(config =>
-        {
-            config.WithLogging(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithLogging(options =>
             {
                 options.EnableSend = true;
                 options.EnableDetailedHandlerInfo = true;
-            });
-            config.AddAssembly(typeof(HandlerTypeLoggingTests).Assembly);
-        });
+            }));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

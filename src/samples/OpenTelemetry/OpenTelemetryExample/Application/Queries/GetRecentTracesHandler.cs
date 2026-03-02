@@ -14,7 +14,7 @@ namespace OpenTelemetryExample.Application.Handlers;
 public sealed class GetRecentTracesHandler(ApplicationDbContext context, ILogger<GetRecentTracesHandler> logger)
     : IRequestHandler<GetRecentTracesQuery, RecentTracesDto>
 {
-    public async Task<RecentTracesDto> Handle(GetRecentTracesQuery request, CancellationToken cancellationToken)
+    public async ValueTask<RecentTracesDto> Handle(GetRecentTracesQuery request, CancellationToken cancellationToken)
     {
         var cutoffTime = DateTime.UtcNow - request.TimeWindow;
 

@@ -1,3 +1,4 @@
+using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Tests.NotificationHandlers;
@@ -14,7 +15,7 @@ public class NotificationHandlerDiscoveryTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(typeof(NotificationHandlerDiscoveryTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -35,7 +36,9 @@ public class NotificationHandlerDiscoveryTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config => config.WithoutNotificationHandlerDiscovery(), typeof(NotificationHandlerDiscoveryTests).Assembly);
+        var cfg = new MediatorConfiguration();
+        cfg.WithoutNotificationHandlerDiscovery();
+        services.AddMediator(cfg);
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -51,7 +54,9 @@ public class NotificationHandlerDiscoveryTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config => config.WithNotificationHandlerDiscovery(), typeof(NotificationHandlerDiscoveryTests).Assembly);
+        var cfg2 = new MediatorConfiguration();
+        cfg2.WithNotificationHandlerDiscovery();
+        services.AddMediator(cfg2);
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert - Multiple handlers should be registered for the same notification
@@ -66,7 +71,7 @@ public class NotificationHandlerDiscoveryTests
         var services = new ServiceCollection();
 
         // Act - Default configuration should have notification handler discovery enabled
-        services.AddMediator(typeof(NotificationHandlerDiscoveryTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -79,7 +84,7 @@ public class NotificationHandlerDiscoveryTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(typeof(NotificationHandlerDiscoveryTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = CreateMediatorWithDependencies(serviceProvider);
         
@@ -105,7 +110,7 @@ public class NotificationHandlerDiscoveryTests
         var pipelineBuilder = new Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder();
         var notificationPipelineBuilder = new Blazing.Mediator.Pipeline.NotificationPipelineBuilder();
 
-        return new Mediator(serviceProvider, pipelineBuilder, notificationPipelineBuilder, null);
+        return new Mediator(serviceProvider, null);
     }
 }
 
@@ -124,10 +129,10 @@ public class FirstTestNotificationHandler : INotificationHandler<TestNotificatio
 {
     public static int CallCount;
 
-    public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
     {
         CallCount++;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
@@ -138,9 +143,9 @@ public class SecondTestNotificationHandler : INotificationHandler<TestNotificati
 {
     public static int CallCount;
 
-    public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
     {
         CallCount++;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

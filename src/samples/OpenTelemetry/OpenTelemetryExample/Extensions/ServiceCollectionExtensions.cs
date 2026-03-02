@@ -1,4 +1,5 @@
 using Blazing.Mediator;
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.OpenTelemetry;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -196,65 +197,56 @@ public static class ServiceCollectionExtensions
             services.AddMediatorTelemetryForProduction();
         }
 
-        services.AddMediator(config =>
+        var mediatorConfig = new MediatorConfiguration();
+        // Configure granular logging based on environment
+        if (environment.IsDevelopment())
         {
-            // Configure granular logging based on environment
-            if (environment.IsDevelopment())
+            // Full verbose logging for development
+            mediatorConfig.WithLogging(logging =>
             {
-                // Full verbose logging for development
-                config.WithLogging(logging =>
-                {
-                    logging.EnableRequestMiddleware = true;
-                    logging.EnableNotificationMiddleware = true;
-                    logging.EnableSend = true;
-                    logging.EnableSendStream = true;
-                    logging.EnablePublish = true;
-                    logging.EnableRequestPipelineResolution = true;
-                    logging.EnableNotificationPipelineResolution = true;
-                    logging.EnableWarnings = true;
-                    logging.EnableQueryAnalyzer = true;
-                    logging.EnableCommandAnalyzer = true;
-                    logging.EnableDetailedTypeClassification = true;
-                    logging.EnableDetailedHandlerInfo = true;
-                    logging.EnableMiddlewareExecutionOrder = true;
-                    logging.EnablePerformanceTiming = true;
-                    logging.EnableSubscriberDetails = true;
-                });
-            }
-            else
+                logging.EnableRequestMiddleware = true;
+                logging.EnableNotificationMiddleware = true;
+                logging.EnableSend = true;
+                logging.EnableSendStream = true;
+                logging.EnablePublish = true;
+                logging.EnableRequestPipelineResolution = true;
+                logging.EnableNotificationPipelineResolution = true;
+                logging.EnableWarnings = true;
+                logging.EnableQueryAnalyzer = true;
+                logging.EnableCommandAnalyzer = true;
+                logging.EnableDetailedTypeClassification = true;
+                logging.EnableDetailedHandlerInfo = true;
+                logging.EnableMiddlewareExecutionOrder = true;
+                logging.EnablePerformanceTiming = true;
+                logging.EnableSubscriberDetails = true;
+            });
+        }
+        else
+        {
+            // Minimal logging for production (only errors and warnings)
+            mediatorConfig.WithLogging(logging =>
             {
-                // Minimal logging for production (only errors and warnings)
-                config.WithLogging(logging =>
-                {
-                    logging.EnableRequestMiddleware = false;
-                    logging.EnableNotificationMiddleware = false;
-                    logging.EnableSend = false;
-                    logging.EnableSendStream = false;
-                    logging.EnablePublish = false;
-                    logging.EnableRequestPipelineResolution = false;
-                    logging.EnableNotificationPipelineResolution = false;
-                    logging.EnableWarnings = true; // Keep warnings even in production
-                    logging.EnableQueryAnalyzer = false;
-                    logging.EnableCommandAnalyzer = false;
-                    logging.EnableDetailedTypeClassification = false;
-                    logging.EnableDetailedHandlerInfo = false;
-                    logging.EnableMiddlewareExecutionOrder = false;
-                    logging.EnablePerformanceTiming = false;
-                    logging.EnableSubscriberDetails = false;
-                });
-            }
+                logging.EnableRequestMiddleware = false;
+                logging.EnableNotificationMiddleware = false;
+                logging.EnableSend = false;
+                logging.EnableSendStream = false;
+                logging.EnablePublish = false;
+                logging.EnableRequestPipelineResolution = false;
+                logging.EnableNotificationPipelineResolution = false;
+                logging.EnableWarnings = true; // Keep warnings even in production
+                logging.EnableQueryAnalyzer = false;
+                logging.EnableCommandAnalyzer = false;
+                logging.EnableDetailedTypeClassification = false;
+                logging.EnableDetailedHandlerInfo = false;
+                logging.EnableMiddlewareExecutionOrder = false;
+                logging.EnablePerformanceTiming = false;
+                logging.EnableSubscriberDetails = false;
+            });
+        }
 
-            // Example of manually adding critical middleware to ensure they're registered
-            config.AddMiddleware(typeof(ValidationMiddleware<,>));
-            config.AddMiddleware(typeof(ValidationMiddleware<>));
-            config.AddMiddleware(typeof(ErrorHandlingMiddleware<,>));
-            config.AddMiddleware(typeof(ErrorHandlingMiddleware<>));
-
-            // Use middleware discovery for additional middleware
-            config.WithMiddlewareDiscovery();
-
-            config.AddFromAssembly(typeof(Program).Assembly);
-        });
+        // Middleware is auto-discovered by source generator at compile time
+        mediatorConfig.WithMiddlewareDiscovery();
+        services.AddMediator(mediatorConfig);
 
         return services;
     }

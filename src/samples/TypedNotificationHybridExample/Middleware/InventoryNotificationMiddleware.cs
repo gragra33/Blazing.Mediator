@@ -9,7 +9,7 @@ public class InventoryNotificationMiddleware(ILogger<InventoryNotificationMiddle
 {
     public int Order => 300; // Execute after customer middleware
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
         CancellationToken cancellationToken = default) where TNotification : INotification
     {
         // Runtime check for IInventoryNotification interface

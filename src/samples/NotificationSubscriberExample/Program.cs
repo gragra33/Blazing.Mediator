@@ -7,9 +7,9 @@
         //   - NotificationValidationMiddleware  
         //   - NotificationMetricsMiddleware
         //   - NotificationAuditMiddleware
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        var mediatorConfig = new MediatorConfiguration();
+        mediatorConfig
+            .WithStatisticsTracking(options =>
                 {
                     options.EnableRequestMetrics = true;
                     options.EnableNotificationMetrics = true;
@@ -19,8 +19,8 @@
                     options.MetricsRetentionPeriod = TimeSpan.FromHours(1);
                     options.CleanupInterval = TimeSpan.FromMinutes(15);
                 })
-                  .WithNotificationMiddlewareDiscovery();
-        }, Assembly.GetExecutingAssembly());
+            .WithNotificationMiddlewareDiscovery();
+        services.AddMediator(mediatorConfig);
 
         // Register notification subscribers as scoped services
         // These are simple classes that handle notifications when subscribed

@@ -10,7 +10,7 @@ public class GenericMiddleware<TRequest, TResponse> : IRequestMiddleware<TReques
 {
     public int Order => 0;
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var result = await next();
         if (result is string str)

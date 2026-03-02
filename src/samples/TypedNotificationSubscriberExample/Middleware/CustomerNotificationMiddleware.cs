@@ -9,7 +9,7 @@ public class CustomerNotificationMiddleware(ILogger<CustomerNotificationMiddlewa
 {
     public int Order => 60;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {

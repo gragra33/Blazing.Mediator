@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests.NotificationTests;
 
@@ -39,7 +40,7 @@ public class NotificationHandlerTests
         public List<OrderCreatedNotification> HandledNotifications { get; } = [];
         public int HandleCallCount { get; private set; }
 
-        public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
         {
             await Task.Delay(10, cancellationToken); // Simulate async work
             HandledNotifications.Add(notification);
@@ -55,7 +56,7 @@ public class NotificationHandlerTests
         public List<OrderCreatedNotification> HandledNotifications { get; } = [];
         public int HandleCallCount { get; private set; }
 
-        public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
         {
             await Task.Delay(5, cancellationToken); // Simulate async work
             HandledNotifications.Add(notification);
@@ -71,7 +72,7 @@ public class NotificationHandlerTests
         public List<UserRegisteredNotification> HandledNotifications { get; } = [];
         public int HandleCallCount { get; private set; }
 
-        public async Task Handle(UserRegisteredNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(UserRegisteredNotification notification, CancellationToken cancellationToken = default)
         {
             await Task.Delay(8, cancellationToken); // Simulate async work
             HandledNotifications.Add(notification);
@@ -87,7 +88,7 @@ public class NotificationHandlerTests
         public int HandleCallCount { get; private set; }
         public bool ShouldThrow { get; set; } = false; // Changed from true to false
 
-        public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken);
             HandleCallCount++;
@@ -109,7 +110,7 @@ public class NotificationHandlerTests
         public List<OrderCreatedNotification> HandledNotifications { get; } = [];
         public int HandleCallCount { get; private set; }
 
-        public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken);
             _testService.IncrementCounter();
@@ -146,10 +147,7 @@ public class NotificationHandlerTests
         services.AddScoped<TestService>(); // Register the required dependency
 
         // Act - Register with handler discovery (should be enabled by default)
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -176,10 +174,7 @@ public class NotificationHandlerTests
         var services = new ServiceCollection();
 
         // Act - Disable handler discovery
-        services.AddMediator(config =>
-        {
-            config.WithoutNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -202,10 +197,7 @@ public class NotificationHandlerTests
         var services = new ServiceCollection();
         services.AddScoped<TestService>(); // Register dependency
 
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -242,10 +234,7 @@ public class NotificationHandlerTests
         // Arrange
         var services = new ServiceCollection();
         services.AddScoped<TestService>(); // Add missing TestService dependency
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -276,10 +265,7 @@ public class NotificationHandlerTests
         var services = new ServiceCollection();
         services.AddScoped<TestService>(); // Add missing TestService dependency
 
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -320,10 +306,7 @@ public class NotificationHandlerTests
         var services = new ServiceCollection();
         services.AddScoped<TestService>(); // For DependencyInjectedHandler
 
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -367,10 +350,7 @@ public class NotificationHandlerTests
         var services = new ServiceCollection();
         services.AddScoped<TestService>();
 
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -423,10 +403,7 @@ public class NotificationHandlerTests
         var services = new ServiceCollection();
         services.AddScoped<TestService>(); // Add missing TestService dependency
 
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -482,10 +459,7 @@ public class NotificationHandlerTests
         var services = new ServiceCollection();
         services.AddScoped<TestService>();
 
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -519,10 +493,7 @@ public class NotificationHandlerTests
         var services = new ServiceCollection();
         // Deliberately NOT registering TestService
 
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -554,10 +525,7 @@ public class NotificationHandlerTests
         // Arrange
         var services = new ServiceCollection();
         services.AddScoped<TestService>(); // Add missing TestService dependency
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -592,10 +560,7 @@ public class NotificationHandlerTests
         var services = new ServiceCollection();
         services.AddScoped<TestService>();
 
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -641,10 +606,7 @@ public class NotificationHandlerTests
         services.AddScoped<TestService>(); // Add missing TestService dependency
 
         // Disable auto-discovery to test only manually registered generic handlers
-        services.AddMediator(config =>
-        {
-            config.WithoutNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
 
         // Register a generic handler manually for testing
         services.AddScoped<GenericLoggingHandler>();
@@ -677,13 +639,13 @@ public class NotificationHandlerTests
     {
         public List<string> LoggedNotifications { get; } = [];
 
-        public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken);
             LoggedNotifications.Add($"OrderCreatedNotification: {notification.OrderId}");
         }
 
-        public async Task Handle(UserRegisteredNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(UserRegisteredNotification notification, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken);
             LoggedNotifications.Add($"UserRegisteredNotification: {notification.UserId}");
@@ -704,10 +666,7 @@ public class NotificationHandlerTests
         var services = new ServiceCollection();
         services.AddScoped<TestService>(); // For handlers that need it
 
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         // Manually register covariant test handlers
         services.AddScoped<BaseNotificationCovariantHandler>();
@@ -760,10 +719,7 @@ public class NotificationHandlerTests
         var services = new ServiceCollection();
         services.AddScoped<TestService>();
 
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         // Manually register covariant test handlers
         services.AddScoped<BaseNotificationCovariantHandler>();
@@ -836,11 +792,11 @@ public class NotificationHandlerTests
         public static int CallCount = 0;
         public static BaseTestNotificationForCovariance? LastNotification = null;
 
-        public Task Handle(BaseTestNotificationForCovariance notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(BaseTestNotificationForCovariance notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
             LastNotification = notification;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -852,11 +808,11 @@ public class NotificationHandlerTests
         public static int CallCount = 0;
         public static ITestNotificationInterface? LastNotification = null;
 
-        public Task Handle(ITestNotificationInterface notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(ITestNotificationInterface notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
             LastNotification = notification;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -868,11 +824,11 @@ public class NotificationHandlerTests
         public static int CallCount = 0;
         public static DerivedTestNotificationForCovariance? LastNotification = null;
 
-        public Task Handle(DerivedTestNotificationForCovariance notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(DerivedTestNotificationForCovariance notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
             LastNotification = notification;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -891,7 +847,7 @@ public class NotificationHandlerTests
         // Arrange & Act - Test default behavior (should be enabled)
         var servicesDefault = new ServiceCollection();
         servicesDefault.AddScoped<TestService>(); // Register the required dependency
-        servicesDefault.AddMediator(typeof(NotificationHandlerTests).Assembly);
+        servicesDefault.AddMediator();
         var defaultProvider = servicesDefault.BuildServiceProvider();
 
         // Assert - Default should discover handlers
@@ -901,10 +857,7 @@ public class NotificationHandlerTests
         // Arrange & Act - Test explicitly enabled
         var servicesEnabled = new ServiceCollection();
         servicesEnabled.AddScoped<TestService>(); // Register the required dependency
-        servicesEnabled.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        servicesEnabled.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
         var enabledProvider = servicesEnabled.BuildServiceProvider();
 
         // Assert - Explicitly enabled should discover handlers
@@ -913,10 +866,7 @@ public class NotificationHandlerTests
 
         // Arrange & Act - Test explicitly disabled
         var servicesDisabled = new ServiceCollection();
-        servicesDisabled.AddMediator(config =>
-        {
-            config.WithoutNotificationHandlerDiscovery();
-        }, typeof(NotificationHandlerTests).Assembly);
+        servicesDisabled.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
         var disabledProvider = servicesDisabled.BuildServiceProvider();
 
         // Assert - Explicitly disabled should NOT discover handlers

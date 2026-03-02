@@ -13,7 +13,7 @@ public class ThrowingQueryHandler : IRequestHandler<ThrowingQuery, string>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>Never returns as it always throws an exception.</returns>
     /// <exception cref="InvalidOperationException">Always thrown to test error handling.</exception>
-    public Task<string> Handle(ThrowingQuery request, CancellationToken cancellationToken = default)
+    public ValueTask<string> Handle(ThrowingQuery request, CancellationToken cancellationToken = default)
     {
         throw new InvalidOperationException("Query handler threw an exception");
     }

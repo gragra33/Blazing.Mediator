@@ -154,11 +154,11 @@ public class MediatorEdgeCaseTests
         var pipelineBuilder = serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>();
 
         var request = new MiddlewareTestQuery();
-        RequestHandlerDelegate<string> finalHandler = () => Task.FromResult("Handler: test");
+        RequestHandlerDelegate<string> finalHandler = () => ValueTask.FromResult("Handler: test");
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None));
+            pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None).AsTask());
     }
 
     /// <summary>
@@ -182,11 +182,11 @@ public class MediatorEdgeCaseTests
         var pipelineBuilder = serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>();
 
         var request = new TestCommand();
-        RequestHandlerDelegate finalHandler = () => Task.CompletedTask;
+        RequestHandlerDelegate finalHandler = () => ValueTask.CompletedTask;
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None));
+            pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None).AsTask());
     }
 
     /// <summary>
@@ -199,13 +199,13 @@ public class MediatorEdgeCaseTests
         MiddlewarePipelineBuilder builder = new();
         ServiceCollection services = new();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
-        RequestHandlerDelegate<string> finalHandler = () => Task.FromResult("test");
+        RequestHandlerDelegate<string> finalHandler = () => ValueTask.FromResult("test");
 
         // Act
         var result = builder.Build<TestQuery, string>(serviceProvider, finalHandler);
 
         // Assert - The returned delegate should throw when called
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => result());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => result().AsTask());
         exception.Message.ShouldContain("Use ExecutePipeline method instead");
     }
 
@@ -219,13 +219,13 @@ public class MediatorEdgeCaseTests
         MiddlewarePipelineBuilder builder = new();
         ServiceCollection services = new();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
-        RequestHandlerDelegate finalHandler = () => Task.CompletedTask;
+        RequestHandlerDelegate finalHandler = () => ValueTask.CompletedTask;
 
         // Act
         var result = builder.Build<TestCommand>(serviceProvider, finalHandler);
 
         // Assert - The returned delegate should throw when called
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => result());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => result().AsTask());
         exception.Message.ShouldContain("Use ExecutePipeline method instead for commands");
     }
 
@@ -251,7 +251,7 @@ public class MediatorEdgeCaseTests
         var pipelineBuilder = serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>();
 
         var request = new MiddlewareTestQuery();
-        RequestHandlerDelegate<string> finalHandler = () => Task.FromResult("Handler: test");
+        RequestHandlerDelegate<string> finalHandler = () => ValueTask.FromResult("Handler: test");
 
         // Act
         string result = await pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None);
@@ -282,7 +282,7 @@ public class MediatorEdgeCaseTests
         var pipelineBuilder = serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>();
 
         var request = new MiddlewareTestQuery();
-        RequestHandlerDelegate<string> finalHandler = () => Task.FromResult("Handler: test");
+        RequestHandlerDelegate<string> finalHandler = () => ValueTask.FromResult("Handler: test");
 
         // Act
         string result = await pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None);

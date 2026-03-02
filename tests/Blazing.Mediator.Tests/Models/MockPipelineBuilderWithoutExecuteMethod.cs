@@ -19,12 +19,12 @@ public class MockPipelineBuilderWithoutExecuteMethod : IMiddlewarePipelineBuilde
     public IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration() => new List<(Type, object?)>();
 
     // Required interface methods - but these will be found by reflection, so the test needs different expectations
-    public Task<TResponse> ExecutePipeline<TRequest, TResponse>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate<TResponse> finalHandler, CancellationToken cancellationToken) where TRequest : IRequest<TResponse>
+    public ValueTask<TResponse> ExecutePipeline<TRequest, TResponse>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate<TResponse> finalHandler, CancellationToken cancellationToken) where TRequest : IRequest<TResponse>
     {
         return finalHandler();
     }
 
-    public Task ExecutePipeline<TRequest>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate finalHandler, CancellationToken cancellationToken) where TRequest : IRequest
+    public ValueTask ExecutePipeline<TRequest>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate finalHandler, CancellationToken cancellationToken) where TRequest : IRequest
     {
         return finalHandler();
     }

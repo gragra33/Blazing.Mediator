@@ -14,7 +14,7 @@ public class UpdateUserWithResultHandler(
     IValidator<UpdateUserWithResultCommand> validator)
     : IRequestHandler<UpdateUserWithResultCommand, OperationResult>
 {
-    public async Task<OperationResult> Handle(UpdateUserWithResultCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult> Handle(UpdateUserWithResultCommand request, CancellationToken cancellationToken = default)
     {
         try
         {

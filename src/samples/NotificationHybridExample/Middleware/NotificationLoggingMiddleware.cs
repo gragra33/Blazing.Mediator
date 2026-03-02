@@ -9,7 +9,7 @@ public class NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware
 {
     public int Order => 100; // Execute first
 
-    public async Task InvokeAsync<TNotification>(
+    public async ValueTask InvokeAsync<TNotification>(
         TNotification notification,
         NotificationDelegate<TNotification> next,
         CancellationToken cancellationToken = default)

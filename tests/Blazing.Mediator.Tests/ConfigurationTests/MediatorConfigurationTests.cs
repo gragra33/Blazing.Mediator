@@ -1061,7 +1061,7 @@ public class TestNotificationMiddleware : INotificationMiddleware
 {
     public int Order => 0;
 
-    public Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
+    public ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         return next(notification, cancellationToken);
     }
@@ -1071,7 +1071,7 @@ public class AnotherTestNotificationMiddleware : INotificationMiddleware
 {
     public int Order => 0;
 
-    public Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
+    public ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         return next(notification, cancellationToken);
     }

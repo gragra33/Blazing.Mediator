@@ -16,7 +16,7 @@ public class UserRoleAssignedEventHandler : INotificationHandler<UserRoleAssigne
         _logger = logger;
     }
 
-    public async Task Handle(UserRoleAssignedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UserRoleAssignedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("User {UserId} assigned role '{RoleName}'", 
             notification.UserId, notification.RoleName);

@@ -21,11 +21,11 @@ public class NotificationHandlerInterfaceTests
         public bool WasCalled { get; private set; }
         public TestNotification? ReceivedNotification { get; private set; }
 
-        public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             WasCalled = true;
             ReceivedNotification = notification;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -36,10 +36,10 @@ public class NotificationHandlerInterfaceTests
     {
         public bool WasCalled { get; private set; }
 
-        public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             WasCalled = true;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -47,10 +47,10 @@ public class NotificationHandlerInterfaceTests
     {
         public bool WasCalled { get; private set; }
 
-        public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             WasCalled = true;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -59,7 +59,7 @@ public class NotificationHandlerInterfaceTests
     /// </summary>
     public class ExceptionThrowingHandler : INotificationHandler<TestNotification>
     {
-        public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             throw new InvalidOperationException("Test exception");
         }
@@ -74,7 +74,7 @@ public class NotificationHandlerInterfaceTests
 
         // Assert
         Assert.NotNull(handleMethod);
-        Assert.Equal(typeof(Task), handleMethod.ReturnType);
+        Assert.Equal(typeof(ValueTask), handleMethod.ReturnType);
         
         var parameters = handleMethod.GetParameters();
         Assert.Equal(2, parameters.Length);
@@ -162,7 +162,7 @@ public class NotificationHandlerInterfaceTests
         var notification = new TestNotification("Test message");
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(notification));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(notification).AsTask());
         Assert.Equal("Test exception", exception.Message);
     }
 

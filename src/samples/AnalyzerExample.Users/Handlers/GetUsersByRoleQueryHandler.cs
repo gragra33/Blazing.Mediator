@@ -9,7 +9,7 @@ namespace AnalyzerExample.Users.Handlers;
 /// </summary>
 public class GetUsersByRoleQueryHandler : IRequestHandler<GetUsersByRoleQuery, List<UserSummaryDto>>
 {
-    public async Task<List<UserSummaryDto>> Handle(GetUsersByRoleQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<List<UserSummaryDto>> Handle(GetUsersByRoleQuery request, CancellationToken cancellationToken = default)
     {
         // Simulate database query
         await Task.Delay(45, cancellationToken);

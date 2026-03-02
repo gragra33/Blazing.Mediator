@@ -5,8 +5,8 @@ namespace Blazing.Mediator.Tests.Statistics;
 /// </summary>
 public class TestRequestNamedQueryHandler : IRequestHandler<TestRequestNamedQuery, string>
 {
-    public Task<string> Handle(TestRequestNamedQuery request, CancellationToken cancellationToken)
+    public async ValueTask<string> Handle(TestRequestNamedQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult($"Query: {request.Value}");
+        return $"Query: {request.Value}";
     }
 }

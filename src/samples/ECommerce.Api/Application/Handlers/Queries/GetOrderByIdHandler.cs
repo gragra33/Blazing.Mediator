@@ -22,7 +22,7 @@ public class GetOrderByIdHandler(ECommerceDbContext context)
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The order details if found.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the order is not found.</exception>
-    public async Task<OrderDto> Handle(GetOrderByIdQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<OrderDto> Handle(GetOrderByIdQuery request, CancellationToken cancellationToken = default)
     {
         Order? order = await context.Orders
             .AsNoTracking()

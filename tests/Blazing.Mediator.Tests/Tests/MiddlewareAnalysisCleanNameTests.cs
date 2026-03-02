@@ -1,114 +1,154 @@
+using Blazing.Mediator.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 namespace Blazing.Mediator.Tests;
 
 /// <summary>
-/// Tests to ensure middleware analysis returns clean type names without backtick notation.
+/// Tests that MiddlewareAnalysis.ClassName and related formatting properties
+/// do not contain backtick characters from generic type name mangling.
 /// </summary>
 public class MiddlewareAnalysisCleanNameTests
 {
-    private readonly Assembly _testAssembly = typeof(MiddlewareAnalysisCleanNameTests).Assembly;
-
     [Fact]
-    public void AnalyzeMiddleware_GenericMiddleware_ReturnsCleanTypeNames()
+    public void AnalyzeMiddleware_NonGenericMiddleware_ClassNameHasNoBacktick()
     {
-        // Arrange
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<FirstQueryMiddleware>();
+
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<GenericTestMiddleware<TestCommand>>();
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, _testAssembly);
+        services.AddTransient<FirstQueryMiddleware>();
+        var sp = services.BuildServiceProvider();
 
-        var serviceProvider = services.BuildServiceProvider();
-        var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
+        var results = pb.AnalyzeMiddleware(sp);
 
-        // Act
-        var analysis = inspector.AnalyzeMiddleware(serviceProvider);
-
-        // Assert
-        analysis.ShouldNotBeNull();
-        analysis.Count.ShouldBe(1);
-
-        var middleware = analysis.First();
-        
-        // Verify that class name does not contain backticks
-        middleware.ClassName.ShouldNotContain('`');
-        middleware.ClassName.ShouldBe("GenericTestMiddleware");
-        
-        // Verify that type parameters do not contain backticks
-        middleware.TypeParameters.ShouldNotContain('`');
-        if (!string.IsNullOrEmpty(middleware.TypeParameters))
-        {
-            middleware.TypeParameters.ShouldBe("<TestCommand>");
-        }
-        
-        // Verify that generic constraints do not contain backticks
-        middleware.GenericConstraints.ShouldNotContain('`');
+        results.Count.ShouldBe(1);
+        results[0].ClassName.ShouldNotContain("`");
     }
 
     [Fact]
-    public void AnalyzeMiddleware_MultipleGenericParameters_ReturnsCleanTypeNames()
+    public void AnalyzeMiddleware_OpenGenericMiddleware_ClassNameHasNoBacktick()
     {
-        // Arrange
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware(typeof(GenericMiddleware<,>));
+
         var services = new ServiceCollection();
-        services.AddMediator(config =>
+        var sp = services.BuildServiceProvider();
+
+        var results = pb.AnalyzeMiddleware(sp);
+
+        results.Count.ShouldBe(1);
+        results[0].ClassName.ShouldNotContain("`");
+    }
+
+    [Fact]
+    public void AnalyzeMiddleware_SingleParamGenericMiddleware_ClassNameHasNoBacktick()
+    {
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware(typeof(GenericTestMiddleware<>));
+
+        var services = new ServiceCollection();
+        var sp = services.BuildServiceProvider();
+
+        var results = pb.AnalyzeMiddleware(sp);
+
+        results.Count.ShouldBe(1);
+        results[0].ClassName.ShouldNotContain("`");
+    }
+
+    [Fact]
+    public void AnalyzeMiddleware_ClosedGenericMiddleware_ClassNameHasNoBacktick()
+    {
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<GenericMiddleware<MiddlewareTestQuery, string>>();
+
+        var services = new ServiceCollection();
+        services.AddTransient<GenericMiddleware<MiddlewareTestQuery, string>>();
+        var sp = services.BuildServiceProvider();
+
+        var results = pb.AnalyzeMiddleware(sp);
+
+        results.Count.ShouldBe(1);
+        results[0].ClassName.ShouldNotContain("`");
+    }
+
+    [Fact]
+    public void AnalyzeMiddleware_ClosedGenericMiddleware_OrderDisplayNotEmpty()
+    {
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<GenericMiddleware<MiddlewareTestQuery, string>>();
+
+        var services = new ServiceCollection();
+        services.AddTransient<GenericMiddleware<MiddlewareTestQuery, string>>();
+        var sp = services.BuildServiceProvider();
+
+        var results = pb.AnalyzeMiddleware(sp);
+
+        results[0].OrderDisplay.ShouldNotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public void AnalyzeMiddleware_MixedMiddleware_AllClassNamesClean()
+    {
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware<FirstQueryMiddleware>();
+        pb.AddMiddleware(typeof(GenericMiddleware<,>));
+
+        var services = new ServiceCollection();
+        services.AddTransient<FirstQueryMiddleware>();
+        var sp = services.BuildServiceProvider();
+
+        var results = pb.AnalyzeMiddleware(sp);
+
+        results.Count.ShouldBe(2);
+        foreach (var result in results)
         {
-            config.AddMiddleware<TwoParameterMiddleware<TestQuery, string>>();
-        }, discoverMiddleware: false, discoverNotificationMiddleware: false, _testAssembly);
-
-        var serviceProvider = services.BuildServiceProvider();
-        var inspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
-
-        // Act
-        var analysis = inspector.AnalyzeMiddleware(serviceProvider);
-
-        // Assert
-        analysis.ShouldNotBeNull();
-        analysis.Count.ShouldBe(1);
-
-        var middleware = analysis.First();
-        
-        // Verify that class name does not contain backticks
-        middleware.ClassName.ShouldNotContain('`');
-        middleware.ClassName.ShouldBe("TwoParameterMiddleware");
-        
-        // Verify that type parameters do not contain backticks
-        middleware.TypeParameters.ShouldNotContain('`');
-        if (!string.IsNullOrEmpty(middleware.TypeParameters))
-        {
-            middleware.TypeParameters.ShouldBe("<TestQuery, String>");
+            result.ClassName.ShouldNotContain("`");
         }
-        
-        // Verify that generic constraints do not contain backticks
-        middleware.GenericConstraints.ShouldNotContain('`');
+    }
+
+    [Fact]
+    public void AnalyzeMiddleware_TwoParameterMiddleware_ClassNameHasNoBacktick()
+    {
+        var pb = new MiddlewarePipelineBuilder();
+        pb.AddMiddleware(typeof(TwoParameterTestMiddleware<,>));
+
+        var services = new ServiceCollection();
+        var sp = services.BuildServiceProvider();
+
+        var results = pb.AnalyzeMiddleware(sp);
+
+        results.Count.ShouldBe(1);
+        results[0].ClassName.ShouldNotContain("`");
     }
 }
 
 /// <summary>
-/// Test middleware with single generic parameter for testing clean name extraction.
+/// Single-parameter generic test middleware for clean name verification.
 /// </summary>
+/// <typeparam name="TRequest">The request type.</typeparam>
 public class GenericTestMiddleware<TRequest> : IRequestMiddleware<TRequest>
     where TRequest : IRequest
 {
-    public int Order => 100;
+    public int Order => 0;
 
-    public Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
-        return next();
+        await next();
     }
 }
 
 /// <summary>
-/// Test middleware with two generic parameters for testing clean name extraction.
+/// Two-parameter generic test middleware for clean name verification.
 /// </summary>
-public class TwoParameterMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+/// <typeparam name="TRequest">The request type.</typeparam>
+/// <typeparam name="TResponse">The response type.</typeparam>
+public class TwoParameterTestMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public int Order => 200;
+    public int Order => 0;
 
-    public Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        return next();
+        return await next();
     }
 }

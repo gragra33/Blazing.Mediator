@@ -1,5 +1,6 @@
 using Blazing.Mediator.OpenTelemetry;
 using Blazing.Mediator.Configuration;
+using Blazing.Mediator.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using System.Collections.Concurrent;
@@ -356,7 +357,7 @@ public class NotificationTelemetryTests : IDisposable
         var notification = new TestNotification { Message = "Test exception handling" };
 
         // Act & Assert
-        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification));
+        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification).AsTask());
 
         // Wait for activities to be recorded
         await Task.Delay(100);
@@ -468,7 +469,7 @@ public class NotificationTelemetryTests : IDisposable
         var notification = new TestNotification { Message = "Test partial failure" };
 
         // Act & Assert - Expect that at least one handler fails, causing partial failure
-        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification));
+        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification).AsTask());
 
         // TODO: Once implemented, verify partial failure metrics are recorded
         // This should record:
@@ -501,7 +502,7 @@ public class NotificationTelemetryTests : IDisposable
         var notification = new TestNotification { Message = "Test total failure" };
 
         // Act & Assert - Expect all handlers fail, causing total failure
-        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification));
+        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification).AsTask());
 
         // TODO: Once implemented, verify total failure metrics are recorded
         // This should record:
@@ -560,11 +561,10 @@ public class NotificationTelemetryTests : IDisposable
             options.CaptureNotificationHandlerDetails = true;
         });
         
-        services.AddMediator(config =>
-        {
-            // Add a test notification middleware
-            config.AddNotificationMiddleware<TestNotificationMiddleware>();
-        });
+        services.AddMediator();
+        var npbTest = new NotificationPipelineBuilder();
+        npbTest.AddMiddleware<TestNotificationMiddleware>();
+        services.AddSingleton<INotificationPipelineBuilder>(npbTest);
         services.AddSingleton<INotificationHandler<TestNotification>, TestNotificationHandler>();
 
         // Create isolated activity collection
@@ -615,10 +615,10 @@ public class NotificationTelemetryTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(config =>
-        {
-            config.AddNotificationMiddleware<SlowNotificationMiddleware>();
-        });
+        services.AddMediator();
+        var npbSlow = new NotificationPipelineBuilder();
+        npbSlow.AddMiddleware<SlowNotificationMiddleware>();
+        services.AddSingleton<INotificationPipelineBuilder>(npbSlow);
         services.AddSingleton<INotificationHandler<TestNotification>, TestNotificationHandler>();
 
         var testActivities = new List<Activity>();
@@ -666,10 +666,10 @@ public class NotificationTelemetryTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(config =>
-        {
-            config.AddNotificationMiddleware<ThrowingNotificationMiddleware>();
-        });
+        services.AddMediator();
+        var npbThrow = new NotificationPipelineBuilder();
+        npbThrow.AddMiddleware<ThrowingNotificationMiddleware>();
+        services.AddSingleton<INotificationPipelineBuilder>(npbThrow);
         services.AddSingleton<INotificationHandler<TestNotification>, TestNotificationHandler>();
 
         var testActivities = new List<Activity>();
@@ -686,7 +686,7 @@ public class NotificationTelemetryTests : IDisposable
         var notification = new TestNotification { Message = "Test middleware exceptions" };
 
         // Act & Assert - Should propagate middleware exceptions
-        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification));
+        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification).AsTask());
 
         // Wait for activities to be recorded
         await Task.Delay(100);
@@ -715,7 +715,7 @@ public class NotificationTelemetryTests : IDisposable
         public int CallCount { get; private set; }
         public bool LastSuccess { get; private set; }
 
-        public async Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
             LastSuccess = true;
@@ -740,7 +740,7 @@ public class NotificationTelemetryTests : IDisposable
         public int CallCount { get; private set; }
         public bool LastSuccess { get; private set; }
 
-        public async Task Handle(SuccessMetricsTestNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(SuccessMetricsTestNotification notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
             LastSuccess = true;
@@ -756,7 +756,7 @@ public class NotificationTelemetryTests : IDisposable
 
     public class AnotherTestHandler : INotificationHandler<TestNotification>
     {
-        public async Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             await Task.Delay(3, cancellationToken); // Simulate work
         }
@@ -764,7 +764,7 @@ public class NotificationTelemetryTests : IDisposable
 
     public class ThrowingTestHandler : INotificationHandler<TestNotification>
     {
-        public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             throw new InvalidOperationException("Test handler exception");
         }
@@ -779,7 +779,7 @@ public class NotificationTelemetryTests : IDisposable
     /// </summary>
     public class TestNotificationMiddleware : INotificationMiddleware
     {
-        public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+        public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
             where TNotification : INotification
         {
             // Simple pass-through middleware with small delay
@@ -793,7 +793,7 @@ public class NotificationTelemetryTests : IDisposable
     /// </summary>
     public class SlowNotificationMiddleware : INotificationMiddleware
     {
-        public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+        public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
             where TNotification : INotification
         {
             // Simulate slow middleware
@@ -807,7 +807,7 @@ public class NotificationTelemetryTests : IDisposable
     /// </summary>
     public class ThrowingNotificationMiddleware : INotificationMiddleware
     {
-        public Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+        public ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
             where TNotification : INotification
         {
             throw new InvalidOperationException("Test middleware exception");

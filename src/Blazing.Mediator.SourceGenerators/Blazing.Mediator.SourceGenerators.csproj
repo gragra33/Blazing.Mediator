@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Override multi-targeting from Directory.Build.props -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks></TargetFrameworks>
+    
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    
+    <!-- Suppress RS1035 for compatibility with ISourceGenerator pattern during Phase 4 -->
+    <NoWarn>$(NoWarn);RS1035</NoWarn>
+    
+    <!-- NuGet package settings -->
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageId>Blazing.Mediator.SourceGenerators</PackageId>
+    <Product>Blazing.Mediator Source Generators</Product>
+    <Description>Source generators for Blazing.Mediator that eliminate reflection and provide AOT compatibility. Generates type-safe dispatch tables, pre-built middleware pipelines, and optimized notification handlers at compile-time.</Description>
+    <PackageTags>mediator;source-generator;roslyn;code-generation;aot;performance;cqrs;zero-reflection</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>false</IncludeSymbols>
+    
+    <!-- This package is a source generator and should not be referenced directly -->
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Roslyn packages for source generation - versions managed centrally -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Include the generator DLL in the package -->
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+</Project>

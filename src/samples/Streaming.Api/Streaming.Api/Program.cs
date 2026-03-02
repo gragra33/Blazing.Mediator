@@ -11,12 +11,8 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
-// Add Blazing.Mediator with streaming support and middleware
-builder.Services.AddMediator(config =>
-{
-    // Add streaming middleware for logging - only applies to IStreamRequest<T>
-    config.AddMiddleware(typeof(StreamingLoggingMiddleware<,>));
-}, typeof(Program));
+// Add Blazing.Mediator with streaming support - middleware is auto-discovered by source generator
+builder.Services.AddMediator();
 
 // Add custom services
 builder.Services.AddScoped<IContactService, ContactService>();

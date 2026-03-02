@@ -36,7 +36,7 @@ public class AddMediatorTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
 
         // Act
         var serviceProvider = services.BuildServiceProvider();
@@ -51,7 +51,7 @@ public class AddMediatorTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator((Assembly[])null!);
+        services.AddMediator();
 
         // Act
         var serviceProvider = services.BuildServiceProvider();
@@ -70,7 +70,7 @@ public class AddMediatorTests
 
         // Act
         services1.AddMediator();
-        services2.AddMediator(Array.Empty<Assembly>());
+        services2.AddMediator();
 
         // Assert
         services1.Count.ShouldBe(services2.Count);
@@ -85,10 +85,9 @@ public class AddMediatorTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config => config
+        services.AddMediator(new MediatorConfiguration()
             .WithTelemetry()
-            .WithoutTelemetry()
-            .AddFromAssembly(typeof(TestCommand).Assembly));
+            .WithoutTelemetry());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetService<IMediator>();
@@ -108,8 +107,7 @@ public class AddMediatorTests
         // Act & Assert - Should not throw
         Should.NotThrow(() =>
         {
-            services.AddMediator(config => config
-                .AddFromAssembly(typeof(TestCommand).Assembly)
+            services.AddMediator(new MediatorConfiguration()
                 .WithTelemetry()
                 .WithoutTelemetry()
                 .WithMiddlewareDiscovery());
@@ -131,10 +129,9 @@ public class AddMediatorTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config => config
+        services.AddMediator(new MediatorConfiguration()
             .WithStatisticsTracking()
-            .WithoutStatistics()
-            .AddFromAssembly(typeof(TestCommand).Assembly));
+            .WithoutStatistics());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetService<IMediator>();
@@ -152,8 +149,7 @@ public class AddMediatorTests
         // Act & Assert - Should not throw
         Should.NotThrow(() =>
         {
-            services.AddMediator(config => config
-                .AddFromAssembly(typeof(TestCommand).Assembly)
+            services.AddMediator(new MediatorConfiguration()
                 .WithStatisticsTracking(opts => opts.EnablePerformanceCounters = true)
                 .WithoutStatistics()
                 .WithMiddlewareDiscovery());
@@ -175,10 +171,9 @@ public class AddMediatorTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config => config
+        services.AddMediator(new MediatorConfiguration()
             .WithLogging()
-            .WithoutLogging()
-            .AddFromAssembly(typeof(TestCommand).Assembly));
+            .WithoutLogging());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetService<IMediator>();
@@ -196,8 +191,7 @@ public class AddMediatorTests
         // Act & Assert - Should not throw
         Should.NotThrow(() =>
         {
-            services.AddMediator(config => config
-                .AddFromAssembly(typeof(TestCommand).Assembly)
+            services.AddMediator(new MediatorConfiguration()
                 .WithLogging(opts => opts.EnableDetailedHandlerInfo = true)
                 .WithoutLogging()
                 .WithMiddlewareDiscovery());
@@ -219,14 +213,13 @@ public class AddMediatorTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config => config
+        services.AddMediator(new MediatorConfiguration()
             .WithTelemetry()
             .WithStatisticsTracking()
             .WithLogging()
             .WithoutTelemetry()
             .WithoutStatistics()
-            .WithoutLogging()
-            .AddFromAssembly(typeof(TestCommand).Assembly));
+            .WithoutLogging());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetService<IMediator>();
@@ -242,12 +235,11 @@ public class AddMediatorTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config => config
+        services.AddMediator(new MediatorConfiguration()
             .WithTelemetry()
             .WithStatisticsTracking()
             .WithLogging()
             .WithoutStatistics() // Only disable statistics
-            .AddFromAssembly(typeof(TestCommand).Assembly)
             .WithMiddlewareDiscovery());
 
         var serviceProvider = services.BuildServiceProvider();
@@ -266,7 +258,7 @@ public class AddMediatorTests
         // Act & Assert - Should not throw
         Should.NotThrow(() =>
         {
-            services.AddMediator(config => config
+            services.AddMediator(new MediatorConfiguration()
                 .WithTelemetry()
                 .WithoutTelemetry()
                 .WithTelemetry()
@@ -275,8 +267,7 @@ public class AddMediatorTests
                 .WithStatisticsTracking()
                 .WithLogging()
                 .WithoutLogging()
-                .WithLogging()
-                .AddFromAssembly(typeof(TestCommand).Assembly));
+                .WithLogging());
         });
 
         var serviceProvider = services.BuildServiceProvider();
@@ -291,8 +282,7 @@ public class AddMediatorTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config => config
-            .AddFromAssembly(typeof(TestCommand).Assembly)
+        services.AddMediator(new MediatorConfiguration()
             .WithMiddlewareDiscovery()
             .WithNotificationHandlerDiscovery()
             .WithTelemetry(opts => opts.Enabled = true)
@@ -303,10 +293,8 @@ public class AddMediatorTests
             })
             .WithLogging(opts => opts.EnableDetailedHandlerInfo = true)
             .WithoutStatistics() // Selectively disable statistics
-            .AddFromAssembly(typeof(TestQuery).Assembly)
             .WithConstrainedMiddlewareDiscovery()
-            .WithoutLogging() // Selectively disable logging
-            .AddFromAssembly(typeof(TestNotification).Assembly));
+            .WithoutLogging()); // Selectively disable logging
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetService<IMediator>();
@@ -343,7 +331,7 @@ public class AddMediatorTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(MediatorConfiguration.Production(typeof(TestCommand).Assembly));
+        services.AddMediator(MediatorConfiguration.Production());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetService<IMediator>();
@@ -359,7 +347,7 @@ public class AddMediatorTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(MediatorConfiguration.Development(typeof(TestCommand).Assembly));
+        services.AddMediator(MediatorConfiguration.Development());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetService<IMediator>();
@@ -375,7 +363,7 @@ public class AddMediatorTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(MediatorConfiguration.Minimal(typeof(TestCommand).Assembly));
+        services.AddMediator(MediatorConfiguration.Minimal());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetService<IMediator>();
@@ -391,7 +379,7 @@ public class AddMediatorTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(MediatorConfiguration.Disabled(typeof(TestCommand).Assembly));
+        services.AddMediator(MediatorConfiguration.Disabled());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetService<IMediator>();

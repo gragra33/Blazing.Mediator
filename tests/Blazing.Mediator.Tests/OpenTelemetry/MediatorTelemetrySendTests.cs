@@ -1,6 +1,7 @@
 using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
+using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests.OpenTelemetry;
 
@@ -185,7 +186,7 @@ public class MediatorTelemetrySendTests : IDisposable
         var command = new SendTestCommandWithException();
 
         // Act & Assert
-        var exception = await Should.ThrowAsync<InvalidOperationException>(() => mediator.Send(command));
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => mediator.Send(command).AsTask());
         exception.Message.ShouldBe("Test exception");
 
         // Wait for activities to be recorded
@@ -231,7 +232,7 @@ public class MediatorTelemetrySendTests : IDisposable
         var query = new SendTestQueryWithException();
 
         // Act & Assert
-        var exception = await Should.ThrowAsync<InvalidOperationException>(() => mediator.Send(query));
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => mediator.Send(query).AsTask());
         exception.Message.ShouldBe("Test query exception");
 
         // Wait for activities to be recorded
@@ -257,13 +258,10 @@ public class MediatorTelemetrySendTests : IDisposable
         services.AddLogging();
 
         // Configure mediator with telemetry disabled
-        services.AddMediator(config =>
-        {
-            config.WithTelemetry(options =>
+        services.AddMediator(new MediatorConfiguration().WithTelemetry(options =>
             {
                 options.Enabled = false;
-            });
-        }, typeof(SendTestCommand).Assembly);
+            }));
 
         await using var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -359,7 +357,7 @@ public class MediatorTelemetrySendTests : IDisposable
         await Task.Delay(100); // Longer wait to ensure activity is recorded
 
         // Assert
-        var activity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommandWithPassword"));
+        var activity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommandWith"));
         activity.ShouldNotBeNull("Activity should be created for SendTestCommandWithPassword");
 
         // Verify sensitive data is sanitized
@@ -469,20 +467,20 @@ public class MediatorTelemetrySendTests : IDisposable
 
     public class SendTestCommandHandler : IRequestHandler<SendTestCommand>
     {
-        public async Task Handle(SendTestCommand request, CancellationToken cancellationToken)
+        public async ValueTask Handle(SendTestCommand request, CancellationToken cancellationToken)
         {
             await Task.Delay(10, cancellationToken); // Simulate work
         }
     }
 
-    public class SendTestQuery : IRequest<string>
+    public class SendTestQuery : IQuery<string>
     {
         public string Value { get; set; } = string.Empty;
     }
 
     public class SendTestQueryHandler : IRequestHandler<SendTestQuery, string>
     {
-        public async Task<string> Handle(SendTestQuery request, CancellationToken cancellationToken)
+        public async ValueTask<string> Handle(SendTestQuery request, CancellationToken cancellationToken)
         {
             await Task.Delay(10, cancellationToken); // Simulate work
             return $"Handled: {request.Value}";
@@ -495,7 +493,7 @@ public class MediatorTelemetrySendTests : IDisposable
 
     public class SendTestCommandWithExceptionHandler : IRequestHandler<SendTestCommandWithException>
     {
-        public Task Handle(SendTestCommandWithException request, CancellationToken cancellationToken)
+        public ValueTask Handle(SendTestCommandWithException request, CancellationToken cancellationToken)
         {
             throw new InvalidOperationException("Test exception");
         }
@@ -507,7 +505,7 @@ public class MediatorTelemetrySendTests : IDisposable
 
     public class SendTestQueryWithExceptionHandler : IRequestHandler<SendTestQueryWithException, string>
     {
-        public Task<string> Handle(SendTestQueryWithException request, CancellationToken cancellationToken)
+        public ValueTask<string> Handle(SendTestQueryWithException request, CancellationToken cancellationToken)
         {
             throw new InvalidOperationException("Test query exception");
         }
@@ -521,7 +519,7 @@ public class MediatorTelemetrySendTests : IDisposable
 
     public class SendTestCommandWithPasswordHandler : IRequestHandler<SendTestCommandWithPassword>
     {
-        public async Task Handle(SendTestCommandWithPassword request, CancellationToken cancellationToken)
+        public async ValueTask Handle(SendTestCommandWithPassword request, CancellationToken cancellationToken)
         {
             await Task.Delay(10, cancellationToken);
         }

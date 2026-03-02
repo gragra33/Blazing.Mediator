@@ -2,6 +2,7 @@ using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests.OpenTelemetry;
 
@@ -27,7 +28,7 @@ public class MediatorTelemetryStreamingTests : IDisposable
 
         // Add mediator with telemetry enabled
         services.AddMediatorTelemetry();
-        services.AddMediator(typeof(MediatorTelemetryStreamingTests).Assembly);
+        services.AddMediator();
 
         _serviceProvider = services.BuildServiceProvider();
         _mediator = _serviceProvider.GetRequiredService<IMediator>();
@@ -140,13 +141,10 @@ public class MediatorTelemetryStreamingTests : IDisposable
         services.AddLogging();
 
         // Configure mediator with telemetry disabled
-        services.AddMediator(config =>
-        {
-            config.WithTelemetry(options =>
+        services.AddMediator(new MediatorConfiguration().WithTelemetry(options =>
             {
                 options.Enabled = false;
-            });
-        }, typeof(StreamingTestStreamRequest).Assembly);
+            }));
 
         var serviceProvider = services.BuildServiceProvider();
         await using ConfiguredAsyncDisposable provider = serviceProvider.ConfigureAwait(false);

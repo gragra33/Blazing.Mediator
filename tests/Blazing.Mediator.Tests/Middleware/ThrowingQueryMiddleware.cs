@@ -13,7 +13,7 @@ public class ThrowingQueryMiddleware : IRequestMiddleware<MiddlewareTestQuery, s
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <exception cref="InvalidOperationException">Always thrown to test exception handling.</exception>
     /// <returns>This method never completes successfully.</returns>
-    public Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+    public ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
     {
         throw new InvalidOperationException("Query middleware exception");
     }

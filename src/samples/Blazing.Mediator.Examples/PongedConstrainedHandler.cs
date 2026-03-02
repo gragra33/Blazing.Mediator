@@ -26,7 +26,7 @@ public class PongedConstrainedHandler : INotificationHandler<Ponged>
     /// <param name="notification">The ponged notification.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task Handle(Ponged notification, CancellationToken cancellationToken)
+    public async ValueTask Handle(Ponged notification, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
         Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - PongedConstrainedHandler starting");

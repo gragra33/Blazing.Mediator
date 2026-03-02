@@ -18,7 +18,7 @@ public class ProcessOrderHandler(IMediator mediator)
     /// <param name="request">The command containing order processing details.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The operation result with processing response containing order details.</returns>
-    public async Task<OperationResult<ProcessOrderResponse>> Handle(ProcessOrderCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult<ProcessOrderResponse>> Handle(ProcessOrderCommand request, CancellationToken cancellationToken = default)
     {
         try
         {

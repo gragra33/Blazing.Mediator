@@ -15,7 +15,7 @@ public class BusinessOperationAuditMiddleware<TRequest, TResponse>(
     public int Order => 30;
 
     /// <inheritdoc />
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var operationType = typeof(TRequest).Name;
         logger.LogDebug(">> Starting business operation audit: {OperationType}", operationType);

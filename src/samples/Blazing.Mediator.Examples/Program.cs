@@ -1,4 +1,5 @@
 using Blazing.Mediator;
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Examples;
 using Blazing.Mediator.Examples.Streams;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,34 +14,31 @@ var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((_, services) =>
     {
         // Register Blazing.Mediator with middleware and proper handler discovery
-        services.AddMediator(config =>
-        {
-            config.WithMiddlewareDiscovery();
-            //config.WithConstrainedMiddlewareDiscovery();
-            //config.WithNotificationMiddlewareDiscovery();
+        var mediatorConfig = new MediatorConfiguration();
+        mediatorConfig.WithMiddlewareDiscovery();
+        //mediatorConfig.WithConstrainedMiddlewareDiscovery();
+        //mediatorConfig.WithNotificationMiddlewareDiscovery();
 
-            // Add request middleware (equivalent to MediatR pipeline behaviors)
-            //config.AddMiddleware(typeof(GenericRequestPreProcessor<,>));
-            //config.AddMiddleware(typeof(GenericRequestMiddleware<,>));
-            //config.AddMiddleware(typeof(GenericRequestPostProcessor<,>));
+        // Add request middleware (equivalent to MediatR pipeline behaviors)
+        //mediatorConfig.AddMiddleware(typeof(GenericRequestPreProcessor<,>));
+        //mediatorConfig.AddMiddleware(typeof(GenericRequestMiddleware<,>));
+        //mediatorConfig.AddMiddleware(typeof(GenericRequestPostProcessor<,>));
 
-            // Add conditional middleware for specific request types
-            //config.AddMiddleware(typeof(ConstrainedRequestPostProcessor));
+        // Add conditional middleware for specific request types
+        //mediatorConfig.AddMiddleware(typeof(ConstrainedRequestPostProcessor));
 
-            // Add stream request middleware for streaming functionality
-            //config.AddMiddleware(typeof(GenericStreamRequestMiddleware<,>));
+        // Add stream request middleware for streaming functionality
+        //mediatorConfig.AddMiddleware(typeof(GenericStreamRequestMiddleware<,>));
 
-            // Enable proper notification handler discovery
-            config.WithNotificationHandlerDiscovery();
+        // Enable proper notification handler discovery
+        mediatorConfig.WithNotificationHandlerDiscovery();
 
-            // Disable telemetry to improve performance
-            config.WithoutTelemetry();
-            config.WithoutStatistics();
-            config.WithoutLogging();
+        // Disable telemetry to improve performance
+        mediatorConfig.WithoutTelemetry();
+        mediatorConfig.WithoutStatistics();
+        mediatorConfig.WithoutLogging();
 
-            config.AddFromAssembly(typeof(Program).Assembly);
-        });
-    //}, typeof(Program).Assembly);
+        services.AddMediator(mediatorConfig);
 
         // Register the WrappingWriter for dependency injection
         services.AddSingleton<TextWriter>(writer);

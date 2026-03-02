@@ -1,4 +1,4 @@
-﻿namespace Blazing.Mediator.Tests;
+namespace Blazing.Mediator.Tests;
 
 /// <summary>
 /// Test command handler used for unit testing the mediator functionality.
@@ -18,9 +18,9 @@ public class TestCommandHandler : IRequestHandler<TestCommand>
     /// <param name="request">The test command to handle.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A completed task.</returns>
-    public Task Handle(TestCommand request, CancellationToken cancellationToken = default)
+    public ValueTask Handle(TestCommand request, CancellationToken cancellationToken = default)
     {
         LastExecutedCommand = request;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

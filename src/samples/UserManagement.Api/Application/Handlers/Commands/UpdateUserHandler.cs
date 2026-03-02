@@ -14,7 +14,7 @@ public class UpdateUserHandler(
     IValidator<UpdateUserCommand> validator)
     : IRequestHandler<UpdateUserCommand>
 {
-    public async Task Handle(UpdateUserCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UpdateUserCommand request, CancellationToken cancellationToken = default)
     {
         ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)

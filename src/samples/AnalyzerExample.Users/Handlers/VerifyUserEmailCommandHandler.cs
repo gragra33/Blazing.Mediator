@@ -9,7 +9,7 @@ namespace AnalyzerExample.Users.Handlers;
 /// </summary>
 public class VerifyUserEmailCommandHandler : IRequestHandler<VerifyUserEmailCommand, OperationResult>
 {
-    public async Task<OperationResult> Handle(VerifyUserEmailCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult> Handle(VerifyUserEmailCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate email verification
         await Task.Delay(30, cancellationToken);

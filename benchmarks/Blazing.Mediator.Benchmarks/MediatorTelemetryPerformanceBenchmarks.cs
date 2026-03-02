@@ -130,7 +130,7 @@ public class MediatorTelemetryPerformanceBenchmarks
         var tasks = new Task[batchSize];
         for (int i = 0; i < batchSize; i++)
         {
-            tasks[i] = _mediatorWithoutTelemetry.Send(_testCommand);
+            tasks[i] = _mediatorWithoutTelemetry.Send(_testCommand).AsTask();
         }
         await Task.WhenAll(tasks);
     }
@@ -144,7 +144,7 @@ public class MediatorTelemetryPerformanceBenchmarks
         var tasks = new Task[batchSize];
         for (int i = 0; i < batchSize; i++)
         {
-            tasks[i] = _mediatorWithTelemetry.Send(_testCommand);
+            tasks[i] = _mediatorWithTelemetry.Send(_testCommand).AsTask();
         }
         await Task.WhenAll(tasks);
     }
@@ -158,7 +158,7 @@ public class MediatorTelemetryPerformanceBenchmarks
         var tasks = new Task[batchSize];
         for (int i = 0; i < batchSize; i++)
         {
-            tasks[i] = _mediatorWithoutTelemetry.Publish(_testNotification);
+            tasks[i] = _mediatorWithoutTelemetry.Publish(_testNotification).AsTask();
         }
         await Task.WhenAll(tasks);
     }
@@ -172,7 +172,7 @@ public class MediatorTelemetryPerformanceBenchmarks
         var tasks = new Task[batchSize];
         for (int i = 0; i < batchSize; i++)
         {
-            tasks[i] = _mediatorWithTelemetry.Publish(_testNotification);
+            tasks[i] = _mediatorWithTelemetry.Publish(_testNotification).AsTask();
         }
         await Task.WhenAll(tasks);
     }
@@ -188,7 +188,7 @@ public class MediatorTelemetryPerformanceBenchmarks
 
     public class TestCommandHandler : IRequestHandler<TestCommand>
     {
-        public async Task Handle(TestCommand request, CancellationToken cancellationToken)
+        public async ValueTask Handle(TestCommand request, CancellationToken cancellationToken)
         {
             // Minimal work to focus on telemetry overhead
             await Task.Yield();
@@ -202,7 +202,7 @@ public class MediatorTelemetryPerformanceBenchmarks
 
     public class TestQueryHandler : IRequestHandler<TestQuery, string>
     {
-        public async Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
+        public async ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
         {
             // Minimal work to focus on telemetry overhead
             await Task.Yield();

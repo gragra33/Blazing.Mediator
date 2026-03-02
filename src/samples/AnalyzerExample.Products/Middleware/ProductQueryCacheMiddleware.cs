@@ -16,7 +16,7 @@ public class ProductQueryCacheMiddleware<TRequest, TResponse> : IRequestMiddlewa
         _logger = logger;
     }
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var queryType = typeof(TRequest).Name;
         var cacheKey = $"product_query_{queryType}_{request.GetHashCode()}";

@@ -1,4 +1,4 @@
-using static Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Blazing.Mediator.Statistics;
 
@@ -29,6 +29,9 @@ public sealed class MediatorStatistics : IDisposable
     private readonly IStatisticsRenderer _renderer;
     private readonly StatisticsOptions _options;
     private readonly MediatorLogger? _mediatorLogger;
+
+    /// <summary>Gets the statistics configuration options in use.</summary>
+    public StatisticsOptions Options => _options;
     
     // Performance counters (only used when EnablePerformanceCounters is true)
     private readonly ConcurrentDictionary<string, List<long>> _executionTimes = new();
@@ -177,7 +180,8 @@ public sealed class MediatorStatistics : IDisposable
     /// Records memory allocation for performance tracking when performance counters are enabled.
     /// </summary>
     /// <param name="bytesAllocated">The number of bytes allocated.</param>
-    public void RecordMemoryAllocation(long bytesAllocated)
+    public void RecordMemoryAllocation(long bytesAllocated
+    )
     {
         if (!_options.EnablePerformanceCounters)
         {
@@ -392,6 +396,390 @@ public sealed class MediatorStatistics : IDisposable
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // AOT-clean overloads — use IMediatorTypeCatalog (emitted by source generator)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// AOT-clean overload that analyses all queries from the compile-time catalog.
+    /// Use this in source-generated applications for zero reflection and zero
+    /// <c>[RequiresUnreferencedCode]</c> warnings at the call site.
+    /// </summary>
+    /// <param name="catalog">The compile-time type catalog emitted by Blazing.Mediator.SourceGenerators.</param>
+    /// <param name="isDetailed">Overrides <see cref="StatisticsOptions.EnableDetailedAnalysis"/> when specified.</param>
+    /// <returns>Read-only list of query analysis results derived from the catalog.</returns>
+    public IReadOnlyList<QueryCommandAnalysis> AnalyzeQueries(IMediatorTypeCatalog catalog, bool? isDetailed = null)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        LogAnalysisStartedImpl("queries (catalog)");
+
+        bool useDetailed = isDetailed ?? _options.EnableDetailedAnalysis;
+        var results = new List<QueryCommandAnalysis>();
+
+        foreach (var info in catalog.RequestHandlers)
+        {
+            // Include: explicit Query/Stream categories, OR Command handlers whose request type
+            // name contains "Query" (mirrors the AnalyzeQueries(IServiceProvider) name heuristic).
+            bool isQueryByCategory = info.Category is CqrsCategory.Query or CqrsCategory.Stream;
+            bool isQueryByName = info.Category == CqrsCategory.Command &&
+                                  info.RequestType.Name.Contains(QueryNamePattern, StringComparison.OrdinalIgnoreCase);
+            if (!isQueryByCategory && !isQueryByName) continue;
+            results.Add(BuildAnalysisFromHandlerInfo(info, isQuery: true, useDetailed));
+        }
+
+        results.Sort(static (a, b) =>
+        {
+            int c = string.Compare(a.Assembly, b.Assembly, StringComparison.Ordinal);
+            return c != 0 ? c : string.Compare(a.ClassName, b.ClassName, StringComparison.Ordinal);
+        });
+
+        LogAnalysisCompletedImpl("queries (catalog)", results.Count);
+        return results;
+    }
+
+    /// <summary>
+    /// AOT-clean overload that analyses all requests (queries + commands) from the compile-time catalog.
+    /// Use this in source-generated applications for zero reflection and zero
+    /// <c>[RequiresUnreferencedCode]</c> warnings at the call site.
+    /// </summary>
+    /// <param name="catalog">The compile-time type catalog emitted by Blazing.Mediator.SourceGenerators.</param>
+    /// <param name="isDetailed">Overrides <see cref="StatisticsOptions.EnableDetailedAnalysis"/> when specified.</param>
+    /// <returns>Read-only list of analysis results for all CQRS request types in the catalog.</returns>
+    public IReadOnlyList<QueryCommandAnalysis> AnalyzeCqrs(IMediatorTypeCatalog catalog, bool? isDetailed = null)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        LogAnalysisStartedImpl("cqrs (catalog)");
+
+        bool useDetailed = isDetailed ?? _options.EnableDetailedAnalysis;
+        var results = new List<QueryCommandAnalysis>();
+
+        foreach (var info in catalog.RequestHandlers)
+        {
+            bool isQuery = info.Category is CqrsCategory.Query or CqrsCategory.Stream;
+            results.Add(BuildAnalysisFromHandlerInfo(info, isQuery, useDetailed));
+        }
+
+        results.Sort(static (a, b) =>
+        {
+            int c = string.Compare(a.Assembly, b.Assembly, StringComparison.Ordinal);
+            return c != 0 ? c : string.Compare(a.ClassName, b.ClassName, StringComparison.Ordinal);
+        });
+
+        LogAnalysisCompletedImpl("cqrs (catalog)", results.Count);
+        return results;
+    }
+
+    /// <summary>
+    /// AOT-clean overload that analyses all commands from the compile-time catalog.
+    /// Use this in source-generated applications for zero reflection and zero
+    /// <c>[RequiresUnreferencedCode]</c> warnings at the call site.
+    /// </summary>
+    /// <param name="catalog">The compile-time type catalog emitted by Blazing.Mediator.SourceGenerators.</param>
+    /// <param name="isDetailed">Overrides <see cref="StatisticsOptions.EnableDetailedAnalysis"/> when specified.</param>
+    /// <returns>Read-only list of command analysis results derived from the catalog.</returns>
+    public IReadOnlyList<QueryCommandAnalysis> AnalyzeCommands(IMediatorTypeCatalog catalog, bool? isDetailed = null)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        LogAnalysisStartedImpl("commands (catalog)");
+
+        bool useDetailed = isDetailed ?? _options.EnableDetailedAnalysis;
+        var results = new List<QueryCommandAnalysis>();
+
+        foreach (var info in catalog.RequestHandlers)
+        {
+            if (info.Category is not CqrsCategory.Command) continue;
+            // Exclude Command handlers whose request type name contains "Query" — those are shown
+            // as queries (mirrors the AnalyzeCommands(IServiceProvider) / AnalyzeQueries naming heuristic).
+            if (info.RequestType.Name.Contains(QueryNamePattern, StringComparison.OrdinalIgnoreCase)) continue;
+            results.Add(BuildAnalysisFromHandlerInfo(info, isQuery: false, useDetailed));
+        }
+
+        results.Sort(static (a, b) =>
+        {
+            int c = string.Compare(a.Assembly, b.Assembly, StringComparison.Ordinal);
+            return c != 0 ? c : string.Compare(a.ClassName, b.ClassName, StringComparison.Ordinal);
+        });
+
+        LogAnalysisCompletedImpl("commands (catalog)", results.Count);
+        return results;
+    }
+
+    /// <summary>
+    /// AOT-clean overload that analyses all notification types from the compile-time catalog.
+    /// Use this in source-generated applications for zero reflection and zero
+    /// <c>[RequiresUnreferencedCode]</c> warnings at the call site.
+    /// </summary>
+    /// <param name="catalog">The compile-time type catalog emitted by Blazing.Mediator.SourceGenerators.</param>
+    /// <param name="isDetailed">Overrides <see cref="StatisticsOptions.EnableDetailedAnalysis"/> when specified.</param>
+    /// <returns>Read-only list of notification analysis results derived from the catalog.</returns>
+    public IReadOnlyList<NotificationAnalysis> AnalyzeNotifications(IMediatorTypeCatalog catalog, bool? isDetailed = null)
+        => AnalyzeNotifications(catalog, subscriberTracker: null, isDetailed);
+
+    /// <summary>
+    /// AOT-clean overload that analyses all notification types from the compile-time catalog with
+    /// optional live subscriber tracking. When <paramref name="subscriberTracker"/> is non-null
+    /// (registered alongside <see cref="StatisticsOptions"/> in DI), calls
+    /// <see cref="GetEnhancedSubscriberStatus"/> which does a <c>ConcurrentDictionary</c> lookup
+    /// — zero reflection, fully AOT/trim-safe. Falls back to <see cref="SubscriberStatus.Unknown"/>
+    /// for pure catalog-only callers that have no tracker.
+    /// </summary>
+    /// <param name="catalog">The compile-time type catalog emitted by Blazing.Mediator.SourceGenerators.</param>
+    /// <param name="subscriberTracker">Optional live subscriber tracker; null when stats are not configured.</param>
+    /// <param name="isDetailed">Overrides <see cref="StatisticsOptions.EnableDetailedAnalysis"/> when specified.</param>
+    /// <returns>Read-only list of notification analysis results derived from the catalog.</returns>
+    public IReadOnlyList<NotificationAnalysis> AnalyzeNotifications(
+        IMediatorTypeCatalog catalog,
+        ISubscriberTracker? subscriberTracker,
+        bool? isDetailed = null)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        LogAnalysisStartedImpl("notifications (catalog)");
+
+        bool useDetailed = isDetailed ?? _options.EnableDetailedAnalysis;
+        var results = new List<NotificationAnalysis>();
+
+        foreach (var info in catalog.NotificationHandlers)
+        {
+            var type = info.NotificationType;
+            var className = type.Name;
+            var typeParameters = string.Empty;
+
+            if (type.IsGenericType)
+            {
+                var tick = className.IndexOf('`');
+                if (tick > 0) className = className[..tick];
+                typeParameters = useDetailed
+                    ? $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>"
+                    : string.Empty;
+            }
+
+            var handlerCount = info.HandlerTypes.Count;
+            var handlerStatus = handlerCount switch
+            {
+                0 => HandlerStatus.Missing,
+                1 => HandlerStatus.Single,
+                _ => HandlerStatus.Multiple,
+            };
+
+            var handlerDetails = handlerCount switch
+            {
+                0 => "No handler registered",
+                1 => useDetailed ? info.HandlerTypes[0].Name : "Handler found",
+                _ => useDetailed
+                    ? string.Join(", ", info.HandlerTypes.Select(t => t.Name))
+                    : $"{handlerCount} handlers",
+            };
+
+            // Use live tracker when available (registered with StatisticsOptions in generated AddMediator());
+            // fall back to Unknown for catalog-only callers without a tracker.
+            var (subStatus, subDetails, subCount) = subscriberTracker != null
+                ? GetEnhancedSubscriberStatus(type, subscriberTracker, useDetailed)
+                : (SubscriberStatus.Unknown, "Dynamic subscription — not tracked at compile time", 0);
+
+            results.Add(new NotificationAnalysis(
+                Type: type,
+                ClassName: className,
+                TypeParameters: typeParameters,
+                Assembly: type.Assembly.GetName().Name ?? "Unknown",
+                Namespace: type.Namespace ?? "Unknown",
+                PrimaryInterface: "INotification",
+                HandlerStatus: handlerStatus,
+                HandlerDetails: handlerDetails,
+                Handlers: info.HandlerTypes,
+                SubscriberStatus: subStatus,
+                SubscriberDetails: subDetails,
+                EstimatedSubscribers: subCount));
+        }
+
+        results.Sort(static (a, b) =>
+        {
+            int c = string.Compare(a.Assembly, b.Assembly, StringComparison.Ordinal);
+            return c != 0 ? c : string.Compare(a.ClassName, b.ClassName, StringComparison.Ordinal);
+        });
+
+        LogAnalysisCompletedImpl("notifications (catalog)", results.Count);
+        return results;
+    }
+
+    /// <summary>
+    /// AOT-clean overload that analyses all request-pipeline middleware from the compile-time catalog.
+    /// Use this in source-generated applications for zero reflection and zero
+    /// <c>[RequiresUnreferencedCode]</c> warnings at the call site.
+    /// </summary>
+    /// <param name="catalog">The compile-time type catalog emitted by Blazing.Mediator.SourceGenerators.</param>
+    /// <returns>Read-only list of middleware analysis results sorted by execution order.</returns>
+    public IReadOnlyList<MiddlewareAnalysis> AnalyzeRequestMiddleware(IMediatorTypeCatalog catalog)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        LogAnalysisStartedImpl("request middleware (catalog)");
+
+        var results = BuildMiddlewareAnalysis(catalog.RequestMiddleware);
+
+        LogAnalysisCompletedImpl("request middleware (catalog)", results.Count);
+        return results;
+    }
+
+    /// <summary>
+    /// AOT-clean overload that analyses all notification-pipeline middleware from the compile-time catalog.
+    /// Use this in source-generated applications for zero reflection and zero
+    /// <c>[RequiresUnreferencedCode]</c> warnings at the call site.
+    /// </summary>
+    /// <param name="catalog">The compile-time type catalog emitted by Blazing.Mediator.SourceGenerators.</param>
+    /// <returns>Read-only list of middleware analysis results sorted by execution order.</returns>
+    public IReadOnlyList<MiddlewareAnalysis> AnalyzeNotificationMiddleware(IMediatorTypeCatalog catalog)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        LogAnalysisStartedImpl("notification middleware (catalog)");
+
+        var results = BuildMiddlewareAnalysis(catalog.NotificationMiddleware);
+
+        LogAnalysisCompletedImpl("notification middleware (catalog)", results.Count);
+        return results;
+    }
+
+    /// <summary>
+    /// Builds a sorted <see cref="MiddlewareAnalysis"/> list from catalog middleware info — zero reflection.
+    /// </summary>
+    private static List<MiddlewareAnalysis> BuildMiddlewareAnalysis(
+        IReadOnlyList<MiddlewareTypeInfo> middlewareInfos)
+    {
+        var results = new List<MiddlewareAnalysis>(middlewareInfos.Count);
+        foreach (var mw in middlewareInfos)
+        {
+            var type = mw.MiddlewareType;
+            var orderDisplay = mw.Order.ToString();
+
+            var className = mw.Name;
+            // Strip backtick from the Name if it arrived with one (open-generic form).
+            var tick = className.IndexOf('`');
+            if (tick > 0) className = className[..tick];
+
+            string typeParameters;
+            if (mw.IsOpenGeneric)
+            {
+                if (mw.IsNotification)
+                    typeParameters = "<TNotification>";
+                else
+                    typeParameters = type.GetGenericArguments().Length == 1
+                        ? "<TRequest>"
+                        : "<TRequest, TResponse>";
+            }
+            else
+            {
+                typeParameters = string.Empty;
+            }
+
+            var genericConstraints = mw.IsOpenGeneric ? BuildConstraintString(type) : string.Empty;
+
+            results.Add(new MiddlewareAnalysis(
+                Type: type,
+                Order: mw.Order,
+                OrderDisplay: orderDisplay,
+                ClassName: className,
+                TypeParameters: typeParameters,
+                GenericConstraints: genericConstraints,
+                Configuration: null));
+        }
+
+        results.Sort(static (a, b) =>
+        {
+            int c = a.Order.CompareTo(b.Order);
+            return c != 0 ? c : string.Compare(a.ClassName, b.ClassName, StringComparison.Ordinal);
+        });
+
+        return results;
+    }
+
+    /// <summary>
+    /// Builds a formatted generic-constraints string for an open-generic middleware type,
+    /// e.g. <c>where TRequest : class, ICustomerRequest&lt;TResponse&gt;</c>.
+    /// Uses runtime reflection on the open-generic type definition.
+    /// </summary>
+    private static string BuildConstraintString(Type openGenericType)
+    {
+        if (!openGenericType.IsGenericTypeDefinition) return string.Empty;
+        var typeParams = openGenericType.GetGenericArguments();
+        if (typeParams.Length == 0) return string.Empty;
+
+        var parts = new System.Text.StringBuilder();
+        foreach (var param in typeParams)
+        {
+            var constraints = new List<string>();
+            var attrs = param.GenericParameterAttributes;
+            if ((attrs & System.Reflection.GenericParameterAttributes.ReferenceTypeConstraint) != 0)
+                constraints.Add("class");
+            foreach (var constraintType in param.GetGenericParameterConstraints())
+            {
+                if (constraintType == typeof(object)) continue;
+                constraints.Add(FormatConstraintTypeName(constraintType));
+            }
+            if (constraints.Count > 0)
+            {
+                if (parts.Length > 0) parts.Append(' ');
+                parts.Append($"where {param.Name} : {string.Join(", ", constraints)}");
+            }
+        }
+        return parts.ToString();
+    }
+
+    /// <summary>
+    /// Formats a constraint type name for display, e.g. <c>ICustomerRequest&lt;TResponse&gt;</c>.
+    /// </summary>
+    private static string FormatConstraintTypeName(Type constraintType)
+    {
+        if (!constraintType.IsGenericType)
+            return constraintType.Name;
+        var name = constraintType.Name;
+        var tick = name.IndexOf('`');
+        if (tick > 0) name = name[..tick];
+        var args = string.Join(", ", constraintType.GetGenericArguments().Select(a => a.Name));
+        return $"{name}<{args}>";
+    }
+
+    /// <summary>
+    /// Builds a <see cref="QueryCommandAnalysis"/> from a catalog entry — zero reflection.
+    /// </summary>
+    private static QueryCommandAnalysis BuildAnalysisFromHandlerInfo(
+        HandlerTypeInfo info,
+        bool isQuery,
+        bool isDetailed)
+    {
+        var type = info.RequestType;
+        var className = type.Name;
+        var typeParameters = string.Empty;
+
+        if (type.IsGenericType)
+        {
+            var tick = className.IndexOf('`');
+            if (tick > 0) className = className[..tick];
+            typeParameters = $"<{string.Join(", ", type.GetGenericArguments().Select(t => t.Name))}>";
+        }
+
+        var allInterfaces = info.RequestType.GetInterfaces();
+        var (primaryInterface, _) = DetectPrimaryInterface(allInterfaces, isQuery);
+
+        var handlerDetails = isDetailed
+            ? info.HandlerType.Name
+            : "Handler found";
+
+        return new QueryCommandAnalysis(
+            Type: type,
+            ClassName: className,
+            TypeParameters: isDetailed ? typeParameters : string.Empty,
+            Assembly: type.Assembly.GetName().Name ?? "Unknown",
+            Namespace: type.Namespace ?? "Unknown",
+            ResponseType: info.ResponseType,
+            PrimaryInterface: primaryInterface,
+            IsResultType: false,
+            HandlerStatus: HandlerStatus.Single,
+            HandlerDetails: handlerDetails,
+            Handlers: [info.HandlerType]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Reflection-based overloads — annotated for IL trimmer propagation
+    // ─────────────────────────────────────────────────────────────────────────
+
     /// <summary>
     /// Analyzes all registered queries in the application and returns detailed information grouped by assembly and namespace.
     /// The level of detail depends on the EnableDetailedAnalysis option in StatisticsOptions.
@@ -399,6 +787,10 @@ public sealed class MediatorStatistics : IDisposable
     /// <param name="serviceProvider">Service provider to scan for registered query types.</param>
     /// <param name="isDetailed">If specified, overrides the EnableDetailedAnalysis option. If true, returns comprehensive analysis with all properties. If false, returns compact analysis with basic information only.</param>
     /// <returns>Read-only list of query analysis information grouped by assembly with namespace.</returns>
+    [RequiresUnreferencedCode(
+        "Analysing query handlers via reflection is not compatible with IL trimming. " +
+        "Use source generators (Blazing.Mediator.SourceGenerators) to obtain an IMediatorTypeCatalog " +
+        "and call AnalyzeQueries(IMediatorTypeCatalog) instead.")]
     public IReadOnlyList<QueryCommandAnalysis> AnalyzeQueries(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
         LogAnalysisStartedImpl("queries");
@@ -428,6 +820,10 @@ public sealed class MediatorStatistics : IDisposable
     /// <param name="serviceProvider">Service provider to scan for registered command types.</param>
     /// <param name="isDetailed">If specified, overrides the EnableDetailedAnalysis option. If true, returns comprehensive analysis with all properties. If false, returns compact analysis with basic information only.</param>
     /// <returns>Read-only list of command analysis information grouped by assembly with namespace.</returns>
+    [RequiresUnreferencedCode(
+        "Analysing command handlers via reflection is not compatible with IL trimming. " +
+        "Use source generators (Blazing.Mediator.SourceGenerators) to obtain an IMediatorTypeCatalog " +
+        "and call AnalyzeCqrs(IMediatorTypeCatalog) instead.")]
     public IReadOnlyList<QueryCommandAnalysis> AnalyzeCommands(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
         LogAnalysisStartedImpl("commands");
@@ -464,6 +860,10 @@ public sealed class MediatorStatistics : IDisposable
     /// <param name="serviceProvider">Service provider to scan for registered notification types.</param>
     /// <param name="isDetailed">Whether to return detailed analysis or compact view.</param>
     /// <returns>Read-only list of notification analysis information.</returns>
+    [RequiresUnreferencedCode(
+        "Analysing notification handlers via reflection is not compatible with IL trimming. " +
+        "Use source generators (Blazing.Mediator.SourceGenerators) to obtain an IMediatorTypeCatalog " +
+        "and call AnalyzeNotifications(IMediatorTypeCatalog) instead.")]
     public IReadOnlyList<NotificationAnalysis> AnalyzeNotifications(IServiceProvider serviceProvider, bool? isDetailed = null)
     {
         LogAnalysisStartedImpl("notifications");
@@ -483,6 +883,7 @@ public sealed class MediatorStatistics : IDisposable
     /// <summary>
     /// Finds all types in loaded assemblies that implement the specified interface.
     /// Uses optimized caching and filtering to avoid repeated expensive assembly scanning operations.
+    /// Phase 6 Integration: Uses source-generated TypeCatalog when available for AOT compatibility.
     /// </summary>
     private static List<Type> FindTypesImplementingInterface(Type interfaceType)
     {
@@ -492,6 +893,7 @@ public sealed class MediatorStatistics : IDisposable
         {
             var types = new List<Type>();
 
+            // Reflection-based discovery
             try 
             {
                 // Get all loaded assemblies with optimized filtering
@@ -555,7 +957,7 @@ public sealed class MediatorStatistics : IDisposable
         var typeFullName = type.FullName ?? string.Empty;
 
         // Exclude internal placeholder types used for constraint satisfaction
-        if (typeName is nameof(InternalCommandPlaceholder) or nameof(InternalRequestPlaceholder))
+        if (typeName is "InternalCommandPlaceholder" or "InternalRequestPlaceholder")
         {
             return false;
         }

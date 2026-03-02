@@ -66,7 +66,7 @@ public class NanosecondPrecisionBenchmarks
     #region <50ns Target Benchmarks - Core Optimizations
 
     /// <summary>
-    /// Tests our optimized registration index lookup (was O(n²) FindIndex, now O(1) Dictionary lookup).
+    /// Tests our optimized registration index lookup (was O(nï¿½) FindIndex, now O(1) Dictionary lookup).
     /// Target: Less than 10ns for single lookup operation.
     /// </summary>
     [Benchmark(Description = "O(1) Registration Index Lookup - <10ns Target")]
@@ -176,7 +176,7 @@ public class NanosecondPrecisionBenchmarks
     public async Task<string> EndToEndPipelineExecution()
     {
         var request = new SimpleRequest { Data = "test" };
-        Task<string> FinalHandler() => Task.FromResult("result");
+        ValueTask<string> FinalHandler() => new ValueTask<string>("result");
 
         return await _middlewarePipelineBuilder!.ExecutePipeline(
             request,
@@ -192,7 +192,7 @@ public class NanosecondPrecisionBenchmarks
     public async Task NotificationPipelineExecution()
     {
         var notification = new SimpleNotification { Message = "test" };
-        var finalHandler = (NotificationDelegate<SimpleNotification>)((n, ct) => Task.CompletedTask);
+        var finalHandler = (NotificationDelegate<SimpleNotification>)((n, ct) => ValueTask.CompletedTask);
         
         await _notificationPipelineBuilder!.ExecutePipeline(
             notification,
@@ -261,7 +261,7 @@ public class UltraFastMiddleware : IRequestMiddleware<SimpleRequest, string>
 {
     public static int Order => 1;
     
-    public Task<string> HandleAsync(SimpleRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+    public ValueTask<string> HandleAsync(SimpleRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
     {
         // Minimal overhead - just pass through
         return next();
@@ -276,7 +276,7 @@ public class GenericUltraFastMiddleware<TRequest, TResponse> : IRequestMiddlewar
 {
     public static int Order => 2;
     
-    public Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         return next();
     }
@@ -289,7 +289,7 @@ public class UltraFastNotificationMiddleware : INotificationMiddleware
 {
     public static int Order => 1;
     
-    public Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) 
+    public ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) 
         where TNotification : INotification
     {
         return next(notification, cancellationToken);

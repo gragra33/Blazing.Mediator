@@ -2,7 +2,6 @@ using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Reflection;
 
 namespace Blazing.Mediator.Tests.ConfigurationTests;
 
@@ -12,8 +11,6 @@ namespace Blazing.Mediator.Tests.ConfigurationTests;
 /// </summary>
 public class LoggingOptionsTests
 {
-    private readonly Assembly _testAssembly = Assembly.GetExecutingAssembly();
-
     #region LoggingOptions Configuration Tests
 
     [Fact]
@@ -307,11 +304,8 @@ public class LoggingOptionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config =>
-        {
-            config.WithLogging()
-                  .AddAssembly(_testAssembly);
-        });
+        services.AddMediator(new MediatorConfiguration()
+            .WithLogging());
 
         // Assert
         var provider = services.BuildServiceProvider();
@@ -327,12 +321,9 @@ public class LoggingOptionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithoutLogging()
-                  .AddAssembly(_testAssembly);
-        });
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking()
+            .WithoutLogging());
 
         // Assert
         var provider = services.BuildServiceProvider();
@@ -361,19 +352,13 @@ public class LoggingOptionsTests
         });
 
         // Act
-        servicesWithLogging.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithLogging()
-                  .AddAssembly(_testAssembly);
-        });
+        servicesWithLogging.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking()
+            .WithLogging());
 
-        servicesWithoutLogging.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithoutLogging()
-                  .AddAssembly(_testAssembly);
-        });
+        servicesWithoutLogging.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking()
+            .WithoutLogging());
 
         // Assert
         var providerWithLogging = servicesWithLogging.BuildServiceProvider();
@@ -405,9 +390,9 @@ public class LoggingOptionsTests
 
     public class LoggingTestQueryHandler : IRequestHandler<LoggingTestQuery, string>
     {
-        public Task<string> Handle(LoggingTestQuery request, CancellationToken cancellationToken)
+        public async ValueTask<string> Handle(LoggingTestQuery request, CancellationToken cancellationToken)
         {
-            return Task.FromResult($"Handled: {request.Message}");
+            return $"Handled: {request.Message}";
         }
     }
 
@@ -422,12 +407,9 @@ public class LoggingOptionsTests
             logging.SetMinimumLevel(LogLevel.Debug);
         });
 
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithLogging()
-                  .AddAssembly(_testAssembly);
-        });
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking()
+            .WithLogging());
 
         var provider = services.BuildServiceProvider();
         var mediator = provider.GetRequiredService<IMediator>();
@@ -450,12 +432,9 @@ public class LoggingOptionsTests
             logging.SetMinimumLevel(LogLevel.Debug);
         });
 
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithoutLogging()
-                  .AddAssembly(_testAssembly);
-        });
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking()
+            .WithoutLogging());
 
         var provider = services.BuildServiceProvider();
         var mediator = provider.GetRequiredService<IMediator>();
@@ -478,21 +457,18 @@ public class LoggingOptionsTests
             logging.SetMinimumLevel(LogLevel.Debug);
         });
 
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithLogging(options =>
-                  {
-                      // Configure minimal logging
-                      var minimal = LoggingOptions.CreateMinimal();
-                      options.EnableStatistics = minimal.EnableStatistics;
-                      options.EnableSend = minimal.EnableSend;
-                      options.EnableQueryAnalyzer = minimal.EnableQueryAnalyzer;
-                      options.EnableCommandAnalyzer = minimal.EnableCommandAnalyzer;
-                      options.EnableWarnings = true; // Keep warnings
-                  })
-                  .AddAssembly(_testAssembly);
-        });
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking()
+            .WithLogging(options =>
+            {
+                // Configure minimal logging
+                var minimal = LoggingOptions.CreateMinimal();
+                options.EnableStatistics = minimal.EnableStatistics;
+                options.EnableSend = minimal.EnableSend;
+                options.EnableQueryAnalyzer = minimal.EnableQueryAnalyzer;
+                options.EnableCommandAnalyzer = minimal.EnableCommandAnalyzer;
+                options.EnableWarnings = true; // Keep warnings
+            }));
 
         var provider = services.BuildServiceProvider();
         var mediator = provider.GetRequiredService<IMediator>();
@@ -535,12 +511,9 @@ public class LoggingOptionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config =>
-        {
-            config.WithLogging(opt => opt.EnableSend = true)
-                  .WithLogging(opt => opt.EnableSend = false) // This should override
-                  .AddAssembly(_testAssembly);
-        });
+        services.AddMediator(new MediatorConfiguration()
+            .WithLogging(opt => opt.EnableSend = true)
+            .WithLogging(opt => opt.EnableSend = false)); // This should override
 
         // Assert
         var provider = services.BuildServiceProvider();
@@ -555,12 +528,9 @@ public class LoggingOptionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config =>
-        {
-            config.WithoutLogging()
-                  .WithLogging() // This should re-enable
-                  .AddAssembly(_testAssembly);
-        });
+        services.AddMediator(new MediatorConfiguration()
+            .WithoutLogging()
+            .WithLogging()); // This should re-enable
 
         // Assert
         var provider = services.BuildServiceProvider();

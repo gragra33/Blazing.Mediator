@@ -10,7 +10,7 @@ public class ProductQueryCacheMiddleware(ILogger<ProductQueryCacheMiddleware> lo
     public int Order => 20;
 
     /// <inheritdoc />
-    public async Task<string> HandleAsync(GetProductQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+    public async ValueTask<string> HandleAsync(GetProductQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
     {
         logger.LogDebug(">> Checking cache for product: {ProductId}", request.ProductId);
 

@@ -20,7 +20,7 @@ public class GetOrderStatisticsHandler(ECommerceDbContext context)
     /// <param name="request">The query containing date range filters.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>Order statistics for the specified period.</returns>
-    public async Task<OrderStatisticsDto> Handle(GetOrderStatisticsQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<OrderStatisticsDto> Handle(GetOrderStatisticsQuery request, CancellationToken cancellationToken = default)
     {
         IQueryable<Order> query = context.Orders.AsNoTracking();
 

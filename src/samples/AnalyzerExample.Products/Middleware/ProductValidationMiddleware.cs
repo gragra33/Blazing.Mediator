@@ -19,7 +19,7 @@ public class ProductValidationMiddleware<TRequest> : IRequestMiddleware<TRequest
         _logger = logger;
     }
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         _logger.LogInformation("? [Products] Validating product command: {CommandType} for ProductId: {ProductId}", 
             typeof(TRequest).Name, request.ProductId);

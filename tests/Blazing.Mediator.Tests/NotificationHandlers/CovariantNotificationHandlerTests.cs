@@ -13,7 +13,7 @@ public class CovariantNotificationHandlerTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(typeof(CovariantNotificationHandlerTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = CreateMediatorWithDependencies(serviceProvider);
 
@@ -44,7 +44,7 @@ public class CovariantNotificationHandlerTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(typeof(CovariantNotificationHandlerTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = CreateMediatorWithDependencies(serviceProvider);
 
@@ -74,7 +74,7 @@ public class CovariantNotificationHandlerTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(typeof(CovariantNotificationHandlerTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = CreateMediatorWithDependencies(serviceProvider);
 
@@ -108,7 +108,7 @@ public class CovariantNotificationHandlerTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(typeof(CovariantNotificationHandlerTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = CreateMediatorWithDependencies(serviceProvider);
 
@@ -142,7 +142,7 @@ public class CovariantNotificationHandlerTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(typeof(CovariantNotificationHandlerTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = CreateMediatorWithDependencies(serviceProvider);
 
@@ -160,7 +160,7 @@ public class CovariantNotificationHandlerTests
         };
 
         // Act & Assert - Exception from one handler shouldn't stop others
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Publish(notification));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Publish(notification).AsTask());
         Assert.Equal("Test exception from handler", exception.Message);
 
         // Verify that the exception-throwing handler was called
@@ -175,7 +175,7 @@ public class CovariantNotificationHandlerTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(typeof(CovariantNotificationHandlerTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = CreateMediatorWithDependencies(serviceProvider);
 
@@ -209,9 +209,7 @@ public class CovariantNotificationHandlerTests
     /// </summary>
     private static IMediator CreateMediatorWithDependencies(IServiceProvider serviceProvider)
     {
-        var pipelineBuilder = new Pipeline.MiddlewarePipelineBuilder();
-        var notificationPipelineBuilder = new Pipeline.NotificationPipelineBuilder();
-        return new Mediator(serviceProvider, pipelineBuilder, notificationPipelineBuilder, null);
+        return new Mediator(serviceProvider, null);
     }
 }
 
@@ -280,11 +278,11 @@ public class BaseNotificationHandler : INotificationHandler<BaseTestNotification
     public static int CallCount;
     public static BaseTestNotification? LastNotification;
 
-    public Task Handle(BaseTestNotification notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(BaseTestNotification notification, CancellationToken cancellationToken = default)
     {
         CallCount++;
         LastNotification = notification;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
@@ -296,11 +294,11 @@ public class InterfaceNotificationHandler : INotificationHandler<ITestInterface>
     public static int CallCount;
     public static ITestInterface? LastNotification;
 
-    public Task Handle(ITestInterface notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(ITestInterface notification, CancellationToken cancellationToken = default)
     {
         CallCount++;
         LastNotification = notification;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
@@ -312,11 +310,11 @@ public class SpecificNotificationHandler : INotificationHandler<DerivedTestNotif
     public static int CallCount;
     public static DerivedTestNotification? LastNotification;
 
-    public Task Handle(DerivedTestNotification notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(DerivedTestNotification notification, CancellationToken cancellationToken = default)
     {
         CallCount++;
         LastNotification = notification;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
@@ -328,11 +326,11 @@ public class AnotherInterfaceHandler : INotificationHandler<IAnotherTestInterfac
     public static int CallCount;
     public static IAnotherTestInterface? LastNotification;
 
-    public Task Handle(IAnotherTestInterface notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(IAnotherTestInterface notification, CancellationToken cancellationToken = default)
     {
         CallCount++;
         LastNotification = notification;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
@@ -344,11 +342,11 @@ public class DeeplyDerivedHandler : INotificationHandler<DeeplyDerivedNotificati
     public static int CallCount;
     public static DeeplyDerivedNotification? LastNotification;
 
-    public Task Handle(DeeplyDerivedNotification notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(DeeplyDerivedNotification notification, CancellationToken cancellationToken = default)
     {
         CallCount++;
         LastNotification = notification;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
@@ -360,11 +358,11 @@ public class MultiInterfaceHandler : INotificationHandler<MultiInterfaceNotifica
     public static int CallCount;
     public static MultiInterfaceNotification? LastNotification;
 
-    public Task Handle(MultiInterfaceNotification notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(MultiInterfaceNotification notification, CancellationToken cancellationToken = default)
     {
         CallCount++;
         LastNotification = notification;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
@@ -376,14 +374,14 @@ public class ExceptionThrowingHandler : INotificationHandler<DerivedTestNotifica
     public static int CallCount;
     public static bool ShouldThrow;
 
-    public Task Handle(DerivedTestNotification notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(DerivedTestNotification notification, CancellationToken cancellationToken = default)
     {
         CallCount++;
         if (ShouldThrow)
         {
             throw new InvalidOperationException("Test exception from handler");
         }
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 

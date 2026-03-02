@@ -9,7 +9,7 @@ namespace AnalyzerExample.Users.Handlers;
 /// </summary>
 public class AssignUserRoleCommandHandler : IRequestHandler<AssignUserRoleCommand, OperationResult>
 {
-    public async Task<OperationResult> Handle(AssignUserRoleCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult> Handle(AssignUserRoleCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate role assignment
         await Task.Delay(40, cancellationToken);

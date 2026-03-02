@@ -15,7 +15,7 @@ public class GlobalLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<T
         _logger = logger;
     }
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var requestType = typeof(TRequest).Name;
         var responseType = typeof(TResponse).Name;

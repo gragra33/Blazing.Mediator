@@ -9,7 +9,7 @@ namespace AnalyzerExample.Orders.Handlers;
 /// </summary>
 public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, OperationResult<int>>
 {
-    public async Task<OperationResult<int>> Handle(CreateOrderCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult<int>> Handle(CreateOrderCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate order creation
         await Task.Delay(100, cancellationToken);

@@ -1,6 +1,5 @@
 using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 namespace Blazing.Mediator.Tests.ConfigurationTests;
 
@@ -10,8 +9,6 @@ namespace Blazing.Mediator.Tests.ConfigurationTests;
 /// </summary>
 public class ConstrainedMiddlewareDiscoveryTests
 {
-    private readonly Assembly _testAssembly = typeof(ConstrainedMiddlewareDiscoveryTests).Assembly;
-
     [Fact]
     public void DiscoverConstrainedMiddleware_DefaultValue_ShouldBeTrue()
     {
@@ -75,11 +72,9 @@ public class ConstrainedMiddlewareDiscoveryTests
         services.AddLogging();
 
         // Act - Manually register middleware but disable auto-discovery
-        services.AddMediator(config =>
-        {
-            config.AddNotificationMiddleware<ConstrainedMiddlewareTestMiddleware>() // Manual registration
-                  .WithoutConstrainedMiddlewareDiscovery(); // Disable auto-discovery
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration()
+            .AddNotificationMiddleware<ConstrainedMiddlewareTestMiddleware>() // Manual registration
+            .WithoutConstrainedMiddlewareDiscovery()); // Disable auto-discovery
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -107,11 +102,9 @@ public class ConstrainedMiddlewareDiscoveryTests
         services.AddLogging();
 
         // Act - Enable both notification and constrained middleware discovery
-        services.AddMediator(config =>
-        {
-            config.WithNotificationMiddlewareDiscovery() // Enable INotificationMiddleware discovery
-                  .WithConstrainedMiddlewareDiscovery(); // Enable INotificationMiddleware<T> discovery
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration()
+            .WithNotificationMiddlewareDiscovery() // Enable INotificationMiddleware discovery
+            .WithConstrainedMiddlewareDiscovery()); // Enable INotificationMiddleware<T> discovery
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -148,12 +141,9 @@ public class ConstrainedMiddlewareDiscoveryTests
             var services1 = new ServiceCollection();
             services1.AddLogging();
 
-            services1.AddMediator(config =>
-            {
-                // Enable general notification middleware but explicitly disable constrained middleware
-                config.WithNotificationMiddlewareDiscovery(); // Enable general notification middleware
-                config.DiscoverConstrainedMiddleware = false; // Explicitly disable constrained middleware
-            }, _testAssembly);
+            var cfg1 = new MediatorConfiguration().WithNotificationMiddlewareDiscovery();
+            cfg1.DiscoverConstrainedMiddleware = false; // Explicitly disable constrained middleware
+            services1.AddMediator(cfg1);
 
             var serviceProvider1 = services1.BuildServiceProvider();
             var inspector1 = serviceProvider1.GetService<INotificationMiddlewarePipelineInspector>();
@@ -172,11 +162,9 @@ public class ConstrainedMiddlewareDiscoveryTests
             var services2 = new ServiceCollection();
             services2.AddLogging();
 
-            services2.AddMediator(config =>
-            {
-                config.WithNotificationMiddlewareDiscovery(); // Enable general notification middleware
-                config.DiscoverConstrainedMiddleware = true; // Explicitly enable constrained middleware
-            }, _testAssembly);
+            var cfg2 = new MediatorConfiguration().WithNotificationMiddlewareDiscovery();
+            cfg2.DiscoverConstrainedMiddleware = true; // Explicitly enable constrained middleware
+            services2.AddMediator(cfg2);
 
             var serviceProvider2 = services2.BuildServiceProvider();
             var inspector2 = serviceProvider2.GetService<INotificationMiddlewarePipelineInspector>();
@@ -201,11 +189,9 @@ public class ConstrainedMiddlewareDiscoveryTests
             var services1 = new ServiceCollection();
             services1.AddLogging();
 
-            services1.AddMediator(config =>
-            {
-                config.WithNotificationMiddlewareDiscovery()  // Enable general notification middleware
-                      .WithoutConstrainedMiddlewareDiscovery(); // But disable constrained middleware
-            }, _testAssembly);
+            services1.AddMediator(new MediatorConfiguration()
+                .WithNotificationMiddlewareDiscovery()  // Enable general notification middleware
+                .WithoutConstrainedMiddlewareDiscovery()); // But disable constrained middleware
 
             var serviceProvider1 = services1.BuildServiceProvider();
             var inspector1 = serviceProvider1.GetService<INotificationMiddlewarePipelineInspector>();
@@ -224,11 +210,9 @@ public class ConstrainedMiddlewareDiscoveryTests
             var services2 = new ServiceCollection();
             services2.AddLogging();
 
-            services2.AddMediator(config =>
-            {
-                config.WithNotificationMiddlewareDiscovery()  // Enable general notification middleware
-                      .WithConstrainedMiddlewareDiscovery();   // And enable constrained middleware
-            }, _testAssembly);
+            services2.AddMediator(new MediatorConfiguration()
+                .WithNotificationMiddlewareDiscovery()  // Enable general notification middleware
+                .WithConstrainedMiddlewareDiscovery());   // And enable constrained middleware
 
             var serviceProvider2 = services2.BuildServiceProvider();
             var inspector2 = serviceProvider2.GetService<INotificationMiddlewarePipelineInspector>();
@@ -254,11 +238,9 @@ public class ConstrainedMiddlewareDiscoveryTests
         services.AddLogging();
 
         // Act - Enable notification middleware discovery but disable constrained middleware
-        services.AddMediator(config =>
-        {
-            config.WithNotificationMiddlewareDiscovery()      // Enable INotificationMiddleware discovery
-                  .WithoutConstrainedMiddlewareDiscovery();   // Disable INotificationMiddleware<T> discovery
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration()
+            .WithNotificationMiddlewareDiscovery()      // Enable INotificationMiddleware discovery
+            .WithoutConstrainedMiddlewareDiscovery());   // Disable INotificationMiddleware<T> discovery
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -283,13 +265,13 @@ public class ConstrainedMiddlewareTestMiddleware : INotificationMiddleware<Const
 {
     public int Order => 100;
 
-    public Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    public ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {
         return next(notification, cancellationToken);
     }
 
-    public Task InvokeAsync(ConstrainedTestNotification notification, NotificationDelegate<ConstrainedTestNotification> next, CancellationToken cancellationToken)
+    public ValueTask InvokeAsync(ConstrainedTestNotification notification, NotificationDelegate<ConstrainedTestNotification> next, CancellationToken cancellationToken)
     {
         return next(notification, cancellationToken);
     }

@@ -1,3 +1,4 @@
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
@@ -28,10 +29,7 @@ public class MediatorTelemetryPublishTests : IDisposable
 
         // Add mediator with telemetry enabled - disable handler discovery to test pure subscriber functionality
         services.AddMediatorTelemetry();
-        services.AddMediator(config =>
-        {
-            config.WithoutNotificationHandlerDiscovery();
-        }, typeof(MediatorTelemetryPublishTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
 
         // Register test notification subscribers
         _testSubscriber = new PublishTestNotificationSubscriber();
@@ -88,10 +86,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(config =>
-        {
-            config.WithoutNotificationHandlerDiscovery();
-        }, typeof(MediatorTelemetryPublishTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
 
         // Register test notification subscribers
         var testSubscriber = new PublishTestNotificationSubscriber();
@@ -120,7 +115,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         var notification = new PublishTestNotification { Message = "Test message" };
 
         // Act & Assert - expecting one subscriber to throw exception
-        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification));
+        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification).AsTask());
 
         // Wait for activity to be recorded
         await Task.Delay(50);
@@ -173,10 +168,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(config =>
-        {
-            config.WithoutNotificationHandlerDiscovery();
-        }, typeof(MediatorTelemetryPublishTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
 
         // Register test notification subscriber (only the successful one)
         var testSubscriber = new PublishTestNotificationSubscriber();
@@ -237,10 +229,7 @@ public class MediatorTelemetryPublishTests : IDisposable
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddMediatorTelemetry();
-            services.AddMediator(config =>
-            {
-                config.WithoutNotificationHandlerDiscovery();
-            }, typeof(MediatorTelemetryPublishTests).Assembly);
+            services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
 
             // Register test notification subscriber
             var testSubscriber = new PublishTestNotificationSubscriber();
@@ -299,10 +288,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(config =>
-        {
-            config.WithoutNotificationHandlerDiscovery();
-        }, typeof(MediatorTelemetryPublishTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
 
         services.AddSingleton<TestSensitiveNotificationSubscriber>();
 
@@ -337,22 +323,24 @@ public class MediatorTelemetryPublishTests : IDisposable
         // Wait a small amount to ensure activity is recorded
         await Task.Delay(50);
 
-        // Assert - Use the isolated testActivities collection 
+        // Assert - Use the isolated testActivities collection
+        // The display name is sanitized — "Password" becomes "***" per SensitiveDataPatterns defaults
         var activity = testActivities
-            .Where(a => a.DisplayName.Contains("PublishTestNotificationWithPassword"))
+            .Where(a => a.DisplayName.Contains("PublishTestNotificationWith"))
             .OrderByDescending(a => a.StartTimeUtc)
             .FirstOrDefault();
         
         activity.ShouldNotBeNull("Activity should be created for sensitive notification");
 
-        // Verify sensitive data is sanitized
-        var notificationName = activity.GetTagItem("notification_name")?.ToString();
-        notificationName.ShouldNotBeNull("Notification name should not be null");
+        // Verify sensitive data is sanitized in the notification type tag
+        var notificationName = activity.GetTagItem("notification.type")?.ToString()
+                            ?? activity.GetTagItem("notification_name")?.ToString();
+        notificationName.ShouldNotBeNull("Notification type tag should not be null");
         
         // Check that sensitive data patterns are handled
         if (notificationName.Contains("***"))
         {
-            // Sensitive data was sanitized - this is the expected behavior
+            // Sensitive data was sanitized — this is the expected behavior
             notificationName.ShouldNotContain("Password");
             notificationName.ShouldNotContain("secret123");
             notificationName.ShouldNotContain("Token");
@@ -372,10 +360,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(config =>
-        {
-            config.WithoutNotificationHandlerDiscovery();
-        }, typeof(MediatorTelemetryPublishTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
 
         // Register test notification subscribers
         var baseSubscriber = new PublishTestNotificationSubscriber();
@@ -439,10 +424,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(config =>
-        {
-            config.WithoutNotificationHandlerDiscovery();
-        }, typeof(MediatorTelemetryPublishTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
 
         // Register test notification subscribers
         var testSubscriber = new PublishTestNotificationSubscriber();

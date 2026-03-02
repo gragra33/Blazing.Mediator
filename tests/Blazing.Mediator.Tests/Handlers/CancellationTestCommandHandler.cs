@@ -11,9 +11,9 @@ public class CancellationTestCommandHandler : IRequestHandler<CancellationTestCo
     /// <param name="request">The command to handle.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public Task Handle(CancellationTestCommand request, CancellationToken cancellationToken = default)
+    public ValueTask Handle(CancellationTestCommand request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

@@ -13,7 +13,7 @@ public class CancellationCheckQueryMiddleware : IRequestMiddleware<MiddlewareTes
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <exception cref="OperationCanceledException">Thrown when cancellation is requested.</exception>
     /// <returns>The response from the next handler.</returns>
-    public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+    public async ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         return await next();

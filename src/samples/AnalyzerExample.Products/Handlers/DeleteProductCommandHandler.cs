@@ -8,7 +8,7 @@ namespace AnalyzerExample.Products.Handlers;
 /// </summary>
 public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand>
 {
-    public async Task Handle(DeleteProductCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(DeleteProductCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate product deletion
         await Task.Delay(40, cancellationToken);

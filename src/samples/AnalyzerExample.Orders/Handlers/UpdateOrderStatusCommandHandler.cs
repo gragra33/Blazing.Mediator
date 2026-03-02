@@ -9,7 +9,7 @@ namespace AnalyzerExample.Orders.Handlers;
 /// </summary>
 public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatusCommand, OperationResult>
 {
-    public async Task<OperationResult> Handle(UpdateOrderStatusCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult> Handle(UpdateOrderStatusCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate status update
         await Task.Delay(50, cancellationToken);

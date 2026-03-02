@@ -15,7 +15,7 @@ public class MediatorStreamingTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(Commands.TestStreamRequest).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -44,7 +44,7 @@ public class MediatorStreamingTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(Commands.TestStreamRequest).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -83,7 +83,7 @@ public class MediatorStreamingTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(Commands.TestStreamRequest).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -111,7 +111,7 @@ public class MediatorStreamingTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(Array.Empty<System.Reflection.Assembly>());
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 

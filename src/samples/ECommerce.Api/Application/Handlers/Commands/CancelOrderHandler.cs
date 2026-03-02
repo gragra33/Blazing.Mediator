@@ -18,7 +18,7 @@ public class CancelOrderHandler(ECommerceDbContext context) : IRequestHandler<Ca
     /// <param name="request">The command containing the order ID and cancellation reason.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The operation result indicating success or failure of the cancellation.</returns>
-    public async Task<OperationResult<bool>> Handle(CancelOrderCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult<bool>> Handle(CancelOrderCommand request, CancellationToken cancellationToken = default)
     {
         try
         {

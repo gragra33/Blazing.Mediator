@@ -114,7 +114,7 @@ public sealed class MiddlewarePipelineBuilder
     /// <summary>
     /// Executes the middleware pipeline for a specific request with support for ordering and conditional execution.
     /// </summary>
-    public async Task<TResponse> ExecutePipeline<TRequest, TResponse>(
+    public async ValueTask<TResponse> ExecutePipeline<TRequest, TResponse>(
         TRequest request,
         IServiceProvider serviceProvider,
         RequestHandlerDelegate<TResponse> finalHandler,
@@ -265,7 +265,7 @@ public sealed class MiddlewarePipelineBuilder
     /// <summary>
     /// Executes the middleware pipeline for a void command with support for ordering and conditional execution.
     /// </summary>
-    public async Task ExecutePipeline<TRequest>(
+    public async ValueTask ExecutePipeline<TRequest>(
         TRequest request,
         IServiceProvider serviceProvider,
         RequestHandlerDelegate finalHandler,

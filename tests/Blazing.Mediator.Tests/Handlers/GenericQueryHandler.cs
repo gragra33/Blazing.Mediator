@@ -12,8 +12,8 @@ public class GenericQueryHandler : IRequestHandler<GenericQuery<List<int>>, stri
     /// <param name="request">The generic query containing a list of integers.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task containing a string with the count of items in the list.</returns>
-    public Task<string> Handle(GenericQuery<List<int>> request, CancellationToken cancellationToken = default)
+    public async ValueTask<string> Handle(GenericQuery<List<int>> request, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult($"Count: {request.Data?.Count ?? 0}");
+        return $"Count: {request.Data?.Count ?? 0}";
     }
 }

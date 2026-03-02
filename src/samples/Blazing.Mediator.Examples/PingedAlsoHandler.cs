@@ -26,7 +26,7 @@ public class PingedAlsoHandler : INotificationHandler<Pinged>
     /// <param name="notification">The pinged notification.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task Handle(Pinged notification, CancellationToken cancellationToken)
+    public async ValueTask Handle(Pinged notification, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
         Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - PingedAlsoHandler starting");

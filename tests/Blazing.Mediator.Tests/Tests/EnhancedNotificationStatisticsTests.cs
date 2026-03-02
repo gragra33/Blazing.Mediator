@@ -299,9 +299,9 @@ namespace Blazing.Mediator.Tests.Enhanced.TestTypes
 
     public class EnhancedTestNotificationHandler : INotificationHandler<EnhancedTestNotification>
     {
-        public Task Handle(EnhancedTestNotification notification, CancellationToken cancellationToken)
+        public ValueTask Handle(EnhancedTestNotification notification, CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 }

@@ -8,7 +8,7 @@ namespace Blazing.Mediator.Tests.Middleware;
 public class NotificationMetricsMiddleware(ILogger<NotificationMetricsMiddleware>? logger = null)
     : INotificationMiddleware
 {
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
         where TNotification : INotification
     {
         var startTime = DateTime.UtcNow;

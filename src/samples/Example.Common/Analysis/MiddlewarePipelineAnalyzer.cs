@@ -6,14 +6,12 @@ namespace Example.Common.Analysis;
 public static class MiddlewarePipelineAnalyzer
 {
     /// <summary>
-    /// Analyzes and returns ordered middleware information.
+    /// Analyzes and returns ordered middleware information from catalog-based analysis results.
     /// </summary>
-    /// <param name="pipelineInspector">The pipeline inspector service.</param>
-    /// <param name="serviceProvider">The service provider for resolving middleware instances.</param>
+    /// <param name="middlewareAnalysis">The pre-resolved middleware analysis from <c>MediatorStatistics.AnalyzeRequestMiddleware(catalog)</c>.</param>
     /// <returns>Ordered list of middleware information.</returns>
-    public static List<MiddlewareInfo> AnalyzeMiddleware(IMiddlewarePipelineInspector pipelineInspector, IServiceProvider serviceProvider)
+    public static List<MiddlewareInfo> AnalyzeMiddleware(IReadOnlyList<MiddlewareAnalysis> middlewareAnalysis)
     {
-        var middlewareAnalysis = pipelineInspector.AnalyzeMiddleware(serviceProvider);
         var middlewareInfos = new List<MiddlewareInfo>();
 
         foreach (var analysis in middlewareAnalysis)

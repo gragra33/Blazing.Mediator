@@ -10,7 +10,7 @@ namespace AnalyzerExample.Users.Handlers;
 /// </summary>
 public class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, PagedResult<UserSummaryDto>>
 {
-    public async Task<PagedResult<UserSummaryDto>> Handle(SearchUsersQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<PagedResult<UserSummaryDto>> Handle(SearchUsersQuery request, CancellationToken cancellationToken = default)
     {
         // Simulate database search
         await Task.Delay(70, cancellationToken);

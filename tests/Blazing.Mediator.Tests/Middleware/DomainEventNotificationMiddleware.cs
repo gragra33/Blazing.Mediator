@@ -7,7 +7,7 @@ public class DomainEventNotificationMiddleware : INotificationMiddleware
 {
     public int Order => 700;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {
         await next(notification, cancellationToken);

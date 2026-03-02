@@ -18,7 +18,7 @@ public class ConditionalNotificationMiddleware : IConditionalNotificationMiddlew
         return false;
     }
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         if (notification is TestNotification testNotification)
         {

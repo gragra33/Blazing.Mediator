@@ -14,7 +14,8 @@ public static class MediatorAnalysisHelper
     /// <param name="showNotificationAnalysis">Whether to show notification analysis (for notification samples).</param>
     public static void DisplayComprehensiveAnalysis(
         MediatorStatistics mediatorStatistics, 
-        IServiceProvider serviceProvider,
+        IMediatorTypeCatalog catalog,
+        ISubscriberTracker? subscriberTracker = null,
         bool showRequestAnalysis = true,
         bool showNotificationAnalysis = false)
     {
@@ -30,8 +31,8 @@ public static class MediatorAnalysisHelper
             
             Console.WriteLine("COMPACT MODE (isDetailed: false):");
             Console.WriteLine("======================================");
-            var compactQueries = mediatorStatistics.AnalyzeQueries(serviceProvider, isDetailed: false);
-            var compactCommands = mediatorStatistics.AnalyzeCommands(serviceProvider, isDetailed: false);
+            var compactQueries = mediatorStatistics.AnalyzeQueries(catalog, isDetailed: false);
+            var compactCommands = mediatorStatistics.AnalyzeCommands(catalog, isDetailed: false);
 
             DisplayAnalysisResults("QUERIES", compactQueries, isDetailed: false);
             DisplayAnalysisResults("COMMANDS", compactCommands, isDetailed: false);
@@ -43,8 +44,8 @@ public static class MediatorAnalysisHelper
             // Show detailed mode
             Console.WriteLine("DETAILED MODE (isDetailed: true - Default):");
             Console.WriteLine("============================================");
-            var detailedQueries = mediatorStatistics.AnalyzeQueries(serviceProvider, isDetailed: true);
-            var detailedCommands = mediatorStatistics.AnalyzeCommands(serviceProvider, isDetailed: true);
+            var detailedQueries = mediatorStatistics.AnalyzeQueries(catalog, isDetailed: true);
+            var detailedCommands = mediatorStatistics.AnalyzeCommands(catalog, isDetailed: true);
 
             DisplayAnalysisResults("QUERIES", detailedQueries, isDetailed: true);
             DisplayAnalysisResults("COMMANDS", detailedCommands, isDetailed: true);
@@ -66,7 +67,7 @@ public static class MediatorAnalysisHelper
             
             Console.WriteLine("COMPACT MODE (isDetailed: false):");
             Console.WriteLine("======================================");
-            var compactNotifications = mediatorStatistics.AnalyzeNotifications(serviceProvider, isDetailed: false);
+            var compactNotifications = mediatorStatistics.AnalyzeNotifications(catalog, subscriberTracker, isDetailed: false);
             DisplayEnhancedNotificationAnalysisResults("NOTIFICATIONS", compactNotifications, isDetailed: false);
 
             Console.WriteLine();
@@ -75,7 +76,7 @@ public static class MediatorAnalysisHelper
 
             Console.WriteLine("DETAILED MODE (isDetailed: true - Default):");
             Console.WriteLine("============================================");
-            var detailedNotifications = mediatorStatistics.AnalyzeNotifications(serviceProvider, isDetailed: true);
+            var detailedNotifications = mediatorStatistics.AnalyzeNotifications(catalog, subscriberTracker, isDetailed: true);
             DisplayEnhancedNotificationAnalysisResults("NOTIFICATIONS", detailedNotifications, isDetailed: true);
 
             Console.WriteLine();

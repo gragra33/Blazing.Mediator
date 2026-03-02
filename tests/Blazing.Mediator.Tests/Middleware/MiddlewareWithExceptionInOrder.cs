@@ -7,7 +7,7 @@ public class MiddlewareWithExceptionInOrder : IRequestMiddleware<MiddlewareTestQ
 {
     public int Order => throw new InvalidOperationException("Cannot get order");
 
-    public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+    public async ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
     {
         var result = await next();
         return $"Exception Order: {result}";

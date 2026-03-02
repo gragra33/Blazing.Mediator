@@ -1,4 +1,4 @@
-﻿using Blazing.Mediator;
+using Blazing.Mediator;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetryExample.Exceptions;
 using OpenTelemetryExample.Infrastructure.Data;
@@ -16,7 +16,7 @@ public sealed class DeleteUserHandler(ApplicationDbContext context)
 {
     private const string ActivityName = "DeleteUserHandler.Handle";
 
-    public async Task Handle(DeleteUserCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(DeleteUserCommand request, CancellationToken cancellationToken = default)
     {
         // Use static ActivitySource for optimal performance
         using var activity = ApplicationActivitySources.Handlers.StartActivity(ActivityName);

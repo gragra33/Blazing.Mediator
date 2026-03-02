@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
+using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Benchmarks;
@@ -49,7 +50,7 @@ public class ConfigurationComplexityBenchmarks
     {
         // Minimal configuration (basic setup) - Zero configuration approach
         var services = new ServiceCollection();
-        services.AddMediator(typeof(ConfigurationComplexityBenchmarks).Assembly);
+        services.AddMediator();
         var provider = services.BuildServiceProvider();
         _mediatorMinimalConfig = provider.GetRequiredService<IMediator>();
     }
@@ -58,10 +59,9 @@ public class ConfigurationComplexityBenchmarks
     {
         // Standard configuration (middleware + stats) - Typical production setup
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, typeof(ConfigurationComplexityBenchmarks).Assembly);
+        var standardConfig = new MediatorConfiguration();
+        standardConfig.WithStatisticsTracking();
+        services.AddMediator(standardConfig);
 
         // Add standard middleware
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
@@ -75,10 +75,9 @@ public class ConfigurationComplexityBenchmarks
     {
         // Full configuration (all features enabled) - Feature-rich setup
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, typeof(ConfigurationComplexityBenchmarks).Assembly);
+        var fullConfig = new MediatorConfiguration();
+        fullConfig.WithStatisticsTracking();
+        services.AddMediator(fullConfig);
 
         // Add comprehensive middleware pipeline
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
@@ -94,10 +93,9 @@ public class ConfigurationComplexityBenchmarks
     {
         // Enterprise configuration (complex middleware chain) - Maximum feature setup
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, typeof(ConfigurationComplexityBenchmarks).Assembly);
+        var enterpriseConfig = new MediatorConfiguration();
+        enterpriseConfig.WithStatisticsTracking();
+        services.AddMediator(enterpriseConfig);
 
         // Add enterprise-grade middleware chain
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(SecurityMiddleware<,>));
@@ -314,7 +312,7 @@ public class ConfigurationComplexityBenchmarks
 
     internal class ConfigTestCommandHandler : IRequestHandler<ConfigTestCommand>
     {
-        public async Task Handle(ConfigTestCommand request, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(ConfigTestCommand request, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         }
@@ -327,7 +325,7 @@ public class ConfigurationComplexityBenchmarks
 
     internal class ConfigTestQueryHandler : IRequestHandler<ConfigTestQuery, string>
     {
-        public async Task<string> Handle(ConfigTestQuery request, CancellationToken cancellationToken = default)
+        public async ValueTask<string> Handle(ConfigTestQuery request, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             return $"Processed: {request.Value}";
@@ -375,7 +373,7 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal logging overhead
             var result = await next().ConfigureAwait(false);
@@ -388,7 +386,7 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal validation overhead
             if (request is null)
@@ -402,7 +400,7 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal performance tracking overhead
             var result = await next().ConfigureAwait(false);
@@ -415,7 +413,7 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal caching logic overhead
             var result = await next().ConfigureAwait(false);
@@ -428,7 +426,7 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal security check overhead
             var result = await next().ConfigureAwait(false);
@@ -441,7 +439,7 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal authorization check overhead
             var result = await next().ConfigureAwait(false);
@@ -454,7 +452,7 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal error handling overhead
             try
@@ -474,7 +472,7 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             // Minimal audit logging overhead
             var result = await next().ConfigureAwait(false);

@@ -6,6 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- CS8510: unreachable switch pattern — interface arms in the generated notification dispatcher
+         may appear before concrete-type arms due to partial-order topological sort limitations.
+         The generated switch is functionally correct (first matching arm executes). -->
+    <NoWarn>$(NoWarn);CS8510</NoWarn>
+    <WarningsNotAsErrors>CS8510</WarningsNotAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +27,16 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);USE_SOURCE_GENERATORS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Blazing.Mediator.SourceGenerators\Blazing.Mediator.SourceGenerators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

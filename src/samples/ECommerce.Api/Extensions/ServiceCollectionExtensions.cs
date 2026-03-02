@@ -1,4 +1,5 @@
 using Blazing.Mediator;
+using Blazing.Mediator.Configuration;
 
 using ECommerce.Api.Application.Middleware;
 using ECommerce.Api.Application.Services;
@@ -110,25 +111,12 @@ public static class ServiceCollectionExtensions
     /// </summary>
     private static IServiceCollection AddMediatorServices(this IServiceCollection services)
     {
-        services.AddMediator(config =>
-        {
-            // Enable statistics tracking for performance monitoring
-            config.WithStatisticsTracking();
-
-            // Add our custom statistics tracking middleware first
-            config.AddMiddleware(typeof(Middleware.StatisticsTrackingMiddleware<,>));
-            config.AddMiddleware(typeof(Middleware.StatisticsTrackingVoidMiddleware<>));
-
-            // Add conditional middleware for order operations
-            config.AddMiddleware(typeof(OrderLoggingMiddleware<,>));
-
-            // Add conditional middleware for product operations  
-            config.AddMiddleware(typeof(ProductLoggingMiddleware<,>));
-
-            // Add notification middleware for logging and metrics
-            config.AddNotificationMiddleware<NotificationLoggingMiddleware>();
-            config.AddNotificationMiddleware<NotificationMetricsMiddleware>();
-        }, typeof(ServiceCollectionExtensions).Assembly);
+        var mediatorConfig = new MediatorConfiguration();
+        // Enable statistics tracking for performance monitoring
+        mediatorConfig.WithStatisticsTracking();
+        // Middleware (StatisticsTrackingMiddleware, OrderLoggingMiddleware, etc.) is
+        // auto-discovered by the source generator at compile time.
+        services.AddMediator(mediatorConfig);
 
         return services;
     }

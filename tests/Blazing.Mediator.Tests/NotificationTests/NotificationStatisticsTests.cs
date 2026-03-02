@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Statistics;
+using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests.NotificationTests;
 
@@ -28,10 +29,10 @@ public class NotificationStatisticsTests
     {
         public int CallCount { get; private set; }
 
-        public Task Handle(OrderNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(OrderNotification notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -42,10 +43,10 @@ public class NotificationStatisticsTests
     {
         public int CallCount { get; private set; }
 
-        public Task Handle(OrderNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(OrderNotification notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -56,10 +57,10 @@ public class NotificationStatisticsTests
     {
         public int CallCount { get; private set; }
 
-        public Task Handle(UserNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(UserNotification notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -71,14 +72,14 @@ public class NotificationStatisticsTests
         public int CallCount { get; private set; }
         public bool ShouldThrow { get; set; } // Changed from true to false by default
 
-        public Task Handle(OrderNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(OrderNotification notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
             if (ShouldThrow)
             {
                 throw new InvalidOperationException("Statistics test exception");
             }
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -108,11 +109,7 @@ public class NotificationStatisticsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery()
-                  .WithStatisticsTracking();
-        }, typeof(NotificationStatisticsTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -147,11 +144,7 @@ public class NotificationStatisticsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery()
-                  .WithStatisticsTracking();
-        }, typeof(NotificationStatisticsTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -193,11 +186,7 @@ public class NotificationStatisticsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery()
-                  .WithStatisticsTracking();
-        }, typeof(NotificationStatisticsTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -231,11 +220,7 @@ public class NotificationStatisticsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery()
-                  .WithStatisticsTracking();
-        }, typeof(NotificationStatisticsTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -269,11 +254,7 @@ public class NotificationStatisticsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery()
-                  .WithStatisticsTracking();
-        }, typeof(NotificationStatisticsTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -314,11 +295,7 @@ public class NotificationStatisticsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery()
-                  .WithStatisticsTracking();
-        }, typeof(NotificationStatisticsTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -359,11 +336,7 @@ public class NotificationStatisticsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery()
-                  .WithStatisticsTracking();
-        }, typeof(NotificationStatisticsTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -432,12 +405,7 @@ public class NotificationStatisticsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery()
-                  .WithStatisticsTracking()
-                  .AddNotificationMiddleware<TestNotificationMiddleware>();
-        }, typeof(NotificationStatisticsTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery().WithStatisticsTracking().AddNotificationMiddleware<TestNotificationMiddleware>());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -463,7 +431,7 @@ public class NotificationStatisticsTests
     {
         public int CallCount { get; private set; }
 
-        public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) 
+        public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) 
             where TNotification : INotification
         {
             CallCount++;
@@ -483,11 +451,7 @@ public class NotificationStatisticsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery()
-                  .WithStatisticsTracking();
-        }, typeof(NotificationStatisticsTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -536,11 +500,7 @@ public class NotificationStatisticsTests
     {
         // Arrange & Act - Test statistics enabled
         var servicesWithStats = new ServiceCollection();
-        servicesWithStats.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery()
-                  .WithStatisticsTracking();
-        }, typeof(NotificationStatisticsTests).Assembly);
+        servicesWithStats.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery().WithStatisticsTracking());
 
         var providerWithStats = servicesWithStats.BuildServiceProvider();
         var statisticsService = providerWithStats.GetService<MediatorStatistics>();
@@ -550,10 +510,7 @@ public class NotificationStatisticsTests
 
         // Arrange & Act - Test statistics disabled (default)
         var servicesWithoutStats = new ServiceCollection();
-        servicesWithoutStats.AddMediator(config =>
-        {
-            config.WithNotificationHandlerDiscovery();
-        }, typeof(NotificationStatisticsTests).Assembly);
+        servicesWithoutStats.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
 
         var providerWithoutStats = servicesWithoutStats.BuildServiceProvider();
         var noStatisticsService = providerWithoutStats.GetService<MediatorStatistics>();

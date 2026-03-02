@@ -16,7 +16,7 @@ public class UserLoginSecurityHandler : INotificationHandler<UserLoginEvent>
         _logger = logger;
     }
 
-    public async Task Handle(UserLoginEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UserLoginEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Processing security checks for user {UserId} login from {IpAddress}", 
             notification.UserId, notification.IpAddress);

@@ -23,8 +23,8 @@ public interface INotificationMiddleware
     /// <param name="notification">The notification being processed</param>
     /// <param name="next">The next delegate in the pipeline (contains downstream middleware and handlers)</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation</param>
-    /// <returns>A task that represents the asynchronous operation</returns>
-    Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation</returns>
+    ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification;
 }
 
@@ -48,8 +48,8 @@ public interface INotificationMiddleware<TNotification> : INotificationMiddlewar
     /// <param name="notification">The notification to process</param>
     /// <param name="next">The next middleware in the pipeline</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A task representing the asynchronous operation</returns>
-    Task InvokeAsync(
+    /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation</returns>
+    ValueTask InvokeAsync(
         TNotification notification,
         NotificationDelegate<TNotification> next,
         CancellationToken cancellationToken);

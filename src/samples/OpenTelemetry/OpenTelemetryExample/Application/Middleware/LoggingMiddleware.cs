@@ -13,7 +13,7 @@ public sealed class LoggingMiddleware<TRequest>(ILogger<LoggingMiddleware<TReque
 
     public int Order => -500; // Execute after validation
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         var requestType = typeof(TRequest).Name;
         var stopwatch = Stopwatch.StartNew();
@@ -58,7 +58,7 @@ public class LoggingMiddleware<TRequest, TResponse>(ILogger<LoggingMiddleware<TR
 
     public int Order => -500; // Execute after validation
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
         var requestType = typeof(TRequest).Name;

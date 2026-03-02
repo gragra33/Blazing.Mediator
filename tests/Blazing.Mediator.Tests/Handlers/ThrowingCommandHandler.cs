@@ -13,7 +13,7 @@ public class ThrowingCommandHandler : IRequestHandler<ThrowingCommand>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>Never returns as it always throws an exception.</returns>
     /// <exception cref="InvalidOperationException">Always thrown to test error handling.</exception>
-    public Task Handle(ThrowingCommand request, CancellationToken cancellationToken = default)
+    public ValueTask Handle(ThrowingCommand request, CancellationToken cancellationToken = default)
     {
         throw new InvalidOperationException("Handler threw an exception");
     }

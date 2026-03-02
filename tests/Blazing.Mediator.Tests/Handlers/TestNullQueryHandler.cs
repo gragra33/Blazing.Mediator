@@ -1,9 +1,9 @@
-﻿namespace Blazing.Mediator.Tests;
+namespace Blazing.Mediator.Tests;
 
 public class TestNullQueryHandler : IRequestHandler<TestNullQuery, string>
 {
-    public Task<string> Handle(TestNullQuery request, CancellationToken cancellationToken = default)
+    public ValueTask<string> Handle(TestNullQuery request, CancellationToken cancellationToken = default)
     {
-        return null!; // Simulate returning null
+        return ValueTask.FromResult((string)null!); // Simulate returning null
     }
 }

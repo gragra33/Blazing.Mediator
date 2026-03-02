@@ -16,7 +16,7 @@ public class ProductInventoryMiddleware<TRequest> : IRequestMiddleware<TRequest>
         _logger = logger;
     }
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         // Only process stock-related commands
         if (request is UpdateProductStockCommand stockCommand)

@@ -9,7 +9,7 @@ public class OrderNotificationMiddleware(ILogger<OrderNotificationMiddleware> lo
 {
     public int Order => 100; // Execute first for order notifications
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
         CancellationToken cancellationToken = default) where TNotification : INotification
     {
         // Runtime check for IOrderNotification interface

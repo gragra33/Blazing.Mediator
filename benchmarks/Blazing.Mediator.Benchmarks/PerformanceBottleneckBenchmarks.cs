@@ -14,7 +14,7 @@ namespace Blazing.Mediator.Benchmarks;
 /// <summary>
 /// Specialized benchmarks targeting the exact performance bottlenecks we fixed:
 /// 1. Assembly scanning elimination (30+ second ? milliseconds)
-/// 2. O(n²) sorting ? O(1) lookup optimization  
+/// 2. O(nï¿½) sorting ? O(1) lookup optimization  
 /// 3. Expensive LINQ operations ? optimized loops
 /// 4. Console I/O removal from hot paths
 /// </summary>
@@ -84,12 +84,12 @@ public class PerformanceBottleneckBenchmarks
 
     #endregion
 
-    #region Sorting Algorithm Optimizations (O(n²) ? O(1))
+    #region Sorting Algorithm Optimizations (O(nï¿½) ? O(1))
 
-    [BenchmarkCategory("Sorting Performance"), Benchmark(Description = "MiddlewarePipelineBuilder Sorting - O(1) Lookup vs O(n²) FindIndex")]
+    [BenchmarkCategory("Sorting Performance"), Benchmark(Description = "MiddlewarePipelineBuilder Sorting - O(1) Lookup vs O(nï¿½) FindIndex")]
     public void MiddlewareBuilder_OptimizedSorting()
     {
-        // Create a larger pipeline to demonstrate the O(n²) ? O(1) optimization
+        // Create a larger pipeline to demonstrate the O(nï¿½) ? O(1) optimization
         var builder = new MiddlewarePipelineBuilder();
         
         // Add 100 middleware to really stress the sorting algorithm
@@ -99,7 +99,7 @@ public class PerformanceBottleneckBenchmarks
             builder.AddMiddleware(typeof(BottleneckTestMiddleware<,>));
         }
 
-        // This triggers the sorting that we optimized from O(n²) to O(1)
+        // This triggers the sorting that we optimized from O(nï¿½) to O(1)
         var testRequest = new TestRequest();
         
         // Force the sorting optimization by calling ExecutePipeline setup logic
@@ -265,7 +265,7 @@ public class BottleneckConcreteTestMiddleware : IRequestMiddleware<BottleneckTes
 {
     public static int Order => 10;
     
-    public Task<string> HandleAsync(BottleneckTestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+    public ValueTask<string> HandleAsync(BottleneckTestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
     {
         return next();
     }
@@ -276,7 +276,7 @@ public class BottleneckTestMiddleware<TRequest, TResponse> : IRequestMiddleware<
 {
     public static int Order => 20;
     
-    public Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         return next();
     }
@@ -288,7 +288,7 @@ public class BottleneckConcreteNotificationMiddleware : INotificationMiddleware
 {
     public static int Order => 10;
     
-    public Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    public ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {
         return next(notification, cancellationToken);
@@ -300,13 +300,13 @@ public class BottleneckTestNotificationMiddleware<TNotification> : INotification
 {
     public static int Order => 20;
     
-    public Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    public ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         return next(notification, cancellationToken);
     }
 
     // Explicit implementation of the generic base interface method
-    Task INotificationMiddleware.InvokeAsync<T>(T notification, NotificationDelegate<T> next, CancellationToken cancellationToken)
+    ValueTask INotificationMiddleware.InvokeAsync<T>(T notification, NotificationDelegate<T> next, CancellationToken cancellationToken)
     {
         if (notification is TNotification typedNotification)
         {

@@ -20,7 +20,7 @@ public class UpdateOrderStatusHandler(ECommerceDbContext context, IMediator medi
     /// <param name="request">The command containing the order ID and new status.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <exception cref="InvalidOperationException">Thrown when the order is not found.</exception>
-    public async Task Handle(UpdateOrderStatusCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UpdateOrderStatusCommand request, CancellationToken cancellationToken = default)
     {
         Order? order = await context.Orders.FindAsync([request.OrderId], cancellationToken);
         if (order == null)

@@ -17,7 +17,7 @@ public class GlobalAuditEventHandler : INotificationHandler<IDomainEvent>
         _logger = logger;
     }
 
-    public async Task Handle(IDomainEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(IDomainEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("AUDIT: Domain event {EventType} occurred at {Timestamp}", 
             notification.GetType().Name, DateTime.UtcNow);

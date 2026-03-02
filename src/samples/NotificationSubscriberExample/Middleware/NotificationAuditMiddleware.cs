@@ -14,7 +14,7 @@ public class NotificationAuditMiddleware(ILogger<NotificationAuditMiddleware> lo
     private static readonly List<AuditEntry> _auditLog = [];
     private static readonly object _lock = new();
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {

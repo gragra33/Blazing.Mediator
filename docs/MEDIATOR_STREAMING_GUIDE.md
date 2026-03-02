@@ -1,4 +1,7 @@
-# Blazing.Mediator - Streaming Implementation Guide
+﻿# Blazing.Mediator - Streaming Implementation Guide
+
+> [!CAUTION]
+> Version 3.0.0 has breaking changes. See the **[Breaking Changes](https://github.com/gragra33/Blazing.Mediator/docs/BREAKING_CHANGES.md)** document for a complete list of API changes with before/after comparisons, and the **[MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/docs/MIGRATION_GUIDE.md)** for full upgrade steps.
 
 ## Overview
 
@@ -8,14 +11,14 @@ Streaming in **Blazing.Mediator** is built on top of the standard CQRS pattern w
 
 ### Key Streaming Features
 
--   **Memory-Efficient Streaming**: Process large datasets without loading everything into memory using `IAsyncEnumerable<T>`
--   **Real-Time Data Flow**: Send data to clients as soon as it's available, reducing perceived latency
--   **Middleware Pipeline Support**: Apply cross-cutting concerns like logging, monitoring, and filtering to streaming requests
--   **Auto-Discovery**: Optional automatic streaming middleware discovery and registration from assemblies
--   **Multiple Streaming Patterns**: Support for asynchronous send/receive
--   **High Performance**: Optimised for throughput with minimal overhead and efficient resource utilisation
--   **Fully Testable**: Easy to unit test streaming handlers and middleware
--   **Type Safety**: Compile-time type checking for stream requests, handlers, and responses
+- **Memory-Efficient Streaming**: Process large datasets without loading everything into memory using `IAsyncEnumerable<T>`
+- **Real-Time Data Flow**: Send data to clients as soon as it's available, reducing perceived latency
+- **Middleware Pipeline Support**: Apply cross-cutting concerns like logging, monitoring, and filtering to streaming requests
+- **Auto-Discovery**: Optional automatic streaming middleware discovery and registration from assemblies
+- **Multiple Streaming Patterns**: Support for asynchronous send/receive
+- **High Performance**: Optimised for throughput with minimal overhead and efficient resource utilisation
+- **Fully Testable**: Easy to unit test streaming handlers and middleware
+- **Type Safety**: Compile-time type checking for stream requests, handlers, and responses
 
 ## Table of Contents
 
@@ -40,6 +43,7 @@ Get streaming up and running with **Blazing.Mediator** in minutes:
 
 ```bash
 dotnet add package Blazing.Mediator
+dotnet add package Blazing.Mediator.SourceGenerators
 ```
 
 ### 2. Create Your First Stream Request
@@ -77,25 +81,15 @@ public class StreamContactsHandler : IStreamRequestHandler<StreamContactsRequest
 ### 3. Register Services with Streaming Support
 
 ```csharp
-// Program.cs - Basic registration with auto-discovery
-builder.Services.AddMediator(typeof(Program).Assembly);
+// Source generator auto-discovers all handlers and middleware at compile time
+builder.Services.AddMediator();
 
-// With auto-discovery for all middleware (including streaming middleware)
-builder.Services.AddMediator(discoverMiddleware: true, typeof(Program).Assembly);
-
-// Manual configuration with specific streaming middleware
+// With optional runtime configuration
 builder.Services.AddMediator(config =>
 {
-    // Optional: Add streaming-specific middleware manually
-    config.AddMiddleware(typeof(StreamingLoggingMiddleware<,>));
-}, typeof(Program));
-
-// Best approach: Auto-discovery with optional manual configuration
-builder.Services.AddMediator(config =>
-{
-    // Any additional manual middleware configuration
-    config.AddMiddleware(typeof(CustomStreamingMiddleware<,>));
-}, discoverMiddleware: true, typeof(Program).Assembly);
+    config.WithStatisticsTracking();
+    // Streaming handlers and middleware are auto-discovered — no AddMiddleware() calls needed
+});
 ```
 
 ### 4. Use in API Endpoints
@@ -344,54 +338,37 @@ Streaming middleware implements `IStreamRequestMiddleware<TRequest, TResponse>` 
 
 ### Auto-Registration of Streaming Middleware
 
-**Blazing.Mediator** can automatically discover and register streaming middleware from your assemblies:
+In v3.0.0, **Blazing.Mediator** uses compile-time source generation to discover and register all middleware — including streaming middleware — automatically. No `AddMiddleware()` calls or assembly parameters are needed:
 
 ```csharp
-// Auto-register all middleware (including streaming middleware)
-builder.Services.AddMediator(discoverMiddleware: true, typeof(Program).Assembly);
-
-// Or with additional manual configuration
-builder.Services.AddMediator(config =>
-{
-    // Manual middleware registration for fine-grained control
-    config.AddMiddleware(typeof(CustomStreamingMiddleware<,>));
-}, discoverMiddleware: true, typeof(Program).Assembly);
+// Source generator discovers all IStreamRequestMiddleware<T,R> implementations at compile time
+builder.Services.AddMediator();
 ```
 
-When `discoverMiddleware: true` is enabled, **Blazing.Mediator** automatically scans the specified assemblies for all types implementing:
+When `Blazing.Mediator.SourceGenerators` is referenced, it automatically scans your project for all types implementing:
 
--   `IRequestMiddleware<T>` - Single-parameter middleware
--   `IRequestMiddleware<T, TResponse>` - Request/response middleware
--   `IConditionalMiddleware<T>` - Conditional single-parameter middleware
--   `IConditionalMiddleware<T, TResponse>` - Conditional request/response middleware
--   `IStreamRequestMiddleware<TRequest, TResponse>` - **Streaming middleware** ⭐
+- `IRequestMiddleware<T>` - Void command middleware
+- `IRequestMiddleware<T, TResponse>` - Request/response middleware
+- `IConditionalMiddleware<T>` - Conditional void command middleware
+- `IConditionalMiddleware<T, TResponse>` - Conditional request/response middleware
+- `IStreamRequestMiddleware<TRequest, TResponse>` - **Streaming middleware** ⭐
+- `IConditionalStreamRequestMiddleware<TRequest, TResponse>` - Conditional streaming middleware
 
-The middleware will be registered with their defined `Order` property for proper execution sequence.
+The middleware is registered with the `Order` property for proper execution sequence.
 
 ### Middleware Registration Approaches
 
-1. **Auto-Discovery (Recommended)**: Let **Blazing.Mediator** automatically find and register all middleware
-2. **Manual Registration**: Explicitly register specific middleware types
-3. **Hybrid Approach**: Use auto-discovery with additional manual registrations
+With v3.0.0, all approaches simplify to a single source-generated dispatch:
 
 ```csharp
-// 1. Pure auto-discovery
-builder.Services.AddMediator(discoverMiddleware: true, typeof(Program).Assembly);
+// Recommended: let source generator handle everything
+builder.Services.AddMediator();
 
-// 2. Manual registration only
+// With runtime options only (no middleware registration needed)
 builder.Services.AddMediator(config =>
 {
-    config.AddMiddleware(typeof(StreamingLoggingMiddleware<,>));
-    config.AddMiddleware(typeof(StreamingPerformanceMiddleware<,>));
-}, typeof(Program).Assembly);
-
-// 3. Hybrid: Auto-discovery + manual additions
-builder.Services.AddMediator(config =>
-{
-    // Auto-discovery will find most middleware
-    // Add any specific middleware that needs custom configuration
-    config.AddMiddleware(typeof(CustomStreamingMiddleware<,>));
-}, discoverMiddleware: true, typeof(Program).Assembly);
+    config.WithStatisticsTracking();
+});
 ```
 
 ### Basic Streaming Middleware
@@ -961,7 +938,7 @@ public async IAsyncEnumerable<DataBatch> Handle(
 ### Unit Testing Stream Handlers
 
 ```csharp
-[Test]
+[Fact]
 public async Task StreamHandler_Should_YieldExpectedItems()
 {
     // Arrange
@@ -986,16 +963,16 @@ public async Task StreamHandler_Should_YieldExpectedItems()
     }
 
     // Assert
-    Assert.That(results, Has.Count.EqualTo(2));
-    Assert.That(results[0].Name, Is.EqualTo("John"));
-    Assert.That(results[1].Name, Is.EqualTo("Jane"));
+    results.Count.ShouldBe(2);
+    results[0].Name.ShouldBe("John");
+    results[1].Name.ShouldBe("Jane");
 }
 ```
 
 ### Testing with Cancellation
 
 ```csharp
-[Test]
+[Fact]
 public async Task StreamHandler_Should_RespectCancellation()
 {
     // Arrange
@@ -1003,46 +980,53 @@ public async Task StreamHandler_Should_RespectCancellation()
     var handler = new StreamContactsHandler(mockService.Object, Mock.Of<ILogger<StreamContactsHandler>>());
     var request = new StreamContactsRequest();
 
-    // Act & Assert
+    // Act
     var itemCount = 0;
 
-    await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+    try
     {
         await foreach (var contact in handler.Handle(request, cts.Token))
         {
             itemCount++;
             if (itemCount >= 5)
             {
-                cts.Cancel(); // Cancel after 5 items
+                await cts.CancelAsync(); // Cancel after 5 items
             }
         }
-    });
+    }
+    catch (OperationCanceledException)
+    {
+        // Expected when cancellation occurs
+    }
 
-    Assert.That(itemCount, Is.EqualTo(5));
+    // Assert
+    itemCount.ShouldBeGreaterThanOrEqualTo(5);
 }
 ```
 
 ### Integration Testing Streaming Endpoints
 
 ```csharp
-[Test]
-public async Task StreamEndpoint_Should_ReturnJsonStream()
+public class StreamEndpointTests(WebApplicationFactory<Program> factory)
+    : IClassFixture<WebApplicationFactory<Program>>
 {
-    // Arrange
-    using var factory = new WebApplicationFactory<Program>();
-    using var client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateClient();
 
-    // Act
-    using var response = await client.GetAsync("/api/contacts/stream");
-    using var stream = await response.Content.ReadAsStreamAsync();
+    [Fact]
+    public async Task StreamEndpoint_Should_ReturnJsonStream()
+    {
+        // Act
+        using var response = await _client.GetAsync("/api/contacts/stream");
+        using var stream = await response.Content.ReadAsStreamAsync();
 
-    // Assert
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-    Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/json"));
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
 
-    var contacts = await JsonSerializer.DeserializeAsync<ContactDto[]>(stream);
-    Assert.That(contacts, Is.Not.Null);
-    Assert.That(contacts!.Length, Is.GreaterThan(0));
+        var contacts = await JsonSerializer.DeserializeAsync<ContactDto[]>(stream);
+        contacts.ShouldNotBeNull();
+        contacts!.Length.ShouldBeGreaterThan(0);
+    }
 }
 ```
 
@@ -1151,6 +1135,7 @@ public async IAsyncEnumerable<DataDto> Handle(
 ## Sample Projects
 
 The **Streaming.Api** sample projects demonstrate comprehensive streaming capabilities across multiple scenarios:
+
 > [!IMPORTANT]
 > The **Streaming.Api** server must be running for the **Streaming.Api.WASM** project to work properly with live data.
 
@@ -1168,28 +1153,28 @@ src/samples/Streaming.Api/
 
 RESTful API endpoints with JSON streaming and Server-Sent Events:
 
--   JSON Array Streaming for bulk data transfer
--   Server-Sent Events with real-time metadata
--   Search filtering and performance metrics
--   Interactive Swagger documentation at `https://localhost:7021/swagger`
+- JSON Array Streaming for bulk data transfer
+- Server-Sent Events with real-time metadata
+- Search filtering and performance metrics
+- Interactive Swagger documentation at `https://localhost:7021/swagger`
 
 ### 2. **Blazor SSR Streaming** (`/streaming-ssr`)
 
 Server-Side Rendered Blazor with real-time streaming capabilities:
 
--   Real-time server-side updates
--   Interactive streaming controls
--   Live statistics and performance metrics
--   Responsive table layout with search
+- Real-time server-side updates
+- Interactive streaming controls
+- Live statistics and performance metrics
+- Responsive table layout with search
 
 ### 3. **Blazor Auto Mode Streaming** (`/streaming/auto`)
 
 Hybrid approach demonstrating the best of both worlds:
 
--   Fast initial server-side load
--   Automatic WebAssembly upgrade when available
--   **Live streaming support** (not available in static mode)
--   Seamless transition between render modes
+- Fast initial server-side load
+- Automatic WebAssembly upgrade when available
+- **Live streaming support** (not available in static mode)
+- Seamless transition between render modes
 
 > **Why Hybrid Approach?** We chose this hybrid approach over full static render because we wanted **live streaming capabilities** - static mode doesn't support real-time streaming interactions. This gives us the speed of server-side rendering for the initial load while maintaining the rich interactivity of WebAssembly for ongoing streaming operations.
 
@@ -1197,43 +1182,36 @@ Hybrid approach demonstrating the best of both worlds:
 
 Pure server-side rendering optimised for compatibility:
 
--   No JavaScript required
--   Maximum browser compatibility
--   SEO-optimised streaming content
--   Accessibility-focused design
+- No JavaScript required
+- Maximum browser compatibility
+- SEO-optimised streaming content
+- Accessibility-focused design
 
 ### 5. **Blazor Interactive Streaming (WebAssembly)** (`https://localhost:5011/streaming-interactive`)
 
 WebAssembly-powered client-side streaming:
 
--   Client-side WebAssembly performance
--   EventSource integration for real-time updates
--   Advanced UI features and interaction patterns
--   Multiple streaming modes and configurations
+- Client-side WebAssembly performance
+- EventSource integration for real-time updates
+- Advanced UI features and interaction patterns
+- Multiple streaming modes and configurations
 
 ### 6. **Blazor Non-Streaming (WebAssembly)** (`https://localhost:5011/non-streaming`)
 
 Traditional bulk data loading for performance comparison:
 
--   Classic REST API patterns
--   Bulk JSON loading comparison
--   Performance benchmarking metrics
--   Load time comparison vs streaming approaches
+- Classic REST API patterns
+- Bulk JSON loading comparison
+- Performance benchmarking metrics
+- Load time comparison vs streaming approaches
 
 ### Running the Samples
 
-The **Streaming.Api** sample uses auto-discovery for middleware registration:
+The **Streaming.Api** sample uses v3.0.0 source-generated dispatch:
 
 ```csharp
-// From Streaming.Api/Program.cs
-builder.Services.AddMediator(config =>
-{
-    // Manual registration of specific streaming middleware
-    config.AddMiddleware(typeof(StreamingLoggingMiddleware<,>));
-}, typeof(Program));
-
-// Alternative: Auto-discovery approach (recommended)
-// builder.Services.AddMediator(discoverMiddleware: true, typeof(Program).Assembly);
+// From Streaming.Api/Program.cs — source generator discovers all middleware automatically
+builder.Services.AddMediator();
 ```
 
 ```bash
@@ -1248,13 +1226,13 @@ dotnet run
 
 ### Access Points
 
--   **Main Server**: https://localhost:7021 (Streaming.Api)
--   **WebAssembly Client**: https://localhost:5011 (Streaming.Api.WASM)
--   **API Documentation**: https://localhost:7021/swagger
--   **Sample Endpoints**:
-    -   `/api/contacts/count` - Get contact count
-    -   `/api/contacts/stream` - JSON streaming
-    -   `/api/contacts/stream/sse` - Server-Sent Events
+- **Main Server**: https://localhost:7021 (Streaming.Api)
+- **WebAssembly Client**: https://localhost:5011 (Streaming.Api.WASM)
+- **API Documentation**: https://localhost:7021/swagger
+- **Sample Endpoints**:
+    - `/api/contacts/count` - Get contact count
+    - `/api/contacts/stream` - JSON streaming
+    - `/api/contacts/stream/sse` - Server-Sent Events
 
 ## Complete Examples
 

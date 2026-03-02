@@ -152,12 +152,12 @@ public static class ServiceCollectionExtensions
         services.AddSwaggerGen(options =>
         {
 #pragma warning disable S1075 // URIs should not be hardcoded
-            options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+            options.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
             {
                 Title = "OpenTelemetry Example API",
                 Version = "v1",
                 Description = "An example API demonstrating OpenTelemetry integration with Blazing.Mediator",
-                Contact = new Microsoft.OpenApi.Models.OpenApiContact
+                Contact = new Microsoft.OpenApi.OpenApiContact
                 {
                     Name = "OpenTelemetry Example",
                     Url = new Uri("https://github.com/gragra33/Blazing.Mediator/tree/master/src/samples/OpenTelemetry")

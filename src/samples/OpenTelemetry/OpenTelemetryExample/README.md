@@ -8,11 +8,11 @@ A comprehensive demonstration of OpenTelemetry integration with Blazing.Mediator
 2. [Features Demonstrated](#features-demonstrated)
 3. [Prerequisites](#prerequisites)
 4. [Running the Application](#running-the-application)
-   - [Option 1: .NET Aspire App Host (Recommended)](#option-1-net-aspire-app-host-recommended)
-   - [Option 2: Manual API Server + Blazor Client](#option-2-manual-api-server--blazor-client)
-   - [Option 3: API Server Only + Swagger UI](#option-3-api-server-only--swagger-ui)
-   - [Option 4: API Server + HTTP File Testing](#option-4-api-server--http-file-testing)
-   - [Option 5: Visual Studio Code](#option-5-visual-studio-code)
+    - [Option 1: .NET Aspire App Host (Recommended)](#option-1-net-aspire-app-host-recommended)
+    - [Option 2: Manual API Server + Blazor Client](#option-2-manual-api-server--blazor-client)
+    - [Option 3: API Server Only + Swagger UI](#option-3-api-server-only--swagger-ui)
+    - [Option 4: API Server + HTTP File Testing](#option-4-api-server--http-file-testing)
+    - [Option 5: Visual Studio Code](#option-5-visual-studio-code)
 5. [Exploring the Application](#exploring-the-application)
 6. [OpenTelemetry Components](#opentelemetry-components)
 7. [Monitoring and Observability](#monitoring-and-observability)
@@ -90,21 +90,24 @@ This sample consists of four main projects:
 This is the easiest way to run the complete solution with proper service discovery and telemetry collection.
 
 1. **Navigate to the OpenTelemetry sample root:**
-   ```bash
-   cd src/samples/OpenTelemetry
-   ```
+
+    ```bash
+    cd src/samples/OpenTelemetry
+    ```
 
 2. **Run the Aspire App Host:**
-   ```bash
-   dotnet run --project OpenTelemetryExample.AppHost
-   ```
+
+    ```bash
+    dotnet run --project OpenTelemetryExample.AppHost
+    ```
 
 3. **Access the applications:**
-   - **Aspire Dashboard**: Check the console output for the dashboard URL (typically https://localhost:15888)
-   - **API Server**: Will be assigned a port by Aspire (check dashboard for exact URL)
-   - **Blazor Client**: Will be assigned a port by Aspire (check dashboard for exact URL)
+    - **Aspire Dashboard**: Check the console output for the dashboard URL (typically https://localhost:15888)
+    - **API Server**: Will be assigned a port by Aspire (check dashboard for exact URL)
+    - **Blazor Client**: Will be assigned a port by Aspire (check dashboard for exact URL)
 
 **Benefits:**
+
 - Automatic service discovery between API and client
 - Centralized dashboard for monitoring both services
 - Automatic port assignment and routing
@@ -116,26 +119,29 @@ This is the easiest way to run the complete solution with proper service discove
 Run both the API server and Blazor WebAssembly client manually for full-stack development.
 
 1. **Start the API Server:**
-   ```bash
-   cd src/samples/OpenTelemetry/OpenTelemetryExample
-   dotnet run
-   ```
 
-   The API will be available at:
-   - HTTPS: `https://localhost:7000`
-   - HTTP: `http://localhost:5000`
+    ```bash
+    cd src/samples/OpenTelemetry/OpenTelemetryExample
+    dotnet run
+    ```
+
+    The API will be available at:
+    - HTTPS: `https://localhost:7000`
+    - HTTP: `http://localhost:5000`
 
 2. **Start the Blazor Client (in a new terminal):**
-   ```bash
-   cd src/samples/OpenTelemetry/OpenTelemetryExample.Client
-   dotnet run
-   ```
 
-   The client will be available at:
-   - HTTPS: `https://localhost:7001`
-   - HTTP: `http://localhost:5001`
+    ```bash
+    cd src/samples/OpenTelemetry/OpenTelemetryExample.Client
+    dotnet run
+    ```
+
+    The client will be available at:
+    - HTTPS: `https://localhost:7001`
+    - HTTP: `http://localhost:5001`
 
 **Benefits:**
+
 - Full user interface for testing all features
 - Real-time telemetry monitoring through the web client
 - Interactive streaming demonstrations
@@ -146,16 +152,18 @@ Run both the API server and Blazor WebAssembly client manually for full-stack de
 Perfect for API development and testing without the client overhead.
 
 1. **Start the API Server:**
-   ```bash
-   cd src/samples/OpenTelemetry/OpenTelemetryExample
-   dotnet run
-   ```
+
+    ```bash
+    cd src/samples/OpenTelemetry/OpenTelemetryExample
+    dotnet run
+    ```
 
 2. **Access Swagger UI:**
-   - **Swagger UI**: https://localhost:7000/swagger
-   - **OpenAPI JSON**: https://localhost:7000/swagger/v1/swagger.json
+    - **Swagger UI**: https://localhost:7000/swagger
+    - **OpenAPI JSON**: https://localhost:7000/swagger/v1/swagger.json
 
 **Available Endpoints:**
+
 - **API Base**: https://localhost:7000/api
 - **Health Checks**: https://localhost:7000/health
 - **Telemetry Health**: https://localhost:7000/telemetry/health
@@ -168,6 +176,7 @@ Perfect for API development and testing without the client overhead.
 - **Streaming Health**: https://localhost:7000/api/streaming/health
 
 **Benefits:**
+
 - Interactive API documentation
 - Built-in request/response testing
 - Schema validation
@@ -178,17 +187,19 @@ Perfect for API development and testing without the client overhead.
 Use the provided HTTP file for comprehensive API testing scenarios.
 
 1. **Start the API Server:**
-   ```bash
-   cd src/samples/OpenTelemetry/OpenTelemetryExample
-   dotnet run
-   ```
+
+    ```bash
+    cd src/samples/OpenTelemetry/OpenTelemetryExample
+    dotnet run
+    ```
 
 2. **Use the HTTP file:**
-   - Open `OpenTelemetryExample.http` in your IDE
-   - Execute requests directly from the file
-   - Available in VS Code (with REST Client extension) or JetBrains IDEs
+    - Open `OpenTelemetryExample.http` in your IDE
+    - Execute requests directly from the file
+    - Available in VS Code (with REST Client extension) or JetBrains IDEs
 
 **Sample HTTP requests:**
+
 ```http
 ### Get all users (Query)
 GET https://localhost:7000/api/users
@@ -234,6 +245,7 @@ POST https://localhost:7000/testing/notifications
 ```
 
 **Benefits:**
+
 - Comprehensive API testing scenarios
 - Automated testing workflows
 - Load testing patterns
@@ -256,10 +268,10 @@ If you're using VS Code with the provided launch configurations:
 Before exploring the application, review the complete API documentation:
 
 - **Swagger UI** (`https://localhost:7000/swagger`) - Interactive documentation where you can:
-  - Browse all available endpoints including streaming endpoints
-  - Test API operations directly from the browser
-  - View request/response schemas
-  - Understand authentication requirements
+    - Browse all available endpoints including streaming endpoints
+    - Test API operations directly from the browser
+    - View request/response schemas
+    - Understand authentication requirements
 
 ### Web Client Features
 
@@ -267,27 +279,27 @@ Navigate to the Blazor client application and explore:
 
 1. **Home Page** - Overview of OpenTelemetry features and architecture
 2. **Users** - Complete CRUD interface demonstrating:
-   - Create, read, update, delete operations
-   - Form validation with telemetry
-   - Error handling with trace correlation
+    - Create, read, update, delete operations
+    - Form validation with telemetry
+    - Error handling with trace correlation
 3. **Streaming** - Real-time streaming demonstrations:
-   - HTTP streaming with IAsyncEnumerable
-   - SignalR real-time communication
-   - Server-Sent Events (SSE) streaming
-   - Interactive streaming controls
+    - HTTP streaming with IAsyncEnumerable
+    - SignalR real-time communication
+    - Server-Sent Events (SSE) streaming
+    - Interactive streaming controls
 4. **Telemetry Dashboard** - Real-time monitoring showing:
-   - Live metrics and performance data
-   - Recent traces with filtering options
-   - Recent logs with filtering and search capabilities
-   - Grouped traces for better visualization
-   - Log details with exception information and trace correlation
-   - API health status
-   - Telemetry configuration details
-   - Interactive testing scenarios
+    - Live metrics and performance data
+    - Recent traces with filtering options
+    - Recent logs with filtering and search capabilities
+    - Grouped traces for better visualization
+    - Log details with exception information and trace correlation
+    - API health status
+    - Telemetry configuration details
+    - Interactive testing scenarios
 5. **Demo** - Interactive telemetry generation:
-   - Successful operations
-   - Error scenarios for testing
-   - Performance load testing
+    - Successful operations
+    - Error scenarios for testing
+    - Performance load testing
 
 ## OpenTelemetry Components
 
@@ -306,7 +318,7 @@ Navigate to the Blazor client application and explore:
 | `mediator.publish.subscriber.duration` | Histogram | Duration of individual subscriber processing  |
 | `mediator.publish.subscriber.success`  | Counter   | Number of successful subscriber notifications |
 | `mediator.publish.subscriber.failure`  | Counter   | Number of failed subscriber notifications     |
-| `mediator.telemetry.health`            | Counter   | Health check counter for telemetry system    |
+| `mediator.telemetry.health`            | Counter   | Health check counter for telemetry system     |
 
 ### Tracing (Activities)
 
@@ -479,17 +491,11 @@ services.AddMediatorStreamingTelemetry(
     batchSize: environment.IsDevelopment() ? 1 : 10
 );
 
-// Add comprehensive middleware pipeline
+// Register Blazing.Mediator — source generator discovers all middleware at compile time
 services.AddMediator(config =>
 {
-    config.AddMiddleware(typeof(TracingMiddleware<,>));
-    config.AddMiddleware(typeof(StreamingTracingMiddleware<,>));
-    config.AddMiddleware(typeof(StreamingPerformanceMiddleware<,>));
-    config.AddMiddleware(typeof(ErrorHandlingMiddleware<,>));
-    config.AddMiddleware(typeof(ValidationMiddleware<,>));
-    config.AddMiddleware(typeof(LoggingMiddleware<,>));
-    config.AddMiddleware(typeof(PerformanceMiddleware<,>));
-}, typeof(Program).Assembly);
+    config.WithOpenTelemetryIntegration();
+});
 ```
 
 ### Serilog Configuration
@@ -512,7 +518,7 @@ Log.Logger = new LoggerConfiguration()
         configureSink => configureSink.OpenTelemetry(options =>
         {
             options.Endpoint = otlpEndpoint ?? "";
-            options.IncludedData = IncludedData.TraceIdField | 
+            options.IncludedData = IncludedData.TraceIdField |
                                   IncludedData.SpanIdField |
                                   IncludedData.SourceContextAttribute;
             options.ResourceAttributes = new Dictionary<string, object>
@@ -529,7 +535,7 @@ services.AddSerilog();
 services.AddSingleton<TelemetryDatabaseLoggingProvider>();
 services.AddLogging(builder =>
 {
-    builder.Services.AddSingleton<ILoggerProvider>(serviceProvider => 
+    builder.Services.AddSingleton<ILoggerProvider>(serviceProvider =>
         serviceProvider.GetRequiredService<TelemetryDatabaseLoggingProvider>());
 });
 ```
@@ -659,20 +665,20 @@ public class StreamingTracingMiddleware<TRequest, TResponse> : IStreamRequestMid
     where TRequest : IStreamRequest<TResponse>
 {
     public async IAsyncEnumerable<TResponse> HandleAsync(
-        TRequest request, 
-        StreamRequestHandlerDelegate<TResponse> next, 
+        TRequest request,
+        StreamRequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
         using var activity = ActivitySource.StartActivity("Mediator.SendStream");
         var packetNumber = 0;
-        
+
         await foreach (var response in next())
         {
             packetNumber++;
             activity?.AddEvent(new ActivityEvent($"stream.packet.{packetNumber}"));
             yield return response;
         }
-        
+
         activity?.SetTag("stream.total_packets", packetNumber);
     }
 }

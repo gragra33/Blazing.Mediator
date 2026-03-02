@@ -8,39 +8,37 @@ This console application demonstrates the notification system in Blazing.Mediato
 
 This approach is necessary for:
 
--   🎯 **Blazor WebAssembly** - Client-side applications without server-side handler discovery
--   📱 **MAUI Applications** - Cross-platform mobile and desktop apps
--   🖥️ **WinForms Applications** - Traditional Windows desktop applications
--   🎨 **WPF Applications** - Windows Presentation Foundation applications
--   🖥️ **Console Applications** - Command-line applications and background services
+- 🎯 **Blazor WebAssembly** - Client-side applications without server-side handler discovery
+- 📱 **MAUI Applications** - Cross-platform mobile and desktop apps
+- 🖥️ **WinForms Applications** - Traditional Windows desktop applications
+- 🎨 **WPF Applications** - Windows Presentation Foundation applications
+- 🖥️ **Console Applications** - Command-line applications and background services
 
 ### Why Manual Subscription?
 
 In client applications, you typically need manual subscription because:
 
--   ❌ **No automatic handler discovery** - Client apps don't scan for `INotificationHandler` implementations
--   ❌ **Different DI container behavior** - Limited reflection capabilities in some client frameworks
--   ❌ **AOT compatibility** - Ahead-of-time compilation restrictions
--   ✅ **Explicit control needed** - Client apps often need precise control over when handlers are active
--   ✅ **Performance considerations** - Manual registration can be more efficient in resource-constrained environments
+- ❌ **No automatic handler discovery** - Client apps don't scan for `INotificationHandler` implementations
+- ❌ **Different DI container behavior** - Limited reflection capabilities in some client frameworks
+- ❌ **AOT compatibility** - Ahead-of-time compilation restrictions
+- ✅ **Explicit control needed** - Client apps often need precise control over when handlers are active
+- ✅ **Performance considerations** - Manual registration can be more efficient in resource-constrained environments
 
 This example demonstrates:
 
--   ✅ **Manual subscription management** - Explicit control over handler registration
--   ✅ **Simple scoped classes** - Clean, testable notification handlers
--   ✅ **Proper resource management** - Automatic cleanup by DI container
--   ✅ **Testable and predictable** - Standard dependency injection patterns
--   ✅ **No memory leak risks** - Proper scoped lifecycle management
--   ✅ **Auto-discovery of middleware** - Middleware can still be auto-discovered
--   ✅ **Statistics tracking** - Built-in analysis of mediator usage
+- ✅ **Manual subscription management** - Explicit control over handler registration
+- ✅ **Simple scoped classes** - Clean, testable notification handlers
+- ✅ **Proper resource management** - Automatic cleanup by DI container
+- ✅ **Testable and predictable** - Standard dependency injection patterns
+- ✅ **No memory leak risks** - Proper scoped lifecycle management
+- ✅ **Auto-discovery of middleware** - Middleware can still be auto-discovered
+- ✅ **Statistics tracking** - Built-in analysis of mediator usage
 
 ```csharp
 // This example uses manual subscription (REQUIRED for client apps):
 services.AddMediator(config =>
 {
-    config.WithStatisticsTracking()
-          .WithNotificationMiddlewareDiscovery();
-}, Assembly.GetExecutingAssembly());
+    config.WithStatisticsTracking();`r`n});
 // IMediator is automatically registered as scoped (default)
 
 // Manual subscription required for client applications
@@ -52,22 +50,22 @@ mediator.Subscribe(inventoryHandler);
 
 ### Core Concepts
 
--   **Manual Subscription**: Required for client applications like Blazor WASM, MAUI, WinForms, WPF
--   **Multiple Simple Subscribers**: Two different scoped classes subscribing to the same `OrderCreatedNotification`
--   **Standard Classes Only**: Simple, scoped notification subscribers
--   **Runtime Subscription Management**: Explicit control with `IMediator.Subscribe()`
--   **Auto-discovered Middleware**: Automatic discovery and registration of notification middleware
--   **Pipeline Inspection**: Analysis of the middleware pipeline for debugging
--   **Statistics Tracking**: Built-in analysis of queries, commands, and notifications
--   **Proper Scoped Lifecycle**: Services created and disposed per operation scope
+- **Manual Subscription**: Required for client applications like Blazor WASM, MAUI, WinForms, WPF
+- **Multiple Simple Subscribers**: Two different scoped classes subscribing to the same `OrderCreatedNotification`
+- **Standard Classes Only**: Simple, scoped notification subscribers
+- **Runtime Subscription Management**: Explicit control with `IMediator.Subscribe()`
+- **Auto-discovered Middleware**: Automatic discovery and registration of notification middleware
+- **Pipeline Inspection**: Analysis of the middleware pipeline for debugging
+- **Statistics Tracking**: Built-in analysis of queries, commands, and notifications
+- **Proper Scoped Lifecycle**: Services created and disposed per operation scope
 
 ### Key Features Demonstrated
 
--   **EmailNotificationHandler** - Sends order confirmation emails
--   **InventoryNotificationHandler** - Updates inventory and checks stock levels
--   **Four Auto-discovered Middleware**:
+- **EmailNotificationHandler** - Sends order confirmation emails
+- **InventoryNotificationHandler** - Updates inventory and checks stock levels
+- **Four Auto-discovered Middleware**:
     - `NotificationValidationMiddleware` (Order: 5)
-    - `NotificationLoggingMiddleware` (Order: 10) 
+    - `NotificationLoggingMiddleware` (Order: 10)
     - `NotificationMetricsMiddleware` (Order: 300)
     - `NotificationAuditMiddleware` (Order: 400)
 
@@ -77,31 +75,31 @@ mediator.Subscribe(inventoryHandler);
 
 **Why Manual Subscription:**
 
--   🎯 **Client App Requirement** - Blazor WASM, MAUI, WinForms, WPF need explicit registration
--   🎯 **AOT Compatibility** - Works with ahead-of-time compilation
--   🎯 **Performance** - No runtime reflection overhead
--   🎯 **Explicit Control** - You control exactly when handlers are active
--   🎯 **Resource Management** - Precise control over memory usage
+- 🎯 **Client App Requirement** - Blazor WASM, MAUI, WinForms, WPF need explicit registration
+- 🎯 **AOT Compatibility** - Works with ahead-of-time compilation
+- 🎯 **Performance** - No runtime reflection overhead
+- 🎯 **Explicit Control** - You control exactly when handlers are active
+- 🎯 **Resource Management** - Precise control over memory usage
 
 **Characteristics:**
 
--   ✅ **Simple setup** - Register in DI container as scoped, then manually subscribe
--   ✅ **Scoped lifecycle** - Created per operation/request
--   ✅ **Manual management** - Subscription handled by application code
--   ✅ **Automatic cleanup** - Disposed by DI container
--   ✅ **Testable** - Easy to unit test with standard mocking
--   ✅ **Client-app friendly** - Works in all client application types
+- ✅ **Simple setup** - Register in DI container as scoped, then manually subscribe
+- ✅ **Scoped lifecycle** - Created per operation/request
+- ✅ **Manual management** - Subscription handled by application code
+- ✅ **Automatic cleanup** - Disposed by DI container
+- ✅ **Testable** - Easy to unit test with standard mocking
+- ✅ **Client-app friendly** - Works in all client application types
 
 **Best for:**
 
--   Blazor WebAssembly applications
--   MAUI mobile and desktop apps
--   WinForms desktop applications
--   WPF desktop applications
--   Console applications (as demonstrated here)
--   Any scenario requiring explicit handler control
+- Blazor WebAssembly applications
+- MAUI mobile and desktop apps
+- WinForms desktop applications
+- WPF desktop applications
+- Console applications (as demonstrated here)
+- Any scenario requiring explicit handler control
 
-## * Implementation Guide
+## \* Implementation Guide
 
 ### Prerequisites: Default Scoped Mediator Registration
 
@@ -111,20 +109,18 @@ This example uses the default and recommended scoped lifetime for the mediator w
 // In Program.cs - Uses default scoped registration with auto-discovery (RECOMMENDED)
 services.AddMediator(config =>
 {
-    config.WithStatisticsTracking()
-          .WithNotificationMiddlewareDiscovery();
-}, Assembly.GetExecutingAssembly());
+    config.WithStatisticsTracking();`r`n});
 // IMediator is automatically registered as scoped
 ```
 
 **This scoped registration is recommended because:**
 
--   ✅ Follows dependency injection best practices
--   ✅ Proper resource management and cleanup
--   ✅ Predictable lifecycle management
--   ✅ Works well with request/operation scopes
--   ✅ No memory leak concerns
--   ✅ Compatible with client applications
+- ✅ Follows dependency injection best practices
+- ✅ Proper resource management and cleanup
+- ✅ Predictable lifecycle management
+- ✅ Works well with request/operation scopes
+- ✅ No memory leak concerns
+- ✅ Compatible with client applications
 
 ### Step 1: Email Notification Handler
 
@@ -197,7 +193,7 @@ public class InventoryNotificationHandler(ILogger<InventoryNotificationHandler> 
     private async Task ProcessInventoryUpdate(OrderItem item, CancellationToken cancellationToken)
     {
         await Task.Delay(50, cancellationToken);
-        
+
         logger.LogInformation("   - Updating inventory for {ProductName} (ID: {ProductId})",
             item.ProductName, item.ProductId);
         logger.LogInformation("      Quantity sold: {Quantity}", item.Quantity);
@@ -216,7 +212,7 @@ public class InventoryNotificationHandler(ILogger<InventoryNotificationHandler> 
         foreach (var item in items)
         {
             var stockLevel = Random.Shared.Next(0, 50);
-            
+
             if (stockLevel <= 10)
             {
                 if (stockLevel == 0)
@@ -241,9 +237,7 @@ public class InventoryNotificationHandler(ILogger<InventoryNotificationHandler> 
 // In Program.cs - Service registration
 services.AddMediator(config =>
 {
-    config.WithStatisticsTracking()
-          .WithNotificationMiddlewareDiscovery();
-}, Assembly.GetExecutingAssembly());
+    config.WithStatisticsTracking();`r`n});
 
 services.AddScoped<EmailNotificationHandler>();
 services.AddScoped<InventoryNotificationHandler>();
@@ -274,8 +268,8 @@ mediator.Subscribe(inventoryHandler);
 
 ### Prerequisites
 
--   .NET 9.0 or later
--   Terminal/Command Prompt
+- .NET 9.0 or later
+- Terminal/Command Prompt
 
 ### Steps
 
@@ -308,7 +302,7 @@ mediator.Subscribe(inventoryHandler);
 === Notification Middleware Pipeline Inspection ===
 Auto-discovered notification middleware (in execution order):
   - [5] NotificationValidationMiddleware
-  - [10] NotificationLoggingMiddleware  
+  - [10] NotificationLoggingMiddleware
   - [300] NotificationMetricsMiddleware
   - [400] NotificationAuditMiddleware
 
@@ -337,11 +331,12 @@ Notifications: 3
 The application automatically discovers and registers these middleware in order:
 
 ### 1. NotificationValidationMiddleware (Order: 5)
+
 ```csharp
 public class NotificationValidationMiddleware : INotificationMiddleware
 {
     public int Order => 5; // Execute first
-    
+
     public async Task InvokeAsync<TNotification>(TNotification? notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
@@ -350,27 +345,28 @@ public class NotificationValidationMiddleware : INotificationMiddleware
         {
             if (order.OrderId <= 0) throw new InvalidOperationException("OrderId must be positive");
             if (order.TotalAmount <= 0) throw new InvalidOperationException("TotalAmount must be positive");
-            if (string.IsNullOrWhiteSpace(order.CustomerEmail)) 
+            if (string.IsNullOrWhiteSpace(order.CustomerEmail))
                 throw new InvalidOperationException("CustomerEmail is required");
         }
-        
+
         await next(notification, cancellationToken);
     }
 }
 ```
 
 ### 2. NotificationLoggingMiddleware (Order: 10)
+
 ```csharp
 public class NotificationLoggingMiddleware : INotificationMiddleware
 {
     public int Order => 10;
-    
+
     public async Task InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         var startTime = DateTime.UtcNow;
         logger.LogInformation("* Publishing notification: {NotificationName}", typeof(TNotification).Name);
-        
+
         try
         {
             await next(notification, cancellationToken);
@@ -418,14 +414,13 @@ mediator.Subscribe(handler);
 // ✅ CORRECT - enable auto-discovery
 services.AddMediator(config =>
 {
-    config.WithNotificationMiddlewareDiscovery();
-}, Assembly.GetExecutingAssembly());
+});
 
 // ✅ CORRECT - implement INotificationMiddleware
 public class CustomMiddleware : INotificationMiddleware
 {
     public int Order => 100; // Define execution order
-    
+
     public async Task InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
@@ -447,9 +442,7 @@ public class CustomMiddleware : INotificationMiddleware
 // ✅ CORRECT - enable statistics
 services.AddMediator(config =>
 {
-    config.WithStatisticsTracking()
-          .WithNotificationMiddlewareDiscovery();
-}, Assembly.GetExecutingAssembly());
+    config.WithStatisticsTracking();`r`n});
 ```
 
 ### Issue 4: Client App Performance Issues
@@ -465,13 +458,13 @@ services.AddMediator(config =>
 public class NotificationManager : IDisposable
 {
     private readonly List<IDisposable> _subscriptions = new();
-    
+
     public void Subscribe<T>(INotificationSubscriber<T> handler) where T : INotification
     {
         var subscription = _mediator.Subscribe(handler);
         _subscriptions.Add(subscription);
     }
-    
+
     public void Dispose()
     {
         foreach (var subscription in _subscriptions)
@@ -544,7 +537,7 @@ When OrderCreatedNotification is published:
 
 1. **Use scoped registration** - `services.AddScoped<THandler>()`
 2. **Always use manual subscription** - `mediator.Subscribe(handler)` (automatic discovery not available)
-3. **Enable auto-discovery for middleware** - `config.WithNotificationMiddlewareDiscovery()`
+3. **Middleware is auto-discovered** - the source generator registers all `INotificationMiddleware` implementations at compile time
 4. **Use primary constructors** - Clean dependency injection syntax
 5. **Manage subscription lifecycle** - Consider implementing `IDisposable` for cleanup
 6. **Use try-catch** in notification handlers for resilience
@@ -572,18 +565,18 @@ When OrderCreatedNotification is published:
 
 ### Use Manual Subscription When:
 
--   🎯 **Building client applications** - Blazor WASM, MAUI, WinForms, WPF
--   🎯 **AOT compilation required** - Ahead-of-time compilation scenarios
--   🎯 **Explicit control needed** - You need precise control over handler lifecycle
--   🎯 **Performance critical** - Avoiding runtime reflection overhead
--   🎯 **Resource-constrained environments** - Mobile or embedded applications
--   🎯 **Security requirements** - When reflection-based discovery is restricted
+- 🎯 **Building client applications** - Blazor WASM, MAUI, WinForms, WPF
+- 🎯 **AOT compilation required** - Ahead-of-time compilation scenarios
+- 🎯 **Explicit control needed** - You need precise control over handler lifecycle
+- 🎯 **Performance critical** - Avoiding runtime reflection overhead
+- 🎯 **Resource-constrained environments** - Mobile or embedded applications
+- 🎯 **Security requirements** - When reflection-based discovery is restricted
 
 ### Don't Use Manual Subscription When:
 
--   ❌ **Building server applications** - ASP.NET Core, Blazor Server (use automatic discovery instead)
--   ❌ **Reflection is acceptable** - When runtime reflection overhead is not a concern
--   ❌ **You want zero configuration** - Automatic discovery provides less setup code
+- ❌ **Building server applications** - ASP.NET Core, Blazor Server (use automatic discovery instead)
+- ❌ **Reflection is acceptable** - When runtime reflection overhead is not a concern
+- ❌ **You want zero configuration** - Automatic discovery provides less setup code
 
 ### Client Application Examples:
 
@@ -594,22 +587,21 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = WebAssemblyHostBuilder.CreateDefault(args);
-        
+
         builder.Services.AddMediator(config =>
         {
-            config.WithStatisticsTracking()
-                  .WithNotificationMiddlewareDiscovery();
-        }, Assembly.GetExecutingAssembly());
-        
+            config.WithStatisticsTracking();
+        });
+
         builder.Services.AddScoped<OrderNotificationHandler>();
-        
+
         var host = builder.Build();
-        
+
         // Manual subscription required
         var mediator = host.Services.GetRequiredService<IMediator>();
         var handler = host.Services.GetRequiredService<OrderNotificationHandler>();
         mediator.Subscribe(handler);
-        
+
         await host.RunAsync();
     }
 }
@@ -629,13 +621,13 @@ public static class MauiProgram
 
         builder.Services.AddMediator(config =>
         {
-            config.WithStatisticsTracking()
-                  .WithNotificationMiddlewareDiscovery();
-        }, Assembly.GetExecutingAssembly());
-        
+            config.WithStatisticsTracking();
+        });
+
         builder.Services.AddScoped<NotificationManager>();
         builder.Services.AddScoped<OrderNotificationHandler>();
 
         return builder.Build();
     }
 }
+```

@@ -265,10 +265,9 @@ public class EmailNotificationHandler(ILogger<EmailNotificationHandler> logger)
 var emailHandler = scope.ServiceProvider.GetRequiredService<EmailNotificationHandler>();
 mediator.Subscribe(emailHandler);
 
-// v3.0.0 — new: add .WithNotificationHandlerDiscovery() once at registration;
-// no Subscribe() calls needed at runtime
-mediatorConfig.WithNotificationHandlerDiscovery();
-services.AddMediator(mediatorConfig);
+// v3.0.0 — new: the source generator discovers all INotificationHandler<T> implementations
+// at compile time. No Subscribe() calls or WithNotificationHandlerDiscovery() needed.
+services.AddMediator();
 ```
 
 ---

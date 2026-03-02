@@ -26,7 +26,7 @@ public class MiddlewareTests
         services.AddMediator(config =>
         {
             config.AddMiddleware(typeof(TracingMiddleware<,>));
-        }, typeof(TestQuery).Assembly);
+        });
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -357,7 +357,7 @@ public record TestSlowQuery : IRequest<string>;
 /// </summary>
 public class TestSlowQueryHandler : IRequestHandler<TestSlowQuery, string>
 {
-    public async Task<string> Handle(TestSlowQuery request, CancellationToken cancellationToken)
+    public async ValueTask<string> Handle(TestSlowQuery request, CancellationToken cancellationToken)
     {
         await Task.Delay(100, cancellationToken); // Simulate slow operation
         return "Slow result";
@@ -374,7 +374,7 @@ public record TestErrorQuery : IRequest<string>;
 /// </summary>
 public class TestErrorQueryHandler : IRequestHandler<TestErrorQuery, string>
 {
-    public Task<string> Handle(TestErrorQuery request, CancellationToken cancellationToken)
+    public ValueTask<string> Handle(TestErrorQuery request, CancellationToken cancellationToken)
     {
         throw new InvalidOperationException("Test error");
     }
@@ -413,9 +413,9 @@ public record TestQuery : IRequest<string>
 /// </summary>
 public class TestQueryHandler : IRequestHandler<TestQuery, string>
 {
-    public Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
+    public ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult($"Result: {request.Value}");
+        return ValueTask.FromResult($"Result: {request.Value}");
     }
 }
 

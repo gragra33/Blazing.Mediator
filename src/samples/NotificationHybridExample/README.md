@@ -14,39 +14,44 @@ This gives you the **best of both worlds**: zero-configuration simplicity for co
 ## ? Key Features Demonstrated
 
 ### Automatic Handler Discovery (Zero Configuration)
+
 - **EmailNotificationHandler** - Automatically discovered and registered
 - **ShippingNotificationHandler** - Automatically discovered and registered
 - **No Manual Setup Required** - Just implement `INotificationHandler<T>` and it works
 
 ### Manual Subscriber Registration (Explicit Control)
+
 - **InventoryNotificationSubscriber** - Requires manual subscription with `mediator.Subscribe()`
 - **AuditNotificationSubscriber** - Requires manual subscription with `mediator.Subscribe()`
 - **Full Control** - You decide when, where, and how to subscribe
 
 ### Unified Middleware Pipeline
+
 - **NotificationLoggingMiddleware** (Order: 100) - Logs all notification processing
 - **NotificationMetricsMiddleware** (Order: 300) - Collects performance metrics
 - **Shared Pipeline** - Both handlers and subscribers use the same middleware
 
 ### Comprehensive Statistics
+
 - **MediatorStatistics** - Real-time performance tracking for both patterns
 - **Pipeline Analysis** - Inspection tools for troubleshooting
 - **Mixed Pattern Support** - Statistics for handlers, subscribers, and middleware
 
 ## ?? Hybrid Pattern Comparison
 
-| Feature | ?? Automatic Handlers | ?? Manual Subscribers | ?? When to Use |
-|---------|----------------------|----------------------|----------------|
-| **Registration** | ? Automatic Discovery | ? Manual Subscription Required | Auto: Core logic / Manual: Optional features |
-| **Setup Code** | ? Zero - Just implement interface | ? Must call `mediator.Subscribe()` | Auto: Always-on / Manual: Conditional |
-| **Performance** | ? Compile-time registration | ?? Runtime subscription overhead | Auto: High performance / Manual: Complex scenarios |
-| **Control** | ?? Always active | ? Dynamic subscription/unsubscription | Auto: Fixed behavior / Manual: Dynamic behavior |
-| **Maintainability** | ? Simple - implement interface | ?? Remember to subscribe | Auto: Set and forget / Manual: Explicit management |
-| **Flexibility** | ?? Limited runtime control | ? Full lifecycle control | Auto: Consistency / Manual: Flexibility |
+| Feature             | ?? Automatic Handlers             | ?? Manual Subscribers                 | ?? When to Use                                     |
+| ------------------- | --------------------------------- | ------------------------------------- | -------------------------------------------------- |
+| **Registration**    | ? Automatic Discovery             | ? Manual Subscription Required        | Auto: Core logic / Manual: Optional features       |
+| **Setup Code**      | ? Zero - Just implement interface | ? Must call `mediator.Subscribe()`    | Auto: Always-on / Manual: Conditional              |
+| **Performance**     | ? Compile-time registration       | ?? Runtime subscription overhead      | Auto: High performance / Manual: Complex scenarios |
+| **Control**         | ?? Always active                  | ? Dynamic subscription/unsubscription | Auto: Fixed behavior / Manual: Dynamic behavior    |
+| **Maintainability** | ? Simple - implement interface    | ?? Remember to subscribe              | Auto: Set and forget / Manual: Explicit management |
+| **Flexibility**     | ?? Limited runtime control        | ? Full lifecycle control              | Auto: Consistency / Manual: Flexibility            |
 
 ## ??? Architecture Overview
 
 ### Automatic Handlers (Core Business Logic)
+
 ```csharp
 // Just implement INotificationHandler<T> - automatically discovered and registered
 public class EmailNotificationHandler : INotificationHandler<OrderCreatedNotification>
@@ -60,6 +65,7 @@ public class EmailNotificationHandler : INotificationHandler<OrderCreatedNotific
 ```
 
 ### Manual Subscribers (Optional/Conditional Logic)
+
 ```csharp
 // Implement INotificationSubscriber<T> - requires manual subscription
 public class InventoryNotificationSubscriber : INotificationSubscriber<OrderCreatedNotification>
@@ -78,45 +84,49 @@ mediator.Subscribe(inventorySubscriber);
 ## ?? What This Example Demonstrates
 
 ### Automatic Handlers (Always Active)
+
 1. **EmailNotificationHandler** ??
-   - Sends order confirmation emails
-   - Always executes for every order
-   - Zero configuration - just implement the interface
-   - Core business functionality that should never be disabled
+    - Sends order confirmation emails
+    - Always executes for every order
+    - Zero configuration - just implement the interface
+    - Core business functionality that should never be disabled
 
 2. **ShippingNotificationHandler** ??
-   - Handles shipping and fulfillment processing
-   - Creates shipping labels and tracking numbers
-   - Automatically processes every order
-   - Essential business logic with zero setup
+    - Handles shipping and fulfillment processing
+    - Creates shipping labels and tracking numbers
+    - Automatically processes every order
+    - Essential business logic with zero setup
 
 ### Manual Subscribers (Explicit Control)
+
 1. **InventoryNotificationSubscriber** ??
-   - Updates inventory levels and stock counts
-   - Only active when explicitly subscribed
-   - Can be dynamically enabled/disabled
-   - Optional feature that may not be needed in all scenarios
+    - Updates inventory levels and stock counts
+    - Only active when explicitly subscribed
+    - Can be dynamically enabled/disabled
+    - Optional feature that may not be needed in all scenarios
 
 2. **AuditNotificationSubscriber** ??
-   - Logs detailed audit trails for compliance
-   - Requires explicit subscription for activation
-   - Can be conditionally enabled based on configuration
-   - Complex setup with external system integration
+    - Logs detailed audit trails for compliance
+    - Requires explicit subscription for activation
+    - Can be conditionally enabled based on configuration
+    - Complex setup with external system integration
 
 ### Unified Middleware Pipeline
+
 1. **NotificationLoggingMiddleware** (Order: 100) ??
-   - Logs start/completion for all notifications
-   - Works with both handlers and subscribers
-   - Provides unified logging across patterns
+    - Logs start/completion for all notifications
+    - Works with both handlers and subscribers
+    - Provides unified logging across patterns
 
 2. **NotificationMetricsMiddleware** (Order: 300) ??
-   - Collects performance metrics for all notifications
-   - Tracks both automatic and manual processors
-   - Enables comprehensive performance analysis
+    - Collects performance metrics for all notifications
+    - Tracks both automatic and manual processors
+    - Enables comprehensive performance analysis
 
 ## ?? Configuration and Setup
 
 ### Service Registration
+
 ```csharp
 services.AddMediator(config =>
 {
@@ -127,10 +137,8 @@ services.AddMediator(config =>
             options.EnableMiddlewareMetrics = true;
             options.EnablePerformanceCounters = true;
             options.EnableDetailedAnalysis = true;
-        })
-          .WithNotificationHandlerDiscovery()    // Enable automatic handler discovery
-          .WithNotificationMiddlewareDiscovery(); // Enable automatic middleware discovery
-}, Assembly.GetExecutingAssembly());
+        });
+});
 
 // Manual subscribers must be registered in DI container
 services.AddScoped<InventoryNotificationSubscriber>();
@@ -138,6 +146,7 @@ services.AddScoped<AuditNotificationSubscriber>();
 ```
 
 ### Runtime Subscription
+
 ```csharp
 // Create scope and get services
 using var scope = host.Services.CreateScope();
@@ -156,16 +165,19 @@ mediator.Subscribe(auditSubscriber);
 ## ?? Running the Example
 
 ### Prerequisites
+
 - .NET 9.0 or later
 - Visual Studio 2022 or VS Code
 
 ### Running
+
 ```bash
 cd src/samples/NotificationHybridExample
 dotnet run
 ```
 
 ### Expected Output
+
 ```
 ================================================================================
 *** Blazing.Mediator - HYBRID Notification Pattern Example ***
@@ -219,6 +231,7 @@ What you just experienced:
 ## ?? Use Case Decision Guide
 
 ### Use **Automatic Handlers** When:
+
 - ? **Core business logic** that should always execute
 - ? **Simple, stateless processing** without complex setup
 - ? **Zero configuration overhead** is desired
@@ -226,12 +239,14 @@ What you just experienced:
 - ? **Always-on services** like email, logging, metrics
 
 **Examples:**
+
 - Order confirmation emails
 - Basic logging and metrics
 - Core business rule validation
 - Standard workflow processing
 
 ### Use **Manual Subscribers** When:
+
 - ? **Optional or conditional processing** based on configuration
 - ? **Complex initialization** or external system integration
 - ? **Dynamic subscription/unsubscription** is needed
@@ -239,6 +254,7 @@ What you just experienced:
 - ? **Feature flags** control functionality
 
 **Examples:**
+
 - Optional inventory management
 - Conditional audit logging
 - Integration with external systems
@@ -248,6 +264,7 @@ What you just experienced:
 ## ?? Adding Your Own Components
 
 ### Adding an Automatic Handler
+
 ```csharp
 // Just implement INotificationHandler<T> - it will be discovered automatically
 public class PaymentNotificationHandler : INotificationHandler<OrderCreatedNotification>
@@ -262,6 +279,7 @@ public class PaymentNotificationHandler : INotificationHandler<OrderCreatedNotif
 ```
 
 ### Adding a Manual Subscriber
+
 ```csharp
 // Implement INotificationSubscriber<T> - requires manual setup
 public class LoyaltyNotificationSubscriber : INotificationSubscriber<OrderCreatedNotification>
@@ -282,11 +300,12 @@ mediator.Subscribe(loyaltySubscriber);
 ```
 
 ### Adding Middleware
+
 ```csharp
 public class SecurityNotificationMiddleware : INotificationMiddleware
 {
     public int Order => 50; // Execute early in pipeline
-    
+
     public async Task InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
@@ -302,18 +321,21 @@ public class SecurityNotificationMiddleware : INotificationMiddleware
 ## ?? Performance Considerations
 
 ### Automatic Handlers
+
 - ? **Compile-time registration** - No runtime overhead
 - ? **Direct invocation** - Minimal indirection
 - ? **Memory efficient** - No dynamic subscriptions
 - ?? **Always active** - Cannot be disabled at runtime
 
 ### Manual Subscribers
+
 - ?? **Runtime subscription** - Small overhead during subscription
 - ? **Dynamic control** - Can be enabled/disabled
 - ? **Flexible lifecycle** - Full control over activation
 - ?? **Memory management** - Must manage subscriptions properly
 
 ### Best Practices
+
 1. **Use automatic handlers for core logic** - Maximum performance
 2. **Use manual subscribers for optional features** - Maximum flexibility
 3. **Share middleware pipeline** - Unified processing for both patterns

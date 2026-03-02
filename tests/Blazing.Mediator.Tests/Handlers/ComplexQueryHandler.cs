@@ -12,12 +12,12 @@ public class ComplexQueryHandler : IRequestHandler<ComplexQuery, ComplexResult>
     /// <param name="request">The complex query containing filter criteria.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task containing a ComplexResult with filtered data and count information.</returns>
-    public async ValueTask<ComplexResult> Handle(ComplexQuery request, CancellationToken cancellationToken = default)
+    public ValueTask<ComplexResult> Handle(ComplexQuery request, CancellationToken cancellationToken = default)
     {
-        return new ComplexResult
+        return ValueTask.FromResult(new ComplexResult
         {
             FilteredData = $"Filtered: {request.Filter}",
             Count = 1
-        };
+        });
     }
 }

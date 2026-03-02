@@ -2,7 +2,8 @@ namespace Blazing.Mediator.Tests;
 
 /// <summary>
 /// Notification middleware with no parameterless constructor.
-/// Excluded from source-generator auto-discovery so it does not break global ContainerMetadata init.
+/// Excluded from auto-discovery so the source generator does not bake it into notification wrappers
+/// (its constructor requires a <c>string</c> parameter that DI cannot resolve).
 /// </summary>
 [ExcludeFromAutoDiscovery]
 public class NotificationMiddlewareWithNoParameterlessConstructor : INotificationMiddleware

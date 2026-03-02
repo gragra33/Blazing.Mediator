@@ -25,24 +25,24 @@ public sealed partial class Mediator
         ArgumentNullException.ThrowIfNull(notification);
 
         // Fast path: source-gen dispatcher has a pre-baked handler chain for this notification type.
-        // • No async state machine — returns the ValueTask directly from the pre-resolved wrapper.
-        // • No try/catch — IsNotificationHandled<T>() is a compile-time type check; the JIT can
-        //   constant-fold it to 'true' or 'false' when TNotification is statically known, so the
-        //   branch becomes a predicted-not-taken no-op on the fast path.
-        if (GetDispatcher() is { } d && d.IsNotificationHandled<TNotification>())
+        if (GetDispatcher() is not { } d)
+            throw new InvalidOperationException(
+                "Source generator dispatcher not found. Ensure AddMediator() is called and source generators are active.");
+
+        // Source-gen handles all INotificationHandler<T> registrations.
+        if (d.IsNotificationHandled<TNotification>())
             return d.PublishAsync(notification, cancellationToken);
 
-        // Slow path: reflection-based dispatch + manual subscriber support.
-        // Reached when (a) source-gen dispatcher is not registered, or (b) the notification type
-        // was not in the compile-time model (e.g. only manual INotificationSubscriber<T> registrations).
+        // Subscriber-only path: this notification type has only manual INotificationSubscriber<T> registrations.
         _logger?.PublishOperationStarted(typeof(TNotification).Name, IsTelemetryEnabled);
-        return new ValueTask(PublishReflection(notification, cancellationToken));
+        return new ValueTask(PublishToSubscribers(notification, cancellationToken));
     }
 
     /// <summary>
-    /// Reflection-based publish implementation (preserved for fallback and comparison).
+    /// Dispatches a notification to all registered manual subscribers (INotificationSubscriber{T}).
+    /// Called when the notification type has no source-generated INotificationHandler{T} chain.
     /// </summary>
-    private async Task PublishReflection<TNotification>(TNotification notification, CancellationToken cancellationToken) where TNotification : INotification
+    private async Task PublishToSubscribers<TNotification>(TNotification notification, CancellationToken cancellationToken) where TNotification : INotification
     {
         var notificationTypeName = typeof(TNotification).Name;
         var sanitizedNotificationName = SanitizeTypeName(notificationTypeName);
@@ -90,7 +90,7 @@ public sealed partial class Mediator
             // Execute through notification middleware
             async ValueTask SubscriberAndHandlerProcessor(TNotification n, CancellationToken ct)
             {
-                // PATTERN 1: Manual Subscribers (existing pattern) ===
+                // PATTERN 1: Manual Subscribers ===
                 var subscribers = new List<INotificationSubscriber<TNotification>>();
                 if (_specificSubscribers.TryGetValue(typeof(TNotification), out var specific))
                 {
@@ -100,14 +100,11 @@ public sealed partial class Mediator
                 // Add generic subscribers that can handle any notification
                 var genericSubscriberList = _genericSubscribers.ToList();
 
-                // PATTERN 2: Automatic Handlers (new pattern) ===
-                // Discover handlers from DI container (including covariant handlers)
-                var handlers = GetCovariantNotificationHandlers<TNotification>(n).ToList();
-
+                // INotificationHandler<T> registrations are handled by the source-gen dispatcher.
+                // This path is only reached for subscriber-only notifications.
                 subscriberCount = subscribers.Count + genericSubscriberList.Count;
-                handlerCount = handlers.Count;
-                
-                var totalProcessors = subscriberCount + handlerCount;
+
+                var totalProcessors = subscriberCount;
                 _logger?.PublishSubscriberResolution(totalProcessors, notificationTypeName);
 
                 if (IsTelemetryEnabled && ShouldCaptureNotificationHandlerDetails)
@@ -129,11 +126,6 @@ public sealed partial class Mediator
                 foreach (var genericSubscriber in genericSubscriberList)
                 {
                     await ProcessGenericSubscriberWithTelemetry(genericSubscriber, n, activity, ct, subscriberResults, processingExceptions, notificationTypeName, sanitizedNotificationName);
-                }
-
-                foreach (var handler in handlers)
-                {
-                    await ProcessHandlerWithTelemetry(handler, n, activity, ct, subscriberResults, processingExceptions, notificationTypeName, sanitizedNotificationName);
                 }
 
                 // After all processors have been called, throw the first exception if any occurred
@@ -698,95 +690,4 @@ public sealed partial class Mediator
 
     #endregion
 
-    #region Covariant Notification Handler Support
-
-    /// <summary>
-    /// Gets covariant notification handlers for the specified notification type.
-    /// Finds handlers that can handle the notification type or any of its base types/interfaces,
-    /// enabling covariant notification handling where handlers can process base types and derived types.
-    /// </summary>
-    /// <typeparam name="TNotification">The notification type to find handlers for</typeparam>
-    /// <param name="notification">The notification instance</param>
-    /// <returns>An enumerable of handler instances that can handle the notification</returns>
-    /// <remarks>
-    /// This method supports covariant notification handling by:
-    /// 1. Finding handlers for the exact notification type
-    /// 2. Finding handlers for base classes that the notification inherits from
-    /// 3. Finding handlers for interfaces that the notification implements
-    /// 4. Ensuring each handler is only returned once (deduplication)
-    /// 
-    /// Example:
-    /// - If notification is OrderCreatedNotification : DomainEvent : INotification
-    /// - It will find handlers for: OrderCreatedNotification, DomainEvent, INotification
-    /// </remarks>
-    private IEnumerable<object> GetCovariantNotificationHandlers<TNotification>(TNotification notification) 
-        where TNotification : INotification
-    {
-        var notificationType = notification.GetType();
-        var foundHandlers = new HashSet<object>(ReferenceEqualityComparer.Instance);
-
-        // Get all types in the inheritance hierarchy and interfaces
-        var candidateTypes = GetNotificationTypeHierarchy(notificationType);
-
-        foreach (var candidateType in candidateTypes)
-        {
-            // Create the handler interface type for this candidate type
-            var handlerInterfaceType = typeof(INotificationHandler<>).MakeGenericType(candidateType);
-            
-            // Get all handlers from the service provider
-            var handlers = _serviceProvider.GetServices(handlerInterfaceType);
-            
-            foreach (var handler in handlers)
-            {
-                if (handler != null && foundHandlers.Add(handler))
-                {
-                    yield return handler;
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets all types in the notification type hierarchy that could have handlers.
-    /// This includes the notification type itself, all base classes, and all implemented interfaces.
-    /// </summary>
-    /// <param name="notificationType">The notification type to analyze</param>
-    /// <returns>An enumerable of types that could have notification handlers</returns>
-    private static IEnumerable<Type> GetNotificationTypeHierarchy(Type notificationType)
-    {
-        var processedTypes = new HashSet<Type>();
-        var typesToProcess = new Queue<Type>();
-        
-        typesToProcess.Enqueue(notificationType);
-
-        while (typesToProcess.Count > 0)
-        {
-            var currentType = typesToProcess.Dequeue();
-            
-            if (!processedTypes.Add(currentType))
-            {
-                continue; // Already processed this type
-            }
-
-            // Only yield types that implement INotification
-            if (typeof(INotification).IsAssignableFrom(currentType))
-            {
-                yield return currentType;
-            }
-
-            // Add base type if it exists and is not object
-            if (currentType.BaseType != null && currentType.BaseType != typeof(object))
-            {
-                typesToProcess.Enqueue(currentType.BaseType);
-            }
-
-            // Add all implemented interfaces
-            foreach (var interfaceType in currentType.GetInterfaces())
-            {
-                typesToProcess.Enqueue(interfaceType);
-            }
-        }
-    }
-
-    #endregion
 }

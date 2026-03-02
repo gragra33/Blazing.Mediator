@@ -27,7 +27,6 @@ public class Program
         Console.WriteLine();
         Console.WriteLine("*** All examples completed successfully! ***");
         Console.WriteLine("Press any key to exit...");
-        Console.ReadKey();
     }
 
     /// <summary>

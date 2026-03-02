@@ -1,4 +1,3 @@
-using Blazing.Mediator.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Tests.Tests;
@@ -61,10 +60,6 @@ public class StreamMiddlewareDebugTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<FirstDebugMiddleware>();    // Order: 1
-        pb.AddMiddleware<EnhancingDebugMiddleware>(); // Order: -1
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

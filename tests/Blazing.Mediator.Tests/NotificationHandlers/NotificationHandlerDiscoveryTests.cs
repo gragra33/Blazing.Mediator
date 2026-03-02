@@ -30,33 +30,13 @@ public class NotificationHandlerDiscoveryTests
     }
 
     [Fact]
-    public void AddMediator_WithoutNotificationHandlerDiscovery_ShouldNotRegisterNotificationHandlers()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        var cfg = new MediatorConfiguration();
-        cfg.WithoutNotificationHandlerDiscovery();
-        services.AddMediator(cfg);
-        var serviceProvider = services.BuildServiceProvider();
-
-        // Assert
-        var handlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
-        Assert.NotNull(handlers);
-        Assert.Empty(handlers);
-    }
-
-    [Fact]
     public void AddMediator_WithNotificationHandlerDiscovery_ShouldAllowMultipleHandlersPerNotification()
     {
         // Arrange
         var services = new ServiceCollection();
 
         // Act
-        var cfg2 = new MediatorConfiguration();
-        cfg2.WithNotificationHandlerDiscovery();
-        services.AddMediator(cfg2);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert - Multiple handlers should be registered for the same notification
@@ -106,11 +86,7 @@ public class NotificationHandlerDiscoveryTests
     /// </summary>
     private static IMediator CreateMediatorWithDependencies(IServiceProvider serviceProvider)
     {
-        // Create minimal dependencies for mediator
-        var pipelineBuilder = new Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder();
-        var notificationPipelineBuilder = new Blazing.Mediator.Pipeline.NotificationPipelineBuilder();
-
-        return new Mediator(serviceProvider, null);
+        return serviceProvider.GetRequiredService<IMediator>();
     }
 }
 

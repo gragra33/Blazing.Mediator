@@ -20,10 +20,6 @@
     <ProjectReference Include="..\..\Blazing.Mediator\Blazing.Mediator.csproj" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <DefineConstants>$(DefineConstants);USE_SOURCE_GENERATORS</DefineConstants>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\Blazing.Mediator.SourceGenerators\Blazing.Mediator.SourceGenerators.csproj"
                       OutputItemType="Analyzer"

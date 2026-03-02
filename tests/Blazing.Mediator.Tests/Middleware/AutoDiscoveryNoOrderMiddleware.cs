@@ -3,6 +3,7 @@ using Blazing.Mediator;
 /// <summary>
 /// Auto-discovery test middleware with no Order property (uses sequential order).
 /// </summary>
+[ExcludeFromAutoDiscovery]
 public class AutoDiscoveryNoOrderMiddleware : IRequestMiddleware<MiddlewareTestQuery, string>
 {
     /// <summary>

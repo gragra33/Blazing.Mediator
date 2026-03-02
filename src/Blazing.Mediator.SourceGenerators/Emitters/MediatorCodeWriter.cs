@@ -84,6 +84,7 @@ internal static class MediatorCodeWriter
         sb.AppendLine("namespace Blazing.Mediator");
         sb.AppendLine("{");
         sb.AppendLine("    using Microsoft.Extensions.DependencyInjection; // AddSingleton, AddTransient etc.");
+        sb.AppendLine("    using Microsoft.Extensions.DependencyInjection.Extensions; // TryAddSingleton etc.");
         AppendServiceRegistrationExtension(sb, model);
         sb.AppendLine("} // namespace Blazing.Mediator");
 
@@ -1262,7 +1263,7 @@ internal static class MediatorCodeWriter
         sb.AppendLine("    /// </summary>");
         sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
         sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine("    internal static class MediatorServiceCollectionExtensions");
+        sb.AppendLine("    public static class MediatorServiceCollectionExtensions");
         sb.AppendLine("    {");
         sb.AppendLine("        public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection AddMediator(");
         sb.AppendLine("            this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
@@ -1282,22 +1283,22 @@ internal static class MediatorCodeWriter
                     foreach (var ht in req.AllHandlerTypes)
                     {
                         if (registeredHandlers.Add(ht))
-                            sb.AppendLine($"            services.AddTransient<{ht}>();");
+                            sb.AppendLine($"            services.AddScoped<{ht}>();");
                     }
                 }
                 else
                 {
                     if (registeredHandlers.Add(req.HandlerType))
                     {
-                        sb.AppendLine($"            services.AddTransient<{req.HandlerType}>();");
+                        sb.AppendLine($"            services.AddScoped<{req.HandlerType}>();");
                         // Dual-register under IRequestHandler<T,R> so DI-based statistics analysis can find handlers.
                         // Streams implement IStreamRequestHandler<T,R> — skip IRequestHandler registration for them.
                         if (!req.IsStream)
                         {
                             if (req.IsVoid)
-                                sb.AppendLine($"            services.AddTransient<global::Blazing.Mediator.IRequestHandler<{req.RequestType}>, {req.HandlerType}>();");
+                                sb.AppendLine($"            services.AddScoped<global::Blazing.Mediator.IRequestHandler<{req.RequestType}>, {req.HandlerType}>();");
                             else
-                                sb.AppendLine($"            services.AddTransient<global::Blazing.Mediator.IRequestHandler<{req.RequestType}, {req.ResponseType}>, {req.HandlerType}>();");
+                                sb.AppendLine($"            services.AddScoped<global::Blazing.Mediator.IRequestHandler<{req.RequestType}, {req.ResponseType}>, {req.HandlerType}>();");
                         }
                     }
                 }
@@ -1316,10 +1317,10 @@ internal static class MediatorCodeWriter
                 {
                     if (registeredHandlers.Add(handlerType))
                     {
-                        sb.AppendLine($"            services.AddTransient<{handlerType}>();");
+                        sb.AppendLine($"            services.AddScoped<{handlerType}>();");
                     }
                     // Always register under INotificationHandler<T> for each notification-handler pair.
-                    sb.AppendLine($"            services.AddTransient<global::Blazing.Mediator.INotificationHandler<{notif.NotificationType}>, {handlerType}>();");
+                    sb.AppendLine($"            services.AddScoped<global::Blazing.Mediator.INotificationHandler<{notif.NotificationType}>, {handlerType}>();");
                 }
             }
             sb.AppendLine();
@@ -1397,6 +1398,27 @@ internal static class MediatorCodeWriter
         sb.AppendLine("            // the scope's IServiceProvider. Handlers can then safely consume scoped services");
         sb.AppendLine("            // (DbContext, per-request services) without captive-dependency issues.");
         sb.AppendLine("            services.AddScoped<global::Blazing.Mediator.IMediator, global::Blazing.Mediator.Mediator>();");
+        sb.AppendLine();
+        sb.AppendLine("            // Default notification publisher — required by source-generated notification wrappers.");
+        sb.AppendLine("            // TryAddSingleton ensures a user-provided INotificationPublisher (registered before AddMediator())");
+        sb.AppendLine("            // is never overwritten by this default.");
+        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.INotificationPublisher,");
+        sb.AppendLine("                global::Blazing.Mediator.Notifications.SequentialNotificationPublisher>();");
+        sb.AppendLine();
+        sb.AppendLine("            // Pipeline inspectors — empty builders registered as singletons so analysis tools and tests");
+        sb.AppendLine("            // can resolve IMiddlewarePipelineInspector and INotificationMiddlewarePipelineInspector.");
+        sb.AppendLine("            // In source-gen mode, middleware pipelines are pre-baked at compile time (not runtime);");
+        sb.AppendLine("            // these empty builders serve as inspection endpoints for the statistics and analysis APIs.");
+        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>();");
+        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.IMiddlewarePipelineInspector>(");
+        sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>());");
+        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.IMiddlewarePipelineBuilder>(");
+        sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>());");
+        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>();");
+        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.INotificationMiddlewarePipelineInspector>(");
+        sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>());");
+        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.INotificationPipelineBuilder>(");
+        sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>());");
         sb.AppendLine();
         sb.AppendLine("            return services;");
         sb.AppendLine("        }");

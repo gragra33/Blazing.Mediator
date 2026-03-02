@@ -111,4 +111,3 @@ Console.WriteLine("  * Use MediatorStatistics for debugging and analyzing your a
 Console.WriteLine("  * Compare with the NotificationSubscriberExample for differences");
 Console.WriteLine();
 Console.WriteLine("Press any key to exit...");
-Console.ReadKey();

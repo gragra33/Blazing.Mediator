@@ -15,7 +15,6 @@
 
   <!-- Source Generator always enabled -->
   <PropertyGroup>
-    <DefineConstants>$(DefineConstants);USE_SOURCE_GENERATORS</DefineConstants>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>

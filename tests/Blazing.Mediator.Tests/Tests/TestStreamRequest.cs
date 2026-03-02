@@ -1,9 +1,9 @@
 namespace Blazing.Mediator.Tests;
 
 /// <summary>
-/// Test stream request for testing streaming functionality.
+/// Tests-folder streaming request (temporary name to avoid source generator collision until Phase H folder reorganisation).
 /// </summary>
-public class TestStreamRequest : IStreamRequest<string>
+public class TestsTestStreamRequest : IStreamRequest<string>
 {
     public string? Value { get; set; }
 }

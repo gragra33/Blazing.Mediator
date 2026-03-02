@@ -23,8 +23,10 @@ public class MiddlewareTests
         
         services.AddSingleton(mockLogger.Object);
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-        services.AddMediator();
-        services.AddScoped(typeof(IRequestMiddleware<,>), typeof(TracingMiddleware<,>));
+        services.AddMediator(config =>
+        {
+            config.AddMiddleware(typeof(TracingMiddleware<,>));
+        }, typeof(TestQuery).Assembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -58,8 +60,10 @@ public class MiddlewareTests
         
         services.AddSingleton(mockLogger.Object);
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-        services.AddMediator();
-        services.AddScoped(typeof(IRequestMiddleware<,>), typeof(PerformanceMiddleware<,>));
+        services.AddMediator(config =>
+        {
+            config.AddMiddleware(typeof(PerformanceMiddleware<,>));
+        }, typeof(TestQuery).Assembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -93,8 +97,11 @@ public class MiddlewareTests
         
         services.AddSingleton(mockLogger.Object);
         services.AddScoped<IRequestHandler<TestSlowQuery, string>, TestSlowQueryHandler>();
-        services.AddMediator();
-        services.AddScoped<IRequestMiddleware<TestSlowQuery, string>, PerformanceMiddleware<TestSlowQuery, string>>();
+        services.AddMediator(config =>
+        {
+            config.AddFromAssembly(typeof(TestSlowQuery))
+                  .AddMiddleware<PerformanceMiddleware<TestSlowQuery, string>>();
+        });
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -131,8 +138,10 @@ public class MiddlewareTests
         
         services.AddSingleton(mockLogger.Object);
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-        services.AddMediator();
-        services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
+        services.AddMediator(config =>
+        {
+            config.AddMiddleware(typeof(LoggingMiddleware<,>));
+        }, typeof(TestQuery).Assembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -165,8 +174,11 @@ public class MiddlewareTests
         
         services.AddSingleton(mockLogger.Object);
         services.AddScoped<IRequestHandler<TestErrorQuery, string>, TestErrorQueryHandler>();
-        services.AddMediator();
-        services.AddScoped<IRequestMiddleware<TestErrorQuery, string>, ErrorHandlingMiddleware<TestErrorQuery, string>>();
+        services.AddMediator(config =>
+        {
+            config.AddFromAssembly(typeof(TestErrorQuery))
+                  .AddMiddleware<ErrorHandlingMiddleware<TestErrorQuery, string>>();
+        });
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -206,8 +218,11 @@ public class MiddlewareTests
         
         services.AddSingleton(mockLogger.Object);
         services.AddScoped<IStreamRequestHandler<TestStreamQuery, string>, TestStreamQueryHandler>();
-        services.AddMediator();
-        services.AddScoped(typeof(IStreamRequestMiddleware<,>), typeof(StreamingLoggingMiddleware<,>));
+        services.AddMediator(config =>
+        {
+            config.AddFromAssembly(typeof(TestStreamQuery))
+                  .AddMiddleware<StreamingLoggingMiddleware<TestStreamQuery, string>>();
+        });
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -247,8 +262,11 @@ public class MiddlewareTests
         
         services.AddSingleton(mockLogger.Object);
         services.AddScoped<IStreamRequestHandler<TestStreamQuery, string>, TestStreamQueryHandler>();
-        services.AddMediator();
-        services.AddScoped(typeof(IStreamRequestMiddleware<,>), typeof(StreamingTracingMiddleware<,>));
+        services.AddMediator(config =>
+        {
+            config.AddFromAssembly(typeof(TestStreamQuery))
+                  .AddMiddleware<StreamingTracingMiddleware<TestStreamQuery, string>>();
+        });
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -296,10 +314,12 @@ public class MiddlewareTests
         services.AddSingleton(performanceLogger.Object);
         services.AddSingleton(loggingLogger.Object);
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-        services.AddMediator();
-        services.AddScoped(typeof(IRequestMiddleware<,>), typeof(TracingMiddleware<,>));
-        services.AddScoped(typeof(IRequestMiddleware<,>), typeof(PerformanceMiddleware<,>));
-        services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
+        services.AddMediator(config =>
+        {
+            config.AddMiddleware(typeof(TracingMiddleware<,>));
+            config.AddMiddleware(typeof(PerformanceMiddleware<,>));
+            config.AddMiddleware(typeof(LoggingMiddleware<,>));
+        }, typeof(TestQuery).Assembly);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -337,7 +357,7 @@ public record TestSlowQuery : IRequest<string>;
 /// </summary>
 public class TestSlowQueryHandler : IRequestHandler<TestSlowQuery, string>
 {
-    public async ValueTask<string> Handle(TestSlowQuery request, CancellationToken cancellationToken)
+    public async Task<string> Handle(TestSlowQuery request, CancellationToken cancellationToken)
     {
         await Task.Delay(100, cancellationToken); // Simulate slow operation
         return "Slow result";
@@ -354,7 +374,7 @@ public record TestErrorQuery : IRequest<string>;
 /// </summary>
 public class TestErrorQueryHandler : IRequestHandler<TestErrorQuery, string>
 {
-    public async ValueTask<string> Handle(TestErrorQuery request, CancellationToken cancellationToken)
+    public Task<string> Handle(TestErrorQuery request, CancellationToken cancellationToken)
     {
         throw new InvalidOperationException("Test error");
     }
@@ -393,9 +413,9 @@ public record TestQuery : IRequest<string>
 /// </summary>
 public class TestQueryHandler : IRequestHandler<TestQuery, string>
 {
-    public async ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
+    public Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
     {
-        return $"Result: {request.Value}";
+        return Task.FromResult($"Result: {request.Value}");
     }
 }
 

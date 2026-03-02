@@ -6,18 +6,6 @@
     <NoWarn>$(NoWarn);CS0618</NoWarn>
   </PropertyGroup>
 
-  <!-- Conditional compilation for Source Generator testing -->
-  <PropertyGroup Condition="'$(Configuration)' == 'SourceGen'">
-    <DefineConstants>$(DefineConstants);USE_SOURCE_GENERATORS</DefineConstants>
-  </PropertyGroup>
-
-  <!-- Source generators always run — ensure generated AddMediator() is available in all configs -->
-  <PropertyGroup>
-    <DefineConstants>$(DefineConstants);USE_SOURCE_GENERATORS</DefineConstants>
-    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Remove="Performance\**" />
     <EmbeddedResource Remove="Performance\**" />
@@ -47,17 +35,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Blazing.Mediator\Blazing.Mediator.csproj" />
-    <!-- Source generator must be referenced directly so AddMediator() is generated for this test assembly -->
-    <ProjectReference Include="..\..\src\Blazing.Mediator.SourceGenerators\Blazing.Mediator.SourceGenerators.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
+    <ProjectReference
+        Include="..\..\src\Blazing.Mediator.SourceGenerators\Blazing.Mediator.SourceGenerators.csproj"
+        OutputItemType="Analyzer"
+        ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="Shouldly" />
     <Using Include="Moq" />
-    <Using Include="Blazing.Mediator" />
   </ItemGroup>
 
 </Project>

@@ -3,25 +3,33 @@
   <PropertyGroup>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PackageId>Blazing.Mediator</PackageId>
+
     <Product>Blazing.Mediator</Product>
     <Description>A high-performance, feature-rich implementation of the Mediator pattern for .NET applications. Built for modern development with comprehensive CQRS support, advanced middleware pipelines, real-time streaming, event-driven architecture, and full observability. Features include OpenTelemetry integration with distributed tracing and metrics collection, extensive debug logging infrastructure, advanced statistics tracking, fluent configuration API with environment-aware settings, type-constrained middleware for selective execution, comprehensive notification system with hybrid patterns, native streaming capabilities with IAsyncEnumerable support, and automatic handler discovery. Perfect for cloud-native applications requiring high performance, comprehensive observability, and production-ready architecture patterns.</Description>
+
+    <PackageId>Blazing.Mediator</PackageId>
+    <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
+    <PackageReleaseNotes>Version 3.0.0: Source-Gen rewrite; 100% AOT compatible; Net 9 &amp; 10 support; backwards compatible with minor breaking changes.</PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>mediator;cqrs;command;query;middleware;pipeline;dependency-injection;streaming;async-enumerable;real-time;json-streaming;sse;server-sent-events;notifications;observer-pattern;event-driven;publish-subscribe;pattern;architecture;clean-code;conditional;type-constrained;samples;minimal-api;controllers;ai-streaming;high-performance;subscription-management;opentelemetry;observability;distributed-tracing;metrics;logging;statistics;fluent-configuration;environment-aware;cloud-native;production-ready</PackageTags>
+
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
-    <PackageReleaseNotes>Version 2.0.0: Added Net 10 support; new MiddlewareAnalysisExtensions and QueryCommandAnalysisExtensions extension helpers for comprehensive type normalization. Fixed edge case bug in RegistrationService with generic type definitions. New AnalyzerExample demonstrates analyzer capabilities across 92 components in 5 projects with enhanced debugging tools and missing handler detection. Improved developer experience with visual missing handler identification and comprehensive pipeline analysis capabilities.</PackageReleaseNotes>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    
+    <!-- NuGet package settings -->
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     
     <!-- Enable source generator execution for debugging -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
     
-    <!-- DO NOT define USE_SOURCE_GENERATORS in the library itself -->
-    <!-- It should only be defined in consuming projects that have handlers -->
-    <!-- The library code has #if USE_SOURCE_GENERATORS blocks that fall back to reflection -->
+    <!-- Source generators are used by consuming projects, not by the library itself. -->
     <!-- <DefineConstants>$(DefineConstants);USE_SOURCE_GENERATORS</DefineConstants> -->
   </PropertyGroup>
 

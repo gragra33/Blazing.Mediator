@@ -39,7 +39,7 @@ public class TrackingMiddlewarePipelineBuilder(IMiddlewareExecutionTracker execu
     public async ValueTask<TResponse> ExecutePipeline<TRequest, TResponse>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate<TResponse> finalHandler, CancellationToken cancellationToken) where TRequest : IRequest<TResponse>
     {
         _executionTracker.Clear();
-        return await ExecutePipelineWithTracking<TRequest, TResponse>(request, serviceProvider, finalHandler, cancellationToken).ConfigureAwait(false);
+        return await ExecutePipelineWithTracking<TRequest, TResponse>(request, serviceProvider, finalHandler, cancellationToken);
     }
 
     public async ValueTask ExecutePipeline<TRequest>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate finalHandler, CancellationToken cancellationToken) where TRequest : IRequest

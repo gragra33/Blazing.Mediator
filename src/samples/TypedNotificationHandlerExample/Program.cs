@@ -119,4 +119,3 @@ Console.WriteLine("  * Use MediatorStatistics for debugging and analyzing notifi
 Console.WriteLine("  * Monitor performance statistics to optimize notification processing");
 Console.WriteLine();
 Console.WriteLine("Demo finished. Press any key to exit...");
-Console.ReadKey();

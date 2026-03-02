@@ -1,6 +1,6 @@
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests.Statistics;
 
@@ -94,15 +94,15 @@ public class RequestVsNotificationStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        var cfg1 = new MediatorConfiguration();
-        cfg1.WithStatisticsTracking(options =>
-        {
-            options.EnableRequestMetrics = true;
-            options.EnableNotificationMetrics = true;
-            options.EnablePerformanceCounters = true;
-            options.EnableDetailedAnalysis = true;
-        }).WithNotificationHandlerDiscovery();
-        services.AddMediator(cfg1);
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
+            {
+                options.EnableRequestMetrics = true;
+                options.EnableNotificationMetrics = true;
+                options.EnablePerformanceCounters = true;
+                options.EnableDetailedAnalysis = true;
+            }).WithNotificationHandlerDiscovery()
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -161,13 +161,13 @@ public class RequestVsNotificationStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        var cfg2 = new MediatorConfiguration();
-        cfg2.WithStatisticsTracking(options =>
-        {
-            options.EnableRequestMetrics = true;
-            options.EnableNotificationMetrics = true;
-        }).WithNotificationHandlerDiscovery();
-        services.AddMediator(cfg2);
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
+            {
+                options.EnableRequestMetrics = true;
+                options.EnableNotificationMetrics = true;
+            }).WithNotificationHandlerDiscovery()
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -207,11 +207,13 @@ public class RequestVsNotificationStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
             {
                 options.EnableRequestMetrics = true;
                 options.EnableNotificationMetrics = true;
-            }));
+            })
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -249,7 +251,7 @@ public class RequestVsNotificationStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking().WithNotificationHandlerDiscovery());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -306,13 +308,13 @@ public class RequestVsNotificationStatisticsTests
         var services1 = new ServiceCollection();
         var renderer1 = new TestStatisticsRenderer();
         services1.AddSingleton<IStatisticsRenderer>(renderer1);
-        var cfgA = new MediatorConfiguration();
-        cfgA.WithStatisticsTracking(options =>
-        {
-            options.EnableRequestMetrics = false;
-            options.EnableNotificationMetrics = true;
-        }).WithNotificationHandlerDiscovery();
-        services1.AddMediator(cfgA);
+        services1.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
+            {
+                options.EnableRequestMetrics = false;
+                options.EnableNotificationMetrics = true;
+            }).WithNotificationHandlerDiscovery()
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider1 = services1.BuildServiceProvider();
         var mediator1 = serviceProvider1.GetRequiredService<IMediator>();
@@ -334,13 +336,13 @@ public class RequestVsNotificationStatisticsTests
         var services2 = new ServiceCollection();
         var renderer2 = new TestStatisticsRenderer();
         services2.AddSingleton<IStatisticsRenderer>(renderer2);
-        var cfgB = new MediatorConfiguration();
-        cfgB.WithStatisticsTracking(options =>
-        {
-            options.EnableRequestMetrics = true;
-            options.EnableNotificationMetrics = false;
-        }).WithNotificationHandlerDiscovery();
-        services2.AddMediator(cfgB);
+        services2.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
+            {
+                options.EnableRequestMetrics = true;
+                options.EnableNotificationMetrics = false;
+            }).WithNotificationHandlerDiscovery()
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider2 = services2.BuildServiceProvider();
         var mediator2 = serviceProvider2.GetRequiredService<IMediator>();
@@ -374,14 +376,14 @@ public class RequestVsNotificationStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        var cfgC = new MediatorConfiguration();
-        cfgC.WithStatisticsTracking(options =>
-        {
-            options.EnableRequestMetrics = true;
-            options.EnableNotificationMetrics = true;
-            options.EnablePerformanceCounters = true; // Enable performance summary
-        }).WithNotificationHandlerDiscovery();
-        services.AddMediator(cfgC);
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
+            {
+                options.EnableRequestMetrics = true;
+                options.EnableNotificationMetrics = true;
+                options.EnablePerformanceCounters = true; // Enable performance summary
+            }).WithNotificationHandlerDiscovery()
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

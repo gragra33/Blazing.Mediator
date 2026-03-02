@@ -3,6 +3,7 @@ using Blazing.Mediator;
 /// <summary>
 /// Cancellation check query middleware for testing cancellation token handling.
 /// </summary>
+[ExcludeFromAutoDiscovery]
 public class CancellationCheckQueryMiddleware : IRequestMiddleware<MiddlewareTestQuery, string>
 {
     /// <summary>

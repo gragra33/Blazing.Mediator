@@ -140,4 +140,3 @@ Console.WriteLine("  * Monitor the performance benefits using MediatorStatistics
 Console.WriteLine("  * Use this pattern in production for maximum flexibility and performance");
 Console.WriteLine();
 Console.WriteLine("Press any key to exit...");
-Console.ReadKey();

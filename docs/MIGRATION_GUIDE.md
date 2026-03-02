@@ -8,17 +8,18 @@ For a concise list of breaking changes, see [BREAKING_CHANGES.md](BREAKING_CHANG
 
 ## Overview of what changed
 
-| Area                                | v2.0.1                                       | v3.0.0                              |
-| ----------------------------------- | -------------------------------------------- | ----------------------------------- |
-| Handler return types                | `Task` / `Task<T>`                           | `ValueTask` / `ValueTask<T>`        |
-| Notification handler return type    | `Task`                                       | `ValueTask`                         |
-| Middleware return types             | `Task` / `Task<T>`                           | `ValueTask` / `ValueTask<T>`        |
-| `IMediator.Send` / `Publish`        | `Task` / `Task<T>`                           | `ValueTask` / `ValueTask<T>`        |
-| `#if USE_SOURCE_GENERATORS` guards  | Required in consuming projects               | Removed — no longer needed          |
-| Middleware registration             | Explicit `config.AddMiddleware(typeof(...))` | Auto-discovered by source generator |
-| `AddMediator()` overload signatures | Library-shipped extension methods            | Source-generator emitted            |
-| Default service lifetime            | Scoped                                       | Singleton                           |
-| Notification publishers             | Sequential hard-coded                        | Pluggable `INotificationPublisher`  |
+| Area                                | v2.0.1                                           | v3.0.0                                                                  |
+| ----------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------- |
+| Handler return types                | `Task` / `Task<T>`                               | `ValueTask` / `ValueTask<T>`                                            |
+| Notification handler return type    | `Task`                                           | `ValueTask`                                                             |
+| Middleware return types             | `Task` / `Task<T>`                               | `ValueTask` / `ValueTask<T>`                                            |
+| `IMediator.Send` / `Publish`        | `Task` / `Task<T>`                               | `ValueTask` / `ValueTask<T>`                                            |
+| `#if USE_SOURCE_GENERATORS` guards  | Required in consuming projects                   | Removed — no longer needed                                              |
+| Dispatch implementation             | Runtime reflection — handler resolved at runtime | Compile-time source generation — fully typed, zero-alloc dispatch table |
+| Middleware registration             | Explicit `config.AddMiddleware(typeof(...))`     | Auto-discovered by source generator                                     |
+| `AddMediator()` overload signatures | Library-shipped extension methods                | Source-generator emitted                                                |
+| Default service lifetime            | Scoped                                           | Singleton                                                               |
+| Notification publishers             | Sequential hard-coded                            | Pluggable `INotificationPublisher`                                      |
 
 ---
 
@@ -33,7 +34,7 @@ For a concise list of breaking changes, see [BREAKING_CHANGES.md](BREAKING_CHANG
 <PackageReference Include="Blazing.Mediator.SourceGenerators" Version="3.0.0" />
 ```
 
-The source-generators package is now required for `AddMediator()` to be available. It activates automatically — no `#if USE_SOURCE_GENERATORS` is needed.
+Both packages are required. v3.0.0 stripped all runtime reflection from the dispatch pipeline and replaced it with compile-time source generation — there is no fallback path. Without `Blazing.Mediator.SourceGenerators`, any call to `Send`, `Publish`, or `SendStream` throws `InvalidOperationException`. The generator activates automatically once referenced — no `#if USE_SOURCE_GENERATORS` is needed.
 
 ---
 

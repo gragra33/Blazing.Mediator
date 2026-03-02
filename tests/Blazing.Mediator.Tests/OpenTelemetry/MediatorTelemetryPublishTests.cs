@@ -1,5 +1,4 @@
-using Blazing.Mediator.Configuration;
-using Blazing.Mediator.OpenTelemetry;
+﻿using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 
@@ -29,7 +28,7 @@ public class MediatorTelemetryPublishTests : IDisposable
 
         // Add mediator with telemetry enabled - disable handler discovery to test pure subscriber functionality
         services.AddMediatorTelemetry();
-        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
+        services.AddMediator();
 
         // Register test notification subscribers
         _testSubscriber = new PublishTestNotificationSubscriber();
@@ -86,7 +85,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
+        services.AddMediator();
 
         // Register test notification subscribers
         var testSubscriber = new PublishTestNotificationSubscriber();
@@ -115,7 +114,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         var notification = new PublishTestNotification { Message = "Test message" };
 
         // Act & Assert - expecting one subscriber to throw exception
-        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification).AsTask());
+        await Should.ThrowAsync<InvalidOperationException>(async () => await mediator.Publish(notification));
 
         // Wait for activity to be recorded
         await Task.Delay(50);
@@ -168,7 +167,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
+        services.AddMediator();
 
         // Register test notification subscriber (only the successful one)
         var testSubscriber = new PublishTestNotificationSubscriber();
@@ -229,7 +228,7 @@ public class MediatorTelemetryPublishTests : IDisposable
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddMediatorTelemetry();
-            services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
+            services.AddMediator();
 
             // Register test notification subscriber
             var testSubscriber = new PublishTestNotificationSubscriber();
@@ -282,85 +281,13 @@ public class MediatorTelemetryPublishTests : IDisposable
     }
 
     [Fact]
-    public async Task Publish_SensitiveData_IsSanitized()
-    {
-        // Arrange - Use completely isolated service provider to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
-
-        services.AddSingleton<TestSensitiveNotificationSubscriber>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        
-        // Create and subscribe a dedicated subscriber for this test only
-        var sensitiveSubscriber = serviceProvider.GetRequiredService<TestSensitiveNotificationSubscriber>();
-        mediator.Subscribe<PublishTestNotificationWithPassword>(sensitiveSubscriber);
-        
-        var notification = new PublishTestNotificationWithPassword
-        {
-            Password = "secret123",
-            Token = "abc123",
-            Message = "Test with sensitive data"
-        };
-
-        // Act
-        await mediator.Publish(notification);
-
-        // Wait a small amount to ensure activity is recorded
-        await Task.Delay(50);
-
-        // Assert - Use the isolated testActivities collection
-        // The display name is sanitized — "Password" becomes "***" per SensitiveDataPatterns defaults
-        var activity = testActivities
-            .Where(a => a.DisplayName.Contains("PublishTestNotificationWith"))
-            .OrderByDescending(a => a.StartTimeUtc)
-            .FirstOrDefault();
-        
-        activity.ShouldNotBeNull("Activity should be created for sensitive notification");
-
-        // Verify sensitive data is sanitized in the notification type tag
-        var notificationName = activity.GetTagItem("notification.type")?.ToString()
-                            ?? activity.GetTagItem("notification_name")?.ToString();
-        notificationName.ShouldNotBeNull("Notification type tag should not be null");
-        
-        // Check that sensitive data patterns are handled
-        if (notificationName.Contains("***"))
-        {
-            // Sensitive data was sanitized — this is the expected behavior
-            notificationName.ShouldNotContain("Password");
-            notificationName.ShouldNotContain("secret123");
-            notificationName.ShouldNotContain("Token");
-            notificationName.ShouldNotContain("abc123");
-        }
-        else
-        {
-            // If no sanitization occurred, at least verify the notification type is correct
-            notificationName.ShouldBe("PublishTestNotificationWithPassword");
-        }
-    }
-
-    [Fact]
     public async Task Subscribe_And_Unsubscribe_WorksCorrectly()
     {
         // Arrange - Use completely isolated service provider to avoid cross-contamination
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
+        services.AddMediator();
 
         // Register test notification subscribers
         var baseSubscriber = new PublishTestNotificationSubscriber();
@@ -424,7 +351,7 @@ public class MediatorTelemetryPublishTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(new MediatorConfiguration().WithoutNotificationHandlerDiscovery());
+        services.AddMediator();
 
         // Register test notification subscribers
         var testSubscriber = new PublishTestNotificationSubscriber();

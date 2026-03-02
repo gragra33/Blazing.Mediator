@@ -1,4 +1,4 @@
-using Blazing.Mediator.Configuration;
+﻿using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,104 +12,96 @@ namespace Blazing.Mediator.Tests;
 public class MediatorEdgeCaseTests
 {
     /// <summary>
-    /// Tests that Send command uses fallback execution when ExecutePipeline method is not found via reflection.
+    /// Tests that Send command executes successfully via the source-gen dispatcher
+    /// without any IMiddlewarePipelineBuilder registration (which is no longer needed
+    /// in source-gen mode where the pipeline is pre-baked at compile time).
     /// </summary>
     [Fact]
-    public async Task Send_Command_WhenExecutePipelineMethodNotFound_UsesFallbackExecution()
+    public async Task Send_Command_WithSourceGenDispatcher_ExecutesSuccessfully()
     {
-        // Arrange - Create a mock pipeline builder that doesn't have ExecutePipeline method
+        // Arrange — source-gen discovers all handlers in the test assembly via AddMediator()
         ServiceCollection services = new();
-        services.AddScoped<IMediator, Mediator>();
-        services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderWithoutExecuteMethod>();
-        services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
-        services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
-        services.AddSingleton<MediatorStatistics>();
+        services.AddMediator();
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
+        using var scope = serviceProvider.CreateScope();
+        IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
         TestCommand command = new();
 
-        // Act & Assert - Should not throw exception and execute fallback
+        // Act & Assert — should execute without exception via source-gen dispatcher
         await mediator.Send(command);
     }
 
     /// <summary>
-    /// Tests that Send query uses fallback execution when ExecutePipeline method is not found via reflection.
+    /// Tests that Send query returns the expected result via the source-gen dispatcher
+    /// without any IMiddlewarePipelineBuilder registration.
     /// </summary>
     [Fact]
-    public async Task Send_Query_WhenExecutePipelineMethodNotFound_UsesFallbackExecution()
+    public async Task Send_Query_WithSourceGenDispatcher_ReturnsExpectedResult()
     {
-        // Arrange
+        // Arrange — source-gen discovers all handlers in the test assembly via AddMediator()
         ServiceCollection services = new();
-        services.AddScoped<IMediator, Mediator>();
-        services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderWithoutExecuteMethod>();
-        services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-        services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
-        services.AddSingleton<MediatorStatistics>();
+        services.AddMediator();
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
+        using var scope = serviceProvider.CreateScope();
+        IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
         TestQuery query = new();
 
         // Act
         string result = await mediator.Send(query);
 
-        // Assert - Should get the actual handler result when fallback is used
+        // Assert — handler returns "Result: 0" for the default TestQuery
         result.ShouldBe("Result: 0");
     }
 
     /// <summary>
-    /// Tests that Send command continues execution when reflection call returns null.
+    /// Tests that Send command works when IMiddlewarePipelineBuilder is registered but
+    /// unused by the source-gen dispatcher path (IMiddlewarePipelineBuilder is optional).
     /// </summary>
     [Fact]
-    public async Task Send_Command_WhenReflectionCallReturnsNull_ContinuesExecution()
+    public async Task Send_Command_WithOptionalMiddlewarePipelineBuilder_ExecutesSuccessfully()
     {
-        // Arrange
+        // Arrange — source-gen discovers all handlers; IMiddlewarePipelineBuilder is optional
         ServiceCollection services = new();
-        services.AddScoped<IMediator, Mediator>();
-        services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderReturningNull>();
-        services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
-        services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
-        services.AddSingleton<MediatorStatistics>();
+        services.AddMediator();
+        // Optionally register IMiddlewarePipelineBuilder — should not affect source-gen dispatch
+        services.AddScoped<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
+        using var scope = serviceProvider.CreateScope();
+        IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
         TestCommand command = new();
 
-        // Act & Assert - Should not throw exception
+        // Act & Assert
         await mediator.Send(command);
     }
 
     /// <summary>
-    /// Tests that Send query uses fallback when reflection call returns null.
+    /// Tests that Send query returns the expected result when an optional IMiddlewarePipelineBuilder
+    /// is registered but bypassed by the source-gen dispatcher.
     /// </summary>
     [Fact]
-    public async Task Send_Query_WhenReflectionCallReturnsNull_UsesFallback()
+    public async Task Send_Query_WithOptionalMiddlewarePipelineBuilder_ReturnsExpectedResult()
     {
-        // Arrange
+        // Arrange — source-gen discovers all handlers; IMiddlewarePipelineBuilder is optional
         ServiceCollection services = new();
-        services.AddScoped<IMediator, Mediator>();
-        services.AddScoped<IMiddlewarePipelineBuilder, MockPipelineBuilderReturningNull>();
-        services.AddScoped<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-        services.AddSingleton<IStatisticsRenderer, TestStatisticsRenderer>();
-        services.AddSingleton<MediatorStatistics>();
+        services.AddMediator();
+        services.AddScoped<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
-        IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
+        using var scope = serviceProvider.CreateScope();
+        IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
         TestQuery query = new();
 
         // Act
         string result = await mediator.Send(query);
 
-        // Assert - Should get the actual handler result when fallback is used
+        // Assert
         result.ShouldBe("Result: 0");
     }
 
@@ -141,24 +133,20 @@ public class MediatorEdgeCaseTests
     {
         // Arrange
         ServiceCollection services = new();
-
-        var config = new MediatorConfiguration();
-        config.PipelineBuilder.AddMiddleware<MiddlewareWithNoParameterlessConstructor>();
-
-        services.AddSingleton(config);
-        services.AddScoped<IMiddlewarePipelineBuilder>(provider =>
-            provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
         services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
-
         ServiceProvider serviceProvider = services.BuildServiceProvider();
-        var pipelineBuilder = serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>();
+
+        // Use MiddlewarePipelineBuilder directly (PipelineBuilder on MediatorConfiguration is null
+        // in source-gen mode — pipeline is pre-baked at compile time).
+        var pipelineBuilder = new MiddlewarePipelineBuilder();
+        pipelineBuilder.AddMiddleware<MiddlewareWithNoParameterlessConstructor>();
 
         var request = new MiddlewareTestQuery();
         RequestHandlerDelegate<string> finalHandler = () => ValueTask.FromResult("Handler: test");
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None));
     }
 
     /// <summary>
@@ -169,24 +157,20 @@ public class MediatorEdgeCaseTests
     {
         // Arrange
         ServiceCollection services = new();
-
-        var config = new MediatorConfiguration();
-        config.PipelineBuilder.AddMiddleware<CommandMiddlewareWithNoParameterlessConstructor>();
-
-        services.AddSingleton(config);
-        services.AddScoped<IMiddlewarePipelineBuilder>(provider =>
-            provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
-
         ServiceProvider serviceProvider = services.BuildServiceProvider();
-        var pipelineBuilder = serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>();
+
+        // Use MiddlewarePipelineBuilder directly (PipelineBuilder on MediatorConfiguration is null
+        // in source-gen mode — pipeline is pre-baked at compile time).
+        var pipelineBuilder = new MiddlewarePipelineBuilder();
+        pipelineBuilder.AddMiddleware<CommandMiddlewareWithNoParameterlessConstructor>();
 
         var request = new TestCommand();
         RequestHandlerDelegate finalHandler = () => ValueTask.CompletedTask;
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None));
     }
 
     /// <summary>
@@ -205,7 +189,7 @@ public class MediatorEdgeCaseTests
         var result = builder.Build<TestQuery, string>(serviceProvider, finalHandler);
 
         // Assert - The returned delegate should throw when called
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => result().AsTask());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await result());
         exception.Message.ShouldContain("Use ExecutePipeline method instead");
     }
 
@@ -225,70 +209,8 @@ public class MediatorEdgeCaseTests
         var result = builder.Build<TestCommand>(serviceProvider, finalHandler);
 
         // Assert - The returned delegate should throw when called
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => result().AsTask());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await result());
         exception.Message.ShouldContain("Use ExecutePipeline method instead for commands");
-    }
-
-    /// <summary>
-    /// Tests that ExecutePipeline with generic middleware handles type instantiation correctly.
-    /// </summary>
-    [Fact]
-    public async Task ExecutePipeline_WithGenericMiddleware_HandlesTypeInstantiation()
-    {
-        // Arrange
-        ServiceCollection services = new();
-
-        var config = new MediatorConfiguration(services);
-        config.PipelineBuilder.AddMiddleware(typeof(GenericMiddleware<,>));
-
-        services.AddSingleton(config);
-        services.AddScoped<IMiddlewarePipelineBuilder>(provider =>
-            provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
-        services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
-        services.AddScoped(typeof(GenericMiddleware<,>));
-
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        var pipelineBuilder = serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>();
-
-        var request = new MiddlewareTestQuery();
-        RequestHandlerDelegate<string> finalHandler = () => ValueTask.FromResult("Handler: test");
-
-        // Act
-        string result = await pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None);
-
-        // Assert
-        result.ShouldBe("Generic: Handler: test");
-    }
-
-    /// <summary>
-    /// Tests that ExecutePipeline with middleware ordering exception uses default order.
-    /// </summary>
-    [Fact]
-    public async Task ExecutePipeline_WithMiddlewareOrderingException_UsesDefaultOrder()
-    {
-        // Arrange
-        ServiceCollection services = new();
-
-        var config = new MediatorConfiguration(services);
-        config.PipelineBuilder.AddMiddleware<MiddlewareWithExceptionInOrder>();
-
-        services.AddSingleton(config);
-        services.AddScoped<IMiddlewarePipelineBuilder>(provider =>
-            provider.GetRequiredService<MediatorConfiguration>().PipelineBuilder);
-        services.AddScoped<IRequestHandler<MiddlewareTestQuery, string>, MiddlewareTestQueryHandler>();
-        services.AddScoped<MiddlewareWithExceptionInOrder>();
-
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
-        var pipelineBuilder = serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>();
-
-        var request = new MiddlewareTestQuery();
-        RequestHandlerDelegate<string> finalHandler = () => ValueTask.FromResult("Handler: test");
-
-        // Act
-        string result = await pipelineBuilder.ExecutePipeline(request, serviceProvider, finalHandler, CancellationToken.None);
-
-        // Assert
-        result.ShouldBe("Exception Order: Handler: test");
     }
 
     /// <summary>

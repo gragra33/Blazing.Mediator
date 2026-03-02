@@ -5,6 +5,7 @@ namespace Blazing.Mediator.Tests;
 /// </summary>
 /// <typeparam name="TRequest">The request type.</typeparam>
 /// <typeparam name="TResponse">The response type.</typeparam>
+[ExcludeFromAutoDiscovery]
 public class GenericMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {

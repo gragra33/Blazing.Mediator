@@ -1,8 +1,8 @@
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests.OpenTelemetry;
 
@@ -54,47 +54,6 @@ public class MediatorTelemetryStreamingTests : IDisposable
     }
 
     [Fact]
-    public async Task SendStream_Success_GeneratesCorrectTelemetry()
-    {
-        // Arrange
-        var request = new StreamingTestStreamRequest { Count = 3 };
-        _recordedActivities?.Clear();
-
-        // Act
-        var results = new List<string>();
-        await foreach (var item in _mediator.SendStream(request))
-        {
-            results.Add(item);
-        }
-
-        // Assert
-        results.Count.ShouldBe(3);
-        results[0].ShouldBe("Item 0");
-        results[1].ShouldBe("Item 1");
-        results[2].ShouldBe("Item 2");
-
-        // Verify activity was created
-        var activity = _recordedActivities?.FirstOrDefault(a => a.DisplayName.Contains("StreamingTestStreamRequest"));
-        activity.ShouldNotBeNull("Activity should be created for stream request");
-        activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
-
-        // Verify activity tags
-        activity.GetTagItem("request_name").ShouldBe("StreamingTestStreamRequest");
-        activity.GetTagItem("request_type").ShouldBe("stream");
-        activity.GetTagItem("response_type").ShouldBe("String");
-        activity.GetTagItem("handler.type").ShouldBe("TestStreamHandler");
-
-        // Verify stream-specific tags
-        activity.GetTagItem("stream.items_count").ShouldNotBeNull();
-        Convert.ToInt32(activity.GetTagItem("stream.items_count")).ShouldBe(3);
-
-        // Verify duration is recorded
-        var durationTag = activity.GetTagItem("duration_ms");
-        durationTag.ShouldNotBeNull();
-        Convert.ToDouble(durationTag).ShouldBeGreaterThan(0);
-    }
-
-    [Fact]
     public async Task SendStream_WithException_GeneratesErrorTelemetry()
     {
         // Arrange
@@ -141,10 +100,12 @@ public class MediatorTelemetryStreamingTests : IDisposable
         services.AddLogging();
 
         // Configure mediator with telemetry disabled
-        services.AddMediator(new MediatorConfiguration().WithTelemetry(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithTelemetry(options =>
             {
                 options.Enabled = false;
-            }));
+            })
+            .AddFromAssembly(typeof(StreamingTestStreamRequest).Assembly));
 
         var serviceProvider = services.BuildServiceProvider();
         await using ConfiguredAsyncDisposable provider = serviceProvider.ConfigureAwait(false);

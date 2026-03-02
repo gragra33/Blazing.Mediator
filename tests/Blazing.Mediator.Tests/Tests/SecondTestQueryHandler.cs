@@ -2,11 +2,13 @@ namespace Blazing.Mediator.Tests;
 
 /// <summary>
 /// Second test query handler for multiple handler tests.
+/// Excluded from auto-discovery to prevent conflicts with TestQueryHandler.
 /// </summary>
+[ExcludeFromAutoDiscovery]
 public class SecondTestQueryHandler : IRequestHandler<TestQuery, string>
 {
-    public async ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
+    public ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
     {
-        return $"Second: {request.Value}";
+        return ValueTask.FromResult($"Second: {request.Value}");
     }
 }

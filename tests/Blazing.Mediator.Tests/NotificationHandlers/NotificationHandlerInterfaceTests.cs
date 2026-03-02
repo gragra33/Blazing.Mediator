@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 namespace Blazing.Mediator.Tests.NotificationHandlers;
@@ -74,7 +74,7 @@ public class NotificationHandlerInterfaceTests
 
         // Assert
         Assert.NotNull(handleMethod);
-        Assert.Equal(typeof(ValueTask), handleMethod.ReturnType);
+        Assert.Equal(typeof(ValueTask), handleMethod.ReturnType); // v3: Handle returns ValueTask
         
         var parameters = handleMethod.GetParameters();
         Assert.Equal(2, parameters.Length);
@@ -162,7 +162,7 @@ public class NotificationHandlerInterfaceTests
         var notification = new TestNotification("Test message");
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(notification).AsTask());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await handler.Handle(notification));
         Assert.Equal("Test exception", exception.Message);
     }
 

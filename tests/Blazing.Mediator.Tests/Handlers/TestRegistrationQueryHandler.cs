@@ -12,8 +12,8 @@ public class TestRegistrationQueryHandler : IRequestHandler<TestRegistrationQuer
     /// <param name="request">The test registration query to handle.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task containing the string "TestRegistrationQueryHandler".</returns>
-    public async ValueTask<string> Handle(TestRegistrationQuery request, CancellationToken cancellationToken = default)
+    public ValueTask<string> Handle(TestRegistrationQuery request, CancellationToken cancellationToken = default)
     {
-        return "TestRegistrationQueryHandler";
+        return ValueTask.FromResult("TestRegistrationQueryHandler");
     }
 }

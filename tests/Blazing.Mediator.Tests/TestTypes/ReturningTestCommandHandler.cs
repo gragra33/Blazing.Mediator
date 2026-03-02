@@ -5,8 +5,8 @@ namespace Blazing.Mediator.Tests.TestTypes;
 /// </summary>
 public class ReturningTestCommandHandler : IRequestHandler<ReturningTestCommand, int>
 {
-    public async ValueTask<int> Handle(ReturningTestCommand request, CancellationToken cancellationToken)
+    public ValueTask<int> Handle(ReturningTestCommand request, CancellationToken cancellationToken)
     {
-        return request.Value.Length;
+        return ValueTask.FromResult(request.Value.Length);
     }
 }

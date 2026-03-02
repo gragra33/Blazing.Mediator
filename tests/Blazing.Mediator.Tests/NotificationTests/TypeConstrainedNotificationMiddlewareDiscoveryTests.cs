@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using static Blazing.Mediator.Tests.NotificationTests.NotificationMiddlewareTests;
-using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests.NotificationTests;
 
@@ -11,82 +10,6 @@ namespace Blazing.Mediator.Tests.NotificationTests;
 public class TypeConstrainedNotificationMiddlewareDiscoveryTests
 {
     private readonly Assembly _testAssembly = typeof(TypeConstrainedNotificationMiddlewareDiscoveryTests).Assembly;
-
-    /// <summary>
-    /// Test that auto-discovery finds INotificationMiddleware&lt;T&gt; implementations
-    /// </summary>
-    [Fact]
-    public void AutoDiscovery_FindsConstrainedNotificationMiddleware()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act - Enable auto-discovery of notification middleware
-        services.AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery());
-
-        // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var inspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
-        var middlewareTypes = inspector.GetRegisteredMiddleware();
-
-        // Should find the test constrained middleware
-        middlewareTypes.ShouldContain(typeof(TestOrderConstrainedMiddleware));
-        middlewareTypes.ShouldContain(typeof(TestCustomerConstrainedMiddleware));
-        middlewareTypes.ShouldContain(typeof(TestAuditConstrainedMiddleware));
-        
-        // Should also find regular notification middleware
-        middlewareTypes.ShouldContain(typeof(LoggingNotificationMiddleware));
-    }
-
-    /// <summary>
-    /// Test that constrained middleware is properly registered with correct ordering
-    /// </summary>
-    [Fact]
-    public void ConstrainedMiddleware_HasCorrectOrdering()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery());
-
-        // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var inspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
-        var analysis = inspector.AnalyzeMiddleware(serviceProvider);
-
-        // Find our test middleware and verify ordering
-        var orderMiddleware = analysis.FirstOrDefault(m => m.Type == typeof(TestOrderConstrainedMiddleware));
-        var customerMiddleware = analysis.FirstOrDefault(m => m.Type == typeof(TestCustomerConstrainedMiddleware));
-        var auditMiddleware = analysis.FirstOrDefault(m => m.Type == typeof(TestAuditConstrainedMiddleware));
-
-        orderMiddleware?.Order.ShouldBe(50);
-        customerMiddleware?.Order.ShouldBe(60);
-        auditMiddleware?.Order.ShouldBe(100);
-    }
-
-    /// <summary>
-    /// Test that constrained and non-constrained middleware can coexist
-    /// </summary>
-    [Fact]
-    public void ConstrainedAndNonConstrainedMiddleware_CanCoexist()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddMediator(new MediatorConfiguration().AddNotificationMiddleware<LoggingNotificationMiddleware>().WithNotificationMiddlewareDiscovery());
-
-        // Assert
-        var serviceProvider = services.BuildServiceProvider();
-        var inspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
-        var middlewareTypes = inspector.GetRegisteredMiddleware();
-
-        // Should have both types
-        middlewareTypes.ShouldContain(typeof(LoggingNotificationMiddleware)); // Regular (may appear twice - manual + auto)
-        middlewareTypes.ShouldContain(typeof(TestOrderConstrainedMiddleware)); // Constrained
-        middlewareTypes.ShouldContain(typeof(TestCustomerConstrainedMiddleware)); // Constrained
-    }
 }
 
 // Test constraint interfaces

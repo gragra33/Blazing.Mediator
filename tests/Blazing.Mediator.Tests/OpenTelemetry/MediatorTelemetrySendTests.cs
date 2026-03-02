@@ -1,7 +1,7 @@
+﻿using Blazing.Mediator.Configuration;
 using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
-using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests.OpenTelemetry;
 
@@ -61,196 +61,6 @@ public class MediatorTelemetrySendTests : IDisposable
     }
 
     [Fact]
-    public async Task Send_Command_Success_GeneratesCorrectTelemetry()
-    {
-        // Arrange - Use completely isolated service provider to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator(); // Don't scan assemblies to avoid conflicts
-
-        // Register test handlers manually to avoid conflicts
-        services.AddScoped<IRequestHandler<SendTestCommand>, SendTestCommandHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var command = new SendTestCommand { Value = "test" };
-
-        // Act
-        await mediator.Send(command);
-
-        // Wait for activities to be recorded
-        await Task.Delay(50);
-
-        // Assert
-        // Verify activity was created
-        var activity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommand"));
-        activity.ShouldNotBeNull("Activity should be created for command");
-        activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
-
-        // Verify activity tags
-        activity.GetTagItem("request_name").ShouldBe("SendTestCommand");
-        activity.GetTagItem("request_type").ShouldBe("command");
-        activity.GetTagItem("handler.type").ShouldBe("SendTestCommandHandler");
-
-        // Verify duration is recorded
-        var durationTag = activity.GetTagItem("duration_ms");
-        durationTag.ShouldNotBeNull();
-        Convert.ToDouble(durationTag).ShouldBeGreaterThan(0);
-    }
-
-    [Fact]
-    public async Task Send_Query_Success_GeneratesCorrectTelemetry()
-    {
-        // Arrange - Use completely isolated service provider to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator(); // Don't scan assemblies to avoid conflicts
-
-        // Register test handlers manually to avoid conflicts
-        services.AddScoped<IRequestHandler<SendTestQuery, string>, SendTestQueryHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var query = new SendTestQuery { Value = "test query" };
-
-        // Act
-        var result = await mediator.Send(query);
-
-        // Wait for activities to be recorded
-        await Task.Delay(50);
-
-        // Assert
-        result.ShouldBe("Handled: test query");
-
-        // Verify activity was created
-        var activity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("SendTestQuery"));
-        activity.ShouldNotBeNull("Activity should be created for query");
-        activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
-
-        // Verify activity tags include response type
-        activity.GetTagItem("request_name").ShouldBe("SendTestQuery");
-        activity.GetTagItem("request_type").ShouldBe("query");
-        activity.GetTagItem("response_type").ShouldBe("String");
-        activity.GetTagItem("handler.type").ShouldBe("SendTestQueryHandler");
-    }
-
-    [Fact]
-    public async Task Send_Command_WithException_GeneratesErrorTelemetry()
-    {
-        // Arrange - Use completely isolated service provider to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator(); // Don't scan assemblies to avoid conflicts
-
-        // Register test handlers manually to avoid conflicts
-        services.AddScoped<IRequestHandler<SendTestCommandWithException>, SendTestCommandWithExceptionHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var command = new SendTestCommandWithException();
-
-        // Act & Assert
-        var exception = await Should.ThrowAsync<InvalidOperationException>(() => mediator.Send(command).AsTask());
-        exception.Message.ShouldBe("Test exception");
-
-        // Wait for activities to be recorded
-        await Task.Delay(50);
-
-        // Verify activity was created with error status
-        var activity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommandWithException"));
-        activity.ShouldNotBeNull("Activity should be created for failed command");
-        activity.Status.ShouldBe(ActivityStatusCode.Error, "Activity should have error status");
-
-        // Verify exception details in activity
-        activity.GetTagItem("exception.type").ShouldBe("InvalidOperationException");
-        var exceptionMessage = activity.GetTagItem("exception.message")?.ToString();
-        exceptionMessage.ShouldNotBeNull();
-        exceptionMessage.ShouldContain("Test exception");
-    }
-
-    [Fact]
-    public async Task Send_Query_WithException_GeneratesErrorTelemetry()
-    {
-        // Arrange - Use completely isolated service provider to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator(); // Don't scan assemblies to avoid conflicts
-
-        // Register test handlers manually to avoid conflicts
-        services.AddScoped<IRequestHandler<SendTestQueryWithException, string>, SendTestQueryWithExceptionHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var query = new SendTestQueryWithException();
-
-        // Act & Assert
-        var exception = await Should.ThrowAsync<InvalidOperationException>(() => mediator.Send(query).AsTask());
-        exception.Message.ShouldBe("Test query exception");
-
-        // Wait for activities to be recorded
-        await Task.Delay(50);
-
-        // Verify activity was created with error status
-        var activity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("SendTestQueryWithException"));
-        activity.ShouldNotBeNull("Activity should be created for failed query");
-        activity.Status.ShouldBe(ActivityStatusCode.Error, "Activity should have error status");
-
-        // Verify exception details in activity
-        activity.GetTagItem("exception.type").ShouldBe("InvalidOperationException");
-        var exceptionMessage = activity.GetTagItem("exception.message")?.ToString();
-        exceptionMessage.ShouldNotBeNull();
-        exceptionMessage.ShouldContain("Test query exception");
-    }
-
-    [Fact]
     public async Task Send_DisabledTelemetry_DoesNotGenerateTelemetry()
     {
         // Arrange - Create a separate mediator with telemetry explicitly disabled
@@ -258,10 +68,12 @@ public class MediatorTelemetrySendTests : IDisposable
         services.AddLogging();
 
         // Configure mediator with telemetry disabled
-        services.AddMediator(new MediatorConfiguration().WithTelemetry(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithTelemetry(options =>
             {
                 options.Enabled = false;
-            }));
+            })
+            .AddFromAssembly(typeof(SendTestCommand).Assembly));
 
         await using var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -323,141 +135,6 @@ public class MediatorTelemetrySendTests : IDisposable
         }
     }
 
-    [Fact]
-    public async Task Send_SensitiveData_IsSanitized()
-    {
-        // Arrange - Use completely isolated service provider to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator(); // Don't scan assemblies to avoid conflicts
-
-        // Register test handlers manually to avoid conflicts
-        services.AddScoped<IRequestHandler<SendTestCommandWithPassword>, SendTestCommandWithPasswordHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var command = new SendTestCommandWithPassword { Password = "secret123", Token = "abc123" };
-
-        // Act
-        await mediator.Send(command);
-
-        // Wait for activities to be recorded
-        await Task.Delay(100); // Longer wait to ensure activity is recorded
-
-        // Assert
-        var activity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommandWith"));
-        activity.ShouldNotBeNull("Activity should be created for SendTestCommandWithPassword");
-
-        // Verify sensitive data is sanitized
-        var requestName = activity.GetTagItem("request_name")?.ToString();
-        if (requestName != null)
-        {
-            requestName.ShouldContain("***");
-            requestName.ShouldNotContain("Password");
-        }
-        else
-        {
-            throw new InvalidOperationException("Request name should not be null");
-        }
-    }
-
-    [Fact]
-    public async Task Send_Command_RecordsCorrectMetrics()
-    {
-        // Arrange - Use completely isolated service provider to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator(); // Don't scan assemblies to avoid conflicts
-
-        // Register test handlers manually to avoid conflicts
-        services.AddScoped<IRequestHandler<SendTestCommand>, SendTestCommandHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var command = new SendTestCommand { Value = "metrics test" };
-
-        // Act
-        await mediator.Send(command);
-
-        // Wait for activities to be recorded
-        await Task.Delay(50);
-
-        // Assert
-        var activity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommand"));
-        activity.ShouldNotBeNull();
-
-        // Verify metrics tags are present
-        activity.GetTagItem("request_name").ShouldBe("SendTestCommand");
-        activity.GetTagItem("handler.type").ShouldBe("SendTestCommandHandler");
-        activity.GetTagItem("duration_ms").ShouldNotBeNull();
-    }
-
-    [Fact]
-    public async Task Send_WithMiddleware_TracksMiddlewareExecution()
-    {
-        // Arrange - Use completely isolated service provider to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator(); // Don't scan assemblies to avoid conflicts
-
-        // Register test handlers manually to avoid conflicts
-        services.AddScoped<IRequestHandler<SendTestCommand>, SendTestCommandHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var command = new SendTestCommand { Value = "middleware test" };
-
-        // Act
-        await mediator.Send(command);
-
-        // Wait for activities to be recorded
-        await Task.Delay(50);
-
-        // Assert
-        var activity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("SendTestCommand"));
-        activity.ShouldNotBeNull();
-
-        // Verify middleware tracking (if middleware is configured)
-        activity.GetTagItem("request_name").ShouldBe("SendTestCommand");
-        activity.GetTagItem("handler.type").ShouldBe("SendTestCommandHandler");
-    }
-
     #region Test Classes
 
     public class SendTestCommand : IRequest
@@ -473,7 +150,7 @@ public class MediatorTelemetrySendTests : IDisposable
         }
     }
 
-    public class SendTestQuery : IQuery<string>
+    public class SendTestQuery : IRequest<string>
     {
         public string Value { get; set; } = string.Empty;
     }

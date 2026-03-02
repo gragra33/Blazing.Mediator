@@ -5,8 +5,8 @@ namespace Blazing.Mediator.Tests.Statistics;
 /// </summary>
 public class AmbiguousRequestHandler : IRequestHandler<AmbiguousRequest, string>
 {
-    public async ValueTask<string> Handle(AmbiguousRequest request, CancellationToken cancellationToken)
+    public ValueTask<string> Handle(AmbiguousRequest request, CancellationToken cancellationToken)
     {
-        return $"ambiguous: {request.Value}";
+        return ValueTask.FromResult($"ambiguous: {request.Value}");
     }
 }

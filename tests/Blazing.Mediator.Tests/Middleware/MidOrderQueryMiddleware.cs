@@ -3,6 +3,7 @@ using Blazing.Mediator;
 /// <summary>
 /// Mid order query middleware for testing execution order priority.
 /// </summary>
+[ExcludeFromAutoDiscovery]
 public class MidOrderQueryMiddleware : IRequestMiddleware<MiddlewareTestQuery, string>
 {
     /// <summary>

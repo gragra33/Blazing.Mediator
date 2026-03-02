@@ -116,4 +116,3 @@ Console.WriteLine();
 Console.WriteLine("@ Demo finished. Enhanced MediatorStatistics show accurate subscriber tracking!");
 Console.WriteLine("@ This demonstrates the fix for issue: NotificationSubscriberExample no longer reports '0 handlers'");
 Console.WriteLine("@ Press any key to exit...");
-Console.ReadKey();

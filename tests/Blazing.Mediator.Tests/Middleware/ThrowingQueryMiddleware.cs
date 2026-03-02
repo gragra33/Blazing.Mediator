@@ -3,6 +3,7 @@ using Blazing.Mediator;
 /// <summary>
 /// Throwing query middleware for testing exception handling.
 /// </summary>
+[ExcludeFromAutoDiscovery]
 public class ThrowingQueryMiddleware : IRequestMiddleware<MiddlewareTestQuery, string>
 {
     /// <summary>

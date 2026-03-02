@@ -3,6 +3,7 @@ using Blazing.Mediator;
 /// <summary>
 /// Auto-discovery test conditional middleware with static Order property.
 /// </summary>
+[ExcludeFromAutoDiscovery]
 public class AutoDiscoveryConditionalMiddleware : IConditionalMiddleware<MiddlewareTestQuery, string>
 {
     /// <summary>

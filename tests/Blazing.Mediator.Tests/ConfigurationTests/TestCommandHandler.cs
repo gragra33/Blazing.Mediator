@@ -1,9 +1,10 @@
 namespace Blazing.Mediator.Tests.ConfigurationTests;
 
-public class TestCommandHandler : IRequestHandler<TestCommand>
+public class CfgTestCommandHandler : IRequestHandler<CfgTestCommand>
 {
-    public ValueTask Handle(TestCommand request, CancellationToken cancellationToken)
+    public ValueTask Handle(CfgTestCommand request, CancellationToken cancellationToken)
     {
         return ValueTask.CompletedTask;
     }
 }
+

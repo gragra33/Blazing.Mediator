@@ -5,8 +5,8 @@ namespace Blazing.Mediator.Tests.Statistics;
 /// </summary>
 public class TestRequestNamedCommandHandler : IRequestHandler<TestRequestNamedCommand, bool>
 {
-    public async ValueTask<bool> Handle(TestRequestNamedCommand request, CancellationToken cancellationToken)
+    public ValueTask<bool> Handle(TestRequestNamedCommand request, CancellationToken cancellationToken)
     {
-        return true;
+        return ValueTask.FromResult(true);
     }
 }

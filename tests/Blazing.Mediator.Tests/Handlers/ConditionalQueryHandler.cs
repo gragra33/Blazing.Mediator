@@ -11,8 +11,8 @@ public class ConditionalQueryHandler : IRequestHandler<ConditionalQuery, string>
     /// <param name="request">The query request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A constant "ConditionalHandler" response.</returns>
-    public async ValueTask<string> Handle(ConditionalQuery request, CancellationToken cancellationToken = default)
+    public ValueTask<string> Handle(ConditionalQuery request, CancellationToken cancellationToken = default)
     {
-        return $"Handler: {request.Value}";
+        return ValueTask.FromResult($"Handler: {request.Value}");
     }
 }

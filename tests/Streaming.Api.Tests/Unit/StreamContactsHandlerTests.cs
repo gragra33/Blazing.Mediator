@@ -25,7 +25,7 @@ public class StreamContactsHandlerTests
         // Register ContactService first
         services.AddSingleton<IContactService, ContactService>();
 
-        // Add Mediator - source gen AddMediator from Streaming.Api project reference
+        // Register Mediator - source generator bakes in all handlers at compile time
         services.AddMediator();
 
         // Manually register all the handlers we need for testing

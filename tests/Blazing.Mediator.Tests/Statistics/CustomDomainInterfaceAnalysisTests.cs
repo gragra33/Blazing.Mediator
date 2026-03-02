@@ -279,46 +279,46 @@ public class StandardRequestCommand : IRequest<string>
 
 public class GetCustomerQueryHandler : IRequestHandler<GetCustomerQuery, CustomerDto>
 {
-    public async ValueTask<CustomerDto> Handle(GetCustomerQuery request, CancellationToken cancellationToken)
+    public ValueTask<CustomerDto> Handle(GetCustomerQuery request, CancellationToken cancellationToken)
     {
-        return new CustomerDto { Id = request.CustomerId, Name = "Test Customer" };
+        return ValueTask.FromResult(new CustomerDto { Id = request.CustomerId, Name = "Test Customer" });
     }
 }
 
 public class GetProductQueryHandler : IRequestHandler<GetProductQuery, ProductDto>
 {
-    public async ValueTask<ProductDto> Handle(GetProductQuery request, CancellationToken cancellationToken)
+    public ValueTask<ProductDto> Handle(GetProductQuery request, CancellationToken cancellationToken)
     {
-        return new ProductDto { Id = request.ProductId, Name = "Test Product" };
+        return ValueTask.FromResult(new ProductDto { Id = request.ProductId, Name = "Test Product" });
     }
 }
 
 public class GetInventoryQueryHandler : IRequestHandler<GetInventoryQuery, InventoryDto>
 {
-    public async ValueTask<InventoryDto> Handle(GetInventoryQuery request, CancellationToken cancellationToken)
+    public ValueTask<InventoryDto> Handle(GetInventoryQuery request, CancellationToken cancellationToken)
     {
-        return new InventoryDto { ProductId = request.ProductId, Quantity = 100 };
+        return ValueTask.FromResult(new InventoryDto { ProductId = request.ProductId, Quantity = 100 });
     }
 }
 
 public class GetPremiumCustomerQueryHandler : IRequestHandler<GetPremiumCustomerQuery, PremiumCustomerDto>
 {
-    public async ValueTask<PremiumCustomerDto> Handle(GetPremiumCustomerQuery request, CancellationToken cancellationToken)
+    public ValueTask<PremiumCustomerDto> Handle(GetPremiumCustomerQuery request, CancellationToken cancellationToken)
     {
-        return new PremiumCustomerDto 
+        return ValueTask.FromResult(new PremiumCustomerDto 
         { 
             Id = request.CustomerId, 
             Name = "Premium Customer", 
             PremiumLevel = "Gold" 
-        };
+        });
     }
 }
 
 public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerCommand, bool>
 {
-    public async ValueTask<bool> Handle(UpdateCustomerCommand request, CancellationToken cancellationToken)
+    public ValueTask<bool> Handle(UpdateCustomerCommand request, CancellationToken cancellationToken)
     {
-        return true;
+        return ValueTask.FromResult(true);
     }
 }
 
@@ -332,9 +332,9 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
 
 public class StandardRequestCommandHandler : IRequestHandler<StandardRequestCommand, string>
 {
-    public async ValueTask<string> Handle(StandardRequestCommand request, CancellationToken cancellationToken)
+    public ValueTask<string> Handle(StandardRequestCommand request, CancellationToken cancellationToken)
     {
-        return "Processed";
+        return ValueTask.FromResult("Processed");
     }
 }
 

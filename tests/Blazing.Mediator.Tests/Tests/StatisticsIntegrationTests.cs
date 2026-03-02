@@ -1,7 +1,7 @@
+﻿using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using Blazing.Mediator.Configuration;
 
 namespace Blazing.Mediator.Tests;
 
@@ -31,9 +31,9 @@ public class StatisticsIntegrationTests
 
     public class TestQueryHandler : IRequestHandler<TestQuery, string>
     {
-        public async ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
+        public ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
         {
-            return $"Response: {request.Message}";
+            return ValueTask.FromResult($"Response: {request.Message}");
         }
     }
 
@@ -106,7 +106,7 @@ public class StatisticsIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(); // No configuration = disabled statistics
+        services.AddMediator();
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -129,7 +129,7 @@ public class StatisticsIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(new MediatorConfiguration());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -159,7 +159,7 @@ public class StatisticsIntegrationTests
         var customRenderer = new TestStatisticsRenderer();
         var services = new ServiceCollection();
         services.AddSingleton<IStatisticsRenderer>(customRenderer);
-        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
+        services.AddMediator();
 
         // Act
         var serviceProvider = services.BuildServiceProvider();

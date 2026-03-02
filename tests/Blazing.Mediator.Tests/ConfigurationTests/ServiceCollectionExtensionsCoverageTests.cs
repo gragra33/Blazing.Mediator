@@ -1,6 +1,7 @@
 using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
 namespace Blazing.Mediator.Tests.ConfigurationTests;
 
@@ -42,6 +43,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
+        var assembly = typeof(ServiceCollectionExtensionsCoverageTests).Assembly;
 
         // Act
         services.AddMediator();
@@ -200,7 +202,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
 
-        // Act
+        // Act - WithStatisticsTracking() is required to register MediatorStatistics
         services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
@@ -218,9 +220,10 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
+        var assembly = typeof(ServiceCollectionExtensionsCoverageTests).Assembly;
 
         // Act
-        services.AddMediator();
+        services.AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery());
 
         // Assert
         _serviceProvider = services.BuildServiceProvider();
@@ -235,9 +238,10 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
+        var assembly = typeof(ServiceCollectionExtensionsCoverageTests).Assembly;
 
         // Act
-        services.AddMediator();
+        services.AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery());
 
         // Assert
         _serviceProvider = services.BuildServiceProvider();
@@ -254,7 +258,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         services.AddLogging();
 
         // Act
-        services.AddMediator();
+        services.AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery());
 
         // Assert
         _serviceProvider = services.BuildServiceProvider();
@@ -271,7 +275,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         services.AddLogging();
 
         // Act
-        services.AddMediator();
+        services.AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery());
 
         // Assert
         _serviceProvider = services.BuildServiceProvider();
@@ -288,7 +292,7 @@ public class ServiceCollectionExtensionsCoverageTests : IDisposable
         services.AddLogging();
 
         // Act
-        services.AddMediator();
+        services.AddMediator(new MediatorConfiguration().WithNotificationMiddlewareDiscovery());
 
         // Assert
         _serviceProvider = services.BuildServiceProvider();

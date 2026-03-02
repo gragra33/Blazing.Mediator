@@ -38,13 +38,13 @@ public class DebugStatisticsTests
         var services = new ServiceCollection();
         var renderer = new DebugStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        var cfg = new MediatorConfiguration();
-        cfg.WithStatisticsTracking(options =>
-        {
-            options.EnableRequestMetrics = true;
-            options.EnableNotificationMetrics = true;
-        }).WithNotificationHandlerDiscovery();
-        services.AddMediator(cfg);
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
+            {
+                options.EnableRequestMetrics = true;
+                options.EnableNotificationMetrics = true;
+            }).WithNotificationHandlerDiscovery()
+            .AddFromAssembly(typeof(DebugStatisticsTests).Assembly));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

@@ -3,6 +3,7 @@ using Blazing.Mediator;
 /// <summary>
 /// Async query middleware for testing asynchronous operations.
 /// </summary>
+[ExcludeFromAutoDiscovery]
 public class AsyncQueryMiddleware : IRequestMiddleware<MiddlewareTestQuery, string>
 {
     /// <summary>

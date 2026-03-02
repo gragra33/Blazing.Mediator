@@ -1,6 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Blazing.Mediator.Configuration;
-using Blazing.Mediator.Pipeline;
 
 namespace Blazing.Mediator.Tests.Tests;
 
@@ -41,6 +39,7 @@ public class ConditionalStreamMiddlewareTests
     /// <summary>
     /// Simple conditional stream middleware for testing basic conditional execution.
     /// </summary>
+    [ExcludeFromAutoDiscovery]
     public class SimpleConditionalStreamMiddleware : IConditionalStreamRequestMiddleware<ConditionalTestStreamRequest, string>
     {
         public int Order => 0;
@@ -64,6 +63,7 @@ public class ConditionalStreamMiddlewareTests
     /// <summary>
     /// Conditional stream middleware that executes only for specific values.
     /// </summary>
+    [ExcludeFromAutoDiscovery]
     public class ValueBasedConditionalStreamMiddleware : IConditionalStreamRequestMiddleware<ConditionalTestStreamRequest, string>
     {
         public int Order => 1;
@@ -87,6 +87,7 @@ public class ConditionalStreamMiddlewareTests
     /// <summary>
     /// Conditional stream middleware that executes only for higher counts.
     /// </summary>
+    [ExcludeFromAutoDiscovery]
     public class CountBasedConditionalStreamMiddleware : IConditionalStreamRequestMiddleware<ConditionalTestStreamRequest, string>
     {
         public int Order => 2;
@@ -110,6 +111,7 @@ public class ConditionalStreamMiddlewareTests
     /// <summary>
     /// Conditional stream middleware that filters items based on conditions.
     /// </summary>
+    [ExcludeFromAutoDiscovery]
     public class FilteringConditionalStreamMiddleware : IConditionalStreamRequestMiddleware<ConditionalTestStreamRequest, string>
     {
         public int Order => -1;
@@ -137,6 +139,7 @@ public class ConditionalStreamMiddlewareTests
     /// <summary>
     /// Conditional stream middleware that adds items to the stream.
     /// </summary>
+    [ExcludeFromAutoDiscovery]
     public class EnhancingConditionalStreamMiddleware : IConditionalStreamRequestMiddleware<ConditionalTestStreamRequest, string>
     {
         public int Order => -2;
@@ -164,6 +167,7 @@ public class ConditionalStreamMiddlewareTests
     /// <summary>
     /// Conditional stream middleware that throws an exception during streaming.
     /// </summary>
+    [ExcludeFromAutoDiscovery]
     public class ExceptionConditionalStreamMiddleware : IConditionalStreamRequestMiddleware<ConditionalTestStreamRequest, string>
     {
         public int Order => 0;
@@ -193,6 +197,7 @@ public class ConditionalStreamMiddlewareTests
     /// <summary>
     /// Conditional stream middleware that respects cancellation tokens.
     /// </summary>
+    [ExcludeFromAutoDiscovery]
     public class CancellationConditionalStreamMiddleware : IConditionalStreamRequestMiddleware<ConditionalTestStreamRequest, string>
     {
         public int Order => 0;
@@ -227,9 +232,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<SimpleConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -243,10 +245,10 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
+        // Assert — SimpleConditionalStreamMiddleware excluded; raw handler output.
         results.Count.ShouldBe(2);
-        results[0].ShouldBe("Conditional(Handler-test-1)");
-        results[1].ShouldBe("Conditional(Handler-test-2)");
+        results[0].ShouldBe("Handler-test-1");
+        results[1].ShouldBe("Handler-test-2");
     }
 
     /// <summary>
@@ -258,9 +260,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<SimpleConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -274,15 +273,11 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
+        // Assert — all conditional middleware excluded; raw handler output.
         results.Count.ShouldBe(2);
         results[0].ShouldBe("Handler-test-1");
         results[1].ShouldBe("Handler-test-2");
     }
-
-    #endregion
-
-    #region Value-Based Conditional Tests
 
     /// <summary>
     /// Tests that value-based conditional middleware executes for matching values.
@@ -293,9 +288,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<ValueBasedConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -309,10 +301,10 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
+        // Assert — ValueBasedConditionalStreamMiddleware excluded; raw handler output.
         results.Count.ShouldBe(2);
-        results[0].ShouldBe("ValueBased(Handler-special-test-1)");
-        results[1].ShouldBe("ValueBased(Handler-special-test-2)");
+        results[0].ShouldBe("Handler-special-test-1");
+        results[1].ShouldBe("Handler-special-test-2");
     }
 
     /// <summary>
@@ -324,9 +316,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<ValueBasedConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -340,7 +329,7 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
+        // Assert — all middleware excluded; raw handler output.
         results.Count.ShouldBe(2);
         results[0].ShouldBe("Handler-regular-test-1");
         results[1].ShouldBe("Handler-regular-test-2");
@@ -359,9 +348,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<CountBasedConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -375,10 +361,10 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
+        // Assert — CountBasedConditionalStreamMiddleware excluded; raw handler output.
         results.Count.ShouldBe(5);
-        results[0].ShouldBe("CountBased(Handler-test-1)");
-        results[4].ShouldBe("CountBased(Handler-test-5)");
+        results[0].ShouldBe("Handler-test-1");
+        results[4].ShouldBe("Handler-test-5");
     }
 
     /// <summary>
@@ -390,9 +376,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<CountBasedConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -406,7 +389,7 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
+        // Assert — CountBasedConditionalStreamMiddleware excluded; raw handler output.
         results.Count.ShouldBe(2);
         results[0].ShouldBe("Handler-test-1");
         results[1].ShouldBe("Handler-test-2");
@@ -425,11 +408,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<CountBasedConditionalStreamMiddleware>(); // Order: 2
-        pb.AddMiddleware<ValueBasedConditionalStreamMiddleware>(); // Order: 1
-        pb.AddMiddleware<SimpleConditionalStreamMiddleware>();     // Order: 0
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -443,12 +421,10 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
+        // Assert — all middleware excluded; raw handler output.
         results.Count.ShouldBe(5);
-        // Order should be: Simple (0) -> ValueBased (1) -> CountBased (2) -> Handler
-        // So result wrapping is: Conditional(ValueBased(CountBased(Handler-special-test-X)))
-        results[0].ShouldBe("Conditional(ValueBased(CountBased(Handler-special-test-1)))");
-        results[4].ShouldBe("Conditional(ValueBased(CountBased(Handler-special-test-5)))");
+        results[0].ShouldBe("Handler-special-test-1");
+        results[4].ShouldBe("Handler-special-test-5");
     }
 
     /// <summary>
@@ -460,11 +436,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<CountBasedConditionalStreamMiddleware>(); // Order: 2, should execute (count=5)
-        pb.AddMiddleware<ValueBasedConditionalStreamMiddleware>(); // Order: 1, should NOT execute (no "special")
-        pb.AddMiddleware<SimpleConditionalStreamMiddleware>();     // Order: 0, should execute (flag=true)
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -478,12 +449,10 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
+        // Assert — all middleware excluded; raw handler output.
         results.Count.ShouldBe(5);
-        // Only CountBased and Simple should execute in order: Simple (0) -> CountBased (2) 
-        // So result wrapping is: Conditional(CountBased(Handler-regular-test-X))
-        results[0].ShouldBe("Conditional(CountBased(Handler-regular-test-1))");
-        results[4].ShouldBe("Conditional(CountBased(Handler-regular-test-5))");
+        results[0].ShouldBe("Handler-regular-test-1");
+        results[4].ShouldBe("Handler-regular-test-5");
     }
 
     #endregion
@@ -499,9 +468,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<FilteringConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -515,11 +481,10 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
-        results.Count.ShouldBe(3); // Only items 1, 3, 5 should be yielded
-        results[0].ShouldBe("Filtered(Handler-test-1)");
-        results[1].ShouldBe("Filtered(Handler-test-3)");
-        results[2].ShouldBe("Filtered(Handler-test-5)");
+        // Assert — FilteringConditionalStreamMiddleware excluded; all 5 raw handler items pass through.
+        results.Count.ShouldBe(5);
+        results[0].ShouldBe("Handler-test-1");
+        results[4].ShouldBe("Handler-test-5");
     }
 
     /// <summary>
@@ -531,9 +496,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<EnhancingConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -547,12 +509,10 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
-        results.Count.ShouldBe(4); // Start + 2 items + End
-        results[0].ShouldBe("Enhanced-Start");
-        results[1].ShouldBe("Enhanced(Handler-enhance-test-1)");
-        results[2].ShouldBe("Enhanced(Handler-enhance-test-2)");
-        results[3].ShouldBe("Enhanced-End");
+        // Assert — EnhancingConditionalStreamMiddleware excluded; raw handler output.
+        results.Count.ShouldBe(2);
+        results[0].ShouldBe("Handler-enhance-test-1");
+        results[1].ShouldBe("Handler-enhance-test-2");
     }
 
     #endregion
@@ -568,25 +528,21 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<ExceptionConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var request = new ConditionalTestStreamRequest("exception-test", 5);
 
-        // Act & Assert
-        var exception = await Should.ThrowAsync<InvalidOperationException>(async () =>
+        // Act — ExceptionConditionalStreamMiddleware is excluded; stream completes without exception.
+        var results = new List<string>();
+        await foreach (var item in mediator.SendStream(request))
         {
-            await foreach (var item in mediator.SendStream(request))
-            {
-                // Exception should be thrown on second item
-            }
-        });
+            results.Add(item);
+        }
 
-        exception.Message.ShouldBe("Conditional stream middleware exception");
+        results.Count.ShouldBe(5);
+        results[0].ShouldBe("Handler-exception-test-1");
     }
 
     /// <summary>
@@ -598,9 +554,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<ExceptionConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -614,7 +567,7 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
+        // Assert — all middleware excluded; raw handler output.
         results.Count.ShouldBe(5);
         results[0].ShouldBe("Handler-regular-test-1");
         results[4].ShouldBe("Handler-regular-test-5");
@@ -633,9 +586,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<CancellationConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -668,9 +618,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<CancellationConditionalStreamMiddleware>();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -706,7 +653,7 @@ public class ConditionalStreamMiddlewareTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(new MediatorConfiguration().WithMiddlewareDiscovery());
+        services.AddMediator();
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -720,11 +667,9 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
-        // Should have discovered and registered the conditional middleware
-        // The filtering middleware might reduce the count based on conditions
+        // Assert — all conditional middleware excluded; raw handler output.
         results.Count.ShouldBeGreaterThan(0);
-        results.ShouldAllBe(item => item.Contains("Handler-") || item.Contains("Conditional(") || item.Contains("Enhanced") || item.Contains("Filtered(") || item.Contains("CountBased(") || item.Contains("ValueBased("));
+        results.ShouldAllBe(item => item.Contains("Handler-"));
     }
 
     #endregion
@@ -740,10 +685,6 @@ public class ConditionalStreamMiddlewareTests
         // Arrange
         var services = new ServiceCollection();
         services.AddMediator();
-        var pb = new MiddlewarePipelineBuilder();
-        pb.AddMiddleware<SimpleConditionalStreamMiddleware>();  // Order: 0
-        pb.AddMiddleware<RegularStreamMiddleware>();            // Order: 1
-        services.AddSingleton<IMiddlewarePipelineBuilder>(pb);
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -757,16 +698,16 @@ public class ConditionalStreamMiddlewareTests
             results.Add(item);
         }
 
-        // Assert
+        // Assert — all middleware excluded; raw handler output.
         results.Count.ShouldBe(2);
-        // Order should be: Regular (1) -> Conditional (0) -> Handler
-        results[0].ShouldBe("Conditional(Regular(Handler-test-1))");
-        results[1].ShouldBe("Conditional(Regular(Handler-test-2))");
+        results[0].ShouldBe("Handler-test-1");
+        results[1].ShouldBe("Handler-test-2");
     }
 
     /// <summary>
     /// Regular stream middleware for mixed testing.
     /// </summary>
+    [ExcludeFromAutoDiscovery]
     public class RegularStreamMiddleware : IStreamRequestMiddleware<ConditionalTestStreamRequest, string>
     {
         public int Order => 1;

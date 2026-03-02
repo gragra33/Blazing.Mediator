@@ -344,7 +344,7 @@ public class NotificationPipelineBuilderComprehensiveTests
         NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             TestNotificationExecutionTracker.ExecutionOrder.Add("FinalHandler");
-            await Task.CompletedTask;
+            await ValueTask.CompletedTask;
         };
 
         // Act
@@ -377,7 +377,7 @@ public class NotificationPipelineBuilderComprehensiveTests
         NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             executed = true;
-            await Task.CompletedTask;
+            await ValueTask.CompletedTask;
         };
 
         // Act
@@ -407,7 +407,7 @@ public class NotificationPipelineBuilderComprehensiveTests
         NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             executed = true;
-            await Task.CompletedTask;
+            await ValueTask.CompletedTask;
         };
 
         // Act
@@ -438,7 +438,7 @@ public class NotificationPipelineBuilderComprehensiveTests
         NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
             executed = true;
-            await Task.CompletedTask;
+            await ValueTask.CompletedTask;
         };
 
         ConditionalNotificationMiddleware.LastExecuted = null; // Reset
@@ -469,12 +469,12 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         NotificationDelegate<TestNotification> finalHandler = async (_, _) =>
         {
-            await Task.CompletedTask;
+            await ValueTask.CompletedTask;
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            builder.ExecutePipeline(notification, serviceProvider, finalHandler, CancellationToken.None).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await builder.ExecutePipeline(notification, serviceProvider, finalHandler, CancellationToken.None));
     }
 
     #endregion

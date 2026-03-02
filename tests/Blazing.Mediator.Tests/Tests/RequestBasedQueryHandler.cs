@@ -5,8 +5,8 @@ namespace Blazing.Mediator.Tests.Statistics;
 /// </summary>
 public class RequestBasedQueryHandler : IRequestHandler<RequestBasedQuery, int>
 {
-    public async ValueTask<int> Handle(RequestBasedQuery request, CancellationToken cancellationToken)
+    public ValueTask<int> Handle(RequestBasedQuery request, CancellationToken cancellationToken)
     {
-        return 42;
+        return ValueTask.FromResult(42);
     }
 }

@@ -50,7 +50,6 @@ public class Program
         Console.WriteLine();
         Console.WriteLine("====================================================================");
         Console.WriteLine("[COMPLETE] Multi-assembly analysis complete! Press any key to exit...");
-        Console.ReadKey();
     }
 
     private static IHost CreateHost()

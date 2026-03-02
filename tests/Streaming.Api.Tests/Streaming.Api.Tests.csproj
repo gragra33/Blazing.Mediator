@@ -3,10 +3,6 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <!-- Source gen discovers streaming handlers from Streaming.Api project reference -->
-    <DefineConstants>$(DefineConstants);USE_SOURCE_GENERATORS</DefineConstants>
-    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,9 +23,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\samples\Streaming.Api\Streaming.Api\Streaming.Api.csproj" />
     <ProjectReference Include="..\..\src\samples\Streaming.Api\Streaming.Api.Shared\Streaming.Api.Shared.csproj" />
-    <ProjectReference Include="..\..\src\Blazing.Mediator.SourceGenerators\Blazing.Mediator.SourceGenerators.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

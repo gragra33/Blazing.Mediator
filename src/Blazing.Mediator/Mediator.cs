@@ -62,7 +62,6 @@ public sealed partial class Mediator : IMediator
     // String constants
     private const string _blazingMediatorName = "Blazing.Mediator";
     private const string _defaultVersion = "1.0.0";
-    private const string _handleMethodName = "Handle";
     private const string _handlerNotFoundFormat = "No handler found for request type {0}";
     private const string _streamHandlerNotFoundFormat = "No handler found for stream request type {0}";
     private const string _multipleHandlersFoundFormat = "Multiple handlers found for request type {0}. Only one handler per request type is allowed.";

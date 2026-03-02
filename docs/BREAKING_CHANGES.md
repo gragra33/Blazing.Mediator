@@ -121,19 +121,23 @@ All call sites that `await mediator.Send(...)` or `await mediator.Publish(...)` 
 
 ---
 
-## 5. `AddMediator()` is now source-generated — reflection fallback is preserved
+## 5. Dispatch is now entirely source-generated — all runtime reflection stripped out
 
-In v2.0.1, `AddMediator()` was a set of hand-written extension methods inside the `Blazing.Mediator` library. In v3.0.0 the library's `Extensions/` folder is empty — the `AddMediator()` extension method is emitted by `Blazing.Mediator.SourceGenerators` per consuming project, tailored to its specific handler and middleware types.
+In v2.0.1, `AddMediator()` was a set of hand-written extension methods inside the `Blazing.Mediator` library, and all dispatch ultimately relied on runtime reflection to resolve handlers. In v3.0.0, every byte of reflection-based dispatch has been replaced with compile-time source generation. `AddMediator()` is now emitted by `Blazing.Mediator.SourceGenerators` per consuming project, producing a fully typed, zero-allocation dispatch table at build time.
 
-**To get the source-generated fast path**, add the generators package:
+**There is no reflection path left.** If `AddMediator()` is not called (or `Blazing.Mediator.SourceGenerators` is not referenced), calling `IMediator.Send`, `IMediator.Publish`, or `IMediator.SendStream` throws `InvalidOperationException`:
+
+```
+Source generator dispatcher not found. Ensure AddMediator() is called and source generators are active.
+```
+
+**`Blazing.Mediator.SourceGenerators` is a required dependency** alongside `Blazing.Mediator`. Add it to every project that calls `AddMediator()`:
 
 ```xml
 <PackageReference Include="Blazing.Mediator.SourceGenerators" />
 ```
 
-**Reflection support is fully retained.** If the source generator is not referenced (or `AddMediator()` is not called), `IMediator.Send` and `IMediator.Publish` automatically fall back to the reflection-based dispatch path that was used in v2.0.1. The fallback is intentional and production-safe — it is the same implementation, just without the zero-allocation optimisations. Handlers must still be registered manually with the DI container when using the fallback path.
-
-In short: **the source generator is opt-in**. Projects that cannot use source generators work exactly as they did in v2.0.1.
+In short: **the source generator is required**. Projects that cannot use source generators are not compatible with v3.0.0.
 
 ---
 

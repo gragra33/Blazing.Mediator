@@ -1,11 +1,13 @@
 using Blazing.Mediator;
+using Microsoft.Extensions.Logging;
 using OpenTelemetryExample.Application.Middleware;
 
 namespace OpenTelemetryExample.Tests;
 
 /// <summary>
 /// Unit tests for OpenTelemetry middleware components.
-/// Tests middleware behavior, telemetry integration, and error handling.
+/// Tests each middleware in isolation by directly instantiating it and invoking HandleAsync,
+/// bypassing the mediator pipeline and DI entirely.
 /// </summary>
 public class MiddlewareTests
 {
@@ -18,30 +20,15 @@ public class MiddlewareTests
     public async Task TracingMiddleware_AddsTracingInformation()
     {
         // Arrange
-        var services = new ServiceCollection();
-        var mockLogger = new Mock<ILogger<TracingMiddleware<TestQuery, string>>>();
-        
-        services.AddSingleton(mockLogger.Object);
-        services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware(typeof(TracingMiddleware<,>));
-        });
-
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-
+        var middleware = new TracingMiddleware<TestQuery, string>();
         var query = new TestQuery { Value = "test" };
+        RequestHandlerDelegate<string> next = () => new TestQueryHandler().Handle(query, CancellationToken.None);
 
         // Act
-        var result = await mediator.Send(query);
+        var result = await middleware.HandleAsync(query, next, CancellationToken.None);
 
-        // Assert - Focus on the main functionality
+        // Assert
         result.ShouldBe("Result: test");
-        
-        // Note: In unit test environment, middleware registration can be challenging
-        // Integration tests verify middleware works in the full application context
-        // This test verifies the request flow works correctly
     }
 
     #endregion
@@ -55,26 +42,17 @@ public class MiddlewareTests
     public async Task PerformanceMiddleware_MeasuresExecutionTime()
     {
         // Arrange
-        var services = new ServiceCollection();
         var mockLogger = new Mock<ILogger<PerformanceMiddleware<TestQuery, string>>>();
-        
-        services.AddSingleton(mockLogger.Object);
-        services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware(typeof(PerformanceMiddleware<,>));
-        }, typeof(TestQuery).Assembly);
-
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-
+        var middleware = new PerformanceMiddleware<TestQuery, string>(mockLogger.Object);
         var query = new TestQuery { Value = "test" };
+        RequestHandlerDelegate<string> next = () => new TestQueryHandler().Handle(query, CancellationToken.None);
 
-        // Act & Assert
-        var result = await mediator.Send(query);
+        // Act
+        var result = await middleware.HandleAsync(query, next, CancellationToken.None);
+
+        // Assert
         result.ShouldBe("Result: test");
 
-        // Verify performance logging occurred - adjust to match actual log format
         mockLogger.Verify(
             x => x.Log(
                 LogLevel.Information,
@@ -92,26 +70,15 @@ public class MiddlewareTests
     public async Task PerformanceMiddleware_LogsSlowRequests()
     {
         // Arrange
-        var services = new ServiceCollection();
         var mockLogger = new Mock<ILogger<PerformanceMiddleware<TestSlowQuery, string>>>();
-        
-        services.AddSingleton(mockLogger.Object);
-        services.AddScoped<IRequestHandler<TestSlowQuery, string>, TestSlowQueryHandler>();
-        services.AddMediator(config =>
-        {
-            config.AddFromAssembly(typeof(TestSlowQuery))
-                  .AddMiddleware<PerformanceMiddleware<TestSlowQuery, string>>();
-        });
-
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-
+        var middleware = new PerformanceMiddleware<TestSlowQuery, string>(mockLogger.Object);
         var query = new TestSlowQuery();
+        RequestHandlerDelegate<string> next = () => new TestSlowQueryHandler().Handle(query, CancellationToken.None);
 
         // Act
-        await mediator.Send(query);
+        await middleware.HandleAsync(query, next, CancellationToken.None);
 
-        // Assert - Should log performance information
+        // Assert - logs at any level confirm middleware executed the pipeline
         mockLogger.Verify(
             x => x.Log(
                 It.IsAny<LogLevel>(),
@@ -133,28 +100,17 @@ public class MiddlewareTests
     public async Task LoggingMiddleware_LogsRequestInformation()
     {
         // Arrange
-        var services = new ServiceCollection();
         var mockLogger = new Mock<ILogger<LoggingMiddleware<TestQuery, string>>>();
-        
-        services.AddSingleton(mockLogger.Object);
-        services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware(typeof(LoggingMiddleware<,>));
-        }, typeof(TestQuery).Assembly);
-
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-
+        var middleware = new LoggingMiddleware<TestQuery, string>(mockLogger.Object);
         var query = new TestQuery { Value = "test" };
+        RequestHandlerDelegate<string> next = () => new TestQueryHandler().Handle(query, CancellationToken.None);
 
         // Act
-        var result = await mediator.Send(query);
+        var result = await middleware.HandleAsync(query, next, CancellationToken.None);
 
         // Assert
         result.ShouldBe("Result: test");
-        
-        // Verify that IsEnabled was called, indicating middleware executed
+
         mockLogger.Verify(x => x.IsEnabled(It.IsAny<LogLevel>()), Times.AtLeastOnce);
     }
 
@@ -169,29 +125,17 @@ public class MiddlewareTests
     public async Task ErrorHandlingMiddleware_CatchesAndHandlesExceptions()
     {
         // Arrange
-        var services = new ServiceCollection();
         var mockLogger = new Mock<ILogger<ErrorHandlingMiddleware<TestErrorQuery, string>>>();
-        
-        services.AddSingleton(mockLogger.Object);
-        services.AddScoped<IRequestHandler<TestErrorQuery, string>, TestErrorQueryHandler>();
-        services.AddMediator(config =>
-        {
-            config.AddFromAssembly(typeof(TestErrorQuery))
-                  .AddMiddleware<ErrorHandlingMiddleware<TestErrorQuery, string>>();
-        });
-
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-
+        var middleware = new ErrorHandlingMiddleware<TestErrorQuery, string>(mockLogger.Object);
         var query = new TestErrorQuery();
+        RequestHandlerDelegate<string> next = () => new TestErrorQueryHandler().Handle(query, CancellationToken.None);
 
-        // Act & Assert - Error should be handled by middleware
+        // Act & Assert - ErrorHandlingMiddleware logs then rethrows
         await Should.ThrowAsync<Exception>(async () =>
         {
-            await mediator.Send(query);
+            await middleware.HandleAsync(query, next, CancellationToken.None);
         });
 
-        // Verify error was logged
         mockLogger.Verify(
             x => x.Log(
                 LogLevel.Error,
@@ -213,33 +157,21 @@ public class MiddlewareTests
     public async Task StreamingLoggingMiddleware_LogsStreamingOperations()
     {
         // Arrange
-        var services = new ServiceCollection();
         var mockLogger = new Mock<ILogger<StreamingLoggingMiddleware<TestStreamQuery, string>>>();
-        
-        services.AddSingleton(mockLogger.Object);
-        services.AddScoped<IStreamRequestHandler<TestStreamQuery, string>, TestStreamQueryHandler>();
-        services.AddMediator(config =>
-        {
-            config.AddFromAssembly(typeof(TestStreamQuery))
-                  .AddMiddleware<StreamingLoggingMiddleware<TestStreamQuery, string>>();
-        });
-
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-
+        var middleware = new StreamingLoggingMiddleware<TestStreamQuery, string>(mockLogger.Object);
         var query = new TestStreamQuery();
+        StreamRequestHandlerDelegate<string> next = () => new TestStreamQueryHandler().Handle(query, CancellationToken.None);
 
         // Act
         var results = new List<string>();
-        await foreach (var item in mediator.SendStream(query))
+        await foreach (var item in middleware.HandleAsync(query, next, CancellationToken.None))
         {
             results.Add(item);
         }
 
         // Assert
         results.ShouldNotBeEmpty();
-        
-        // Verify streaming was logged
+
         mockLogger.Verify(
             x => x.Log(
                 It.IsAny<LogLevel>(),
@@ -257,33 +189,21 @@ public class MiddlewareTests
     public async Task StreamingTracingMiddleware_AddsTracingToStreamingOperations()
     {
         // Arrange
-        var services = new ServiceCollection();
         var mockLogger = new Mock<ILogger<StreamingTracingMiddleware<TestStreamQuery, string>>>();
-        
-        services.AddSingleton(mockLogger.Object);
-        services.AddScoped<IStreamRequestHandler<TestStreamQuery, string>, TestStreamQueryHandler>();
-        services.AddMediator(config =>
-        {
-            config.AddFromAssembly(typeof(TestStreamQuery))
-                  .AddMiddleware<StreamingTracingMiddleware<TestStreamQuery, string>>();
-        });
-
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-
+        var middleware = new StreamingTracingMiddleware<TestStreamQuery, string>(mockLogger.Object);
         var query = new TestStreamQuery();
+        StreamRequestHandlerDelegate<string> next = () => new TestStreamQueryHandler().Handle(query, CancellationToken.None);
 
         // Act
         var results = new List<string>();
-        await foreach (var item in mediator.SendStream(query))
+        await foreach (var item in middleware.HandleAsync(query, next, CancellationToken.None))
         {
             results.Add(item);
         }
 
         // Assert
         results.ShouldNotBeEmpty();
-        
-        // Verify tracing middleware executed
+
         mockLogger.Verify(
             x => x.Log(
                 It.IsAny<LogLevel>(),
@@ -299,46 +219,43 @@ public class MiddlewareTests
     #region Middleware Integration Tests
 
     /// <summary>
-    /// Tests that multiple middleware can work together correctly.
+    /// Tests that multiple middleware can work together correctly by chaining them directly.
     /// </summary>
     [Fact]
     public async Task MultipleMiddleware_WorkTogetherCorrectly()
     {
         // Arrange
-        var services = new ServiceCollection();
-        var tracingLogger = new Mock<ILogger<TracingMiddleware<TestQuery, string>>>();
         var performanceLogger = new Mock<ILogger<PerformanceMiddleware<TestQuery, string>>>();
         var loggingLogger = new Mock<ILogger<LoggingMiddleware<TestQuery, string>>>();
-        
-        services.AddSingleton(tracingLogger.Object);
-        services.AddSingleton(performanceLogger.Object);
-        services.AddSingleton(loggingLogger.Object);
-        services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware(typeof(TracingMiddleware<,>));
-            config.AddMiddleware(typeof(PerformanceMiddleware<,>));
-            config.AddMiddleware(typeof(LoggingMiddleware<,>));
-        }, typeof(TestQuery).Assembly);
-
-        var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var query = new TestQuery { Value = "test" };
+        var handler = new TestQueryHandler();
+
+        // Build chain: TracingMiddleware -> PerformanceMiddleware -> LoggingMiddleware -> Handler
+        RequestHandlerDelegate<string> handleDelegate = () => handler.Handle(query, CancellationToken.None);
+
+        var loggingMw = new LoggingMiddleware<TestQuery, string>(loggingLogger.Object);
+        RequestHandlerDelegate<string> withLogging = () => loggingMw.HandleAsync(query, handleDelegate, CancellationToken.None);
+
+        var performanceMw = new PerformanceMiddleware<TestQuery, string>(performanceLogger.Object);
+        RequestHandlerDelegate<string> withPerformance = () => performanceMw.HandleAsync(query, withLogging, CancellationToken.None);
+
+        var tracingMw = new TracingMiddleware<TestQuery, string>();
 
         // Act
-        var result = await mediator.Send(query);
+        var result = await tracingMw.HandleAsync(query, withPerformance, CancellationToken.None);
 
         // Assert
         result.ShouldBe("Result: test");
-        
-        // Verify at least some middleware executed by checking the expected performance logging
+
         performanceLogger.Verify(x => x.Log(
-            LogLevel.Information, It.IsAny<EventId>(), It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("completed in")), 
-            It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), 
+            LogLevel.Information,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("completed in")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
-        
-        // Verify logging middleware executed
+
         loggingLogger.Verify(x => x.IsEnabled(It.IsAny<LogLevel>()), Times.AtLeastOnce);
     }
 

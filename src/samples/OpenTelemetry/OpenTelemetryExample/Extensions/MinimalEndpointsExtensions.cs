@@ -21,8 +21,7 @@ internal static class MinimalEndpointsExtensions
     public static WebApplication MapTelemetryEndpoints(this WebApplication app)
     {
         var telemetryGroup = app.MapGroup("/telemetry")
-            .WithTags("Telemetry")
-            .WithOpenApi();
+            .WithTags("Telemetry");
 
         // NEW: Add a simple test endpoint to verify basic connectivity
         telemetryGroup.MapGet("/test", ()
@@ -87,8 +86,7 @@ internal static class MinimalEndpointsExtensions
     public static WebApplication MapDebugEndpoints(this WebApplication app)
     {
         var debugGroup = app.MapGroup("/debug")
-            .WithTags("Debug")
-            .WithOpenApi();
+            .WithTags("Debug");
 
         debugGroup.MapGet("/mediator", GetMediatorDebugInfo)
             .WithName("GetMediatorDebugInfo")
@@ -107,8 +105,7 @@ internal static class MinimalEndpointsExtensions
     public static WebApplication MapTestingEndpoints(this WebApplication app)
     {
         var testingGroup = app.MapGroup("/testing")
-            .WithTags("Testing")
-            .WithOpenApi();
+            .WithTags("Testing");
 
         testingGroup.MapPost("/notifications", TestNotifications)
             .WithName("PublishTestNotification")

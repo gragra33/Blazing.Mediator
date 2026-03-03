@@ -66,6 +66,8 @@
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.103" />
     <!-- Stream processing packages -->
     <PackageVersion Include="Utf8JsonAsyncStreamReader" Version="2.1.0" />
+    <!-- Async LINQ -->
+    <PackageVersion Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 
   <!-- ============================================================

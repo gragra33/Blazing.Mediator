@@ -60,6 +60,22 @@ public sealed class NotificationPipelineBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds notification middleware with a compile-time-known order to the pipeline.
+    /// This overload bypasses all runtime reflection for order detection and skips the interface type check.
+    /// It is used by the source generator to pre-seed the pipeline with baked compile-time orders.
+    /// </summary>
+    /// <param name="middlewareType">The middleware type to add.</param>
+    /// <param name="knownOrder">The compile-time order value — no IL analysis or instance creation is performed.</param>
+    /// <returns>The pipeline builder for chaining.</returns>
+    public INotificationPipelineBuilder AddMiddleware(Type middlewareType, int knownOrder)
+    {
+        // Note: skip the INotificationMiddleware type check — this is called from source-generated
+        // code with compile-time-verified types, which may be open-generic definitions.
+        AddMiddlewareCore(middlewareType, knownOrder);
+        return this;
+    }
+
     #endregion
 
     #region Fallback Types Override

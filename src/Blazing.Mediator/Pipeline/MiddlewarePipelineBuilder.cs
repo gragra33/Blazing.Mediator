@@ -39,6 +39,20 @@ public sealed class MiddlewarePipelineBuilder
     }
 
     /// <summary>
+    /// Adds middleware with a compile-time-known order to the pipeline.
+    /// This overload bypasses all runtime reflection for order detection.
+    /// It is used by the source generator to pre-seed the pipeline with baked compile-time orders.
+    /// </summary>
+    /// <param name="middlewareType">The middleware type to add.</param>
+    /// <param name="knownOrder">The compile-time order value — no IL analysis or instance creation is performed.</param>
+    /// <returns>The pipeline builder for chaining.</returns>
+    public IMiddlewarePipelineBuilder AddMiddleware(Type middlewareType, int knownOrder)
+    {
+        AddMiddlewareCore(middlewareType, knownOrder);
+        return this;
+    }
+
+    /// <summary>
     /// Adds middleware with configuration to the pipeline.
     /// </summary>
     /// <typeparam name="TMiddleware">The middleware type that implements IRequestMiddleware.</typeparam>

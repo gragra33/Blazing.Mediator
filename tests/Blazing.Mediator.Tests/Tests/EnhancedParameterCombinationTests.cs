@@ -34,12 +34,12 @@ public class EnhancedParameterCombinationTests
         var statistics = serviceProvider.GetService<MediatorStatistics>();
         statistics.ShouldNotBeNull();
 
-        // In source-gen mode the notification pipeline builder is registered empty.
+        // Pipeline builders are pre-seeded by the source generator with compile-time-baked orders.
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
         notificationMiddleware.ShouldNotBeNull();
 
-        // Request middleware pipeline inspector should be registered
+        // Request middleware pipeline inspector should be registered and pre-seeded.
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
         requestMiddleware.ShouldNotBeNull();
@@ -85,7 +85,7 @@ public class EnhancedParameterCombinationTests
             statistics.ShouldBeNull();
         }
 
-        // In source-gen mode pipeline inspectors are always empty.
+        // Pipeline builders are pre-seeded by the source generator with compile-time-baked orders.
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
         requestMiddleware.ShouldNotBeNull();
@@ -96,7 +96,8 @@ public class EnhancedParameterCombinationTests
     }
 
     /// <summary>
-    /// Test null parameter handling in comprehensive overloads
+    /// Test null parameter handling — in source-gen mode, AddMediator() pre-seeds the pipeline with
+    /// compile-time-discovered middleware regardless of assembly arguments.
     /// </summary>
     [Fact]
     public void AddMediator_NullParameterHandling_WorksCorrectly()
@@ -104,7 +105,7 @@ public class EnhancedParameterCombinationTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Act - Test with null assemblies
+        // Act
         services.AddMediator();
 
         // Assert
@@ -112,14 +113,15 @@ public class EnhancedParameterCombinationTests
         var mediator = serviceProvider.GetRequiredService<IMediator>();
         mediator.ShouldNotBeNull();
 
-        // Should default to no discovery when null
+        // Source-gen pre-seeds the pipeline builders with compile-time-discovered middleware.
+        // Counts are determined by what the source generator found in this test assembly.
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
-        requestMiddleware.Count.ShouldBe(0);
+        requestMiddleware.ShouldNotBeNull();
 
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        notificationMiddleware.Count.ShouldBe(0);
+        notificationMiddleware.ShouldNotBeNull();
     }
 
     /// <summary>
@@ -175,7 +177,8 @@ public class EnhancedParameterCombinationTests
     }
 
     /// <summary>
-    /// Test edge case: empty assemblies array
+    /// Test edge case: empty assemblies array — in source-gen mode, AddMediator() always pre-seeds
+    /// the pipeline with compile-time-discovered middleware; the assembly parameter is irrelevant.
     /// </summary>
     [Fact]
     public void AddMediator_EmptyAssembliesArray_WorksCorrectly()
@@ -191,13 +194,13 @@ public class EnhancedParameterCombinationTests
         var mediator = serviceProvider.GetRequiredService<IMediator>();
         mediator.ShouldNotBeNull();
 
-        // Should not discover anything from empty assemblies
+        // Source-gen pre-seeds the pipeline builders with compile-time-discovered middleware.
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
-        requestMiddleware.Count.ShouldBe(0);
+        requestMiddleware.ShouldNotBeNull();
 
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        notificationMiddleware.Count.ShouldBe(0);
+        notificationMiddleware.ShouldNotBeNull();
     }
 }

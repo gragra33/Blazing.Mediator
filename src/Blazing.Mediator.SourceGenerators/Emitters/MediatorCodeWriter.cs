@@ -1405,16 +1405,37 @@ internal static class MediatorCodeWriter
         sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.INotificationPublisher,");
         sb.AppendLine("                global::Blazing.Mediator.Notifications.SequentialNotificationPublisher>();");
         sb.AppendLine();
-        sb.AppendLine("            // Pipeline inspectors — empty builders registered as singletons so analysis tools and tests");
-        sb.AppendLine("            // can resolve IMiddlewarePipelineInspector and INotificationMiddlewarePipelineInspector.");
-        sb.AppendLine("            // In source-gen mode, middleware pipelines are pre-baked at compile time (not runtime);");
-        sb.AppendLine("            // these empty builders serve as inspection endpoints for the statistics and analysis APIs.");
-        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>();");
+        // ── Pipeline inspectors — pre-seeded with compile-time-baked orders ─────
+        // Register MiddlewarePipelineBuilder and NotificationPipelineBuilder as singletons that are
+        // pre-populated with the exact middleware types and order values determined at compile time
+        // by the source generator (read from Roslyn syntax — zero runtime reflection).
+        // This makes IMiddlewarePipelineInspector.GetDetailedMiddlewareInfo() fully AOT-safe.
+        var pbRequestMw = model.Middleware.Where(static m => !m.IsNotification).ToList();
+        var pbNotifMw   = model.Middleware.Where(static m =>  m.IsNotification).ToList();
+
+        sb.AppendLine("            // Pipeline inspectors pre-seeded with compile-time order values — no runtime reflection.");
+        sb.AppendLine("            var _requestPb = new global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder();");
+        foreach (var mw in pbRequestMw)
+        {
+            string mwType = mw.IsOpenGeneric
+                ? (mw.IsVoidCommand ? $"typeof({mw.OpenGenericBaseType!}<>)" : $"typeof({mw.OpenGenericBaseType!}<,>)")
+                : $"typeof({mw.MiddlewareType})";
+            sb.AppendLine($"            _requestPb.AddMiddleware({mwType}, {mw.Order});");
+        }
+        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>(_requestPb);");
         sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.IMiddlewarePipelineInspector>(");
         sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>());");
         sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.IMiddlewarePipelineBuilder>(");
         sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>());");
-        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>();");
+        sb.AppendLine("            var _notifPb = new global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder();");
+        foreach (var mw in pbNotifMw)
+        {
+            string mwType = mw.IsOpenGeneric
+                ? $"typeof({mw.OpenGenericBaseType!}<>)"
+                : $"typeof({mw.MiddlewareType})";
+            sb.AppendLine($"            _notifPb.AddMiddleware({mwType}, {mw.Order});");
+        }
+        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>(_notifPb);");
         sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.INotificationMiddlewarePipelineInspector>(");
         sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>());");
         sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.INotificationPipelineBuilder>(");

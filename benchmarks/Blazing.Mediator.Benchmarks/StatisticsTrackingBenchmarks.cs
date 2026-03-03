@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
@@ -7,8 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Blazing.Mediator.Benchmarks;
 
 /// <summary>
-/// Performance benchmarks for statistics tracking impact in Blazing.Mediator.
-/// Measures the performance overhead of enabling/disabling statistics collection.
+///     Performance benchmarks for statistics tracking impact in Blazing.Mediator.
+///     Measures the performance overhead of enabling/disabling statistics collection.
 /// </summary>
 [MemoryDiagnoser]
 [SimpleJob(RuntimeMoniker.Net90)]
@@ -16,12 +17,11 @@ namespace Blazing.Mediator.Benchmarks;
 [CategoriesColumn]
 public class StatisticsTrackingBenchmarks
 {
+    private StatisticsTestCommand _command = null!;
     private IMediator _mediatorWithoutStats = null!;
     private IMediator _mediatorWithStats = null!;
-
-    private StatisticsTestCommand _command = null!;
-    private StatisticsTestQuery _query = null!;
     private StatisticsTestNotification _notification = null!;
+    private StatisticsTestQuery _query = null!;
     private StatisticsTestStreamRequest _streamRequest = null!;
 
     [GlobalSetup]
@@ -33,25 +33,25 @@ public class StatisticsTrackingBenchmarks
         _streamRequest = new StatisticsTestStreamRequest { Count = 10 };
 
         // Setup mediator WITHOUT statistics tracking
-        var servicesWithoutStats = new ServiceCollection();
+        ServiceCollection servicesWithoutStats = new();
         servicesWithoutStats.AddMediator();
-        var providerWithoutStats = servicesWithoutStats.BuildServiceProvider();
+        ServiceProvider providerWithoutStats = servicesWithoutStats.BuildServiceProvider();
         _mediatorWithoutStats = providerWithoutStats.GetRequiredService<IMediator>();
 
         // Setup mediator WITH statistics tracking
-        var servicesWithStats = new ServiceCollection();
-        var statsConfig = new MediatorConfiguration();
+        ServiceCollection servicesWithStats = new();
+        MediatorConfiguration statsConfig = new();
         statsConfig.WithStatisticsTracking();
         servicesWithStats.AddMediator(statsConfig);
 
-        var providerWithStats = servicesWithStats.BuildServiceProvider();
+        ServiceProvider providerWithStats = servicesWithStats.BuildServiceProvider();
         _mediatorWithStats = providerWithStats.GetRequiredService<IMediator>();
 
         // Subscribe to notifications
-        var notificationSubscriberWithoutStats = new StatisticsTestNotificationSubscriber();
+        StatisticsTestNotificationSubscriber notificationSubscriberWithoutStats = new();
         _mediatorWithoutStats.Subscribe(notificationSubscriberWithoutStats);
 
-        var notificationSubscriberWithStats = new StatisticsTestNotificationSubscriber();
+        StatisticsTestNotificationSubscriber notificationSubscriberWithStats = new();
         _mediatorWithStats.Subscribe(notificationSubscriberWithStats);
     }
 
@@ -115,11 +115,8 @@ public class StatisticsTrackingBenchmarks
     [BenchmarkCategory("Statistics_Streams")]
     public async Task<int> Stream_WithoutStatistics()
     {
-        var count = 0;
-        await foreach (var item in _mediatorWithoutStats.SendStream(_streamRequest))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorWithoutStats.SendStream(_streamRequest)) count++;
         return count;
     }
 
@@ -127,11 +124,8 @@ public class StatisticsTrackingBenchmarks
     [BenchmarkCategory("Statistics_Streams")]
     public async Task<int> Stream_WithStatistics()
     {
-        var count = 0;
-        await foreach (var item in _mediatorWithStats.SendStream(_streamRequest))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorWithStats.SendStream(_streamRequest)) count++;
         return count;
     }
 
@@ -144,19 +138,14 @@ public class StatisticsTrackingBenchmarks
     public async Task BulkCommands_WithoutStatistics()
     {
         for (int i = 0; i < 100; i++)
-        {
             await _mediatorWithoutStats.Send(new StatisticsTestCommand { Value = $"bulk {i}" });
-        }
     }
 
     [Benchmark]
     [BenchmarkCategory("Statistics_Bulk")]
     public async Task BulkCommands_WithStatistics()
     {
-        for (int i = 0; i < 100; i++)
-        {
-            await _mediatorWithStats.Send(new StatisticsTestCommand { Value = $"bulk {i}" });
-        }
+        for (int i = 0; i < 100; i++) await _mediatorWithStats.Send(new StatisticsTestCommand { Value = $"bulk {i}" });
     }
 
     [Benchmark(Baseline = true)]
@@ -164,9 +153,7 @@ public class StatisticsTrackingBenchmarks
     public async Task BulkNotifications_WithoutStatistics()
     {
         for (int i = 0; i < 100; i++)
-        {
             await _mediatorWithoutStats.Publish(new StatisticsTestNotification { Message = $"bulk {i}" });
-        }
     }
 
     [Benchmark]
@@ -174,9 +161,7 @@ public class StatisticsTrackingBenchmarks
     public async Task BulkNotifications_WithStatistics()
     {
         for (int i = 0; i < 100; i++)
-        {
             await _mediatorWithStats.Publish(new StatisticsTestNotification { Message = $"bulk {i}" });
-        }
     }
 
     #endregion
@@ -189,7 +174,7 @@ public class StatisticsTrackingBenchmarks
     {
         for (int i = 0; i < 50; i++)
         {
-            var command = new StatisticsTestCommand { Value = $"memory test {i}" };
+            StatisticsTestCommand command = new() { Value = $"memory test {i}" };
             await _mediatorWithoutStats.Send(command);
         }
     }
@@ -200,7 +185,7 @@ public class StatisticsTrackingBenchmarks
     {
         for (int i = 0; i < 50; i++)
         {
-            var command = new StatisticsTestCommand { Value = $"memory test {i}" };
+            StatisticsTestCommand command = new() { Value = $"memory test {i}" };
             await _mediatorWithStats.Send(command);
         }
     }
@@ -229,7 +214,8 @@ public class StatisticsTrackingBenchmarks
 
     public class StatisticsTestQueryHandler : IRequestHandler<StatisticsTestQuery, string>
     {
-        public async ValueTask<string> Handle(StatisticsTestQuery request, CancellationToken cancellationToken = default)
+        public async ValueTask<string> Handle(StatisticsTestQuery request,
+            CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken);
             return $"Processed: {request.Value}";
@@ -243,7 +229,8 @@ public class StatisticsTrackingBenchmarks
 
     public class StatisticsTestNotificationSubscriber : INotificationSubscriber<StatisticsTestNotification>
     {
-        public async Task OnNotification(StatisticsTestNotification notification, CancellationToken cancellationToken = default)
+        public async Task OnNotification(StatisticsTestNotification notification,
+            CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken);
         }
@@ -257,7 +244,7 @@ public class StatisticsTrackingBenchmarks
     public class StatisticsTestStreamHandler : IStreamRequestHandler<StatisticsTestStreamRequest, string>
     {
         public async IAsyncEnumerable<string> Handle(StatisticsTestStreamRequest request,
-            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             for (int i = 0; i < request.Count; i++)
             {

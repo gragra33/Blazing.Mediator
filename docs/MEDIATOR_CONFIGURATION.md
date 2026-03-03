@@ -12,11 +12,12 @@
 5. [Environment-Aware Configuration](#environment-aware-configuration)
 6. [Configuration Validation](#configuration-validation)
 7. [Configuration Diagnostics](#configuration-diagnostics)
-8. [Real-World Usage Examples](#real-world-usage-examples)
-9. [Configuration Examples](#configuration-examples)
-10. [Configuration Methods Comparison](#configuration-methods-comparison)
-11. [Performance Impact](#performance-impact)
-12. [Best Practices](#best-practices)
+8. [Source Generator Diagnostics](#source-generator-diagnostics)
+9. [Real-World Usage Examples](#real-world-usage-examples)
+10. [Configuration Examples](#configuration-examples)
+11. [Configuration Methods Comparison](#configuration-methods-comparison)
+12. [Performance Impact](#performance-impact)
+13. [Best Practices](#best-practices)
 
 ## Introduction
 
@@ -816,6 +817,72 @@ The `ConfigurationDiagnostics` class provides comprehensive information about co
 - **StreamingTelemetryEnabled**: Streaming-specific telemetry status
 - **StatisticsRetentionPeriod**: Current retention setting
 - **DiscoverySettings**: All discovery configuration flags
+
+## Source Generator Diagnostics
+
+The `Blazing.Mediator.SourceGenerators` package analyses your project at compile time and emits Roslyn diagnostics using the `BLAZMED` series of IDs. These appear directly in your IDE's Error List and in `dotnet build` output, so problems are caught before they reach runtime.
+
+### Diagnostic Severities
+
+| Severity | Meaning |
+| -------- | ------- |
+| ❌ **Error** | Build is blocked. The source generator cannot produce correct dispatch code. |
+| ⚠️ **Warning** | Build succeeds but the configuration may produce incorrect behaviour at runtime. |
+| ℹ️ **Info** | Informational output from a successful generation pass. |
+
+### Full Diagnostic Reference
+
+| ID | Severity | Title | Message | How to Fix |
+| ------------- | --------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BLAZMED001` | ❌ Error | Open Generic Handler Detected | The handler `'{0}'` is an open generic type. Source generation does not support open generic handlers. | Close the generic parameters: `class MyHandler : IRequestHandler<MyRequest, MyResponse>` instead of leaving type parameters open. |
+| `BLAZMED002` | ⚠️ Warning | Telemetry Configuration Missing | Telemetry is enabled but no telemetry sink is registered. Consider adding OpenTelemetry or Application Insights. | Add `AddOpenTelemetry()` and call `.AddBlazingMediatorInstrumentation()`, or disable telemetry with `WithoutTelemetry()`. |
+| `BLAZMED003` | ℹ️ Info | Source Generation Successful | Blazing.Mediator source generation completed successfully. Generated `{0}` handlers, `{1}` middleware, `{2}` notification handlers. | No action required. Counts confirm what was discovered at compile time. |
+| `BLAZMED004` | ℹ️ Info | No Handlers Found | No `{0}` found in the current compilation. Source generation will be skipped. | Expected in projects that contain no handlers (e.g. shared contracts libraries). Add at least one handler, or ignore if intentional. |
+| `BLAZMED013` | ⚠️ Warning | Invalid Middleware Constraints | Middleware `'{0}'` has type parameter `'{1}'` with constraint `'{2}'` that is not satisfied by type `'{3}'`. | Adjust the generic constraint on the middleware class, or apply `[ExcludeFromAutoDiscovery]` if the middleware is intentionally scoped to specific request types. |
+| `BLAZMED014` | ⚠️ Warning | Missing Middleware Order | Middleware `'{0}'` does not have an `Order` property. Default order (0) will be used. | Add `[Order(n)]` to control execution sequence relative to other middleware in the pipeline. |
+| `BLAZMED015` | ⚠️ Warning | Missing Subscriber Registration | Subscriber `'{0}'` is not registered in the DI container. | Register the subscriber with the DI container, or call `mediator.Subscribe(...)` at runtime before publishing notifications. |
+| `BLAZMED016` | ❌ Error | Subscriber Resolution Failure | Cannot resolve subscriber `'{0}'` from DI container. | Register the subscriber type in DI before the mediator is built. |
+| `BLAZMED017` | ⚠️ Warning | Missing Stream Middleware | Stream request `'{0}'` has no middleware registered. | Register error-handling middleware for stream requests, or suppress the warning if middleware-free streaming is intentional. |
+| `BLAZMED018` | ❌ Error | Stream Middleware Resolution Failure | Cannot resolve stream middleware `'{0}'` from DI container. | Register the stream middleware type in DI. |
+| `BLAZMED019` | ⚠️ Warning | AOT Trimming Issue | Type `'{0}'` may be trimmed in AOT scenarios. Consider adding `DynamicallyAccessedMembers` attribute. | Add `[DynamicallyAccessedMembers(...)]` to the type, or restructure to avoid reflection in AOT-published builds. |
+| `BLAZMED020` | ⚠️ Warning | AOT Validation Missing | AOT compatibility attributes are not applied to `'{0}'`. | Add `[RequiresUnreferencedCode]` or `[DynamicallyAccessedMembers]` attributes for AOT compatibility. |
+| `BLAZMED021` | ❌ Error | Benchmark Validation Failed | Performance target not met: `{0}`. Expected: `{1}`, Actual: `{2}`. | Disabled by default — opt-in for benchmark builds only. Review the generated dispatch code for performance regressions. |
+
+> **Note:** `BLAZMED021` is disabled by default (`isEnabledByDefault: false`). It only activates in projects that explicitly opt into benchmark validation.
+
+### Suppressing Diagnostics
+
+#### Using `[ExcludeFromAutoDiscovery]`
+
+Apply `[ExcludeFromAutoDiscovery]` to remove a class from source-generator discovery entirely. This silences BLAZMED013 and BLAZMED014 for that class without globally suppressing the diagnostic:
+
+```csharp
+[ExcludeFromAutoDiscovery]
+public class TestOnlyMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    // Excluded from generated pipeline — BLAZMED013/014 not emitted for this class
+}
+```
+
+#### Using `#pragma warning`
+
+Suppress a specific diagnostic for a single file or region:
+
+```csharp
+#pragma warning disable BLAZMED014  // intentionally no Order on this middleware
+public class UnorderedMiddleware : IRequestMiddleware<MyRequest, MyResponse> { ... }
+#pragma warning restore BLAZMED014
+```
+
+#### Using `.editorconfig`
+
+Lower or silence a diagnostic across the whole project:
+
+```ini
+[*.cs]
+dotnet_diagnostic.BLAZMED014.severity = none
+```
 
 ## Real-World Usage Examples
 

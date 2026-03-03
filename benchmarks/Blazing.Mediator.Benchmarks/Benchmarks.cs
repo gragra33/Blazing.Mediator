@@ -1,8 +1,8 @@
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
-using Microsoft.Extensions.DependencyInjection;
 using Blazing.Mediator.Configuration;
-using System.Runtime.CompilerServices;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Benchmarks;
 
@@ -13,73 +13,73 @@ namespace Blazing.Mediator.Benchmarks;
 [CategoriesColumn]
 public class Benchmarks
 {
+    private readonly Pinged _notification = new();
+
+    private readonly Ping _request = new() { Message = "Hello World" };
+    private readonly BenchmarkStreamRequest _streamRequest = new() { Count = 10 };
     private IMediator _mediator = null!;
-    private IMediator _mediatorWithTelemetry = null!;
-    private IMediator _mediatorSubscriberOnly = null!;
-    private IMediator _mediatorSubscriberWithTelemetry = null!;
-    
+
     // Mediators with different middleware counts
     private IMediator _mediator0Middleware = null!;
+    private IMediator _mediator10Middleware = null!;
     private IMediator _mediator1Middleware = null!;
     private IMediator _mediator5Middleware = null!;
-    private IMediator _mediator10Middleware = null!;
-    
-    private readonly Ping _request = new() { Message = "Hello World" };
-    private readonly Pinged _notification = new();
-    private readonly BenchmarkStreamRequest _streamRequest = new() { Count = 10 };
+    private IMediator _mediatorSubscriberOnly = null!;
+    private IMediator _mediatorSubscriberWithTelemetry = null!;
+    private IMediator _mediatorWithTelemetry = null!;
     private PingedSubscriber _subscriber = null!;
 
     [GlobalSetup]
     public void GlobalSetup()
     {
         // Setup mediator without telemetry (baseline) - with handlers
-        var services = new ServiceCollection();
+        ServiceCollection services = new();
         services.AddSingleton(TextWriter.Null);
         services.AddScoped<IRequestHandler<Ping>, PingHandler>();
         services.AddScoped<INotificationHandler<Pinged>, PingedHandler>();
 
-        var mediatorConfig = new MediatorConfiguration();
+        MediatorConfiguration mediatorConfig = new();
         mediatorConfig.WithoutTelemetry();
         services.AddMediator(mediatorConfig);
 
-        var provider = services.BuildServiceProvider();
+        ServiceProvider provider = services.BuildServiceProvider();
         _mediator = provider.GetRequiredService<IMediator>();
 
         // Setup mediator with minimal telemetry - with handlers
-        var servicesWithTelemetry = new ServiceCollection();
+        ServiceCollection servicesWithTelemetry = new();
         servicesWithTelemetry.AddSingleton(TextWriter.Null);
         servicesWithTelemetry.AddScoped<IRequestHandler<Ping>, PingHandler>();
         servicesWithTelemetry.AddScoped<INotificationHandler<Pinged>, PingedHandler>();
 
-        var mediatorConfigWithTelemetry = new MediatorConfiguration();
+        MediatorConfiguration mediatorConfigWithTelemetry = new();
         mediatorConfigWithTelemetry.WithTelemetry(TelemetryOptions.Minimal());
         servicesWithTelemetry.AddMediator(mediatorConfigWithTelemetry);
 
-        var providerWithTelemetry = servicesWithTelemetry.BuildServiceProvider();
+        ServiceProvider providerWithTelemetry = servicesWithTelemetry.BuildServiceProvider();
         _mediatorWithTelemetry = providerWithTelemetry.GetRequiredService<IMediator>();
 
         // Setup mediator for subscriber-only tests (no notification handlers)
-        var servicesSubscriberOnly = new ServiceCollection();
+        ServiceCollection servicesSubscriberOnly = new();
         servicesSubscriberOnly.AddSingleton(TextWriter.Null);
         servicesSubscriberOnly.AddScoped<IRequestHandler<Ping>, PingHandler>(); // Only Ping handler
 
-        var mediatorConfigSubscriberOnly = new MediatorConfiguration();
+        MediatorConfiguration mediatorConfigSubscriberOnly = new();
         mediatorConfigSubscriberOnly.WithoutTelemetry();
         servicesSubscriberOnly.AddMediator(mediatorConfigSubscriberOnly);
 
-        var providerSubscriberOnly = servicesSubscriberOnly.BuildServiceProvider();
+        ServiceProvider providerSubscriberOnly = servicesSubscriberOnly.BuildServiceProvider();
         _mediatorSubscriberOnly = providerSubscriberOnly.GetRequiredService<IMediator>();
 
         // Setup mediator for subscriber-only tests with telemetry
-        var servicesSubscriberWithTelemetry = new ServiceCollection();
+        ServiceCollection servicesSubscriberWithTelemetry = new();
         servicesSubscriberWithTelemetry.AddSingleton(TextWriter.Null);
         servicesSubscriberWithTelemetry.AddScoped<IRequestHandler<Ping>, PingHandler>(); // Only Ping handler
 
-        var mediatorConfigSubscriberWithTelemetry = new MediatorConfiguration();
+        MediatorConfiguration mediatorConfigSubscriberWithTelemetry = new();
         mediatorConfigSubscriberWithTelemetry.WithTelemetry(TelemetryOptions.Minimal());
         servicesSubscriberWithTelemetry.AddMediator(mediatorConfigSubscriberWithTelemetry);
 
-        var providerSubscriberWithTelemetry = servicesSubscriberWithTelemetry.BuildServiceProvider();
+        ServiceProvider providerSubscriberWithTelemetry = servicesSubscriberWithTelemetry.BuildServiceProvider();
         _mediatorSubscriberWithTelemetry = providerSubscriberWithTelemetry.GetRequiredService<IMediator>();
 
         // Setup subscriber for subscriber-only notification benchmarks
@@ -96,26 +96,24 @@ public class Benchmarks
 
     private static IMediator CreateMediatorWithMiddleware(int middlewareCount)
     {
-        var services = new ServiceCollection();
+        ServiceCollection services = new();
         services.AddSingleton(TextWriter.Null);
-        
+
         // Register handlers
         services.AddScoped<IRequestHandler<Ping>, PingHandler>();
         services.AddScoped<INotificationHandler<Pinged>, PingedHandler>();
         services.AddScoped<IStreamRequestHandler<BenchmarkStreamRequest, string>, BenchmarkStreamHandler>();
 
         // Add mediator with specified middleware count
-        var mediatorConfig = new MediatorConfiguration();
+        MediatorConfiguration mediatorConfig = new();
         mediatorConfig.WithoutTelemetry();
         services.AddMediator(mediatorConfig);
 
         // Add the specified number of no-op middleware layers
         for (int i = 0; i < middlewareCount; i++)
-        {
             services.AddScoped(typeof(IRequestMiddleware<,>), typeof(NoOpMiddleware<,>));
-        }
 
-        var provider = services.BuildServiceProvider();
+        ServiceProvider provider = services.BuildServiceProvider();
         return provider.GetRequiredService<IMediator>();
     }
 
@@ -203,7 +201,7 @@ public class Benchmarks
     [BenchmarkCategory("SendStream_Middleware")]
     public async Task SendStream_0Middleware()
     {
-        await foreach (var item in _mediator0Middleware.SendStream(_streamRequest))
+        await foreach (string item in _mediator0Middleware.SendStream(_streamRequest))
         {
             // Process item
         }
@@ -213,7 +211,7 @@ public class Benchmarks
     [BenchmarkCategory("SendStream_Middleware")]
     public async Task SendStream_1Middleware()
     {
-        await foreach (var item in _mediator1Middleware.SendStream(_streamRequest))
+        await foreach (string item in _mediator1Middleware.SendStream(_streamRequest))
         {
             // Process item
         }
@@ -223,7 +221,7 @@ public class Benchmarks
     [BenchmarkCategory("SendStream_Middleware")]
     public async Task SendStream_5Middleware()
     {
-        await foreach (var item in _mediator5Middleware.SendStream(_streamRequest))
+        await foreach (string item in _mediator5Middleware.SendStream(_streamRequest))
         {
             // Process item
         }
@@ -233,7 +231,7 @@ public class Benchmarks
     [BenchmarkCategory("SendStream_Middleware")]
     public async Task SendStream_10Middleware()
     {
-        await foreach (var item in _mediator10Middleware.SendStream(_streamRequest))
+        await foreach (string item in _mediator10Middleware.SendStream(_streamRequest))
         {
             // Process item
         }
@@ -277,15 +275,16 @@ public class Benchmarks
 #region Supporting Types
 
 /// <summary>
-/// Lightweight no-op middleware that just passes through the pipeline.
-/// Used to measure pure pipeline overhead without any processing logic.
+///     Lightweight no-op middleware that just passes through the pipeline.
+///     Used to measure pure pipeline overhead without any processing logic.
 /// </summary>
 public class NoOpMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
     public int Order => 0;
 
-    public ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
     {
         // Minimal overhead - just pass through
         return next();
@@ -293,7 +292,7 @@ public class NoOpMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, 
 }
 
 /// <summary>
-/// Test stream request for benchmarking.
+///     Test stream request for benchmarking.
 /// </summary>
 public class BenchmarkStreamRequest : IStreamRequest<string>
 {
@@ -301,7 +300,7 @@ public class BenchmarkStreamRequest : IStreamRequest<string>
 }
 
 /// <summary>
-/// Handler for BenchmarkStreamRequest.
+///     Handler for BenchmarkStreamRequest.
 /// </summary>
 public class BenchmarkStreamHandler : IStreamRequestHandler<BenchmarkStreamRequest, string>
 {

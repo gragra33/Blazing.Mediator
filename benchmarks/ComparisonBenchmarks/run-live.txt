@@ -1,0 +1,23 @@
+
+============================================================
+  Mediator Comparison Benchmark - Source-Generator Post-Optimisation
+============================================================
+
+  Project    : C:\wip\NET10\zzz\benchmarks\ComparisonBenchmarks\ComparisonBenchmarks.csproj
+  Results    : C:\wip\NET10\zzz\benchmarks\ComparisonBenchmarks\results\2026-03-03_11-49-54
+  Started at : 2026-03-03 11:49:54
+
+-- Restoring packages ...
+  Determining projects to restore...
+C:\wip\NET10\zzz\benchmarks\ComparisonBenchmarks\ComparisonBenchmarks.csproj : error NU1605: Warning As Error: Detected package downgrade: Microsoft.Extensions.DependencyInjection from 10.0.0 to 9.0.7. Reference the package directly from the project to select a different version. 
+C:\wip\NET10\zzz\benchmarks\ComparisonBenchmarks\ComparisonBenchmarks.csproj : error NU1605:  ComparisonBenchmarks -> BenchmarkDotNet 0.15.6 -> Microsoft.Diagnostics.Runtime 3.1.512801 -> Microsoft.Diagnostics.NETCore.Client 0.2.510501 -> Microsoft.Extensions.Logging 10.0.0 -> Microsoft.Extensions.DependencyInjection (>= 10.0.0) 
+C:\wip\NET10\zzz\benchmarks\ComparisonBenchmarks\ComparisonBenchmarks.csproj : error NU1605:  ComparisonBenchmarks -> Microsoft.Extensions.DependencyInjection (>= 9.0.7)
+  Restored C:\wip\NET10\zzz\Mediator\src\Mediator.SourceGenerator\Mediator.SourceGenerator.csproj (in 427 ms).
+  Restored C:\wip\NET10\zzz\Mediator\src\Mediator\Mediator.csproj (in 427 ms).
+  Failed to restore C:\wip\NET10\zzz\benchmarks\ComparisonBenchmarks\ComparisonBenchmarks.csproj (in 442 ms).
+  2 of 5 projects are up-to-date for restore.
+Exception: C:\wip\NET10\zzz\benchmarks\ComparisonBenchmarks\run-comparison-benchmark.ps1:54:28
+Line |
+  54 |  . ($LASTEXITCODE -ne 0) { throw "Restore failed (exit $LASTEXITCODE)" }
+     |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Restore failed (exit 1)

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using BenchmarkDotNet.Analysers;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
@@ -7,7 +8,6 @@ using BenchmarkDotNet.Loggers;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Validators;
-using System.Diagnostics;
 
 namespace Blazing.Mediator.Benchmarks;
 
@@ -16,7 +16,7 @@ internal sealed class DotTraceDiagnoserAttribute : Attribute, IConfigSource
 {
     public DotTraceDiagnoserAttribute()
     {
-        var manualConfig = ManualConfig.CreateEmpty();
+        ManualConfig manualConfig = ManualConfig.CreateEmpty();
         manualConfig.AddDiagnoser(new DotTraceDiagnoser());
         Config = manualConfig;
     }
@@ -26,25 +26,27 @@ internal sealed class DotTraceDiagnoserAttribute : Attribute, IConfigSource
 
 internal sealed class DotTraceDiagnoser : IDiagnoser
 {
-    private readonly string _saveLocation = $"C:\\temp\\BlazingMediator\\{DateTimeOffset.Now.UtcDateTime:yyyy-MM-dd-HH_mm_ss}.bench.dtp";
+    private readonly string _saveLocation =
+        $"C:\\temp\\BlazingMediator\\{DateTimeOffset.Now.UtcDateTime:yyyy-MM-dd-HH_mm_ss}.bench.dtp";
 
     /// <inheritdoc />
-    public RunMode GetRunMode(BenchmarkCase benchmarkCase) => RunMode.ExtraRun;
+    public RunMode GetRunMode(BenchmarkCase benchmarkCase)
+    {
+        return RunMode.ExtraRun;
+    }
 
     /// <inheritdoc />
     public void Handle(HostSignal signal, DiagnoserActionParameters parameters)
     {
-        if (signal != HostSignal.BeforeActualRun)
-        {
-            return;
-        }
+        if (signal != HostSignal.BeforeActualRun) return;
 
         try
         {
             if (!CanRunDotTrace())
             {
                 // Use a resource string for the error message to fix CA1303
-                string errorMessage = "dotTrace executable not found. Please ensure dotTrace is installed and available in PATH.";
+                string errorMessage =
+                    "dotTrace executable not found. Please ensure dotTrace is installed and available in PATH.";
                 Console.WriteLine(errorMessage);
                 return;
             }
@@ -60,9 +62,34 @@ internal sealed class DotTraceDiagnoser : IDiagnoser
         }
     }
 
+    /// <inheritdoc />
+    public IEnumerable<Metric> ProcessResults(DiagnoserResults results)
+    {
+        return [];
+    }
+
+    /// <inheritdoc />
+    public void DisplayResults(ILogger logger)
+    {
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<ValidationError> Validate(ValidationParameters validationParameters)
+    {
+        return [];
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<string> Ids => [nameof(DotTraceDiagnoser)];
+
+    /// <inheritdoc />
+    public IEnumerable<IExporter> Exporters => [];
+
+    public IEnumerable<IAnalyser> Analysers { get; } = [];
+
     private void RunDotTrace(DiagnoserActionParameters parameters)
     {
-        using var dotTrace = new Process { StartInfo = PrepareProcessStartInfo(parameters) };
+        using Process dotTrace = new() { StartInfo = PrepareProcessStartInfo(parameters) };
         dotTrace.ErrorDataReceived += (_, eventArgs) => Console.Error.WriteLine(eventArgs.Data);
         dotTrace.OutputDataReceived += (_, eventArgs) => Console.WriteLine(eventArgs.Data);
         dotTrace.Start();
@@ -80,41 +107,23 @@ internal sealed class DotTraceDiagnoser : IDiagnoser
             RedirectStandardOutput = true,
             WindowStyle = ProcessWindowStyle.Hidden,
             UseShellExecute = false,
-            CreateNoWindow = true,
+            CreateNoWindow = true
         };
     }
-
-    /// <inheritdoc />
-    public IEnumerable<Metric> ProcessResults(DiagnoserResults results) => [];
-
-    /// <inheritdoc />
-    public void DisplayResults(ILogger logger) { }
-
-    /// <inheritdoc />
-    public IEnumerable<ValidationError> Validate(ValidationParameters validationParameters) =>
-        [];
-
-    /// <inheritdoc />
-    public IEnumerable<string> Ids => [nameof(DotTraceDiagnoser)];
-
-    /// <inheritdoc />
-    public IEnumerable<IExporter> Exporters => [];
-
-    public IEnumerable<IAnalyser> Analysers { get; } = [];
 
     private static bool CanRunDotTrace()
     {
         try
         {
-            var startInfo = new ProcessStartInfo("dottrace")
+            ProcessStartInfo startInfo = new("dottrace")
             {
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
-                CreateNoWindow = true,
+                CreateNoWindow = true
             };
 
-            using var process = new Process();
+            using Process process = new();
             process.StartInfo = startInfo;
             process.Start();
             process.WaitForExit();

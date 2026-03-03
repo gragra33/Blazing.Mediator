@@ -48,24 +48,27 @@ A high-performance, 100% AOT compatible, feature-rich implementation of the Medi
 
 ### **Core Capabilities**
 
-- **AOT Friendly**: Full Native AOT support without reflection or runtime code generation
+- **AOT Friendly**: Full Native AOT support via compile-time Incremental Roslyn Source Generation — no reflection or runtime code generation
 - **Pure CQRS Implementation**: Built-in Command Query Responsibility Segregation with separate interfaces for commands and queries
 - **Advanced Middleware Pipeline**: Powerful middleware system with conditional execution, type constraints, and ordered processing
 - **Native Streaming Support**: Memory-efficient data streaming with `IAsyncEnumerable<T>` for real-time processing
-- **Event-Driven Architecture**: Comprehensive notification system for domain events and observer patterns
+- **Event-Driven Architecture**: Comprehensive notification system for domain events, supporting both automatic `INotificationHandler<T>` discovery and manual `INotificationSubscriber<T>` observer patterns
 
 ### **Advanced Features**
 
 - **OpenTelemetry Integration**: Full observability with distributed tracing, metrics collection, and performance monitoring
 - **Statistics & Analytics**: Built-in execution tracking, performance monitoring, and health checks
 - **Environment-Aware Configuration**: Automatic configuration with environment-specific presets and JSON support
-- **Auto-Discovery**: Automatic handler and middleware discovery with intelligent type resolution
-- **High Performance**: Optimised for speed with minimal overhead and efficient resource usage
+- **Compile-Time Auto-Discovery**: Handlers and middleware discovered at compile time by the source generator — zero runtime assembly scanning or reflection
+- **Pluggable Notification Publisher**: Choose between sequential (default, with unrolled fast paths) and concurrent parallel dispatch strategies; implement `INotificationPublisher` for fully custom strategies
+- **High Performance**: Optimised for speed with `ValueTask` throughout, zero-allocation dispatch on hot paths, and efficient resource usage
 
 ### **Developer Experience**
 
 - **Fluent Configuration**: Modern, type-safe configuration API with comprehensive validation
 - **Zero Configuration**: Works out of the box with sensible defaults and automatic setup
+- **`[ExcludeFromAutoDiscovery]`**: Fine-grained opt-out — suppress source generator discovery for individual handlers or middleware without removing them
+- **Compile-Time Diagnostics**: Source generator emits build errors and warnings (`BLAZMED` series) for open generic handlers, missing registrations, constraint violations, and AOT incompatibilities
 - **Configuration Diagnostics**: Real-time configuration validation for production safety
 - **Extensive Debug Logging**: Powerful debug logging with configurable log levels, performance tracking, and detailed execution flow analysis
 - **Testing Friendly**: Easy to mock and test with comprehensive test coverage

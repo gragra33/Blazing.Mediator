@@ -9,7 +9,6 @@
     <!-- Enable central package management -->
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 
-
     <!-- Default versioning (can be overridden in individual projects) -->
     <ApplicationDisplayVersion>3.0.0</ApplicationDisplayVersion>
     <ApplicationVersion>3,0,0</ApplicationVersion>

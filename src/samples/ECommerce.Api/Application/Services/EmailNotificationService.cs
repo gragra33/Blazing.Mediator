@@ -15,6 +15,8 @@ public class EmailNotificationService : BackgroundService,
 {
     private readonly ILogger<EmailNotificationService> _logger;
     private readonly IServiceProvider _serviceProvider;
+    private IServiceScope? _scope;
+    private IMediator? _mediator;
 
     /// <summary>
     /// Initializes a new instance of the EmailNotificationService.
@@ -156,14 +158,16 @@ public class EmailNotificationService : BackgroundService,
     /// <returns>A task representing the asynchronous operation.</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Yield immediately so the host startup thread is not blocked
+        await Task.Yield();
+
         _logger.LogInformation("Email Notification Service started");
 
-        // Subscribe to notifications through the mediator
-        using var scope = _serviceProvider.CreateScope();
-        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        _scope = _serviceProvider.CreateScope();
+        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
 
-        mediator.Subscribe<OrderCreatedNotification>(this);
-        mediator.Subscribe<OrderStatusChangedNotification>(this);
+        _mediator.Subscribe<OrderCreatedNotification>(this);
+        _mediator.Subscribe<OrderStatusChangedNotification>(this);
 
         _logger.LogInformation("Email Notification Service subscribed to order notifications");
 
@@ -185,14 +189,12 @@ public class EmailNotificationService : BackgroundService,
     {
         try
         {
-            // Unsubscribe from notifications
-            using var scope = _serviceProvider.CreateScope();
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-
-            mediator.Unsubscribe<OrderCreatedNotification>(this);
-            mediator.Unsubscribe<OrderStatusChangedNotification>(this);
-
-            _logger.LogInformation("Email Notification Service unsubscribed from notifications");
+            if (_mediator != null)
+            {
+                _mediator.Unsubscribe<OrderCreatedNotification>(this);
+                _mediator.Unsubscribe<OrderStatusChangedNotification>(this);
+                _logger.LogInformation("Email Notification Service unsubscribed from notifications");
+            }
         }
         catch (Exception ex)
         {
@@ -200,6 +202,7 @@ public class EmailNotificationService : BackgroundService,
         }
         finally
         {
+            _scope?.Dispose();
             base.Dispose();
         }
     }

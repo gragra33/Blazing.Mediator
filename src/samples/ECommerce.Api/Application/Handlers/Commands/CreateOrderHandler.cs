@@ -7,6 +7,7 @@ using ECommerce.Api.Infrastructure.Data;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ECommerce.Api.Application.Handlers.Commands;
 
@@ -15,8 +16,8 @@ namespace ECommerce.Api.Application.Handlers.Commands;
 /// </summary>
 /// <param name="context">The database context for accessing order and product data.</param>
 /// <param name="validator">The validator for validating the create order command.</param>
-/// <param name="mediator">The mediator for publishing notifications.</param>
-public class CreateOrderHandler(ECommerceDbContext context, IValidator<CreateOrderCommand> validator, IMediator mediator)
+/// <param name="serviceProvider">The service provider for resolving dependencies.</param>
+public class CreateOrderHandler(ECommerceDbContext context, IValidator<CreateOrderCommand> validator, IServiceProvider serviceProvider)
     : IRequestHandler<CreateOrderCommand, OperationResult<int>>
 {
     /// <summary>
@@ -27,6 +28,8 @@ public class CreateOrderHandler(ECommerceDbContext context, IValidator<CreateOrd
     /// <returns>The operation result with the created order ID if successful.</returns>
     public async ValueTask<OperationResult<int>> Handle(CreateOrderCommand request, CancellationToken cancellationToken = default)
     {
+        // Resolve IMediator lazily to avoid circular dependency during ContainerMetadata initialization
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
         try
         {
             ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);

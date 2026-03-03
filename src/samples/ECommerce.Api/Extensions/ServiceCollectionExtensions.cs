@@ -1,5 +1,6 @@
 using Blazing.Mediator;
 using Blazing.Mediator.Configuration;
+using Blazing.Mediator.Statistics;
 
 using ECommerce.Api.Application.Middleware;
 using ECommerce.Api.Application.Services;
@@ -98,6 +99,8 @@ public static class ServiceCollectionExtensions
     /// </summary>
     private static IServiceCollection AddStatisticsServices(this IServiceCollection services)
     {
+        //// Required by MediatorStatistics (registered by AddMediator when WithStatisticsTracking is enabled)
+        //services.AddSingleton<IStatisticsRenderer, ConsoleStatisticsRenderer>();
         services.AddSingleton<MediatorStatisticsTracker>();
 
         // Add a background service to clean up old sessions

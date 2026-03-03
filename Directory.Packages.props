@@ -9,7 +9,7 @@
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <!-- ASP.NET Core packages (no standalone 10.x — in-framework, pinned to 9.x for both TFMs) -->
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.13" />
+    <!-- NOTE: Microsoft.AspNetCore.OpenApi is TFM-versioned (see conditional blocks below) -->
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.13" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.13" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.13" />
@@ -80,6 +80,8 @@
        $(TargetFramework) is evaluated per-TFM during multi-targeting.
   ============================================================ -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == ''">
+    <!-- Microsoft.AspNetCore.OpenApi 9.x uses Microsoft.OpenApi 1.x -->
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.13" />
@@ -97,6 +99,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <!-- Microsoft.AspNetCore.OpenApi 10.x uses Microsoft.OpenApi 2.x (compatible with Swashbuckle 10.x) -->
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.3" />

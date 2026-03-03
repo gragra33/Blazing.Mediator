@@ -3,6 +3,7 @@ using ECommerce.Api.Application.Commands;
 using ECommerce.Api.Application.Notifications;
 using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ECommerce.Api.Application.Handlers.Commands;
 
@@ -10,8 +11,8 @@ namespace ECommerce.Api.Application.Handlers.Commands;
 /// Handler for updating the status of an existing order.
 /// </summary>
 /// <param name="context">The database context for accessing order data.</param>
-/// <param name="mediator">The mediator for publishing notifications.</param>
-public class UpdateOrderStatusHandler(ECommerceDbContext context, IMediator mediator)
+/// <param name="serviceProvider">The service provider for resolving dependencies.</param>
+public class UpdateOrderStatusHandler(ECommerceDbContext context, IServiceProvider serviceProvider)
     : IRequestHandler<UpdateOrderStatusCommand>
 {
     /// <summary>
@@ -22,6 +23,8 @@ public class UpdateOrderStatusHandler(ECommerceDbContext context, IMediator medi
     /// <exception cref="InvalidOperationException">Thrown when the order is not found.</exception>
     public async ValueTask Handle(UpdateOrderStatusCommand request, CancellationToken cancellationToken = default)
     {
+        // Resolve IMediator lazily to avoid circular dependency during ContainerMetadata initialization
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
         Order? order = await context.Orders.FindAsync([request.OrderId], cancellationToken);
         if (order == null)
             throw new InvalidOperationException($"Order with ID {request.OrderId} not found");

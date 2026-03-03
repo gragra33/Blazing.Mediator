@@ -125,8 +125,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NewFolder1", "NewFolder1", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazing.Mediator.Benchmarks.Temp", "benchmarks\Blazing.Mediator.Benchmarks.Temp\Blazing.Mediator.Benchmarks.Temp.csproj", "{1B4C1F5C-1469-B526-75D5-702782DB6BE6}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{F256F5B2-CCE8-D49B-FADB-E491DE17214B}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -604,7 +602,6 @@ Global
 		{66CA68F4-BE90-E183-8A09-6707F97061D8} = {8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}
 		{5A51012A-576D-43F2-84DA-1DC1DDAC88E7} = {71F4902F-F681-44DF-99FC-523273DFA767}
 		{1B4C1F5C-1469-B526-75D5-702782DB6BE6} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
-		{F256F5B2-CCE8-D49B-FADB-E491DE17214B} = {8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4BAEEABB-9388-4CBE-AA53-3C144B0B199D}

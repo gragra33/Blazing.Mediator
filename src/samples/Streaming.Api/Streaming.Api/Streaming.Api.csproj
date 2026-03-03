@@ -8,7 +8,6 @@
     <ProjectReference Include="..\Streaming.Api.Client\Streaming.Api.Client.csproj" />
     <ProjectReference Include="..\Streaming.Api.Shared\Streaming.Api.Shared.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="Utf8JsonAsyncStreamReader" />
   </ItemGroup>

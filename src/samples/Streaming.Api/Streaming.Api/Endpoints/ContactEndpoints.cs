@@ -17,8 +17,7 @@ public static class ContactEndpoints
     public static void MapContactEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/contacts")
-            .WithTags("Contacts")
-            .WithOpenApi();
+            .WithTags("Contacts");
 
         // Get contact count
         group.MapGet("/count", async (IMediator mediator) =>

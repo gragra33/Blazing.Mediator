@@ -95,20 +95,20 @@ v3.0.0 replaces all runtime reflection with compile-time source generation, deli
 | Library                                        |          Mean | Ratio to MediatR |       vs MediatR | Allocated |
 | ---------------------------------------------- | ------------: | ---------------: | ---------------: | --------: |
 | MediatR 12.5 _(baseline)_                      |     304.92 ns |            1.00× |                — |     488 B |
-| **Blazing.Mediator v3.0.0** (source-generated) | **100.89 ns** |        **0.33×** | **66.9% faster** |  **96 B** |
+| **Blazing.Mediator v3.0.0** (source-generated) |  **90.29 ns** |        **0.29×** | **70.9% faster** |  **96 B** |
 | Blazing.Mediator v2.0.1 (reflection)           |   3,025.45 ns |            9.74× |      872% slower |   2,768 B |
 
-**v3.0.0 vs v2.0.1:** **30× faster** · **96.67% reduction** · **−2,672 B per call**
+**v3.0.0 vs v2.0.1:** **34× faster** · **97.0% reduction** · **−2,672 B per call**
 
 ### Notification / Publish
 
 | Library                                        |         Mean |       vs MediatR | Allocated |
 | ---------------------------------------------- | -----------: | ---------------: | --------: |
 | MediatR 12.5 _(baseline)_                      |    112.98 ns |                — |     288 B |
-| **Blazing.Mediator v3.0.0** (source-generated) | **31.35 ns** | **72.3% faster** |   **0 B** |
+| **Blazing.Mediator v3.0.0** (source-generated) | **30.68 ns** | **72.8% faster** |   **0 B** |
 | Blazing.Mediator v2.0.1 (reflection)           |  2,184.08 ns |    1,846% slower |   2,136 B |
 
-**v3.0.0 vs v2.0.1: 70× faster · zero allocation per call**
+**v3.0.0 vs v2.0.1: 71× faster · zero allocation per call**
 
 For full benchmark results including streaming and comparison against martinothamar/Mediator, see the **[Benchmark Comparison](https://github.com/gragra33/Blazing.Mediator/docs/BENCHMARK_COMPARISON.md)**.
 
@@ -618,7 +618,7 @@ All of the Example Console applications demonstrate comprehensive **MediatorStat
 - **Pluggable Notification Publisher**: `INotificationPublisher` interface allows opt-in concurrent notification dispatch (`config.WithConcurrentNotificationPublisher()`)
 - **`[ExcludeFromAutoDiscovery]` Attribute**: Opt individual handlers out of source-generator discovery
 - **`MediatorDispatcherBase`**: New abstract base class bridges the pre-compiled library and the source-generated `ContainerMetadata`
-- **Performance**: 114× faster than v2.0.1 for requests (17 ns vs 2,003 ns), 70× faster for notifications, 30× faster for streaming; 75.8% faster than MediatR on the request path with zero allocations
+- **Performance**: 114× faster than v2.0.1 for requests (17 ns vs 2,003 ns), 71× faster for notifications, 33× faster for streaming; 75.8% faster than MediatR on the request path with zero allocations
 - **Migration Guide**: See [MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/docs/MIGRATION_GUIDE.md) for full upgrade steps; [BREAKING_CHANGES.md](https://github.com/gragra33/Blazing.Mediator/docs/BREAKING_CHANGES.md) for a concise API change reference
 
 ### V2.0.1

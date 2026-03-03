@@ -1,1 +1,0 @@
-The provided exporter "Console" is invalid. Available options are: csv, csvmeasurements, html, markdown, atlassian, stackoverflow, github, plain, rplot, json, briefjson, fulljson, asciidoc, xml, briefxml, fullxml.

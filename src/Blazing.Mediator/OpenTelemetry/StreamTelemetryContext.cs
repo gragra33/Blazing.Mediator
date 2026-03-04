@@ -99,7 +99,7 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
     /// <summary>
     /// Initializes the telemetry context with activity and service information.
     /// </summary>
-    public void Initialize(Activity? activity, IServiceProvider serviceProvider, IMiddlewarePipelineBuilder pipelineBuilder, MediatorStatistics? statistics)
+    public void Initialize(Activity? activity, IServiceProvider serviceProvider, IMiddlewarePipelineBuilder? pipelineBuilder, MediatorStatistics? statistics)
     {
         if (!IsTelemetryEnabled) return;
 

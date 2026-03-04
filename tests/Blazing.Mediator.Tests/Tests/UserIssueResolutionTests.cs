@@ -91,11 +91,9 @@ public class UserIssueResolutionTests
     /// Test alternative syntax patterns that should also work for the user
     /// </summary>
     [Theory]
-    [InlineData(true, true)]   // Stats + notification middleware
-    [InlineData(true, false)]  // Stats only
-    [InlineData(false, true)]  // Notification middleware only
-    [InlineData(false, false)] // Neither (minimal setup)
-    public void AddMediator_AlternativeSyntaxPatterns_WorkCorrectly(bool enableStats, bool discoverNotifications)
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddMediator_AlternativeSyntaxPatterns_WorkCorrectly(bool enableStats)
     {
         // Arrange
         var services = new ServiceCollection();

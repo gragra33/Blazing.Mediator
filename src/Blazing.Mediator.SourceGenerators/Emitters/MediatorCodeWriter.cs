@@ -130,11 +130,12 @@ internal static class MediatorCodeWriter
         if (req.IsAmbiguous)
             return;
 
+        string displayRequestType = XmlDocTypeName(req.RequestType);
         string summary = req.IsStream
-            ? $"Generated per-scope dispatch wrapper for stream request <c>{req.RequestType}</c>."
+            ? $"Generated per-scope dispatch wrapper for stream request <c>{displayRequestType}</c>."
             : req.IsVoid
-                ? $"Generated per-scope dispatch wrapper for void command <c>{req.RequestType}</c>."
-                : $"Generated per-scope dispatch wrapper for <c>{req.RequestType}</c>.";
+                ? $"Generated per-scope dispatch wrapper for void command <c>{displayRequestType}</c>."
+                : $"Generated per-scope dispatch wrapper for <c>{displayRequestType}</c>.";
 
         sb.AppendLine($"    /// <summary>{summary}</summary>");
         sb.AppendLine("    /// <remarks>Wrappers are <c>sealed</c> instances held by <see cref=\"ContainerMetadata\"/>.");
@@ -406,7 +407,7 @@ internal static class MediatorCodeWriter
                 ? notifType.Substring("global::".Length)
                 : notifType;
 
-        sb.AppendLine($"    /// <summary>Generated Singleton-cached dispatch wrapper for notification <c>{notifType}</c>.</summary>");
+        sb.AppendLine($"    /// <summary>Generated Singleton-cached dispatch wrapper for notification <c>{XmlDocTypeName(notifType)}</c>.</summary>");
         sb.AppendLine("    /// <remarks>Pre-resolves all <c>INotificationHandler&lt;T&gt;</c> instances and <c>INotificationPublisher</c> once");
         sb.AppendLine("    /// at startup via <c>Init(sp)</c>. Subsequent <c>Handle()</c> calls involve zero DI lookups.</remarks>");
         sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
@@ -1609,4 +1610,12 @@ internal static class MediatorCodeWriter
         }
         return result.ToString();
     }
+
+    /// <summary>
+    /// Sanitizes a fully-qualified type name for safe use inside an XML documentation comment.
+    /// Removes the <c>global::</c> prefix and replaces <c>&lt;</c>/<c>&gt;</c> with <c>{</c>/<c>}</c>
+    /// so the result is valid XML and readable.
+    /// </summary>
+    private static string XmlDocTypeName(string typeName)
+        => typeName.Replace("global::", "").Replace('<', '{').Replace('>', '}');
 }

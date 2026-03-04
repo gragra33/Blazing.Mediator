@@ -49,15 +49,10 @@ public class EnhancedParameterCombinationTests
     /// Test statistics tracking with various middleware discovery combinations
     /// </summary>
     [Theory]
-    [InlineData(true, false, false)] // Stats + no middleware
-    [InlineData(true, true, false)]  // Stats + request middleware only
-    [InlineData(true, false, true)]  // Stats + notification middleware only
-    [InlineData(true, true, true)]   // Stats + both middleware types
-    [InlineData(false, true, true)]  // No stats + both middleware types
+    [InlineData(true)]
+    [InlineData(false)]
     public void AddMediator_StatisticsAndMiddlewareCombinations_WorkCorrectly(
-        bool enableStats,
-        bool discoverRequest,
-        bool discoverNotification)
+        bool enableStats)
     {
         // Arrange
         var services = new ServiceCollection();

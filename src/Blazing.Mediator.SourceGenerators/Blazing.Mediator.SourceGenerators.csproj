@@ -12,7 +12,9 @@
     <IsRoslynComponent>true</IsRoslynComponent>
     
     <!-- Suppress RS1035 for compatibility with ISourceGenerator pattern during Phase 4 -->
-    <NoWarn>$(NoWarn);RS1035</NoWarn>
+    <!-- Suppress NU5128: source generator packages have no lib/ output by design -->
+    <!-- Suppress RS2007: AnalyzerReleases.Unshipped.md header format compatibility with Analyzers 4.14.0 -->
+    <NoWarn>$(NoWarn);RS1035;NU5128;RS2007</NoWarn>
     
     <Product>Blazing.Mediator Source Generators</Product>
     <Description>Source generators for Blazing.Mediator that eliminate reflection and provide AOT compatibility. Generates type-safe dispatch tables, pre-built middleware pipelines, and optimised notification handlers at compile-time.</Description>

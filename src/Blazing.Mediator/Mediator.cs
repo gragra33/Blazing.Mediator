@@ -1,5 +1,3 @@
-using Blazing.Mediator.OpenTelemetry;
-using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
@@ -62,16 +60,9 @@ public sealed partial class Mediator : IMediator
     // String constants
     private const string _blazingMediatorName = "Blazing.Mediator";
     private const string _defaultVersion = "1.0.0";
-    private const string _handlerNotFoundFormat = "No handler found for request type {0}";
-    private const string _streamHandlerNotFoundFormat = "No handler found for stream request type {0}";
-    private const string _multipleHandlersFoundFormat = "Multiple handlers found for request type {0}. Only one handler per request type is allowed.";
-    private const string _multipleStreamHandlersFoundFormat = "Multiple handlers found for stream request type {0}. Only one handler per request type is allowed.";
-    private const string _handlerReturnedNullFormat = "Handler for {0} returned null";
-    private const string _handleMethodNotFoundFormat = "Handle method not found on {0}";
-    
+
     // Activity/operation names
     private const string _mediatorPublishActivityPrefix = "Mediator.Publish.";
-    private const string _mediatorSendActivity = "Mediator.Send:";
     private const string _mediatorSendStreamActivity = "Mediator.SendStream:";
     
     /// <summary>
@@ -128,24 +119,9 @@ public sealed partial class Mediator : IMediator
     private int GetPacketTelemetryBatchSize => _telemetryOptions?.PacketTelemetryBatchSize ?? PacketTelemetryBatchSize;
 
     /// <summary>
-    /// Gets whether middleware details should be captured based on options (default true).
-    /// </summary>
-    private bool ShouldCaptureMiddlewareDetails => _telemetryOptions?.CaptureMiddlewareDetails ?? true;
-
-    /// <summary>
-    /// Gets whether handler details should be captured based on options (default true).
-    /// </summary>
-    private bool ShouldCaptureHandlerDetails => _telemetryOptions?.CaptureHandlerDetails ?? true;
-
-    /// <summary>
     /// Gets whether exception details should be captured based on options (default true).
     /// </summary>
     private bool ShouldCaptureExceptionDetails => _telemetryOptions?.CaptureExceptionDetails ?? true;
-
-    /// <summary>
-    /// Gets whether health checks are enabled based on options (default true).
-    /// </summary>
-    private bool AreHealthChecksEnabled => _telemetryOptions?.EnableHealthChecks ?? true;
 
     /// <summary>
     /// Gets the maximum exception message length based on options (default 200).
@@ -162,53 +138,4 @@ public sealed partial class Mediator : IMediator
     /// </summary>
     private List<string> SensitiveDataPatterns => _telemetryOptions?.SensitiveDataPatterns ??
         ["password", "token", "secret", "key", "auth", "credential", "connection"];
-
-    #region Helper Methods
-
-    /// <summary>
-    /// Gets distinct middleware names for telemetry, removing duplicates and normalizing generic types.
-    /// </summary>
-    /// <param name="middlewareTypes">The middleware types to process.</param>
-    /// <returns>A list of distinct, normalized middleware names.</returns>
-    private List<string> GetDistinctMiddlewareNames(IEnumerable<(Type Type, int Order, object? Configuration)> middlewareTypes)
-    {
-        // Use a HashSet to track unique middleware names (normalized)
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var result = new List<string>();
-
-        foreach (var (type, order, _) in middlewareTypes.OrderBy(m => m.Order))
-        {
-            var normalizedName = SanitizeMiddlewareName(type);
-            
-            // Only add if we haven't seen this normalized name before
-            if (seen.Add(normalizedName))
-            {
-                result.Add(normalizedName);
-            }
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Gets whether a specific request type is a query based on its interface implementation.
-    /// </summary>
-    /// <param name="requestType">The request type to check.</param>
-    /// <returns>True if the request is a query, false otherwise.</returns>
-    private static bool IsQueryRequest(Type requestType)
-    {
-        return typeof(IRequest<>).IsAssignableFrom(requestType) && requestType.GetGenericArguments().Length == 1;
-    }
-
-    /// <summary>
-    /// Gets whether a specific request type is a command based on its interface implementation.
-    /// </summary>
-    /// <param name="requestType">The request type to check.</param>
-    /// <returns>True if the request is a command, false otherwise.</returns>
-    private static bool IsCommandRequest(Type requestType)
-    {
-        return typeof(IRequest).IsAssignableFrom(requestType) && !IsQueryRequest(requestType);
-    }
-
-    #endregion
 }

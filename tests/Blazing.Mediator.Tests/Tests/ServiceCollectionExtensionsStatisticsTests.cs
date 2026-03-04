@@ -64,7 +64,7 @@ public class ServiceCollectionExtensionsStatisticsTests
         // In v3 source-gen mode, no default IStatisticsRenderer is registered unless explicitly added.
         renderer.ShouldBeNull();
     }
-    /// </summary>
+
     [Fact]
     public void AddMediator_WithStatisticsTrackingDisabled_DisablesStatisticsTracking()
     {

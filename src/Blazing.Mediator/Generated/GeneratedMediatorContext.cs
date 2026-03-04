@@ -4,8 +4,6 @@
 
 #nullable enable
 
-using Blazing.Mediator.Configuration;
-
 namespace Blazing.Mediator.Generated;
 
 /// <summary>

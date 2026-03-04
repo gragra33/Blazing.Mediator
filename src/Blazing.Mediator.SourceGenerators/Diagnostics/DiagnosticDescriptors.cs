@@ -63,7 +63,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor InvalidMiddlewareConstraints = new(
         id: DiagnosticIds.InvalidMiddlewareConstraints,
         title: "Invalid Middleware Type Constraints",
-        messageFormat: "Middleware '{0}' has type parameter '{1}' with constraint '{2}' that is not satisfied by type '{3}'.",
+        messageFormat: "Middleware '{0}' has type parameter '{1}' with constraint '{2}' that is not satisfied by type '{3}'",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -87,7 +87,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor MissingSubscriberRegistration = new(
         id: DiagnosticIds.MissingSubscriberRegistration,
         title: "Missing Subscriber Registration",
-        messageFormat: "Subscriber '{0}' is not registered in DI container.",
+        messageFormat: "Subscriber '{0}' is not registered in DI container",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -99,7 +99,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor SubscriberResolutionFailure = new(
         id: DiagnosticIds.SubscriberResolutionFailure,
         title: "Subscriber Resolution Failure",
-        messageFormat: "Cannot resolve subscriber '{0}' from DI container.",
+        messageFormat: "Cannot resolve subscriber '{0}' from DI container",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
@@ -111,7 +111,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor MissingStreamMiddleware = new(
         id: DiagnosticIds.MissingStreamMiddleware,
         title: "Missing Stream Middleware",
-        messageFormat: "Stream request '{0}' has no middleware registered.",
+        messageFormat: "Stream request '{0}' has no middleware registered",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -123,7 +123,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor StreamMiddlewareResolutionFailure = new(
         id: DiagnosticIds.StreamMiddlewareResolutionFailure,
         title: "Stream Middleware Resolution Failure",
-        messageFormat: "Cannot resolve stream middleware '{0}' from DI container.",
+        messageFormat: "Cannot resolve stream middleware '{0}' from DI container",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
@@ -147,7 +147,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor AOTValidationMissing = new(
         id: DiagnosticIds.AOTValidationMissing,
         title: "AOT Validation Missing",
-        messageFormat: "AOT compatibility attributes are not applied to '{0}'.",
+        messageFormat: "AOT compatibility attributes are not applied to '{0}'",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,

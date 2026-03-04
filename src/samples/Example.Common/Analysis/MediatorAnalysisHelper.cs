@@ -9,7 +9,8 @@ public static class MediatorAnalysisHelper
     /// Displays comprehensive mediator analysis including requests, queries, commands, and notifications.
     /// </summary>
     /// <param name="mediatorStatistics">The mediator statistics instance.</param>
-    /// <param name="serviceProvider">The service provider to resolve services from.</param>
+    /// <param name="catalog">The mediator type catalog for handler discovery.</param>
+    /// <param name="subscriberTracker">Optional subscriber tracker for notification subscriber analysis.</param>
     /// <param name="showRequestAnalysis">Whether to show request analysis (for general request samples).</param>
     /// <param name="showNotificationAnalysis">Whether to show notification analysis (for notification samples).</param>
     public static void DisplayComprehensiveAnalysis(

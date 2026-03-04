@@ -10,7 +10,7 @@ public class BusinessOperationsHandler(ILogger<BusinessOperationsHandler> logger
       INotificationHandler<CustomerRegisteredNotification>,
       INotificationHandler<InventoryUpdatedNotification>
 {
-    public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -47,7 +47,7 @@ public class BusinessOperationsHandler(ILogger<BusinessOperationsHandler> logger
         }
     }
 
-    public async Task Handle(CustomerRegisteredNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(CustomerRegisteredNotification notification, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -87,7 +87,7 @@ public class BusinessOperationsHandler(ILogger<BusinessOperationsHandler> logger
         }
     }
 
-    public async Task Handle(InventoryUpdatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(InventoryUpdatedNotification notification, CancellationToken cancellationToken = default)
     {
         try
         {

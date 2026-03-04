@@ -5,8 +5,8 @@ namespace Blazing.Mediator.Tests.Statistics;
 /// </summary>
 public class QueryNamedAsCommandHandler : IRequestHandler<QueryNamedAsCommand, string>
 {
-    public Task<string> Handle(QueryNamedAsCommand request, CancellationToken cancellationToken)
+    public ValueTask<string> Handle(QueryNamedAsCommand request, CancellationToken cancellationToken)
     {
-        return Task.FromResult($"QueryAsCommand: {request.Value}");
+        return ValueTask.FromResult($"QueryAsCommand: {request.Value}");
     }
 }

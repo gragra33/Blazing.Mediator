@@ -16,7 +16,7 @@ public class ProductPriceChangedMarketingHandler : INotificationHandler<ProductP
         _logger = logger;
     }
 
-    public async Task Handle(ProductPriceChangedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(ProductPriceChangedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Processing marketing updates for product {ProductId} price change: {OldPrice:C} ? {NewPrice:C}", 
             notification.ProductId, notification.OldPrice, notification.NewPrice);

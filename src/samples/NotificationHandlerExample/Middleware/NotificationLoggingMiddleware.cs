@@ -9,7 +9,7 @@ public class NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware
 {
     public int Order => 100; // Execute early in the pipeline
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
         CancellationToken cancellationToken = default) where TNotification : INotification
     {
         var notificationType = typeof(TNotification).Name;

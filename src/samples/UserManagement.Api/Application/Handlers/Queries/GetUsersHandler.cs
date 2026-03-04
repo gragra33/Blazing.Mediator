@@ -10,7 +10,7 @@ namespace UserManagement.Api.Application.Handlers.Queries;
 
 public class GetUsersHandler(UserManagementDbContext context) : IRequestHandler<GetUsersQuery, PagedResult<UserDto>>
 {
-    public async Task<PagedResult<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<PagedResult<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken = default)
     {
         IQueryable<User> query = context.Users.AsNoTracking();
 

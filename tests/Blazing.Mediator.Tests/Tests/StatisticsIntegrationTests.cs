@@ -1,3 +1,4 @@
+﻿using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -30,17 +31,17 @@ public class StatisticsIntegrationTests
 
     public class TestQueryHandler : IRequestHandler<TestQuery, string>
     {
-        public Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
+        public ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
         {
-            return Task.FromResult($"Response: {request.Message}");
+            return ValueTask.FromResult($"Response: {request.Message}");
         }
     }
 
     public class TestCommandHandler : IRequestHandler<TestCommand>
     {
-        public Task Handle(TestCommand request, CancellationToken cancellationToken)
+        public ValueTask Handle(TestCommand request, CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -52,10 +53,7 @@ public class StatisticsIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -108,10 +106,7 @@ public class StatisticsIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(
-            config => { }, // No configuration = disabled statistics
-            _testAssembly
-        );
+        services.AddMediator();
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -134,11 +129,7 @@ public class StatisticsIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .AddMiddleware<FirstQueryMiddleware>();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -168,10 +159,7 @@ public class StatisticsIntegrationTests
         var customRenderer = new TestStatisticsRenderer();
         var services = new ServiceCollection();
         services.AddSingleton<IStatisticsRenderer>(customRenderer);
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, _testAssembly);
+        services.AddMediator();
 
         // Act
         var serviceProvider = services.BuildServiceProvider();
@@ -190,10 +178,7 @@ public class StatisticsIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
@@ -230,10 +215,7 @@ public class StatisticsIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, _testAssembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -243,9 +225,9 @@ public class StatisticsIntegrationTests
         var tasks = new List<Task>();
         for (int i = 0; i < 10; i++)
         {
-            tasks.Add(mediator.Send(new TestQuery { Message = $"Test{i}" }));
-            tasks.Add(mediator.Send(new TestCommand { Action = $"Action{i}" }));
-            tasks.Add(mediator.Publish(new TestNotification { Event = $"Event{i}" }));
+            tasks.Add(mediator.Send(new TestQuery { Message = $"Test{i}" }).AsTask());
+            tasks.Add(mediator.Send(new TestCommand { Action = $"Action{i}" }).AsTask());
+            tasks.Add(mediator.Publish(new TestNotification { Event = $"Event{i}" }).AsTask());
         }
 
         await Task.WhenAll(tasks);

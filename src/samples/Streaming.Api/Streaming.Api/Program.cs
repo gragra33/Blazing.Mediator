@@ -11,12 +11,8 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
-// Add Blazing.Mediator with streaming support and middleware
-builder.Services.AddMediator(config =>
-{
-    // Add streaming middleware for logging - only applies to IStreamRequest<T>
-    config.AddMiddleware(typeof(StreamingLoggingMiddleware<,>));
-}, typeof(Program));
+// Add Blazing.Mediator with streaming support - middleware is auto-discovered by source generator
+builder.Services.AddMediator();
 
 // Add custom services
 builder.Services.AddScoped<IContactService, ContactService>();
@@ -70,12 +66,11 @@ app.UseCors();
 
 app.UseAntiforgery();
 
-app.UseStaticFiles();
-
 // Map API endpoints
 app.MapContactEndpoints();
 
-// Map Blazor components
+// Map Blazor components — MapStaticAssets must precede AddInteractiveWebAssemblyRenderMode
+app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
@@ -84,4 +79,4 @@ app.MapRazorComponents<App>()
 app.Run();
 
 // Make Program class accessible for integration testing
-public partial class Program { }
+public partial class Program;

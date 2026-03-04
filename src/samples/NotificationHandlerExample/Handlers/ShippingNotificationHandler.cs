@@ -11,7 +11,7 @@ public class ShippingNotificationHandler(ILogger<ShippingNotificationHandler> lo
     private static readonly string[] ShippingMethods = ["Standard", "Express", "Next Day", "Same Day"];
     private static readonly string[] Carriers = ["FedEx", "UPS", "DHL", "USPS"];
 
-    public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
     {
         try
         {

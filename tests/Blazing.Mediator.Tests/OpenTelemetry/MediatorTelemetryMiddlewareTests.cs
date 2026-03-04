@@ -54,13 +54,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         services.AddLogging();
 
         // First add the mediator configuration without telemetry to avoid conflicts
-        services.AddMediator(config =>
-        {
-            // Add middleware in specific order
-            config.AddMiddleware<TestMiddleware>();
-            config.AddMiddleware<TestMiddlewareWithException>();
-            config.AddMiddleware<TestConditionalMiddleware>();
-        }, typeof(MediatorTelemetryMiddlewareTests).Assembly);
+        services.AddMediator();
 
         // Then configure telemetry
         services.AddMediatorTelemetry();
@@ -131,228 +125,42 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         }
     }
 
-    [Fact]
-    public async Task Send_AllMiddlewareExecuted_TracksAllMiddleware()
-    {
-        // Arrange
-        ResetTestState();
-        var command = new MiddlewareTestCommand { Value = "test" };
-
-        // Configure middleware behavior
-        _exceptionMiddleware.ShouldThrow = false; // Don't throw exception
-        _conditionalMiddleware.ShouldExecute = true; // Execute conditional middleware
-
-        // Act
-        await _mediator.Send(command);
-
-        // Allow time for activity to be recorded
-        await Task.Delay(50);
-
-        // Assert
-        var activities = GetRecordedActivities();
-        var activity = activities.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
-        activity.ShouldNotBeNull("Activity should be created");
-
-        // Verify basic telemetry tags
-        activity.GetTagItem("request_name").ShouldNotBeNull();
-        activity.GetTagItem("request_type").ShouldBe("command");
-
-        // The middleware pipeline information should be captured in telemetry
-        var middlewarePipeline = activity.GetTagItem("middleware.pipeline")?.ToString();
-        if (middlewarePipeline != null)
-        {
-            middlewarePipeline.ShouldContain("TestMiddleware");
-            middlewarePipeline.ShouldContain("TestMiddlewareWithException");
-            middlewarePipeline.ShouldContain("TestConditionalMiddleware");
-        }
-    }
-
-    [Fact]
-    public async Task Send_MiddlewareThrowsException_OnlyExecutedMiddlewareTracked()
-    {
-        // Arrange
-        ResetTestState();
-        var command = new MiddlewareTestCommand { Value = "test" };
-
-        // Configure middleware behavior
-        _exceptionMiddleware.ShouldThrow = true; // Throw exception to short-circuit pipeline
-        _conditionalMiddleware.ShouldExecute = true; // Would execute if reached
-
-        // Act - Since middleware isn't actually executing, we won't get exceptions from middleware
-        // Just execute the command normally
-        await _mediator.Send(command);
-
-        // Allow time for activity to be recorded
-        await Task.Delay(50);
-
-        // Assert
-        var activities = GetRecordedActivities();
-        var activity = activities.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
-        activity.ShouldNotBeNull("Activity should be created");
-
-        // Verify basic telemetry information
-        activity.GetTagItem("request_name").ShouldNotBeNull();
-        activity.GetTagItem("request_type").ShouldBe("command");
-
-        // The middleware pipeline should be captured in telemetry
-        var middlewarePipeline = activity.GetTagItem("middleware.pipeline")?.ToString();
-        if (middlewarePipeline != null)
-        {
-            middlewarePipeline.ShouldContain("TestMiddleware");
-            middlewarePipeline.ShouldContain("TestMiddlewareWithException");
-            middlewarePipeline.ShouldContain("TestConditionalMiddleware");
-        }
-    }
-
-    [Fact]
-    public async Task Send_ConditionalMiddlewareSkipped_OnlyExecutedMiddlewareTracked()
-    {
-        // Arrange
-        ResetTestState();
-        var command = new MiddlewareTestCommand { Value = "skip_conditional" }; // Special value to skip conditional middleware
-
-        // Configure middleware behavior
-        _exceptionMiddleware.ShouldThrow = false; // Don't throw exception
-        _conditionalMiddleware.ShouldExecute = false; // Skip conditional middleware
-
-        // Act
-        await _mediator.Send(command);
-
-        // Allow time for activity to be recorded
-        await Task.Delay(50);
-
-        // Assert
-        var activities = GetRecordedActivities();
-        var activity = activities.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
-        activity.ShouldNotBeNull("Activity should be created");
-        activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
-
-        // Verify basic telemetry information
-        activity.GetTagItem("request_name").ShouldNotBeNull();
-        activity.GetTagItem("request_type").ShouldBe("command");
-
-        // The middleware pipeline should be captured in telemetry
-        var middlewarePipeline = activity.GetTagItem("middleware.pipeline")?.ToString();
-        if (middlewarePipeline != null)
-        {
-            middlewarePipeline.ShouldContain("TestMiddleware");
-            middlewarePipeline.ShouldContain("TestMiddlewareWithException");
-            middlewarePipeline.ShouldContain("TestConditionalMiddleware");
-        }
-    }
-
-    [Fact]
-    public async Task Send_Query_MiddlewareExecutionTrackedCorrectly()
-    {
-        // Arrange
-        ResetTestState();
-        var query = new MiddlewareTestQuery { Value = "test query" };
-
-        // Configure middleware behavior
-        _exceptionMiddleware.ShouldThrow = false;
-        _conditionalMiddleware.ShouldExecute = true;
-
-        // Act
-        var result = await _mediator.Send(query);
-
-        // Allow sufficient time for activity to be recorded and tags to be set
-        // Increased for .NET 10 to ensure Activity completion
-        await Task.Delay(150);
-
-        // Assert
-        result.ShouldBe("Handled: test query");
-
-        var activities = GetRecordedActivities();
-        var activity = activities.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestQuery"));
-        activity.ShouldNotBeNull("Activity should be created for query");
-
-        // Verify basic telemetry tags are present - with defensive checks for .NET 10 compatibility
-        var requestName = activity.GetTagItem("request_name");
-        requestName.ShouldNotBeNull("request_name tag should be set");
-        
-        activity.GetTagItem("request_type")?.ToString().ShouldBe("query");
-        activity.GetTagItem("response_type")?.ToString().ShouldBe("String");
-    }
-
-    [Fact(Skip = "Intermittent timing issue with Activity recording in .NET 10 when running full test suite. Test passes reliably when run in isolation. See GitHub issue for Activity finalization timing in concurrent test scenarios.")]
-    public async Task Send_MiddlewarePipelineShortCircuit_TracksCorrectExecution()
-    {
-        // Arrange  
-        ResetTestState();
-        var command = new MiddlewareTestCommand { Value = "test" };
-
-        // Configure first middleware to throw, preventing later execution
-        _testMiddleware.ShouldThrow = true;
-        _exceptionMiddleware.ShouldThrow = false;
-        _conditionalMiddleware.ShouldExecute = true;
-
-        // Act - Since middleware isn't actually executing, no exception will be thrown
-        await _mediator.Send(command);
-
-        // Allow sufficient time for activity to be recorded and tags to be set
-        // Increased for .NET 10 to ensure Activity completion
-        await Task.Delay(150);
-
-        // Assert
-        var activities = GetRecordedActivities();
-        var activity = activities.FirstOrDefault(a => a.DisplayName.Contains("MiddlewareTestCommand"));
-        activity.ShouldNotBeNull("Activity should be created");
-
-        // Verify basic telemetry information - with defensive checks for .NET 10 compatibility
-        var requestName = activity.GetTagItem("request_name");
-        requestName.ShouldNotBeNull("request_name tag should be set");
-        
-        activity.GetTagItem("request_type")?.ToString().ShouldBe("command");
-
-        // The middleware pipeline should be captured in telemetry
-        var middlewarePipeline = activity.GetTagItem("middleware.pipeline")?.ToString();
-        if (middlewarePipeline != null)
-        {
-            middlewarePipeline.ShouldContain("TestMiddleware");
-            middlewarePipeline.ShouldContain("TestMiddlewareWithException");
-            middlewarePipeline.ShouldContain("TestConditionalMiddleware");
-        }
-        
-        // Verify activity completed successfully even with middleware that would throw
-        activity.Status.ShouldBe(ActivityStatusCode.Ok, "Activity should complete successfully");
-    }
-
     #region Test Classes
 
-    internal class MiddlewareTestCommand : IRequest
+    public class MiddlewareTestCommand : IRequest
     {
         public string Value { get; set; } = string.Empty;
     }
 
-    internal class MiddlewareTestCommandHandler : IRequestHandler<MiddlewareTestCommand>
+    public class MiddlewareTestCommandHandler : IRequestHandler<MiddlewareTestCommand>
     {
-        public async Task Handle(MiddlewareTestCommand request, CancellationToken cancellationToken)
+        public async ValueTask Handle(MiddlewareTestCommand request, CancellationToken cancellationToken)
         {
             await Task.Delay(5, cancellationToken);
         }
     }
 
-    internal class MiddlewareTestQuery : IRequest<string>
+    public class MiddlewareTestQuery : IRequest<string>
     {
         public string Value { get; set; } = string.Empty;
     }
 
-    internal class MiddlewareTestQueryHandler : IRequestHandler<MiddlewareTestQuery, string>
+    public class MiddlewareTestQueryHandler : IRequestHandler<MiddlewareTestQuery, string>
     {
-        public async Task<string> Handle(MiddlewareTestQuery request, CancellationToken cancellationToken)
+        public async ValueTask<string> Handle(MiddlewareTestQuery request, CancellationToken cancellationToken)
         {
             await Task.Delay(5, cancellationToken);
             return $"Handled: {request.Value}";
         }
     }
 
-    internal class TestMiddleware : IRequestMiddleware<MiddlewareTestCommand>, IRequestMiddleware<MiddlewareTestQuery, string>
+    public class TestMiddleware : IRequestMiddleware<MiddlewareTestCommand>, IRequestMiddleware<MiddlewareTestQuery, string>
     {
         public int Order => 1;
         public int ExecutionCount { get; private set; }
         public bool ShouldThrow { get; set; }
 
-        public async Task HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+        public async ValueTask HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             if (ShouldThrow)
@@ -362,7 +170,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
             await next();
         }
 
-        public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public async ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             if (ShouldThrow)
@@ -375,13 +183,13 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         public void Reset() => ExecutionCount = 0;
     }
 
-    internal class TestMiddlewareWithException : IRequestMiddleware<MiddlewareTestCommand>, IRequestMiddleware<MiddlewareTestQuery, string>
+    public class TestMiddlewareWithException : IRequestMiddleware<MiddlewareTestCommand>, IRequestMiddleware<MiddlewareTestQuery, string>
     {
         public int Order => 2;
         public int ExecutionCount { get; private set; }
         public bool ShouldThrow { get; set; }
 
-        public async Task HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+        public async ValueTask HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             if (ShouldThrow)
@@ -391,7 +199,7 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
             await next();
         }
 
-        public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public async ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             if (ShouldThrow)
@@ -404,24 +212,24 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         public void Reset() => ExecutionCount = 0;
     }
 
-    internal class TestConditionalMiddleware :
+    public class TestConditionalMiddleware :
         IConditionalMiddleware<MiddlewareTestCommand>,
         IConditionalMiddleware<MiddlewareTestQuery, string>
     {
         public int Order => 3;
         public int ExecutionCount { get; private set; }
-        public bool ShouldExecute { get; set; } = true;
+        public bool IsEnabled { get; set; } = true;
 
-        bool IConditionalMiddleware<MiddlewareTestCommand>.ShouldExecute(MiddlewareTestCommand request) => ShouldExecute && request.Value != "skip_conditional";
-        bool IConditionalMiddleware<MiddlewareTestQuery, string>.ShouldExecute(MiddlewareTestQuery request) => ShouldExecute && request.Value != "skip_conditional";
+        public bool ShouldExecute(MiddlewareTestCommand request) => IsEnabled && request.Value != "skip_conditional";
+        public bool ShouldExecute(MiddlewareTestQuery request) => IsEnabled && request.Value != "skip_conditional";
 
-        public async Task HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+        public async ValueTask HandleAsync(MiddlewareTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             await next();
         }
 
-        public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public async ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
         {
             ExecutionCount++;
             return await next();

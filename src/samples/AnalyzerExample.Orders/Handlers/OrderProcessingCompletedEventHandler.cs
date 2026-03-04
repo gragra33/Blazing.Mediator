@@ -16,7 +16,7 @@ public class OrderProcessingCompletedEventHandler : INotificationHandler<OrderPr
         _logger = logger;
     }
 
-    public async Task Handle(OrderProcessingCompletedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderProcessingCompletedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Order processing completed for order {OrderId} ({OrderNumber}). Final status: {FinalStatus}, Total: {TotalAmount:C}",
             notification.OrderId, notification.OrderNumber, notification.FinalStatus, notification.TotalAmount);

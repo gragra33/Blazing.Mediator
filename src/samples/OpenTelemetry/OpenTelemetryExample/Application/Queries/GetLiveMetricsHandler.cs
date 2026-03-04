@@ -11,7 +11,7 @@ namespace OpenTelemetryExample.Application.Queries;
 internal sealed class GetLiveMetricsHandler(ApplicationDbContext context, ILogger<GetLiveMetricsHandler> logger)
     : IRequestHandler<GetLiveMetricsQuery, LiveMetricsDto>
 {
-    public async Task<LiveMetricsDto> Handle(GetLiveMetricsQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<LiveMetricsDto> Handle(GetLiveMetricsQuery request, CancellationToken cancellationToken = default)
     {
         var cutoffTime = DateTime.UtcNow - request.TimeWindow;
         try

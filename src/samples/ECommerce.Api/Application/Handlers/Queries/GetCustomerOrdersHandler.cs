@@ -21,7 +21,7 @@ public class GetCustomerOrdersHandler(ECommerceDbContext context)
     /// <param name="request">The query containing customer ID and optional date filters.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of orders for the specified customer, ordered by creation date descending.</returns>
-    public async Task<List<OrderDto>> Handle(GetCustomerOrdersQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<List<OrderDto>> Handle(GetCustomerOrdersQuery request, CancellationToken cancellationToken = default)
     {
         List<Order> orders = await context.Orders
             .AsNoTracking()

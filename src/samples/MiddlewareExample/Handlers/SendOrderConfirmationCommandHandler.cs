@@ -7,7 +7,7 @@ public class SendOrderConfirmationCommandHandler(ILogger<SendOrderConfirmationCo
     : IRequestHandler<SendOrderConfirmationCommand>
 {
     /// <inheritdoc />
-    public Task Handle(SendOrderConfirmationCommand request, CancellationToken cancellationToken = default)
+    public ValueTask Handle(SendOrderConfirmationCommand request, CancellationToken cancellationToken = default)
     {
         logger.LogDebug(".. Sending order confirmation for order: {OrderId} to: {CustomerEmail}",
             request.OrderId, request.CustomerEmail);
@@ -16,6 +16,6 @@ public class SendOrderConfirmationCommandHandler(ILogger<SendOrderConfirmationCo
         logger.LogInformation("-- Order confirmation email sent successfully for order {OrderId} to {CustomerEmail}",
             request.OrderId, request.CustomerEmail);
 
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

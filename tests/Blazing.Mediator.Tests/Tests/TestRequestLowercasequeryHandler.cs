@@ -5,8 +5,8 @@ namespace Blazing.Mediator.Tests.Statistics;
 /// </summary>
 public class TestRequestLowercasequeryHandler : IRequestHandler<TestRequestLowercasequery, string>
 {
-    public Task<string> Handle(TestRequestLowercasequery request, CancellationToken cancellationToken)
+    public ValueTask<string> Handle(TestRequestLowercasequery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult($"lowercase: {request.Value}");
+        return ValueTask.FromResult($"lowercase: {request.Value}");
     }
 }

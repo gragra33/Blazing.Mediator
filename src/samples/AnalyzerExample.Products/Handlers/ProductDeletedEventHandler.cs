@@ -16,7 +16,7 @@ public class ProductDeletedEventHandler : INotificationHandler<ProductDeletedEve
         _logger = logger;
     }
 
-    public async Task Handle(ProductDeletedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(ProductDeletedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Product {ProductId} ({ProductName}) deleted by {DeletedBy}. Soft delete: {IsSoftDelete}",
             notification.ProductId, notification.ProductName, notification.DeletedBy, notification.IsSoftDelete);

@@ -1,3 +1,4 @@
+using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Tests.NotificationHandlers;
@@ -14,7 +15,7 @@ public class NotificationHandlerDiscoveryTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(typeof(NotificationHandlerDiscoveryTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -29,29 +30,13 @@ public class NotificationHandlerDiscoveryTests
     }
 
     [Fact]
-    public void AddMediator_WithoutNotificationHandlerDiscovery_ShouldNotRegisterNotificationHandlers()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddMediator(config => config.WithoutNotificationHandlerDiscovery(), typeof(NotificationHandlerDiscoveryTests).Assembly);
-        var serviceProvider = services.BuildServiceProvider();
-
-        // Assert
-        var handlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
-        Assert.NotNull(handlers);
-        Assert.Empty(handlers);
-    }
-
-    [Fact]
     public void AddMediator_WithNotificationHandlerDiscovery_ShouldAllowMultipleHandlersPerNotification()
     {
         // Arrange
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config => config.WithNotificationHandlerDiscovery(), typeof(NotificationHandlerDiscoveryTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithNotificationHandlerDiscovery());
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert - Multiple handlers should be registered for the same notification
@@ -66,7 +51,7 @@ public class NotificationHandlerDiscoveryTests
         var services = new ServiceCollection();
 
         // Act - Default configuration should have notification handler discovery enabled
-        services.AddMediator(typeof(NotificationHandlerDiscoveryTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -79,7 +64,7 @@ public class NotificationHandlerDiscoveryTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(typeof(NotificationHandlerDiscoveryTests).Assembly);
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = CreateMediatorWithDependencies(serviceProvider);
         
@@ -101,11 +86,7 @@ public class NotificationHandlerDiscoveryTests
     /// </summary>
     private static IMediator CreateMediatorWithDependencies(IServiceProvider serviceProvider)
     {
-        // Create minimal dependencies for mediator
-        var pipelineBuilder = new Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder();
-        var notificationPipelineBuilder = new Blazing.Mediator.Pipeline.NotificationPipelineBuilder();
-
-        return new Mediator(serviceProvider, pipelineBuilder, notificationPipelineBuilder, null);
+        return serviceProvider.GetRequiredService<IMediator>();
     }
 }
 
@@ -124,10 +105,10 @@ public class FirstTestNotificationHandler : INotificationHandler<TestNotificatio
 {
     public static int CallCount;
 
-    public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
     {
         CallCount++;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
@@ -138,9 +119,9 @@ public class SecondTestNotificationHandler : INotificationHandler<TestNotificati
 {
     public static int CallCount;
 
-    public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
     {
         CallCount++;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

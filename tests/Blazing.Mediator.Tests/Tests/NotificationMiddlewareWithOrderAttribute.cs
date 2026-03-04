@@ -8,7 +8,7 @@ namespace Blazing.Mediator.Tests;
 [Order(15)]
 public class NotificationMiddlewareWithOrderAttribute : INotificationMiddleware
 {
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         await next(notification, cancellationToken);
     }

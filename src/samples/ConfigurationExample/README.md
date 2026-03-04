@@ -1,4 +1,4 @@
-﻿# ConfigurationExample - Blazing.Mediator Configuration Features
+# ConfigurationExample - Blazing.Mediator Configuration Features
 
 A comprehensive demonstration of Blazing.Mediator's **advanced configuration features**, showcasing environment-aware settings, JSON configuration, preset application, and diagnostics capabilities.
 
@@ -7,11 +7,11 @@ A comprehensive demonstration of Blazing.Mediator's **advanced configuration fea
 - [🏗️ Architecture](#️-architecture)
 - [🎯 Design Principles](#-design-principles)
 - [🔧 Features Demonstrated](#-features-demonstrated)
-  - [🌍 Environment-Aware Configuration](#-environment-aware-configuration)
-  - [📝 JSON Configuration Support](#-json-configuration-support)
-  - [🎛️ Preset Integration](#️-preset-integration)
-  - [🔍 Configuration Diagnostics](#-configuration-diagnostics)
-  - [✅ Environment-Specific Validation](#-environment-specific-validation)
+    - [🌍 Environment-Aware Configuration](#-environment-aware-configuration)
+    - [📝 JSON Configuration Support](#-json-configuration-support)
+    - [🎛️ Preset Integration](#️-preset-integration)
+    - [🔍 Configuration Diagnostics](#-configuration-diagnostics)
+    - [✅ Environment-Specific Validation](#-environment-specific-validation)
 - [🔄 Configuration Examples](#-configuration-examples)
 - [🏃‍♂️ Running the Example](#️-running-the-example)
 - [🌟 Key Features](#-key-features)
@@ -31,6 +31,7 @@ ConfigurationExample/
 ```
 
 **Key Architectural Concepts:**
+
 - **Environment-Aware Configuration**: Automatic preset selection based on environment
 - **Configuration Layering**: JSON configuration overrides preset defaults
 - **Diagnostics Integration**: Real-time configuration health monitoring
@@ -57,11 +58,11 @@ This example showcases advanced configuration principles:
 services.AddMediator(config =>
 {
     config.WithEnvironmentConfiguration(builder.Configuration, builder.Environment)
-          .AddAssembly(typeof(Program).Assembly);
 });
 ```
 
 **Environment Mapping:**
+
 - **Development** → `WithDevelopmentPreset()` (Full features + verbose logging)
 - **Production** → `WithProductionPreset()` (Optimized performance + essential monitoring)
 - **Testing** → `WithDisabledPreset()` (Minimal overhead for testing)
@@ -73,31 +74,28 @@ services.AddMediator(config =>
 
 ```json
 {
-  "Blazing": {
-    "Mediator": {
-      "Statistics": {
-        "EnableRequestMetrics": true,
-        "EnableNotificationMetrics": true,
-        "MetricsRetentionPeriod": "01:00:00"
-      },
-      "Telemetry": {
-        "Enabled": true,
-        "PacketLevelTelemetryEnabled": false
-      },
-      "Logging": {
-        "EnableSend": true,
-        "EnableDetailedHandlerInfo": false
-      },
-      "Discovery": {
-        "DiscoverMiddleware": true,
-        "DiscoverNotificationHandlers": true
-      }
+    "Blazing": {
+        "Mediator": {
+            "Statistics": {
+                "EnableRequestMetrics": true,
+                "EnableNotificationMetrics": true,
+                "MetricsRetentionPeriod": "01:00:00"
+            },
+            "Telemetry": {
+                "Enabled": true,
+                "PacketLevelTelemetryEnabled": false
+            },
+            "Logging": {
+                "EnableSend": true,
+                "EnableDetailedHandlerInfo": false
+            }
+        }
     }
-  }
 }
 ```
 
 **Key Benefits:**
+
 - ✅ **Same Property Names**: Uses existing `StatisticsOptions`, `TelemetryOptions`, `LoggingOptions`
 - ✅ **Same Validation**: Leverages existing validation logic
 - ✅ **IntelliSense Support**: Full IDE support with familiar properties
@@ -113,11 +111,11 @@ services.AddMediator(config =>
 {
     config.WithDevelopmentPreset()                    // Apply preset
           .WithConfiguration(builder.Configuration)   // Then JSON overrides
-          .AddAssembly(typeof(Program).Assembly);     // Then assemblies
 });
 ```
 
 **Available Presets:**
+
 - `WithDevelopmentPreset()` - Full features for debugging
 - `WithProductionPreset()` - Optimized for performance
 - `WithDisabledPreset()` - Minimal overhead
@@ -162,6 +160,7 @@ catch (InvalidOperationException ex)
 ```
 
 **Production Validation Rules:**
+
 - ❌ No verbose logging (performance impact)
 - ❌ No packet-level telemetry (overhead)
 - ✅ Reasonable metrics retention (≥1 hour)
@@ -199,7 +198,6 @@ config.ValidateForEnvironment(environment, validation =>
 services.AddMediator(config =>
 {
     config.WithEnvironmentConfiguration(builder.Configuration, builder.Environment)
-          .AddAssembly(typeof(Program).Assembly);
 });
 ```
 
@@ -212,7 +210,6 @@ services.AddMediator(config =>
 {
     config.WithDevelopmentPreset()                    // Apply development preset
           .WithConfiguration(builder.Configuration)   // Apply JSON overrides
-          .AddAssembly(typeof(Program).Assembly);
 });
 ```
 
@@ -224,10 +221,9 @@ services.AddMediator(config =>
 services.AddMediator(config =>
 {
     config.WithEnvironmentConfiguration(
-            builder.Configuration, 
-            builder.Environment, 
+            builder.Configuration,
+            builder.Environment,
             "MyApp:MediatorSettings")
-          .AddAssembly(typeof(Program).Assembly);
 });
 ```
 
@@ -240,7 +236,6 @@ services.AddMediator(config =>
 {
     config.WithEnvironmentConfiguration(builder.Configuration, builder.Environment)
           .ValidateForEnvironment(builder.Environment)
-          .AddAssembly(typeof(Program).Assembly);
 });
 ```
 
@@ -254,14 +249,15 @@ services.AddMediator(config =>
 ### Steps
 
 1. Navigate to the example directory:
-   ```bash
-   cd src/samples/ConfigurationExample
-   ```
+
+    ```bash
+    cd src/samples/ConfigurationExample
+    ```
 
 2. Run the application:
-   ```bash
-   dotnet run
-   ```
+    ```bash
+    dotnet run
+    ```
 
 ### Expected Output
 
@@ -324,26 +320,31 @@ The application demonstrates 4 comprehensive examples:
 This ConfigurationExample project showcases key features:
 
 ### 🧠 **Smart Configuration Binding**
+
 - **Explicit Override Detection**: Only applies JSON values that are explicitly configured
 - **Preset Preservation**: Maintains preset defaults for non-configured options
 - **Clean Implementation**: Reuses existing `StatisticsOptions`, `TelemetryOptions`, `LoggingOptions`
 
 ### 🌍 **Environment Intelligence**
+
 - **Automatic Detection**: Detects environment and applies appropriate preset
 - **Environment-Specific Validation**: Prevents misconfiguration in production
 - **Configuration Layering**: JSON overrides preset defaults intelligently
 
 ### 🔍 **Advanced Diagnostics**
+
 - **Real-Time Health Monitoring**: Live configuration status and validation
 - **Comprehensive Reporting**: Detailed diagnostics with actionable insights
 - **Troubleshooting Tools**: Built-in configuration debugging capabilities
 
 ### 🛡️ **Production Safety**
+
 - **Intelligent Validation**: Prevents performance-impacting settings in production
 - **Environment Guards**: Enforces environment-appropriate configuration
 - **Error Prevention**: Catches configuration issues before deployment
 
 ### 🎛️ **Fluent Preset Integration**
+
 - **Seamless Integration**: Static factory methods integrate with fluent API
 - **Preset Chaining**: Seamless integration with other configuration methods
 - **Override Support**: JSON configuration can override preset values
@@ -353,24 +354,28 @@ This ConfigurationExample project showcases key features:
 This example teaches:
 
 ### **Configuration Management:**
+
 - **Environment-Aware Configuration**: Automatic preset selection based on environment
 - **Configuration Layering**: Combining presets with JSON overrides
 - **Smart Binding**: Only applying explicitly configured values
 - **Clean Implementation**: Reusing existing validation and options classes
 
 ### **Production Readiness:**
+
 - **Environment-Specific Validation**: Ensuring appropriate settings per environment
 - **Production Safety**: Preventing performance-impacting configurations
 - **Configuration Diagnostics**: Real-time health monitoring and troubleshooting
 - **Error Prevention**: Catching issues before deployment
 
 ### **Developer Experience:**
+
 - **Familiar APIs**: Using existing property names and validation
 - **Fluent Integration**: Seamless chaining with other configuration methods
 - **IntelliSense Support**: Full IDE support for JSON configuration
 - **Easy Migration**: Simple transition from code-based to JSON-based configuration
 
 ### **Advanced Patterns:**
+
 - **Configuration Factories**: Environment-aware configuration creation
 - **Validation Pipelines**: Comprehensive configuration validation
 - **Diagnostics Integration**: Built-in health monitoring and reporting

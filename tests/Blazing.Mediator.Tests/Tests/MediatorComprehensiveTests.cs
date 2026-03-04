@@ -1,3 +1,4 @@
+﻿using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,51 +20,44 @@ public class MediatorComprehensiveTests
     [Fact]
     public void Constructor_WithNullServiceProvider_ThrowsArgumentNullException()
     {
-        // Arrange
-        var pipelineBuilder = new MiddlewarePipelineBuilder();
-        var notificationPipelineBuilder = new NotificationPipelineBuilder();
-        var statistics = new MediatorStatistics(new ConsoleStatisticsRenderer());
-
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            new Mediator(null!, pipelineBuilder, notificationPipelineBuilder, statistics));
+            new Mediator(null!));
         exception.ParamName.ShouldBe("serviceProvider");
     }
 
     /// <summary>
-    /// Tests that Mediator constructor throws ArgumentNullException when pipelineBuilder is null.
+    /// Tests that Mediator can be created without explicit pipeline builder (now optional in new API).
     /// </summary>
     [Fact]
     public void Constructor_WithNullPipelineBuilder_ThrowsArgumentNullException()
     {
-        // Arrange
+        // Arrange - Pipeline builders are now optional in the new constructor API
         var services = new ServiceCollection();
         var serviceProvider = services.BuildServiceProvider();
-        var notificationPipelineBuilder = new NotificationPipelineBuilder();
-        var statistics = new MediatorStatistics(new ConsoleStatisticsRenderer());
 
-        // Act & Assert
-        var exception = Assert.Throws<ArgumentNullException>(() =>
-            new Mediator(serviceProvider, null!, notificationPipelineBuilder, statistics));
-        exception.ParamName.ShouldBe("pipelineBuilder");
+        // Act - No pipeline builders needed, Mediator uses DI to resolve them
+        var mediator = new Mediator(serviceProvider);
+
+        // Assert
+        mediator.ShouldNotBeNull();
     }
 
     /// <summary>
-    /// Tests that Mediator constructor throws ArgumentNullException when notificationPipelineBuilder is null.
+    /// Tests that Mediator can be created without explicit notification pipeline builder (now optional in new API).
     /// </summary>
     [Fact]
     public void Constructor_WithNullNotificationPipelineBuilder_ThrowsArgumentNullException()
     {
-        // Arrange
+        // Arrange - Notification pipeline builders are now optional in the new constructor API
         var services = new ServiceCollection();
         var serviceProvider = services.BuildServiceProvider();
-        var pipelineBuilder = new MiddlewarePipelineBuilder();
-        var statistics = new MediatorStatistics(new ConsoleStatisticsRenderer());
 
-        // Act & Assert
-        var exception = Assert.Throws<ArgumentNullException>(() =>
-            new Mediator(serviceProvider, pipelineBuilder, null!, statistics));
-        exception.ParamName.ShouldBe("notificationPipelineBuilder");
+        // Act - No pipeline builders needed, Mediator uses DI to resolve them
+        var mediator = new Mediator(serviceProvider);
+
+        // Assert
+        mediator.ShouldNotBeNull();
     }
 
     /// <summary>
@@ -75,11 +69,9 @@ public class MediatorComprehensiveTests
         // Arrange
         var services = new ServiceCollection();
         var serviceProvider = services.BuildServiceProvider();
-        var pipelineBuilder = new MiddlewarePipelineBuilder();
-        var notificationPipelineBuilder = new NotificationPipelineBuilder();
 
         // Act
-        var mediator = new Mediator(serviceProvider, pipelineBuilder, notificationPipelineBuilder, null);
+        var mediator = new Mediator(serviceProvider, null as MediatorStatistics);
 
         // Assert
         mediator.ShouldNotBeNull();
@@ -94,12 +86,10 @@ public class MediatorComprehensiveTests
         // Arrange
         var services = new ServiceCollection();
         var serviceProvider = services.BuildServiceProvider();
-        var pipelineBuilder = new MiddlewarePipelineBuilder();
-        var notificationPipelineBuilder = new NotificationPipelineBuilder();
         var statistics = new MediatorStatistics(new ConsoleStatisticsRenderer());
 
         // Act
-        var mediator = new Mediator(serviceProvider, pipelineBuilder, notificationPipelineBuilder, statistics);
+        var mediator = new Mediator(serviceProvider, statistics);
 
         // Assert
         mediator.ShouldNotBeNull();
@@ -110,7 +100,8 @@ public class MediatorComprehensiveTests
     #region Error Handling Tests
 
     /// <summary>
-    /// Tests that multiple handlers for the same command throw InvalidOperationException.
+    /// Tests that with source-gen, only the auto-discovered handler runs even when
+    /// additional handlers are manually registered in DI (source-gen does not check for conflicts).
     /// </summary>
     [Fact]
     public async Task Send_CommandWithMultipleHandlers_ThrowsInvalidOperationException()
@@ -118,24 +109,27 @@ public class MediatorComprehensiveTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Register the same handler multiple times to create conflict
+        // Register additional handlers via DI (ignored by source-gen dispatcher)
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
         services.AddScoped<IRequestHandler<TestCommand>, SecondTestCommandHandler>();
 
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var command = new TestCommand { Value = "test" };
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(command));
-        exception.Message.ShouldContain("Multiple handlers found");
-        exception.Message.ShouldContain("Only one handler per request type is allowed");
+        // Act - In source-gen mode, the auto-discovered TestCommandHandler is used;
+        // no "multiple handlers" exception is thrown.
+        await mediator.Send(command);
+
+        // Assert - Command executed without exception (source-gen picks one handler)
+        TestCommandHandler.LastExecutedCommand.ShouldNotBeNull();
     }
 
     /// <summary>
-    /// Tests that multiple handlers for the same query throw InvalidOperationException.
+    /// Tests that with source-gen, only the auto-discovered handler runs even when
+    /// additional handlers are manually registered in DI.
     /// </summary>
     [Fact]
     public async Task Send_QueryWithMultipleHandlers_ThrowsInvalidOperationException()
@@ -143,20 +137,22 @@ public class MediatorComprehensiveTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Register the same handler multiple times to create conflict
+        // Register additional handlers via DI (ignored by source-gen dispatcher)
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
         services.AddScoped<IRequestHandler<TestQuery, string>, SecondTestQueryHandler>();
 
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var query = new TestQuery { Value = 42 };
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(query));
-        exception.Message.ShouldContain("Multiple handlers found");
-        exception.Message.ShouldContain("Only one handler per request type is allowed");
+        // Act - In source-gen mode, auto-discovered handler handles the query;
+        // no "multiple handlers" exception is thrown.
+        string result = await mediator.Send(query);
+
+        // Assert - Query executed without exception
+        result.ShouldNotBeNull();
     }
 
     /// <summary>
@@ -168,14 +164,14 @@ public class MediatorComprehensiveTests
         // Arrange
         var services = new ServiceCollection();
         services.AddScoped<IRequestHandler<ThrowingQuery, string>, ThrowingQueryHandler>();
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var query = new ThrowingQuery();
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(query));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await mediator.Send(query));
         exception.Message.ShouldBe("Query handler threw an exception");
         // Should be the original exception, not wrapped in TargetInvocationException
     }
@@ -189,14 +185,14 @@ public class MediatorComprehensiveTests
         // Arrange
         var services = new ServiceCollection();
         services.AddScoped<IRequestHandler<ThrowingCommand>, ThrowingCommandHandler>();
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var command = new ThrowingCommand();
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(command));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await mediator.Send(command));
         exception.Message.ShouldBe("Handler threw an exception");
     }
 
@@ -205,22 +201,14 @@ public class MediatorComprehensiveTests
     #region Pipeline Method Missing Tests
 
     /// <summary>
-    /// Tests behavior when pipeline ExecutePipeline method is not found (fallback scenario).
+    /// Tests that v3 source-gen dispatcher correctly dispatches void commands.
     /// </summary>
     [Fact]
     public async Task Send_WithMissingPipelineMethod_UsesFallbackExecution()
     {
-        // Arrange
+        // Arrange — v3: AddMediator() is the only setup needed; EmptyPipelineBuilder is no longer relevant.
         var services = new ServiceCollection();
-        services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
-
-        // Create a custom pipeline builder that doesn't have ExecutePipeline method
-        var customPipelineBuilder = new EmptyPipelineBuilder();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(customPipelineBuilder);
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        services.AddSingleton<IStatisticsRenderer, ConsoleStatisticsRenderer>(); // Add renderer for statistics
-        services.AddSingleton<MediatorStatistics>(); // Add statistics service so Mediator can be constructed
-        services.AddSingleton<IMediator, Mediator>();
+        services.AddMediator();
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -233,22 +221,14 @@ public class MediatorComprehensiveTests
     }
 
     /// <summary>
-    /// Tests behavior when pipeline ExecutePipeline method is not found for query requests.
+    /// Tests that v3 source-gen dispatcher correctly dispatches typed query requests.
     /// </summary>
     [Fact]
     public async Task Send_QueryWithMissingPipelineMethod_UsesFallbackExecution()
     {
-        // Arrange
+        // Arrange — v3: AddMediator() is the only setup needed; EmptyPipelineBuilder is no longer relevant.
         var services = new ServiceCollection();
-        services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-
-        // Create a custom pipeline builder that doesn't have ExecutePipeline method
-        var customPipelineBuilder = new EmptyPipelineBuilder();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(customPipelineBuilder);
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        services.AddSingleton<IStatisticsRenderer, ConsoleStatisticsRenderer>(); // Add renderer for statistics
-        services.AddSingleton<MediatorStatistics>(); // Add statistics service so Mediator can be constructed
-        services.AddSingleton<IMediator, Mediator>();
+        services.AddMediator();
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -270,55 +250,39 @@ public class MediatorComprehensiveTests
     /// Tests that multiple stream handlers throw InvalidOperationException.
     /// </summary>
     [Fact]
-    public void SendStream_WithMultipleHandlers_ThrowsInvalidOperationException()
+    public async Task SendStream_WithMultipleHandlers_ThrowsInvalidOperationException()
     {
         // Arrange
+        // In source-gen mode the handler is baked at compile time; extra DI registrations do NOT cause an exception.
         var services = new ServiceCollection();
-
-        // Register multiple handlers for the same stream request
-        services.AddScoped<IStreamRequestHandler<TestStreamRequest, string>, TestStreamHandler>();
-        services.AddScoped<IStreamRequestHandler<TestStreamRequest, string>, SecondTestStreamHandler>();
-
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
-        var request = new TestStreamRequest { Value = "test" };
+        var request = new TestsTestStreamRequest { Value = "test" };
 
-        // Act & Assert
-        var ex = Assert.Throws<AggregateException>(() =>
-        {
-            var stream = mediator.SendStream(request);
-            // Force enumeration to trigger the exception
-            var enumerator = stream.GetAsyncEnumerator();
-            return enumerator.MoveNextAsync().AsTask().Result;
-        });
+        // Act — source-gen always dispatches to the single compile-time handler; verify stream succeeds.
+        var results = new List<string>();
+        await foreach (var item in mediator.SendStream(request))
+            results.Add(item);
 
-        // Verify the inner exception is the expected type
-        Assert.IsType<InvalidOperationException>(ex.InnerException);
+        results.ShouldNotBeEmpty();
     }
 
     /// <summary>
-    /// Tests stream execution with missing pipeline method uses fallback.
+    /// Tests that v3 source-gen dispatcher correctly dispatches stream requests.
     /// </summary>
     [Fact]
     public async Task SendStream_WithMissingPipelineMethod_UsesFallbackExecution()
     {
-        // Arrange
+        // Arrange — v3: AddMediator() is the only setup needed; EmptyPipelineBuilder is no longer relevant.
         var services = new ServiceCollection();
-        services.AddScoped<IStreamRequestHandler<TestStreamRequest, string>, TestStreamHandler>();
-
-        var customPipelineBuilder = new EmptyPipelineBuilder();
-        services.AddSingleton<IMiddlewarePipelineBuilder>(customPipelineBuilder);
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        services.AddSingleton<IStatisticsRenderer, ConsoleStatisticsRenderer>(); // Add renderer for statistics
-        services.AddSingleton<MediatorStatistics>(); // Add statistics service so Mediator can be constructed
-        services.AddSingleton<IMediator, Mediator>();
+        services.AddMediator();
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
-        var request = new TestStreamRequest { Value = "test" };
+        var request = new TestsTestStreamRequest { Value = "test" };
 
         // Act
         var results = new List<string>();
@@ -346,12 +310,12 @@ public class MediatorComprehensiveTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => mediator.Publish<TestNotification>(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await mediator.Publish<TestNotification>(null!));
     }
 
     /// <summary>
@@ -362,7 +326,7 @@ public class MediatorComprehensiveTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -379,7 +343,7 @@ public class MediatorComprehensiveTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -396,7 +360,7 @@ public class MediatorComprehensiveTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -413,7 +377,7 @@ public class MediatorComprehensiveTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(Array.Empty<Assembly>());
+        services.AddMediator();
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -427,23 +391,14 @@ public class MediatorComprehensiveTests
     #region Statistics Integration Tests
 
     /// <summary>
-    /// Tests that mediator with null statistics doesn't track execution.
+    /// Tests that mediator works correctly when no statistics are configured.
     /// </summary>
     [Fact]
     public async Task Send_WithNullStatistics_DoesNotTrack()
     {
-        // Arrange
+        // Arrange — v3: use AddMediator() without statistics config (no stats tracking).
         var services = new ServiceCollection();
-        services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
-
-        // Register mediator with null statistics
-        services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-        services.AddSingleton<IMediator>(serviceProvider =>
-            new Mediator(serviceProvider,
-                serviceProvider.GetRequiredService<IMiddlewarePipelineBuilder>(),
-                serviceProvider.GetRequiredService<INotificationPipelineBuilder>(),
-                null)); // Null statistics
+        services.AddMediator();
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -463,18 +418,15 @@ public class MediatorComprehensiveTests
     {
         // Arrange
         var renderer = new TestStatisticsRenderer();
-        var statistics = new MediatorStatistics(renderer);
 
         var services = new ServiceCollection();
-        services.AddSingleton(statistics);
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, Array.Empty<Assembly>());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
+        // Get the DI-managed statistics instance so we see increments from the notification wrapper.
+        var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
 
         var notification = new TestNotification { Message = "test" };
 

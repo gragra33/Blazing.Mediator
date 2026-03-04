@@ -241,8 +241,6 @@ public partial class Telemetry : ComponentBase
     /// </summary>
     private Task OnTracesFiltersChanged()
     {
-        UpdateDebugData();
-        StateHasChanged();
         return Task.CompletedTask;
     }
 

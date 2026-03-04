@@ -6,9 +6,9 @@ namespace Example.Common.Analysis;
 /// based on what the application is actually using.
 /// </summary>
 public class ExampleAnalysisService(
-    IMiddlewarePipelineInspector pipelineInspector,
-    IServiceProvider serviceProvider,
-    MediatorStatistics mediatorStatistics)
+    IMediatorTypeCatalog catalog,
+    MediatorStatistics mediatorStatistics,
+    ISubscriberTracker? subscriberTracker = null)
 {
     /// <summary>
     /// Displays pre-execution analysis including middleware pipeline and constraint analysis.
@@ -16,7 +16,7 @@ public class ExampleAnalysisService(
     public void DisplayPreExecutionAnalysis()
     {
         // Test constraint display
-        ConstraintTestRunner.TestConstraintDisplay(serviceProvider);
+        ConstraintTestRunner.TestConstraintDisplay(catalog, mediatorStatistics);
 
         // Display registered middleware
         DisplayRegisteredMiddleware();
@@ -26,9 +26,10 @@ public class ExampleAnalysisService(
         var hasNotifications = HasNotifications();
         
         MediatorAnalysisHelper.DisplayComprehensiveAnalysis(
-            mediatorStatistics, 
-            serviceProvider, 
-            showRequestAnalysis: hasRequests, 
+            mediatorStatistics,
+            catalog,
+            subscriberTracker,
+            showRequestAnalysis: hasRequests,
             showNotificationAnalysis: hasNotifications);
     }
 
@@ -51,7 +52,7 @@ public class ExampleAnalysisService(
     /// </summary>
     public void DisplayRegisteredMiddleware()
     {
-        var middlewareAnalysis = MiddlewarePipelineAnalyzer.AnalyzeMiddleware(pipelineInspector, serviceProvider);
+        var middlewareAnalysis = MiddlewarePipelineAnalyzer.AnalyzeMiddleware(mediatorStatistics.AnalyzeRequestMiddleware(catalog));
 
         Console.WriteLine("Registered middleware:");
         foreach (var middleware in middlewareAnalysis)
@@ -85,6 +86,32 @@ public class ExampleAnalysisService(
                 Console.WriteLine($"        - Constraints: {cleanConstraints}");
             }
         }
+
+        // Show notification middleware — ensures notification-only projects display their pipeline.
+        var notifMiddlewareAnalysis = MiddlewarePipelineAnalyzer.AnalyzeMiddleware(
+            mediatorStatistics.AnalyzeNotificationMiddleware(catalog));
+        if (notifMiddlewareAnalysis.Any())
+        {
+            if (!middlewareAnalysis.Any()) Console.WriteLine("Registered notification middleware:");
+            foreach (var middleware in notifMiddlewareAnalysis)
+            {
+                var cleanClassName2 = middleware.ClassName;
+                if (cleanClassName2.Contains('`'))
+                    cleanClassName2 = cleanClassName2[..cleanClassName2.IndexOf('`')];
+                var cleanTypeParameters2 = middleware.TypeParameters;
+                if (cleanTypeParameters2.Contains('`'))
+                    cleanTypeParameters2 = System.Text.RegularExpressions.Regex.Replace(cleanTypeParameters2, @"`\d+", "");
+
+                Console.WriteLine($"  - [{middleware.OrderDisplay}] {cleanClassName2}{cleanTypeParameters2}");
+                if (!string.IsNullOrEmpty(middleware.GenericConstraints))
+                {
+                    var cleanConstraints2 = middleware.GenericConstraints;
+                    if (cleanConstraints2.Contains('`'))
+                        cleanConstraints2 = System.Text.RegularExpressions.Regex.Replace(cleanConstraints2, @"`\d+", "");
+                    Console.WriteLine($"        - Constraints: {cleanConstraints2}");
+                }
+            }
+        }
         Console.WriteLine();
     }
 
@@ -95,8 +122,8 @@ public class ExampleAnalysisService(
     {
         try
         {
-            var queries = mediatorStatistics.AnalyzeQueries(serviceProvider, isDetailed: false);
-            var commands = mediatorStatistics.AnalyzeCommands(serviceProvider, isDetailed: false);
+            var queries = mediatorStatistics.AnalyzeQueries(catalog, isDetailed: false);
+            var commands = mediatorStatistics.AnalyzeCommands(catalog, isDetailed: false);
             return queries.Any() || commands.Any();
         }
         catch
@@ -112,7 +139,7 @@ public class ExampleAnalysisService(
     {
         try
         {
-            var notifications = mediatorStatistics.AnalyzeNotifications(serviceProvider, isDetailed: false);
+            var notifications = mediatorStatistics.AnalyzeNotifications(catalog, isDetailed: false);
             return notifications.Any();
         }
         catch

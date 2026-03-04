@@ -1,4 +1,5 @@
 using Blazing.Mediator;
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,10 +16,10 @@ public class TestNotification : INotification
 // Simple test handler
 public class TestNotificationHandler : INotificationHandler<TestNotification>
 {
-    public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+    public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
     {
         Console.WriteLine($"Handling: {notification.Message}");
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
@@ -31,14 +32,13 @@ public static class NotificationAnalysisTest
         var host = Host.CreateDefaultBuilder()
             .ConfigureServices((_, services) =>
             {
-                services.AddMediator(config =>
+                var mediatorConfig = new MediatorConfiguration();
+                mediatorConfig.WithStatisticsTracking(options =>
                 {
-                    config.WithStatisticsTracking(options =>
-                    {
-                        options.EnableNotificationMetrics = true;
-                        options.EnableDetailedAnalysis = true;
-                    });
-                }, Assembly.GetExecutingAssembly());
+                    options.EnableNotificationMetrics = true;
+                    options.EnableDetailedAnalysis = true;
+                });
+                services.AddMediator(mediatorConfig);
             })
             .Build();
 

@@ -22,7 +22,7 @@ public class UpdateProductStockHandler(ECommerceDbContext context, IValidator<Up
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <exception cref="Application.Exceptions.ValidationException">Thrown when validation fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the product is not found.</exception>
-    public async Task Handle(UpdateProductStockCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UpdateProductStockCommand request, CancellationToken cancellationToken = default)
     {
         ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)

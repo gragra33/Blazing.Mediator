@@ -16,7 +16,7 @@ public class OrderDeliveredEventHandler : INotificationHandler<OrderDeliveredEve
         _logger = logger;
     }
 
-    public async Task Handle(OrderDeliveredEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderDeliveredEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Order {OrderId} ({OrderNumber}) has been delivered at {DeliveredAt}",
             notification.OrderId, notification.OrderNumber, notification.DeliveredAt);

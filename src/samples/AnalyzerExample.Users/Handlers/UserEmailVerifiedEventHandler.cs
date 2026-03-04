@@ -16,7 +16,7 @@ public class UserEmailVerifiedEventHandler : INotificationHandler<UserEmailVerif
         _logger = logger;
     }
 
-    public async Task Handle(UserEmailVerifiedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UserEmailVerifiedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Email verified for user {UserId}", notification.UserId);
 

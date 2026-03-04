@@ -59,11 +59,7 @@ public class StreamMiddlewareDebugTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.AddMiddleware<FirstDebugMiddleware>();    // Order: 1
-            config.AddMiddleware<EnhancingDebugMiddleware>(); // Order: -1
-        }, typeof(DebugStreamRequestHandler).Assembly);
+        services.AddMediator();
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

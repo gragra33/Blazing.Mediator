@@ -1,9 +1,9 @@
 namespace Blazing.Mediator.Tests.Statistics;
 
 /// <summary>
-/// Test query for testing purposes.
+/// Statistics test query (temporary name to avoid source generator collision until Phase H folder reorganisation).
 /// </summary>
-public class TestQuery : IRequest<string>
+public class TestsTestQuery : IRequest<string>
 {
     public string? Value { get; set; }
 }

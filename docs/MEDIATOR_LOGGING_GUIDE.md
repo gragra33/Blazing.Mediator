@@ -2,6 +2,9 @@
 
 This guide demonstrates how to use the new mediator logging configuration features in Blazing.Mediator.
 
+> [!CAUTION]
+> Version 3.0.0 has breaking changes. See the **[Breaking Changes](https://github.com/gragra33/Blazing.Mediator/docs/BREAKING_CHANGES.md)** document for a complete list of API changes with before/after comparisons, and the **[MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/docs/MIGRATION_GUIDE.md)** for full upgrade steps.
+
 ## Overview
 
 The new mediator logging system allows you to control exactly which parts of the mediator produce debug logs, giving you fine-grained control over logging verbosity and performance.
@@ -33,16 +36,17 @@ The new mediator logging system allows you to control exactly which parts of the
 
 You can now control logging for specific mediator components:
 
--   **Request Middleware** - Middleware pipeline execution for requests
--   **Notification Middleware** - Middleware pipeline execution for notifications
--   **Send** - Send operation logging (commands/queries)
--   **SendStream** - Streaming operation logging
--   **Publish** - Notification publishing logging
--   **Request Pipeline Resolution** - Pipeline construction for requests
--   **Notification Pipeline Resolution** - Pipeline construction for notifications
--   **Warnings** - Warning messages (missing handlers, etc.)
--   **Query Analyzer** - Query analysis and handler discovery
--   **Command Analyzer** - Command analysis and handler discovery
+- **Request Middleware** - Middleware pipeline execution for requests
+- **Notification Middleware** - Middleware pipeline execution for notifications
+- **Send** - Send operation logging (commands/queries)
+- **SendStream** - Streaming operation logging
+- **Publish** - Notification publishing logging
+- **Request Pipeline Resolution** - Pipeline construction for requests
+- **Notification Pipeline Resolution** - Pipeline construction for notifications
+- **Warnings** - Warning messages (missing handlers, etc.)
+- **Query Analyzer** - Query analysis and handler discovery
+- **Command Analyzer** - Command analysis and handler discovery
+- **Statistics** - Statistics collection, cleanup, and reporting operations
 
 ## 3. Configuration Examples
 
@@ -64,13 +68,15 @@ builder.Services.AddMediator(config =>
         logging.EnableWarnings = true;
         logging.EnableQueryAnalyzer = true;
         logging.EnableCommandAnalyzer = true;
+        logging.EnableStatistics = true;
         logging.EnableDetailedTypeClassification = true;
         logging.EnableDetailedHandlerInfo = true;
         logging.EnableMiddlewareExecutionOrder = true;
         logging.EnablePerformanceTiming = true;
         logging.EnableSubscriberDetails = true;
-    })
-    .AddAssembly(typeof(Program).Assembly);
+        logging.EnableConstraintLogging = true;
+        logging.EnableMiddlewareRoutingLogging = true;
+    });
 });
 ```
 
@@ -92,8 +98,12 @@ builder.Services.AddMediator(config =>
         logging.EnableWarnings = true; // Keep warnings even in production
         logging.EnableQueryAnalyzer = false;
         logging.EnableCommandAnalyzer = false;
-    })
-    .AddAssembly(typeof(Program).Assembly);
+        logging.EnableStatistics = false;
+        logging.EnablePerformanceTiming = false;
+        logging.EnableSubscriberDetails = false;
+        logging.EnableConstraintLogging = false;
+        logging.EnableMiddlewareRoutingLogging = false;
+    });
 });
 ```
 
@@ -103,15 +113,13 @@ builder.Services.AddMediator(config =>
 // For maximum observability (all features enabled)
 builder.Services.AddMediator(config =>
 {
-    config.WithLogging(LoggingOptions.CreateVerbose())
-          .AddAssembly(typeof(Program).Assembly);
+    config.WithLogging(LoggingOptions.CreateVerbose());
 });
 
 // For minimal overhead (only warnings enabled)
 builder.Services.AddMediator(config =>
 {
-    config.WithLogging(LoggingOptions.CreateMinimal())
-          .AddAssembly(typeof(Program).Assembly);
+    config.WithLogging(LoggingOptions.CreateMinimal());
 });
 ```
 
@@ -128,12 +136,11 @@ builder.Services.AddMediator(config =>
     {
         config.WithLogging(LoggingOptions.CreateMinimal());
     }
-    
-    config.AddAssembly(typeof(Program).Assembly);
+
 });
 ```
 
-> **Migration Note**: The examples above use the modern fluent configuration approach. If you're using legacy `AddMediator()` methods, we recommend migrating to `builder.Services.AddMediator(config => { ... })` for better type safety and enhanced functionality.
+> **v3.0.0**: All handler and middleware discovery is performed at compile time by `Blazing.Mediator.SourceGenerators`. `AddAssembly()`, `WithMiddlewareDiscovery()`, and `discoverMiddleware: true` are no longer required.
 
 ## Quick Reference Tables
 
@@ -141,81 +148,85 @@ builder.Services.AddMediator(config =>
 
 Understanding the available logging options helps you configure the right level of detail for different environments and use cases. Each option provides specific insights into mediator behavior and performance.
 
-| **Logging Option** | **Purpose** | **Default** | **Environment** | **Example** |
-|-------------------|-------------|-------------|-----------------|-------------|
-| `EnableRequestMiddleware` | Log request middleware pipeline execution | `true` | Development | Pipeline order, execution timing |
-| `EnableNotificationMiddleware` | Log notification middleware pipeline execution | `true` | Development | Middleware processing flow |
-| `EnableSend` | Log Send operation details | `true` | Development | Command/query execution |
-| `EnableSendStream` | Log streaming operation details | `true` | Development | Stream processing metrics |
-| `EnablePublish` | Log notification publishing details | `true` | Development | Notification delivery tracking |
-| `EnableRequestPipelineResolution` | Log pipeline construction for requests | `false` | Debug | Handler and middleware discovery |
-| `EnableNotificationPipelineResolution` | Log pipeline construction for notifications | `false` | Debug | Subscriber and handler registration |
-| `EnableWarnings` | Log warning messages | `true` | All | Missing handlers, configuration issues |
-| `EnableQueryAnalyzer` | Log query analysis and discovery | `false` | Development | Query type discovery |
-| `EnableCommandAnalyzer` | Log command analysis and discovery | `false` | Development | Command type discovery |
+| **Logging Option**                     | **Purpose**                                    | **Default** | **Environment** | **Example**                            |
+| -------------------------------------- | ---------------------------------------------- | ----------- | --------------- | -------------------------------------- |
+| `EnableRequestMiddleware`              | Log request middleware pipeline execution      | `true`      | Development     | Pipeline order, execution timing       |
+| `EnableNotificationMiddleware`         | Log notification middleware pipeline execution | `true`      | Development     | Middleware processing flow             |
+| `EnableSend`                           | Log Send operation details                     | `true`      | Development     | Command/query execution                |
+| `EnableSendStream`                     | Log streaming operation details                | `true`      | Development     | Stream processing metrics              |
+| `EnablePublish`                        | Log notification publishing details            | `true`      | Development     | Notification delivery tracking         |
+| `EnableRequestPipelineResolution`      | Log pipeline construction for requests         | `true`      | Debug           | Handler and middleware discovery       |
+| `EnableNotificationPipelineResolution` | Log pipeline construction for notifications    | `true`      | Debug           | Subscriber and handler registration    |
+| `EnableWarnings`                       | Log warning messages                           | `true`      | All             | Missing handlers, configuration issues |
+| `EnableQueryAnalyzer`                  | Log query analysis and discovery               | `true`      | Development     | Query type discovery                   |
+| `EnableCommandAnalyzer`                | Log command analysis and discovery             | `true`      | Development     | Command type discovery                 |
+| `EnableStatistics`                     | Log statistics collection and reporting        | `true`      | Development     | Stats collection, cleanup, reporting   |
 
 ### Detailed Logging Features
 
 Advanced logging features provide comprehensive insights into mediator behavior, performance characteristics, and internal processing details for debugging and monitoring purposes.
 
-| **Feature** | **Purpose** | **Performance Impact** | **Use Case** |
-|-------------|-------------|------------------------|--------------|
-| `EnableDetailedTypeClassification` | Log detailed type information | Low | Understanding type hierarchy |
-| `EnableDetailedHandlerInfo` | Log comprehensive handler details | Low | Handler registration debugging |
-| `EnableMiddlewareExecutionOrder` | Log middleware execution sequence | Low | Pipeline ordering verification |
-| `EnablePerformanceTiming` | Log operation duration metrics | Medium | Performance monitoring |
-| `EnableSubscriberDetails` | Log notification subscriber information | Low | Subscription management debugging |
+| **Feature**                        | **Purpose**                                                     | **Default** | **Performance Impact** | **Use Case**                              |
+| ---------------------------------- | --------------------------------------------------------------- | ----------- | ---------------------- | ----------------------------------------- |
+| `EnableDetailedTypeClassification` | Log detailed type information                                   | `false`     | Low                    | Understanding type hierarchy              |
+| `EnableDetailedHandlerInfo`        | Log comprehensive handler details                               | `false`     | Low                    | Handler registration debugging            |
+| `EnableMiddlewareExecutionOrder`   | Log middleware execution sequence                               | `false`     | Low                    | Pipeline ordering verification            |
+| `EnablePerformanceTiming`          | Log operation duration metrics                                  | `true`      | Medium                 | Performance monitoring                    |
+| `EnableSubscriberDetails`          | Log notification subscriber information                         | `true`      | Low                    | Subscription management debugging         |
+| `EnableConstraintLogging`          | Log constraint validation and middleware skipping decisions     | `false`     | High                   | Type-constrained notification middleware  |
+| `EnableMiddlewareRoutingLogging`   | Log middleware execution decisions and constraint-based routing | `false`     | High                   | Pipeline flow and routing troubleshooting |
 
 ### Environment-Based Configurations
 
 Choose the appropriate logging configuration based on your deployment environment to balance observability needs with performance requirements.
 
-| **Environment** | **Configuration** | **Enabled Features** | **Purpose** |
-|-----------------|-------------------|---------------------|-------------|
-| **Development** | `LoggingOptions.CreateVerbose()` | All logging features enabled | Complete observability for debugging |
-| **Staging** | Custom configuration | Send, Publish, Warnings, Performance | Balanced monitoring without overhead |
-| **Production** | `LoggingOptions.CreateMinimal()` | Warnings only | Minimal impact, essential alerts only |
-| **Debug/Troubleshooting** | All analyzers enabled | Query/Command analyzers, Pipeline resolution | Maximum detail for issue diagnosis |
+| **Environment**                 | **Configuration**                            | **Enabled Features**                         | **Purpose**                                        |
+| ------------------------------- | -------------------------------------------- | -------------------------------------------- | -------------------------------------------------- |
+| **Development**                 | `LoggingOptions.CreateVerbose()`             | All logging features enabled                 | Complete observability for debugging               |
+| **Staging**                     | Custom configuration                         | Send, Publish, Warnings, Performance         | Balanced monitoring without overhead               |
+| **Production**                  | `LoggingOptions.CreateMinimal()`             | Warnings only                                | Minimal impact, essential alerts only              |
+| **Debug/Troubleshooting**       | All analyzers enabled                        | Query/Command analyzers, Pipeline resolution | Maximum detail for issue diagnosis                 |
+| **Constraint Middleware Debug** | `LoggingOptions.CreateConstraintDebugging()` | Constraint logging, middleware routing       | Debugging type-constrained notification middleware |
 
 ### Log Level Mapping
 
 Understanding how mediator logging maps to standard .NET log levels helps you configure appropriate log filtering and routing for different scenarios.
 
-| **Mediator Operation** | **Log Level** | **Log Content** | **When to Enable** |
-|------------------------|---------------|-----------------|-------------------|
-| Request/Command Processing | `Information` | Handler execution, timing | Development, staging |
-| Notification Publishing | `Information` | Subscriber count, delivery status | Development, staging |
-| Middleware Execution | `Debug` | Pipeline flow, execution order | Debugging issues |
-| Pipeline Resolution | `Debug` | Handler/middleware discovery | Troubleshooting registration |
-| Performance Metrics | `Information` | Execution duration, throughput | Performance monitoring |
-| Warning Messages | `Warning` | Missing handlers, configuration issues | All environments |
-| Error Conditions | `Error` | Handler failures, pipeline errors | All environments |
+| **Mediator Operation**     | **Log Level** | **Log Content**                        | **When to Enable**           |
+| -------------------------- | ------------- | -------------------------------------- | ---------------------------- |
+| Request/Command Processing | `Information` | Handler execution, timing              | Development, staging         |
+| Notification Publishing    | `Information` | Subscriber count, delivery status      | Development, staging         |
+| Middleware Execution       | `Debug`       | Pipeline flow, execution order         | Debugging issues             |
+| Pipeline Resolution        | `Debug`       | Handler/middleware discovery           | Troubleshooting registration |
+| Performance Metrics        | `Information` | Execution duration, throughput         | Performance monitoring       |
+| Warning Messages           | `Warning`     | Missing handlers, configuration issues | All environments             |
+| Error Conditions           | `Error`       | Handler failures, pipeline errors      | All environments             |
 
 ### Configuration Methods
 
 Multiple configuration approaches provide flexibility for different application structures and deployment scenarios, from simple boolean flags to complex fluent configurations.
 
-| **Configuration Method** | **Syntax** | **Use Case** | **Example** |
-|---------------------------|------------|--------------|-------------|
-| **Fluent Configuration** | `config.WithLogging(options => {...})` | Complete control | Custom per-feature configuration |
-| **Preset Configurations** | `LoggingOptions.CreateVerbose()` | Quick setup | Standard development/production patterns |
-| **Environment-Based** | Conditional configuration | Different per environment | `if (env.IsDevelopment())` patterns |
-| **JSON Configuration** | `appsettings.json` integration | External configuration | Configuration file-based settings |
-| **Runtime Configuration** | Dynamic option changes | Live reconfiguration | Hot-reload logging settings |
+| **Configuration Method**  | **Syntax**                             | **Use Case**              | **Example**                              |
+| ------------------------- | -------------------------------------- | ------------------------- | ---------------------------------------- |
+| **Fluent Configuration**  | `config.WithLogging(options => {...})` | Complete control          | Custom per-feature configuration         |
+| **Preset Configurations** | `LoggingOptions.CreateVerbose()`       | Quick setup               | Standard development/production patterns |
+| **Environment-Based**     | Conditional configuration              | Different per environment | `if (env.IsDevelopment())` patterns      |
+| **JSON Configuration**    | `appsettings.json` integration         | External configuration    | Configuration file-based settings        |
+| **Runtime Configuration** | Dynamic option changes                 | Live reconfiguration      | Hot-reload logging settings              |
 
 ### Performance Impact Guide
 
 Understanding the performance implications of different logging options helps you make informed decisions about what to enable in production environments.
 
-| **Logging Category** | **CPU Impact** | **Memory Impact** | **I/O Impact** | **Recommendation** |
-|----------------------|----------------|-------------------|----------------|-------------------|
-| **Send/Publish Operations** | Low | Low | Medium | Enable in development, staging |
-| **Middleware Pipeline** | Low | Low | High | Enable only when debugging |
-| **Pipeline Resolution** | Medium | Medium | High | Disable in production |
-| **Performance Timing** | Low | Low | Medium | Enable for monitoring |
-| **Type Classification** | Medium | Low | High | Enable only when needed |
-| **Subscriber Details** | Low | Medium | Medium | Enable in development only |
-| **Warnings Only** | Minimal | Minimal | Low | Always safe for production |
+| **Logging Category**        | **CPU Impact** | **Memory Impact** | **I/O Impact** | **Recommendation**             |
+| --------------------------- | -------------- | ----------------- | -------------- | ------------------------------ |
+| **Send/Publish Operations** | Low            | Low               | Medium         | Enable in development, staging |
+| **Middleware Pipeline**     | Low            | Low               | High           | Enable only when debugging     |
+| **Pipeline Resolution**     | Medium         | Medium            | High           | Disable in production          |
+| **Performance Timing**      | Low            | Low               | Medium         | Enable for monitoring          |
+| **Type Classification**     | Medium         | Low               | High           | Enable only when needed        |
+| **Subscriber Details**      | Low            | Medium            | Medium         | Enable in development only     |
+| **Warnings Only**           | Minimal        | Minimal           | Low            | Always safe for production     |
 
 ## 4. Advanced Configuration Options
 
@@ -239,8 +250,7 @@ builder.Services.AddMediator(config =>
 
         // Keep timing for monitoring
         logging.EnablePerformanceTiming = true;
-    })
-    .AddAssembly(typeof(Program).Assembly);
+    });
 });
 ```
 
@@ -265,8 +275,7 @@ builder.Services.AddMediator(config =>
         // Enable analyzers for troubleshooting
         logging.EnableQueryAnalyzer = true;
         logging.EnableCommandAnalyzer = true;
-    })
-    .AddAssembly(typeof(Program).Assembly);
+    });
 });
 ```
 
@@ -276,14 +285,11 @@ builder.Services.AddMediator(config =>
 builder.Services.AddMediator(config =>
 {
     config.WithLogging(LoggingOptions.CreateVerbose())
-          .WithMiddlewareDiscovery()
-          .WithNotificationHandlerDiscovery()
-          .WithStatisticsTracking()
-          .AddAssembly(typeof(Program).Assembly);
+          .WithStatisticsTracking();
 });
 ```
 
-> **Migration Note**: These examples use the modern fluent configuration approach. The legacy methods are being phased out in favor of this more flexible and type-safe approach.
+> **v3.0.0**: `WithMiddlewareDiscovery()`, `WithNotificationHandlerDiscovery()`, and `AddAssembly()` are no longer needed. The source generator discovers all handlers and middleware at compile time.
 
 ## 5. Sample Log Output
 
@@ -304,10 +310,10 @@ With mediator logging enabled, you'll see categorized log messages:
 
 ## 6. Performance Considerations
 
--   **Development**: Use verbose logging for full observability
--   **Production**: Use minimal logging to reduce overhead
--   **High-throughput scenarios**: Disable detailed logging and subscriber details
--   **Debugging issues**: Temporarily enable specific categories as needed
+- **Development**: Use verbose logging for full observability
+- **Production**: Use minimal logging to reduce overhead
+- **High-throughput scenarios**: Disable detailed logging and subscriber details
+- **Debugging issues**: Temporarily enable specific categories as needed
 
 ## 7. Migration Guide
 
@@ -318,17 +324,12 @@ No changes needed to existing configurations. The new mediator logging is opt-in
 ### Adopting Mediator Logging
 
 1. Update your `appsettings.json` to use `"Blazing.Mediator": "Debug"`
-2. Migrate to the modern fluent configuration approach:
+2. Adopt the fluent configuration approach:
 
 ```csharp
-// OLD (Legacy approach - being phased out)
-services.AddMediator(typeof(Program).Assembly);
-
-// NEW (Modern fluent approach - recommended)
 builder.Services.AddMediator(config =>
 {
-    config.WithLogging(LoggingOptions.CreateVerbose())
-          .AddAssembly(typeof(Program).Assembly);
+    config.WithLogging(LoggingOptions.CreateVerbose());
 });
 ```
 
@@ -338,10 +339,7 @@ builder.Services.AddMediator(config =>
 ### Complete Migration Example
 
 ```csharp
-// Before (legacy approach)
-// builder.Services.AddMediator(discoverMiddleware: true, typeof(Program).Assembly);
-
-// After (modern fluent approach)
+// v3.0.0 — source generator discovers all middleware; only configure runtime options
 builder.Services.AddMediator(config =>
 {
     config.WithLogging(logging =>
@@ -350,12 +348,11 @@ builder.Services.AddMediator(config =>
         logging.EnablePublish = true;
         logging.EnableWarnings = true;
         logging.EnablePerformanceTiming = true;
-    })
-    .WithMiddlewareDiscovery()
-    .AddAssembly(typeof(Program).Assembly);
+    });
+    // Middleware is auto-discovered by Blazing.Mediator.SourceGenerators
 });
 ```
 
 The mediator logging system provides the flexibility to balance observability with performance, ensuring you get the right level of detail for each environment.
 
-> **Migration Benefits**: The new fluent configuration approach provides better IntelliSense support, compile-time type checking, and more flexible configuration options compared to the legacy boolean parameter approach.
+> **v3.0.0**: The source generator replaces runtime reflection and removes the need for `WithMiddlewareDiscovery()`, `AddAssembly()`, or `discoverMiddleware: true` parameters. All middleware is discovered at compile time.

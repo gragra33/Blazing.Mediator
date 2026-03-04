@@ -1,5 +1,8 @@
 # OpenTelemetry Support Guide
 
+> [!CAUTION]
+> Version 3.0.0 has breaking changes. See the **[Breaking Changes](https://github.com/gragra33/Blazing.Mediator/docs/BREAKING_CHANGES.md)** document for a complete list of API changes with before/after comparisons, and the **[MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/docs/MIGRATION_GUIDE.md)** for full upgrade steps.
+
 ```
 Trace Summary
 =============
@@ -8,8 +11,8 @@ Trace ID: ab5447e34b6f55171e0f676f806ec43b
 Span ID: 43791b05003a30c9
 Parent ID: c6a3d368006a4a7e
 Status: Error
-Duration: 703ms
-Start Time: 2025-11-17 07:45:55.444
+Duration: 73ms
+Start Time: 2026-03-02 07:45:55.444
 Source: Mediator
 Mediator Trace: Yes
 
@@ -35,45 +38,45 @@ Tags & Attributes:- middleware.pipeline: ErrorHandlingMiddleware<TRequest, TResp
 
 1. [Overview](#overview)
 2. [Quick Reference Tables](#quick-reference-tables)
-   - [TelemetryOptions Configuration Properties](#telemetryoptions-configuration-properties)
-   - [TelemetryOptions Default Configurations](#telemetryoptions-default-configurations)
-   - [Activity Sources and Metrics](#activity-sources-and-metrics)
-   - [Core Telemetry Tags](#core-telemetry-tags)
-   - [Streaming-Specific Tags](#streaming-specific-tags)
-   - [Request/Response Operations Metrics](#requestresponse-operations-metrics)
-   - [Notification Operations Metrics](#notification-operations-metrics)
-   - [Streaming Operations Metrics](#streaming-operations-metrics)
-   - [Health and System Metrics](#health-and-system-metrics)
-   - [Sensitive Data Patterns (Default)](#sensitive-data-patterns-default)
+    - [TelemetryOptions Configuration Properties](#telemetryoptions-configuration-properties)
+    - [TelemetryOptions Default Configurations](#telemetryoptions-default-configurations)
+    - [Activity Sources and Metrics](#activity-sources-and-metrics)
+    - [Core Telemetry Tags](#core-telemetry-tags)
+    - [Streaming-Specific Tags](#streaming-specific-tags)
+    - [Request/Response Operations Metrics](#requestresponse-operations-metrics)
+    - [Notification Operations Metrics](#notification-operations-metrics)
+    - [Streaming Operations Metrics](#streaming-operations-metrics)
+    - [Health and System Metrics](#health-and-system-metrics)
+    - [Sensitive Data Patterns (Default)](#sensitive-data-patterns-default)
 3. [Installation](#installation)
 4. [Configuration](#configuration)
-   - [Basic Setup](#basic-setup)
-   - [Advanced Telemetry Configuration](#advanced-telemetry-configuration)
-   - [MediatorConfiguration Telemetry Methods](#mediatorconfiguration-telemetry-methods)
-   - [Environment-Specific Configuration](#environment-specific-configuration)
-   - [Jaeger and OpenTelemetry Protocol (OTLP) Configuration](#jaeger-and-opentelemetry-protocol-otlp-configuration)
-   - [Activity Sources](#activity-sources)
+    - [Basic Setup](#basic-setup)
+    - [Advanced Telemetry Configuration](#advanced-telemetry-configuration)
+    - [MediatorConfiguration Telemetry Methods](#mediatorconfiguration-telemetry-methods)
+    - [Environment-Specific Configuration](#environment-specific-configuration)
+    - [Jaeger and OpenTelemetry Protocol (OTLP) Configuration](#jaeger-and-opentelemetry-protocol-otlp-configuration)
+    - [Activity Sources](#activity-sources)
 5. [Features](#features)
-   - [Automatic Telemetry Creation](#automatic-telemetry-creation)
-   - [Telemetry Context and Tags](#telemetry-context-and-tags)
-   - [Error and Exception Tracking](#error-and-exception-tracking)
+    - [Automatic Telemetry Creation](#automatic-telemetry-creation)
+    - [Telemetry Context and Tags](#telemetry-context-and-tags)
+    - [Error and Exception Tracking](#error-and-exception-tracking)
 6. [Usage Examples](#usage-examples)
-   - [Basic Request Tracing](#basic-request-tracing)
-   - [Notification Tracing](#notification-tracing)
-   - [Streaming Request Tracing](#streaming-request-tracing)
-   - [Adding Custom Telemetry](#adding-custom-telemetry)
-   - [Manual Notification Subscriber Tracing](#manual-notification-subscriber-tracing)
-   - [Notification Middleware Telemetry](#notification-middleware-telemetry)
+    - [Basic Request Tracing](#basic-request-tracing)
+    - [Notification Tracing](#notification-tracing)
+    - [Streaming Request Tracing](#streaming-request-tracing)
+    - [Adding Custom Telemetry](#adding-custom-telemetry)
+    - [Manual Notification Subscriber Tracing](#manual-notification-subscriber-tracing)
+    - [Notification Middleware Telemetry](#notification-middleware-telemetry)
 7. [Configuration Options](#configuration-options)
-   - [Mediator Configuration](#mediator-configuration)
-   - [Environment-Specific Configuration](#environment-specific-configuration-1)
-   - [OpenTelemetry Sampling and Filtering](#opentelemetry-sampling-and-filtering)
-   - [Production Configuration](#production-configuration)
+    - [Mediator Configuration](#mediator-configuration)
+    - [Environment-Specific Configuration](#environment-specific-configuration-1)
+    - [OpenTelemetry Sampling and Filtering](#opentelemetry-sampling-and-filtering)
+    - [Production Configuration](#production-configuration)
 8. [Integration with ASP.NET Core](#integration-with-aspnet-core)
 9. [Monitoring Patterns](#monitoring-patterns)
-   - [Performance Monitoring](#performance-monitoring)
-   - [Notification Performance Monitoring](#notification-performance-monitoring)
-   - [Business Metrics](#business-metrics)
+    - [Performance Monitoring](#performance-monitoring)
+    - [Notification Performance Monitoring](#notification-performance-monitoring)
+    - [Business Metrics](#business-metrics)
 10. [Best Practices](#best-practices)
 11. [Troubleshooting](#troubleshooting)
 12. [Example: Complete Setup](#example-complete-setup)
@@ -92,159 +95,165 @@ The following tables provide a comprehensive overview of all telemetry configura
 
 The TelemetryOptions class provides fine-grained control over what telemetry data is collected and how it's processed. These properties allow you to balance observability needs with performance requirements, enabling you to capture detailed information in development while optimizing for production workloads. Each property can be configured independently to create a telemetry profile that matches your specific monitoring requirements.
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `Enabled` | `bool` | `true` | Enable/disable telemetry collection |
-| `CaptureMiddlewareDetails` | `bool` | `true` | Capture detailed middleware execution information |
-| `CaptureHandlerDetails` | `bool` | `true` | Capture detailed handler execution information |
-| `CaptureExceptionDetails` | `bool` | `true` | Capture detailed exception information |
-| `CaptureNotificationHandlerDetails` | `bool` | `true` | Capture detailed notification handler information |
-| `CreateHandlerChildSpans` | `bool` | `true` | Create child spans for individual notification handlers |
-| `CaptureSubscriberMetrics` | `bool` | `true` | Capture notification subscriber metrics |
-| `CaptureNotificationMiddlewareDetails` | `bool` | `true` | Capture notification middleware execution details |
-| `EnableHealthChecks` | `bool` | `true` | Enable health check endpoints for telemetry |
-| `MaxExceptionMessageLength` | `int` | `200` | Maximum length of exception messages in telemetry |
-| `MaxStackTraceLines` | `int` | `3` | Maximum number of stack trace lines to capture |
-| `PacketLevelTelemetryEnabled` | `bool` | `false` | Enable detailed streaming packet telemetry |
-| `PacketTelemetryBatchSize` | `int` | `10` | Batch size for packet-level telemetry |
-| `EnableStreamingMetrics` | `bool` | `true` | Enable enhanced streaming metrics including jitter analysis |
-| `CapturePacketSize` | `bool` | `false` | Capture packet size information when possible |
-| `EnableStreamingPerformanceClassification` | `bool` | `true` | Enable detailed streaming performance classification |
-| `ExcellentPerformanceThreshold` | `double` | `0.1` | Threshold for "excellent" performance (10% jitter) |
-| `GoodPerformanceThreshold` | `double` | `0.3` | Threshold for "good" performance (30% jitter) |
-| `FairPerformanceThreshold` | `double` | `0.5` | Threshold for "fair" performance (50% jitter) |
+| Property                                   | Type     | Default | Description                                                 |
+| ------------------------------------------ | -------- | ------- | ----------------------------------------------------------- |
+| `Enabled`                                  | `bool`   | `true`  | Enable/disable telemetry collection                         |
+| `CaptureMiddlewareDetails`                 | `bool`   | `true`  | Capture detailed middleware execution information           |
+| `CaptureHandlerDetails`                    | `bool`   | `true`  | Capture detailed handler execution information              |
+| `CaptureExceptionDetails`                  | `bool`   | `true`  | Capture detailed exception information                      |
+| `CaptureNotificationHandlerDetails`        | `bool`   | `true`  | Capture detailed notification handler information           |
+| `CreateHandlerChildSpans`                  | `bool`   | `true`  | Create child spans for individual notification handlers     |
+| `CaptureSubscriberMetrics`                 | `bool`   | `true`  | Capture notification subscriber metrics                     |
+| `CaptureNotificationMiddlewareDetails`     | `bool`   | `true`  | Capture notification middleware execution details           |
+| `EnableHealthChecks`                       | `bool`   | `true`  | Enable health check endpoints for telemetry                 |
+| `MaxExceptionMessageLength`                | `int`    | `200`   | Maximum length of exception messages in telemetry           |
+| `MaxStackTraceLines`                       | `int`    | `3`     | Maximum number of stack trace lines to capture              |
+| `PacketLevelTelemetryEnabled`              | `bool`   | `false` | Enable detailed streaming packet telemetry                  |
+| `PacketTelemetryBatchSize`                 | `int`    | `10`    | Batch size for packet-level telemetry                       |
+| `EnableStreamingMetrics`                   | `bool`   | `true`  | Enable enhanced streaming metrics including jitter analysis |
+| `CapturePacketSize`                        | `bool`   | `false` | Capture packet size information when possible               |
+| `EnableStreamingPerformanceClassification` | `bool`   | `true`  | Enable detailed streaming performance classification        |
+| `ExcellentPerformanceThreshold`            | `double` | `0.1`   | Threshold for "excellent" performance (10% jitter)          |
+| `GoodPerformanceThreshold`                 | `double` | `0.3`   | Threshold for "good" performance (30% jitter)               |
+| `FairPerformanceThreshold`                 | `double` | `0.5`   | Threshold for "fair" performance (50% jitter)               |
 
 ### TelemetryOptions Default Configurations
 
 Blazing.Mediator provides several preset configurations that are optimized for different environments and use cases. These presets represent battle-tested combinations of settings that balance observability needs with performance considerations.
 
-| Configuration | Core Telemetry | Exceptions | Streaming | Notifications | Health | Performance |
-|---------------|----------------|------------|-----------|-------------|---------|-------------|
-| **Default (new TelemetryOptions())** | Enabled | All enabled | Metrics only | All enabled | Enabled | Basic |
-| **TelemetryOptions.Development()** | All enabled | Verbose (500/10 lines) | Full packet tracking | All enabled | Enabled | All enabled |
-| **TelemetryOptions.Production()** | Core only | Limited (200/3 lines) | Metrics only | Handler spans disabled | Enabled | Optimized |
-| **TelemetryOptions.Disabled()** | All disabled | Disabled | All disabled | All disabled | Disabled | Disabled |
-| **TelemetryOptions.Minimal()** | Exceptions only | Basic (100/2 lines) | Disabled | Disabled | Enabled | Disabled |
-| **TelemetryOptions.NotificationOnly()** | Disabled | Exceptions only | Disabled | All enabled | Disabled | N/A |
-| **TelemetryOptions.StreamingOnly()** | Disabled | Exceptions only | All enabled | Disabled | Disabled | N/A |
+| Configuration                           | Core Telemetry  | Exceptions             | Streaming            | Notifications          | Health   | Performance |
+| --------------------------------------- | --------------- | ---------------------- | -------------------- | ---------------------- | -------- | ----------- |
+| **Default (new TelemetryOptions())**    | Enabled         | All enabled            | Metrics only         | All enabled            | Enabled  | Basic       |
+| **TelemetryOptions.Development()**      | All enabled     | Verbose (500/10 lines) | Full packet tracking | All enabled            | Enabled  | All enabled |
+| **TelemetryOptions.Production()**       | Core only       | Limited (200/3 lines)  | Metrics only         | Handler spans disabled | Enabled  | Optimized   |
+| **TelemetryOptions.Disabled()**         | All disabled    | Disabled               | All disabled         | All disabled           | Disabled | Disabled    |
+| **TelemetryOptions.Minimal()**          | Exceptions only | Basic (100/2 lines)    | Disabled             | Disabled               | Enabled  | Disabled    |
+| **TelemetryOptions.NotificationOnly()** | Disabled        | Exceptions only        | Disabled             | All enabled            | Disabled | N/A         |
+| **TelemetryOptions.StreamingOnly()**    | Disabled        | Exceptions only        | All enabled          | Disabled               | Disabled | N/A         |
 
 ### Activity Sources and Metrics
 
-Blazing.Mediator uses multiple activity sources to organize telemetry data logically across different operational domains. This separation allows you to selectively enable or disable specific telemetry streams based on your monitoring needs. The activity sources are designed to provide hierarchical tracing where parent-child relationships between operations are clearly established, making it easier to understand request flows and identify performance bottlenecks.
+Blazing.Mediator uses a single activity source (`Blazing.Mediator`) for all operations. All telemetry — commands, queries, notifications, and streaming — is emitted under this one source, differentiated by activity name prefix (`Mediator.Send:`, `Mediator.Publish.`, `Mediator.SendStream:`). The activity source is designed to provide hierarchical tracing where parent-child relationships between operations are clearly established, making it easier to understand request flows and identify performance bottlenecks.
 
-| Component | Activity Source | Meter Name | Purpose |
-|-----------|----------------|------------|---------|
+| Component       | Activity Source    | Meter Name         | Purpose                          |
+| --------------- | ------------------ | ------------------ | -------------------------------- |
 | Core Operations | `Blazing.Mediator` | `Blazing.Mediator` | Commands, queries, notifications |
-| Streaming | `Blazing.Mediator.Streaming` | `Blazing.Mediator` | Streaming operations |
-| Health Checks | `Blazing.Mediator` | `Blazing.Mediator` | Telemetry system health |
+| Streaming       | `Blazing.Mediator` | `Blazing.Mediator` | Streaming operations             |
+| Health Checks   | `Blazing.Mediator` | `Blazing.Mediator` | Telemetry system health          |
 
 ### Core Telemetry Tags
 
 These standardized tags provide consistent metadata across all telemetry data, enabling effective filtering, grouping, and analysis in your observability platform. The tags are automatically sanitized to remove sensitive information and are designed to provide both technical and business context for each operation. Understanding these tags is crucial for creating effective dashboards and alerts in your monitoring system.
 
-| Tag Name | Type | Applied To | Description |
-|----------|------|------------|-------------|
-| `request_name` | `string` | All requests | Sanitized request type name |
-| `request_type` | `string` | All requests | "query", "command", or "stream" |
-| `response_type` | `string` | Request/Response | The response type name |
-| `handler.type` | `string` | All handlers | The handler type name (sanitized) |
-| `notification.type` | `string` | Notifications | The notification type name (sanitized) |
-| `notification.handler_count` | `int` | Notifications | Number of handlers for the notification |
-| `notification.subscriber_count` | `int` | Notifications | Number of subscribers for the notification |
-| `notification.execution_pattern` | `string` | Notifications | Detected execution pattern |
-| `subscriber_type` | `string` | Notification Handlers | The subscriber/handler type name (sanitized) |
-| `processor_type` | `string` | Notification Handlers | Type of processor: "subscriber", "handler", "generic_subscriber" |
-| `middleware.pipeline` | `string` | Requests | Complete middleware pipeline |
-| `middleware.executed` | `string` | Requests | List of executed middleware |
-| `notification_middleware.pipeline` | `string` | Notifications | Complete notification middleware pipeline |
-| `notification_middleware.executed` | `string` | Notifications | List of executed notification middleware |
-| `exception.type` | `string` | Errors | Exception type (sanitized) |
-| `exception.message` | `string` | Errors | Exception message (sanitized) |
-| `validation.passed` | `bool` | Validation | Validation result |
-| `performance.duration_ms` | `long` | All operations | Operation duration in milliseconds |
-| `performance.classification` | `string` | All operations | "fast", "normal", or "slow" |
+| Tag Name                           | Type     | Applied To            | Description                                                      |
+| ---------------------------------- | -------- | --------------------- | ---------------------------------------------------------------- |
+| `request_name`                     | `string` | All requests          | Sanitized request type name                                      |
+| `request_type`                     | `string` | All requests          | "query", "command", or "stream"                                  |
+| `response_type`                    | `string` | Request/Response      | The response type name                                           |
+| `handler.type`                     | `string` | All handlers          | The handler type name (sanitized)                                |
+| `notification.type`                | `string` | Notifications         | The notification type name (sanitized)                           |
+| `notification.handler_count`       | `int`    | Notifications         | Number of handlers for the notification                          |
+| `notification.subscriber_count`    | `int`    | Notifications         | Number of subscribers for the notification                       |
+| `notification.execution_pattern`   | `string` | Notifications         | Detected execution pattern                                       |
+| `subscriber_type`                  | `string` | Notification Handlers | The subscriber/handler type name (sanitized)                     |
+| `processor_type`                   | `string` | Notification Handlers | Type of processor: "subscriber", "handler", "generic_subscriber" |
+| `middleware.pipeline`              | `string` | Requests              | Complete middleware pipeline                                     |
+| `middleware.executed`              | `string` | Requests              | List of executed middleware                                      |
+| `notification_middleware.pipeline` | `string` | Notifications         | Complete notification middleware pipeline                        |
+| `notification_middleware.executed` | `string` | Notifications         | List of executed notification middleware                         |
+| `exception.type`                   | `string` | Errors                | Exception type (sanitized)                                       |
+| `exception.message`                | `string` | Errors                | Exception message (sanitized)                                    |
+| `validation.passed`                | `bool`   | Validation            | Validation result                                                |
+| `performance.duration_ms`          | `long`   | All operations        | Operation duration in milliseconds                               |
+| `performance.classification`       | `string` | All operations        | "fast", "normal", or "slow"                                      |
 
 ### Streaming-Specific Tags
 
 Streaming operations generate unique telemetry data that reflects the nature of data flow and processing patterns. These specialized tags capture metrics that are essential for understanding streaming performance, including throughput characteristics, timing patterns, and completion status. The streaming tags work in conjunction with core telemetry tags to provide a complete picture of streaming request lifecycle and performance.
 
-| Tag Name | Type | Description |
-|----------|------|-------------|
-| `stream.item_count` | `long` | Total items in the stream |
-| `stream.time_to_first_byte_ms` | `long` | Time to first item in milliseconds |
-| `stream.average_inter_packet_time_ms` | `double` | Average time between packets |
-| `stream.throughput_items_per_second` | `double` | Throughput measurement |
-| `stream.packet_size_bytes` | `long` | Individual packet size (when enabled) |
-| `stream.performance_pattern` | `string` | Detected performance pattern |
-| `stream.completion_status` | `string` | Stream completion status |
-| `stream.cancellation_reason` | `string` | Reason for stream cancellation (if applicable) |
+| Tag Name                                | Type     | Description                                                                         |
+| --------------------------------------- | -------- | ----------------------------------------------------------------------------------- |
+| `stream.items_count`                    | `long`   | Total items in the stream                                                           |
+| `stream.ttfb_ms`                        | `double` | Time to first item in milliseconds                                                  |
+| `stream.avg_inter_packet_time_ms`       | `double` | Average time between packets                                                        |
+| `stream.min_inter_packet_time_ms`       | `double` | Minimum inter-packet time                                                           |
+| `stream.max_inter_packet_time_ms`       | `double` | Maximum inter-packet time                                                           |
+| `stream.throughput_items_per_sec`       | `double` | Throughput in items per second                                                      |
+| `stream.jitter_ms`                      | `double` | Packet timing variability (standard deviation of inter-packet times)                |
+| `stream.performance_class`              | `string` | Performance classification: `"excellent"`, `"good"`, `"fair"`, or `"poor"`          |
+| `stream.consistent_throughput`          | `bool`   | Whether stream throughput is consistent                                             |
+| `stream.packet.count`                   | `long`   | Number of packets processed                                                         |
+| `stream.avg_packet_processing_time_ms`  | `double` | Average packet processing time                                                      |
+| `stream.total_processing_time_ms`       | `long`   | Total packet processing time                                                        |
+| `stream.packet_level_telemetry_enabled` | `bool`   | Whether packet-level child spans are active                                         |
+| `stream.batch_size`                     | `int`    | Configured packet telemetry batch size                                              |
+| `packet.size_bytes`                     | `long`   | Individual packet size in bytes (child spans only, when `CapturePacketSize = true`) |
 
 ### Request/Response Operations Metrics
 
 These metrics capture the fundamental performance characteristics of synchronous request-response operations including commands and queries. The histogram metrics provide detailed distribution data that helps identify performance outliers and trends over time. Success and failure counters enable you to calculate error rates and establish SLA compliance metrics for your application's core operations.
 
-| Metric Name | Type | Description |
-|-------------|------|-------------|
-| `mediator.send.duration` | Histogram | Duration of send operations |
-| `mediator.send.success` | Counter | Number of successful send operations |
-| `mediator.send.failure` | Counter | Number of failed send operations |
+| Metric Name              | Type      | Description                          |
+| ------------------------ | --------- | ------------------------------------ |
+| `mediator.send.duration` | Histogram | Duration of send operations          |
+| `mediator.send.success`  | Counter   | Number of successful send operations |
+| `mediator.send.failure`  | Counter   | Number of failed send operations     |
 
 ### Notification Operations Metrics
 
 Notification metrics provide visibility into both the publishing process and individual subscriber processing performance. These metrics are essential for understanding the scalability and reliability of your event-driven architecture. The dual-level metrics (publish-level and subscriber-level) allow you to identify whether performance issues stem from the notification distribution mechanism or specific subscriber implementations.
 
-| Metric Name | Type | Description |
-|-------------|------|-------------|
-| `mediator.publish.duration` | Histogram | Duration of publish operations |
-| `mediator.publish.success` | Counter | Number of successful publish operations |
-| `mediator.publish.failure` | Counter | Number of failed publish operations |
-| `mediator.publish.partial_failure` | Counter | Number of notifications with partial handler failures |
-| `mediator.publish.total_failure` | Counter | Number of notifications where all handlers failed |
-| `mediator.publish.subscriber.duration` | Histogram | Duration of individual subscriber processing |
-| `mediator.publish.subscriber.success` | Counter | Number of successful subscriber notifications |
-| `mediator.publish.subscriber.failure` | Counter | Number of failed subscriber notifications |
+| Metric Name                            | Type      | Description                                           |
+| -------------------------------------- | --------- | ----------------------------------------------------- |
+| `mediator.publish.duration`            | Histogram | Duration of publish operations                        |
+| `mediator.publish.success`             | Counter   | Number of successful publish operations               |
+| `mediator.publish.failure`             | Counter   | Number of failed publish operations                   |
+| `mediator.publish.partial_failure`     | Counter   | Number of notifications with partial handler failures |
+| `mediator.publish.total_failure`       | Counter   | Number of notifications where all handlers failed     |
+| `mediator.publish.subscriber.duration` | Histogram | Duration of individual subscriber processing          |
+| `mediator.publish.subscriber.success`  | Counter   | Number of successful subscriber notifications         |
+| `mediator.publish.subscriber.failure`  | Counter   | Number of failed subscriber notifications             |
 
 ### Streaming Operations Metrics
 
 Streaming metrics capture the complex performance characteristics unique to asynchronous data streams. These metrics are designed to help you understand not just overall performance, but also the quality and consistency of the streaming experience. The detailed packet-level metrics can be enabled when you need to perform deep analysis of streaming behavior patterns and optimize for specific use cases.
 
-| Metric Name | Type | Description |
-|-------------|------|-------------|
-| `mediator.stream.duration` | Histogram | Total duration of streaming operations |
-| `mediator.stream.success` | Counter | Number of successful streaming operations |
-| `mediator.stream.failure` | Counter | Number of failed streaming operations |
-| `mediator.stream.item_count` | Histogram | Number of items streamed |
-| `mediator.stream.time_to_first_byte` | Histogram | Time until first item is received |
-| `mediator.stream.packet.processing_time` | Histogram | Individual packet processing times |
-| `mediator.stream.inter_packet_time` | Histogram | Time between consecutive packets |
-| `mediator.stream.packet.jitter` | Histogram | Packet timing variability |
-| `mediator.stream.throughput` | Histogram | Items per second throughput |
+| Metric Name                              | Type      | Description                               |
+| ---------------------------------------- | --------- | ----------------------------------------- |
+| `mediator.stream.duration`               | Histogram | Total duration of streaming operations    |
+| `mediator.stream.success`                | Counter   | Number of successful streaming operations |
+| `mediator.stream.failure`                | Counter   | Number of failed streaming operations     |
+| `mediator.stream.packet.count`           | Counter   | Number of packets processed               |
+| `mediator.stream.ttfb`                   | Histogram | Time until first item is received         |
+| `mediator.stream.packet.processing_time` | Histogram | Individual packet processing times        |
+| `mediator.stream.inter_packet_time`      | Histogram | Time between consecutive packets          |
+| `mediator.stream.packet.jitter`          | Histogram | Packet timing variability                 |
+| `mediator.stream.throughput`             | Histogram | Items per second throughput               |
 
 ### Health and System Metrics
 
 System health metrics provide essential monitoring capabilities for the telemetry infrastructure itself. These metrics help ensure that your observability system is functioning correctly and can alert you to issues with telemetry collection before they impact your ability to monitor application performance. The health metrics also provide insight into the overhead and impact of telemetry collection on your application.
 
-| Metric Name | Type | Description |
-|-------------|------|-------------|
+| Metric Name                 | Type    | Description                               |
+| --------------------------- | ------- | ----------------------------------------- |
 | `mediator.telemetry.health` | Counter | Health check counter for telemetry system |
-| `mediator.middleware.execution_count` | Counter | Number of middleware executions |
-| `mediator.handler.execution_count` | Counter | Number of handler executions |
 
 ### Sensitive Data Patterns (Default)
 
 The default sensitive data patterns provide automatic protection against accidentally including confidential information in telemetry data. These patterns use regular expressions to identify and sanitize common types of sensitive data in property names, values, and messages. You can extend these patterns with custom rules specific to your domain, ensuring comprehensive protection of sensitive information while maintaining useful telemetry data.
 
-| Pattern | Default Value | Description |
-|---------|---------------|-------------|
-| `password` | `"password"` | Filters password fields |
-| `token` | `"token"` | Filters authentication tokens |
-| `secret` | `"secret"` | Filters secret keys |
-| `key` | `"key"` | Filters API keys |
-| `auth` | `"auth"` | Filters authentication data |
+| Pattern      | Default Value  | Description                    |
+| ------------ | -------------- | ------------------------------ |
+| `password`   | `"password"`   | Filters password fields        |
+| `token`      | `"token"`      | Filters authentication tokens  |
+| `secret`     | `"secret"`     | Filters secret keys            |
+| `key`        | `"key"`        | Filters API keys               |
+| `auth`       | `"auth"`       | Filters authentication data    |
 | `credential` | `"credential"` | Filters credential information |
-| `connection` | `"connection"` | Filters connection strings |
+| `connection` | `"connection"` | Filters connection strings     |
 
 **Customizing Sensitive Data Patterns:**
+
 ```csharp
 builder.Services.AddMediator(config =>
 {
@@ -255,22 +264,26 @@ builder.Services.AddMediator(config =>
         options.SensitiveDataPatterns.Add("account_number");
         options.SensitiveDataPatterns.Add("ssn");
         options.SensitiveDataPatterns.Add("credit.card");
-        
+
         // Remove default patterns if needed (not recommended)
         options.SensitiveDataPatterns.Remove("connection");
     });
-    config.AddAssembly(typeof(Program).Assembly);
 });
 ```
 
 ## Installation
 
-First, make sure you have the necessary OpenTelemetry packages installed:
+First, make sure you have the necessary packages installed:
 
 ```xml
-<PackageReference Include="OpenTelemetry" Version="1.9.0" />
-<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
-<PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.9.0" />
+<!-- Blazing.Mediator (both required) -->
+<PackageReference Include="Blazing.Mediator" Version="3.0.0" />
+<PackageReference Include="Blazing.Mediator.SourceGenerators" Version="3.0.0" />
+
+<!-- OpenTelemetry -->
+<PackageReference Include="OpenTelemetry" Version="1.15.0" />
+<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
+<PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
 <!-- Add other exporters as needed -->
 ```
 
@@ -286,10 +299,10 @@ using OpenTelemetry.Trace;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add Blazing.Mediator with OpenTelemetry enabled
+// Source generator auto-discovers all handlers and middleware at compile time
 builder.Services.AddMediator(config =>
 {
     config.WithTelemetry(); // Uses default TelemetryOptions
-    config.AddAssembly(typeof(Program).Assembly);
 });
 
 // Configure OpenTelemetry
@@ -298,7 +311,6 @@ builder.Services.AddOpenTelemetry()
     {
         traceBuilder
             .AddSource("Blazing.Mediator")
-            .AddSource("Blazing.Mediator.Streaming")
             .AddConsoleExporter();
     });
 
@@ -319,19 +331,18 @@ builder.Services.AddMediator(config =>
         telemetryOptions.CaptureExceptionDetails = true;
         telemetryOptions.MaxExceptionMessageLength = 300;
         telemetryOptions.MaxStackTraceLines = 15;
-        
+
         // Notification-specific telemetry options
         telemetryOptions.CaptureNotificationHandlerDetails = true;
         telemetryOptions.CreateHandlerChildSpans = true;
         telemetryOptions.CaptureSubscriberMetrics = true;
         telemetryOptions.CaptureNotificationMiddlewareDetails = true;
-        
+
         // Streaming telemetry options
         telemetryOptions.PacketLevelTelemetryEnabled = true;
         telemetryOptions.PacketTelemetryBatchSize = 50;
         telemetryOptions.SensitiveDataPatterns.Add("custom_sensitive_pattern");
     });
-    config.AddAssembly(typeof(Program).Assembly);
 });
 ```
 
@@ -346,21 +357,20 @@ builder.Services.AddMediator(config =>
 {
     // Basic telemetry with default options
     config.WithTelemetry();
-    
+
     // Telemetry with configuration action
     config.WithTelemetry(options =>
     {
         options.CaptureMiddlewareDetails = false;
         options.MaxExceptionMessageLength = 500;
     });
-    
+
     // Telemetry with pre-configured options
     config.WithTelemetry(TelemetryOptions.Development());
-    
+
     // Disable telemetry completely
     config.WithoutTelemetry();
-    
-    config.AddAssembly(typeof(Program).Assembly);
+
 });
 ```
 
@@ -371,24 +381,23 @@ builder.Services.AddMediator(config =>
 {
     // Enable comprehensive notification telemetry
     config.WithNotificationTelemetry();
-    
+
     // Configure notification telemetry with custom options
     config.WithNotificationTelemetry(options =>
     {
         options.CreateHandlerChildSpans = false; // Disable child spans for performance
         options.CaptureNotificationMiddlewareDetails = false;
     });
-    
+
     // Enable/disable specific notification telemetry features
     config.WithHandlerChildSpans(enabled: true);
     config.WithSubscriberMetrics(enabled: true);
     config.WithNotificationHandlerDetails(enabled: true);
     config.WithNotificationMiddlewareDetails(enabled: false);
-    
+
     // Disable all notification telemetry
     config.WithoutNotificationTelemetry();
-    
-    config.AddAssembly(typeof(Program).Assembly);
+
 });
 ```
 
@@ -419,8 +428,7 @@ builder.Services.AddMediator(config =>
             options.MaxStackTraceLines = 5;
         });
     }
-    
-    config.AddAssembly(typeof(Program).Assembly);
+
 });
 ```
 
@@ -434,7 +442,6 @@ builder.Services.AddOpenTelemetry()
     {
         traceBuilder
             .AddSource("Blazing.Mediator")
-            .AddSource("Blazing.Mediator.Streaming")
             .AddConsoleExporter()
             .AddJaegerExporter(options =>
             {
@@ -450,10 +457,9 @@ builder.Services.AddOpenTelemetry()
 
 ### Activity Sources
 
-Blazing.Mediator uses two main activity sources:
+Blazing.Mediator uses a single activity source for all operations:
 
-- `Blazing.Mediator` - For commands, queries, and notifications
-- `Blazing.Mediator.Streaming` - For streaming operations
+- `Blazing.Mediator` - For all operations: commands, queries, notifications, and streaming
 
 ## Features
 
@@ -497,7 +503,7 @@ public record CreateUserCommand(string Name, string Email) : IRequest<User>;
 
 public class CreateUserHandler : IRequestHandler<CreateUserCommand, User>
 {
-    public async Task<User> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    public async ValueTask<User> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
         // Handler logic - automatically traced
         return await CreateUserInDatabase(request.Name, request.Email);
@@ -509,7 +515,7 @@ public record GetUserQuery(int Id) : IRequest<User>;
 
 public class GetUserHandler : IRequestHandler<GetUserQuery, User>
 {
-    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    public async ValueTask<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
     {
         // Handler execution automatically traced
         return await GetUserFromDatabase(request.Id);
@@ -527,7 +533,7 @@ public record UserCreatedNotification(int UserId, string Name) : INotification;
 // Each handler gets its own span automatically
 public class EmailNotificationHandler : INotificationHandler<UserCreatedNotification>
 {
-    public async Task Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
+    public async ValueTask Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
     {
         // Email sending automatically traced with individual span
         // Tags: handler.type=EmailNotificationHandler, notification.type=UserCreatedNotification, operation=handle_notification
@@ -537,7 +543,7 @@ public class EmailNotificationHandler : INotificationHandler<UserCreatedNotifica
 
 public class AuditLogHandler : INotificationHandler<UserCreatedNotification>
 {
-    public async Task Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
+    public async ValueTask Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
     {
         // Audit logging automatically traced with individual span
         // Tags: handler.type=AuditLogHandler, notification.type=UserCreatedNotification, operation=handle_notification
@@ -547,7 +553,7 @@ public class AuditLogHandler : INotificationHandler<UserCreatedNotification>
 
 public class CacheInvalidationHandler : INotificationHandler<UserCreatedNotification>
 {
-    public async Task Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
+    public async ValueTask Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
     {
         // Cache invalidation automatically traced with individual span
         // Performance metrics and error tracking included automatically
@@ -557,6 +563,7 @@ public class CacheInvalidationHandler : INotificationHandler<UserCreatedNotifica
 ```
 
 The notification telemetry automatically creates:
+
 - A parent span for the `Publish` operation with tags like `notification.handler_count=3`, `notification.subscriber_count=0`
 - Individual child spans for each handler with handler-specific tags
 - Success/failure metrics for each handler independently
@@ -594,7 +601,7 @@ using System.Diagnostics;
 
 public class GetUserHandler : IRequestHandler<GetUserQuery, User>
 {
-    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    public async ValueTask<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
     {
         using var activity = Activity.Current;
 
@@ -630,19 +637,19 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
 // Custom telemetry in notification handlers
 public class EmailNotificationHandler : INotificationHandler<UserCreatedNotification>
 {
-    public async Task Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
+    public async ValueTask Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
     {
         using var activity = Activity.Current;
-        
+
         // Add business context to the automatic handler span
         activity?.SetTag("email.type", "welcome");
         activity?.SetTag("user.new_account", true);
         activity?.SetTag("notification.priority", "high");
-        
+
         try
         {
             await SendWelcomeEmail(notification.UserId, notification.Name);
-            
+
             // Add success metrics
             activity?.SetTag("email.sent", true);
             activity?.SetTag("email.provider", "sendgrid");
@@ -666,7 +673,7 @@ Manual subscribers (Observer pattern) are also automatically traced:
 public class RealTimeNotificationSubscriber : INotificationSubscriber<UserCreatedNotification>
 {
     private readonly IHubContext<NotificationHub> _hubContext;
-    
+
     public RealTimeNotificationSubscriber(IHubContext<NotificationHub> hubContext)
     {
         _hubContext = hubContext;
@@ -683,7 +690,7 @@ public class RealTimeNotificationSubscriber : INotificationSubscriber<UserCreate
 // Usage in your application startup
 public void ConfigureServices(IServiceCollection services)
 {
-    services.AddMediator(config => config.AddAssembly(typeof(Program).Assembly));
+    services.AddMediator(config => config.WithTelemetry());
     services.AddScoped<RealTimeNotificationSubscriber>();
 }
 
@@ -691,7 +698,7 @@ public void Configure(IServiceProvider serviceProvider)
 {
     var mediator = serviceProvider.GetRequiredService<IMediator>();
     var subscriber = serviceProvider.GetRequiredService<RealTimeNotificationSubscriber>();
-    
+
     // Subscribe to notifications - automatically traced when notifications are published
     mediator.Subscribe<UserCreatedNotification>(subscriber);
 }
@@ -706,27 +713,27 @@ public class NotificationLoggingMiddleware<TNotification> : INotificationMiddlew
     where TNotification : INotification
 {
     private readonly ILogger<NotificationLoggingMiddleware<TNotification>> _logger;
-    
+
     public int Order => 0; // Execute first
-    
+
     public NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware<TNotification>> logger)
     {
         _logger = logger;
     }
 
-    public async Task Handle(TNotification notification, NotificationHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         // Middleware execution automatically traced with span
         // Tags: middleware.type=NotificationLoggingMiddleware, notification.type=UserCreatedNotification
-        
+
         _logger.LogInformation("Processing notification: {NotificationType}", typeof(TNotification).Name);
-        
+
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            await next();
+            await next(notification, cancellationToken);
             stopwatch.Stop();
-            
+
             _logger.LogInformation("Notification processed successfully in {Duration}ms", stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
@@ -756,24 +763,23 @@ builder.Services.AddMediator(config =>
         options.CaptureExceptionDetails = true;
         options.MaxExceptionMessageLength = 200;
         options.MaxStackTraceLines = 10;
-        
+
         // Notification-specific telemetry options
         options.CaptureNotificationHandlerDetails = true;
         options.CreateHandlerChildSpans = true;
         options.CaptureSubscriberMetrics = true;
         options.CaptureNotificationMiddlewareDetails = true;
-        
+
         // Streaming telemetry options
         options.PacketLevelTelemetryEnabled = false;
         options.PacketTelemetryBatchSize = 100;
-        
+
         // Health and security options
         options.EnableHealthChecks = true;
-        
+
         // Add custom sensitive data patterns
         options.SensitiveDataPatterns.Add("custom_pattern");
     });
-    config.AddAssembly(typeof(Program).Assembly);
 });
 ```
 
@@ -792,8 +798,7 @@ builder.Services.AddMediator(config =>
         // Production: Optimize for performance
         config.WithTelemetry(TelemetryOptions.Production());
     }
-    
-    config.AddAssembly(typeof(Program).Assembly);
+
 });
 ```
 
@@ -807,7 +812,6 @@ builder.Services.AddOpenTelemetry()
     {
         traceBuilder
             .AddSource("Blazing.Mediator")
-            .AddSource("Blazing.Mediator.Streaming")
             .SetSampler(new TraceIdRatioBasedSampler(0.1)) // Sample 10% of traces
             .AddConsoleExporter();
     });
@@ -823,7 +827,6 @@ builder.Services.AddOpenTelemetry()
     {
         traceBuilder
             .AddSource("Blazing.Mediator")
-            .AddSource("Blazing.Mediator.Streaming")
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
             .AddEntityFrameworkCoreInstrumentation()
@@ -858,7 +861,6 @@ builder.Services.AddOpenTelemetry()
                 };
             })
             .AddSource("Blazing.Mediator")
-            .AddSource("Blazing.Mediator.Streaming")
             .AddConsoleExporter();
     });
 ```
@@ -874,10 +876,12 @@ Effective monitoring with Blazing.Mediator's telemetry involves implementing pat
 Use telemetry to monitor performance patterns:
 
 ```csharp
-public class PerformanceMonitoringBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+public class PerformanceMonitoringMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public int Order => 0;
+
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         using var activity = Activity.Current;
         var stopwatch = Stopwatch.StartNew();
@@ -918,23 +922,23 @@ public class NotificationPerformanceMiddleware<TNotification> : INotificationMid
     where TNotification : INotification
 {
     public int Order => -100; // Execute early
-    
-    public async Task Handle(TNotification notification, NotificationHandlerDelegate next, CancellationToken cancellationToken)
+
+    public async ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         using var activity = Activity.Current;
         var stopwatch = Stopwatch.StartNew();
         var handlerCount = 0;
-        
+
         // Add performance tracking tags
         activity?.SetTag("notification.performance_monitoring", true);
         activity?.SetTag("notification.start_time", DateTimeOffset.UtcNow.ToString("O"));
-        
+
         try
         {
-            await next();
-            
+            await next(notification, cancellationToken);
+
             stopwatch.Stop();
-            
+
             // Classify notification processing performance
             var classification = stopwatch.ElapsedMilliseconds switch
             {
@@ -943,10 +947,10 @@ public class NotificationPerformanceMiddleware<TNotification> : INotificationMid
                 < 2000 => "slow",
                 _ => "very_slow"
             };
-            
+
             activity?.SetTag("notification.performance_classification", classification);
             activity?.SetTag("notification.total_duration_ms", stopwatch.ElapsedMilliseconds);
-            
+
             if (stopwatch.ElapsedMilliseconds > 1000)
             {
                 activity?.SetTag("notification.performance_warning", "slow_processing");
@@ -969,10 +973,12 @@ public class NotificationPerformanceMiddleware<TNotification> : INotificationMid
 Track business-relevant metrics:
 
 ```csharp
-public class BusinessMetricsBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+public class BusinessMetricsMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public int Order => 0;
+
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         using var activity = Activity.Current;
 
@@ -1003,18 +1009,18 @@ public class BusinessMetricsBehavior<TRequest, TResponse> : IPipelineBehavior<TR
 // Business metrics for notification handlers
 public class BusinessAuditNotificationHandler : INotificationHandler<UserCreatedNotification>
 {
-    public async Task Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
+    public async ValueTask Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
     {
         using var activity = Activity.Current;
-        
+
         // Add business context to the automatic handler span
         activity?.SetTag("business.event_type", "user_lifecycle");
         activity?.SetTag("business.compliance_required", true);
         activity?.SetTag("business.audit_category", "user_management");
         activity?.SetTag("business.data_retention_years", 7);
-        
+
         await AuditUserCreation(notification);
-        
+
         activity?.SetTag("business.audit_completed", true);
     }
 }
@@ -1022,7 +1028,7 @@ public class BusinessAuditNotificationHandler : INotificationHandler<UserCreated
 
 ## Best Practices
 
-1. **Activity Source Registration**: Always register both mediator activity sources for complete coverage
+1. **Activity Source Registration**: Always register the mediator activity source for complete coverage
 2. **Notification Telemetry**: Enable notification telemetry for comprehensive event-driven architecture monitoring
 3. **Child Span Configuration**: Use `CreateHandlerChildSpans = true` to get detailed per-handler visibility
 4. **Custom Attributes**: Add meaningful business context through custom tags in handlers
@@ -1044,7 +1050,6 @@ public class BusinessAuditNotificationHandler : INotificationHandler<UserCreated
 2. Check activity source registration matches:
     ```csharp
     .AddSource("Blazing.Mediator")
-    .AddSource("Blazing.Mediator.Streaming")
     ```
 3. Ensure exporters are properly configured and accessible
 4. Check sampling configuration isn't filtering out traces
@@ -1076,7 +1081,7 @@ public class BusinessAuditNotificationHandler : INotificationHandler<UserCreated
 
 ### Missing Streaming Telemetry
 
-1. Ensure `Blazing.Mediator.Streaming` source is registered
+1. Ensure `Blazing.Mediator` source is registered
 2. Verify streaming handlers implement `IAsyncEnumerable<T>` correctly
 3. Check for proper cancellation token usage
 4. Enable packet-level telemetry if detailed analysis is needed
@@ -1114,8 +1119,7 @@ builder.Services.AddMediator(config =>
         // Production: Optimized telemetry configuration
         config.WithTelemetry(TelemetryOptions.Production());
     }
-    
-    config.AddAssembly(typeof(Program).Assembly);
+
 });
 
 // Add comprehensive OpenTelemetry configuration
@@ -1131,17 +1135,16 @@ builder.Services.AddOpenTelemetry()
                     !httpContext.Request.Path.StartsWithSegments("/health");
             })
 
-            // Add Blazing.Mediator sources (ESSENTIAL)
+            // Add Blazing.Mediator source (ESSENTIAL)
             .AddSource("Blazing.Mediator")
-            .AddSource("Blazing.Mediator.Streaming")
 
             // Add other instrumentation
             .AddHttpClientInstrumentation()
             .AddEntityFrameworkCoreInstrumentation()
 
             // Configure sampling based on environment
-            .SetSampler(builder.Environment.IsDevelopment() 
-                ? new AlwaysOnSampler() 
+            .SetSampler(builder.Environment.IsDevelopment()
+                ? new AlwaysOnSampler()
                 : new TraceIdRatioBasedSampler(0.1))
 
             // Add exporters based on environment

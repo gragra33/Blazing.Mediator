@@ -13,7 +13,7 @@ public class LowStockNotificationHandler : INotificationHandler<LowStockNotifica
         _logger = logger;
     }
 
-    public async Task Handle(LowStockNotification notification, CancellationToken cancellationToken)
+    public async ValueTask Handle(LowStockNotification notification, CancellationToken cancellationToken)
     {
         _logger.LogWarning("?? [Products] Low stock alert: {ProductName} (ID: {ProductId}) has {CurrentStock} units remaining (threshold: {Threshold})", 
             notification.ProductName, notification.ProductId, notification.CurrentStock, notification.Threshold);

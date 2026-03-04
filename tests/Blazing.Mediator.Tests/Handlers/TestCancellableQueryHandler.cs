@@ -1,4 +1,4 @@
-﻿namespace Blazing.Mediator.Tests;
+namespace Blazing.Mediator.Tests;
 
 /// <summary>
 /// Test query handler for testing cancellation token handling.
@@ -18,7 +18,7 @@ public class TestCancellableQueryHandler : IRequestHandler<TestCancellableQuery,
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task containing the string result after a delay.</returns>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
-    public async Task<string> Handle(TestCancellableQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<string> Handle(TestCancellableQuery request, CancellationToken cancellationToken = default)
     {
         LastCancellationToken = cancellationToken;
         await Task.Delay(1000, cancellationToken);

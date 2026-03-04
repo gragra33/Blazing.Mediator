@@ -5,9 +5,9 @@ var host = Host.CreateDefaultBuilder(args)
         // This will automatically discover and register:
         //   - All INotificationHandler<T> implementations in this assembly
         //   - All notification middleware with automatic ordering
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        var mediatorConfig = new MediatorConfiguration();
+        mediatorConfig
+            .WithStatisticsTracking(options =>
                 {
                     options.EnableRequestMetrics = true;
                     options.EnableNotificationMetrics = true;
@@ -17,9 +17,9 @@ var host = Host.CreateDefaultBuilder(args)
                     options.MetricsRetentionPeriod = TimeSpan.FromHours(1);
                     options.CleanupInterval = TimeSpan.FromMinutes(15);
                 })
-                  .WithNotificationHandlerDiscovery() // Enable automatic handler discovery
-                  .WithNotificationMiddlewareDiscovery(); // Enable automatic middleware discovery
-        }, Assembly.GetExecutingAssembly());
+            .WithNotificationHandlerDiscovery() // Enable automatic handler discovery
+            .WithNotificationMiddlewareDiscovery(); // Enable automatic middleware discovery
+        services.AddMediator(mediatorConfig);
 
         // Configure logging and analysis using Example.Common
         services.AddExampleLogging(LogLevel.Information)
@@ -30,7 +30,7 @@ var host = Host.CreateDefaultBuilder(args)
     })
     .Build();
 
-const string separator = "==============================================================================­";
+const string separator = "==============================================================================ï¿½";
 
 Console.WriteLine(separator);
 Console.WriteLine("*** Blazing.Mediator - Notification Handler Example (Automatic Discovery) ***");
@@ -111,4 +111,3 @@ Console.WriteLine("  * Use MediatorStatistics for debugging and analyzing your a
 Console.WriteLine("  * Compare with the NotificationSubscriberExample for differences");
 Console.WriteLine();
 Console.WriteLine("Press any key to exit...");
-Console.ReadKey();

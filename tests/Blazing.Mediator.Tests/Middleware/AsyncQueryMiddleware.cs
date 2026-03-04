@@ -3,6 +3,7 @@ using Blazing.Mediator;
 /// <summary>
 /// Async query middleware for testing asynchronous operations.
 /// </summary>
+[ExcludeFromAutoDiscovery]
 public class AsyncQueryMiddleware : IRequestMiddleware<MiddlewareTestQuery, string>
 {
     /// <summary>
@@ -12,7 +13,7 @@ public class AsyncQueryMiddleware : IRequestMiddleware<MiddlewareTestQuery, stri
     /// <param name="next">The next handler in the pipeline.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The response with "Async: " prefix after a delay.</returns>
-    public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+    public async ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
     {
         await Task.Delay(10, cancellationToken);
         string result = await next();

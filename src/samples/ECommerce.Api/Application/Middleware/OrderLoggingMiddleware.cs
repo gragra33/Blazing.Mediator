@@ -44,7 +44,7 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
     /// <summary>
     /// Handles the request by logging order-related operations
     /// </summary>
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var requestType = request.GetType().Name;
         var startTime = DateTime.UtcNow;

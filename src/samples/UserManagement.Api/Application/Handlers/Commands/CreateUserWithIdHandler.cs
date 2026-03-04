@@ -12,7 +12,7 @@ public class CreateUserWithIdHandler(
     IValidator<CreateUserWithIdCommand> validator)
     : IRequestHandler<CreateUserWithIdCommand, int>
 {
-    public async Task<int> Handle(CreateUserWithIdCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<int> Handle(CreateUserWithIdCommand request, CancellationToken cancellationToken = default)
     {
         ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)

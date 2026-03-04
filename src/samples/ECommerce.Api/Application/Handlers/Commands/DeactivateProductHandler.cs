@@ -17,7 +17,7 @@ public class DeactivateProductHandler(ECommerceDbContext context) : IRequestHand
     /// <param name="request">The command containing the product ID to deactivate.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <exception cref="InvalidOperationException">Thrown when the product is not found.</exception>
-    public async Task Handle(DeactivateProductCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(DeactivateProductCommand request, CancellationToken cancellationToken = default)
     {
         Product? product = await context.Products.FindAsync([request.ProductId], cancellationToken);
         if (product == null)

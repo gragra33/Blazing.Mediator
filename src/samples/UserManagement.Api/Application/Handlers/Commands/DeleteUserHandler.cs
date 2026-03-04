@@ -10,7 +10,7 @@ namespace UserManagement.Api.Application.Handlers.Commands;
 public class DeleteUserHandler(UserManagementDbContext context, ILogger<DeleteUserHandler> logger)
     : IRequestHandler<DeleteUserCommand>
 {
-    public async Task Handle(DeleteUserCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(DeleteUserCommand request, CancellationToken cancellationToken = default)
     {
         User? user = await context.Users
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);

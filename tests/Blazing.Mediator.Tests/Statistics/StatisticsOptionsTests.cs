@@ -25,10 +25,7 @@ public class StatisticsOptionsTests : IDisposable
         services.AddLogging();
 
         // Configure mediator with statistics options
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(configureOptions);
-        }, typeof(StatTestCommand).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking(configureOptions));
 
         // Do not register handlers explicitly; rely on assembly scanning to avoid duplicate handler registration
 

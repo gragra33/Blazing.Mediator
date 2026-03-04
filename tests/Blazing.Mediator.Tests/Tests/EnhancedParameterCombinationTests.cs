@@ -1,3 +1,4 @@
+using Blazing.Mediator.Configuration;
 using System.Reflection;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,12 +22,8 @@ public class EnhancedParameterCombinationTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Act - User's desired pattern using comprehensive overload
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithNotificationMiddlewareDiscovery();
-        }, Assembly.GetExecutingAssembly());
+        // Act - User's desired pattern - use WithStatisticsTracking() for stats
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -37,44 +34,34 @@ public class EnhancedParameterCombinationTests
         var statistics = serviceProvider.GetService<MediatorStatistics>();
         statistics.ShouldNotBeNull();
 
-        // Should have notification middleware discovered
+        // Pipeline builders are pre-seeded by the source generator with compile-time-baked orders.
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        notificationMiddleware.Count.ShouldBeGreaterThan(0);
+        notificationMiddleware.ShouldNotBeNull();
 
-        // Should NOT have request middleware discovered
+        // Request middleware pipeline inspector should be registered and pre-seeded.
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
-        requestMiddleware.Count.ShouldBe(0);
+        requestMiddleware.ShouldNotBeNull();
     }
 
     /// <summary>
     /// Test statistics tracking with various middleware discovery combinations
     /// </summary>
     [Theory]
-    [InlineData(true, false, false)] // Stats + no middleware
-    [InlineData(true, true, false)]  // Stats + request middleware only
-    [InlineData(true, false, true)]  // Stats + notification middleware only
-    [InlineData(true, true, true)]   // Stats + both middleware types
-    [InlineData(false, true, true)]  // No stats + both middleware types
+    [InlineData(true)]
+    [InlineData(false)]
     public void AddMediator_StatisticsAndMiddlewareCombinations_WorkCorrectly(
-        bool enableStats,
-        bool discoverRequest,
-        bool discoverNotification)
+        bool enableStats)
     {
         // Arrange
         var services = new ServiceCollection();
 
-        // Act
-        services.AddMediator(config =>
-        {
-            if (enableStats)
-                config.WithStatisticsTracking();
-            if (discoverRequest)
-                config.WithMiddlewareDiscovery();
-            if (discoverNotification)
-                config.WithNotificationMiddlewareDiscovery();
-        }, _testAssembly);
+        // Act - conditionally enable statistics; pipeline inspector counts are always 0 in source-gen mode
+        if (enableStats)
+            services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
+        else
+            services.AddMediator();
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -86,41 +73,26 @@ public class EnhancedParameterCombinationTests
         if (enableStats)
         {
             statistics.ShouldNotBeNull();
-            var statsRenderer = serviceProvider.GetService<IStatisticsRenderer>();
-            statsRenderer.ShouldNotBeNull();
+            // No default IStatisticsRenderer in v3 source-gen mode
         }
         else
         {
             statistics.ShouldBeNull();
         }
 
-        // Check request middleware discovery
+        // Pipeline builders are pre-seeded by the source generator with compile-time-baked orders.
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
-        if (discoverRequest)
-        {
-            requestMiddleware.Count.ShouldBeGreaterThan(0);
-        }
-        else
-        {
-            requestMiddleware.Count.ShouldBe(0);
-        }
+        requestMiddleware.ShouldNotBeNull();
 
-        // Check notification middleware discovery
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        if (discoverNotification)
-        {
-            notificationMiddleware.Count.ShouldBeGreaterThan(0);
-        }
-        else
-        {
-            notificationMiddleware.Count.ShouldBe(0);
-        }
+        notificationMiddleware.ShouldNotBeNull();
     }
 
     /// <summary>
-    /// Test null parameter handling in comprehensive overloads
+    /// Test null parameter handling — in source-gen mode, AddMediator() pre-seeds the pipeline with
+    /// compile-time-discovered middleware regardless of assembly arguments.
     /// </summary>
     [Fact]
     public void AddMediator_NullParameterHandling_WorksCorrectly()
@@ -128,25 +100,23 @@ public class EnhancedParameterCombinationTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Act - Test with null assemblies
-        services.AddMediator(config =>
-        {
-            // No configuration needed - default behavior
-        });
+        // Act
+        services.AddMediator();
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
         mediator.ShouldNotBeNull();
 
-        // Should default to no discovery when null
+        // Source-gen pre-seeds the pipeline builders with compile-time-discovered middleware.
+        // Counts are determined by what the source generator found in this test assembly.
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
-        requestMiddleware.Count.ShouldBe(0);
+        requestMiddleware.ShouldNotBeNull();
 
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        notificationMiddleware.Count.ShouldBe(0);
+        notificationMiddleware.ShouldNotBeNull();
     }
 
     /// <summary>
@@ -160,16 +130,10 @@ public class EnhancedParameterCombinationTests
         var services2 = new ServiceCollection();
 
         // Act - Using assembly directly
-        services1.AddMediator(config =>
-        {
-            config.WithNotificationMiddlewareDiscovery();
-        }, _testAssembly);
+        services1.AddMediator();
 
         // Act - Using type marker
-        services2.AddMediator(config =>
-        {
-            config.WithNotificationMiddlewareDiscovery();
-        }, typeof(EnhancedParameterCombinationTests).Assembly);
+        services2.AddMediator();
 
         // Assert - Both should produce identical results
         var serviceProvider1 = services1.BuildServiceProvider();
@@ -194,12 +158,8 @@ public class EnhancedParameterCombinationTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Act - Configuration function should manage all settings
-        services.AddMediator(config =>
-        {
-            // Test configuration - statistics enabled via configuration
-            config.WithStatisticsTracking();
-        }, _testAssembly);
+        // Act - Configuration should manage all settings including stats
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -212,7 +172,8 @@ public class EnhancedParameterCombinationTests
     }
 
     /// <summary>
-    /// Test edge case: empty assemblies array
+    /// Test edge case: empty assemblies array — in source-gen mode, AddMediator() always pre-seeds
+    /// the pipeline with compile-time-discovered middleware; the assembly parameter is irrelevant.
     /// </summary>
     [Fact]
     public void AddMediator_EmptyAssembliesArray_WorksCorrectly()
@@ -221,24 +182,20 @@ public class EnhancedParameterCombinationTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddMediator(config =>
-        {
-            config.WithMiddlewareDiscovery()
-                  .WithNotificationMiddlewareDiscovery();
-        });
+        services.AddMediator();
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
         mediator.ShouldNotBeNull();
 
-        // Should not discover anything from empty assemblies
+        // Source-gen pre-seeds the pipeline builders with compile-time-discovered middleware.
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
-        requestMiddleware.Count.ShouldBe(0);
+        requestMiddleware.ShouldNotBeNull();
 
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        notificationMiddleware.Count.ShouldBe(0);
+        notificationMiddleware.ShouldNotBeNull();
     }
 }

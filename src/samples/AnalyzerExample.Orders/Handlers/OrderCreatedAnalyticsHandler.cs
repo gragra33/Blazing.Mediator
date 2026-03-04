@@ -16,7 +16,7 @@ public class OrderCreatedAnalyticsHandler : INotificationHandler<OrderCreatedEve
         _logger = logger;
     }
 
-    public async Task Handle(OrderCreatedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCreatedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Processing analytics for newly created order {OrderId} ({OrderNumber}) - Amount: {TotalAmount:C}", 
             notification.OrderId, notification.OrderNumber, notification.TotalAmount);

@@ -1,4 +1,4 @@
-﻿namespace Blazing.Mediator.Tests;
+namespace Blazing.Mediator.Tests;
 
 /// <summary>
 /// Test query handler used for unit testing the mediator functionality.
@@ -12,8 +12,8 @@ public class TestQueryHandler : IRequestHandler<TestQuery, string>
     /// <param name="request">The test query to handle.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task containing a formatted string result.</returns>
-    public Task<string> Handle(TestQuery request, CancellationToken cancellationToken = default)
+    public ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult($"Result: {request.Value}");
+        return ValueTask.FromResult($"Result: {request.Value}");
     }
 }

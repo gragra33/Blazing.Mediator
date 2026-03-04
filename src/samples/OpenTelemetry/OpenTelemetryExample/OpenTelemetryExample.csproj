@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="OpenTelemetry" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
@@ -28,6 +27,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Blazing.Mediator\Blazing.Mediator.csproj" />
     <ProjectReference Include="..\OpenTelemetryExample.Shared\OpenTelemetryExample.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Blazing.Mediator.SourceGenerators\Blazing.Mediator.SourceGenerators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

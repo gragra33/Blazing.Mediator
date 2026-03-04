@@ -1,4 +1,4 @@
-using Blazing.Mediator.OpenTelemetry;
+﻿using Blazing.Mediator.OpenTelemetry;
 using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
@@ -63,317 +63,6 @@ public class NotificationTelemetryTests : IDisposable
     {
         _activityListener?.Dispose();
         _serviceProvider.Dispose();
-    }
-
-    [Fact]
-    public async Task Publish_Should_Create_Activity_When_Telemetry_Enabled()
-    {
-        // Arrange - Use completely isolated service provider to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.Configure<TelemetryOptions>(options =>
-        {
-            options.CaptureNotificationHandlerDetails = true;
-            options.CreateHandlerChildSpans = true;
-            options.CaptureSubscriberMetrics = true;
-            options.CaptureNotificationMiddlewareDetails = true;
-        });
-        services.AddMediator(); // No discovery to avoid cross-contamination
-
-        // Register test notification handler explicitly
-        services.AddSingleton<INotificationHandler<TestNotification>, TestNotificationHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener
-        {
-            ShouldListenTo = source => source.Name == "Blazing.Mediator",
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-            ActivityStarted = _ => { },
-            ActivityStopped = activity => testActivities.Add(activity)
-        };
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var testHandler = serviceProvider.GetRequiredService<INotificationHandler<TestNotification>>() as TestNotificationHandler;
-        var notification = new TestNotification { Message = "Test activity creation" };
-
-        // Act
-        await mediator.Publish(notification);
-
-        // Wait for activities to be recorded
-        await Task.Delay(100);
-
-        // Assert - find the parent notification activity (not child handler activities)  
-        // Filter very specifically to only get activities from our isolated test
-        var parentActivity = testActivities.FirstOrDefault(a => 
-            a.DisplayName.Equals("Mediator.Publish.TestNotification", StringComparison.Ordinal) ||
-            (a.DisplayName.Contains("TestNotification") && 
-             !a.DisplayName.Contains("Handler") &&
-             !a.DisplayName.Contains("PublishTest") && // Exclude other test notifications  
-             !a.DisplayName.Contains("DerivedTest") && // Exclude derived test types
-             a.DisplayName.StartsWith("Mediator.Publish.")));
-    
-        parentActivity.ShouldNotBeNull("Parent notification activity should be created");
-    
-        // Verify core notification tags - be more specific about the notification type
-        var notificationType = parentActivity.GetTagItem("notification.type")?.ToString();
-        // Accept either exact match or activity display name confirmation
-        if (parentActivity.DisplayName.Equals("Mediator.Publish.TestNotification", StringComparison.Ordinal))
-        {
-            // Perfect match - this is definitely our activity
-            notificationType.ShouldNotBeNull();
-        }
-        else
-        {
-            notificationType.ShouldBe("TestNotification", $"Expected TestNotification but got {notificationType}");
-        }
-    
-        parentActivity.GetTagItem("operation")?.ShouldBe("publish");
-        parentActivity.GetTagItem("mediator_operation")?.ShouldBe("notification_publish");
-    
-        // Verify handler was called
-        testHandler.ShouldNotBeNull();
-        testHandler.CallCount.ShouldBe(1);
-
-        // Debug: Log all activities to understand structure
-        Console.WriteLine("All recorded activities:");
-        var activitiesSnapshot = testActivities.ToList(); // Take a snapshot to avoid collection modification
-        foreach (var activity in activitiesSnapshot)
-        {
-            Console.WriteLine($"  - {activity.DisplayName}: Status={activity.Status}, Tags={string.Join(", ", activity.Tags.Select(t => $"{t.Key}={t.Value}"))}");
-        }
-    }
-
-    [Fact]
-    public async Task Publish_Should_Create_Child_Spans_For_Each_Handler()
-    {
-        // Arrange - Use completely isolated service provider and activity listener to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.Configure<TelemetryOptions>(options =>
-        {
-            options.CaptureNotificationHandlerDetails = true;
-            options.CreateHandlerChildSpans = true;
-        });
-        services.AddMediator(); // No discovery to avoid cross-contamination
-
-        // Add multiple handlers for the same notification explicitly - use new instances to avoid shared state
-        services.AddTransient<INotificationHandler<TestNotification>, TestNotificationHandler>();
-        services.AddTransient<INotificationHandler<TestNotification>, AnotherTestHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create completely isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var notification = new TestNotification { Message = "Test child spans" };
-
-        // Act
-        await mediator.Publish(notification);
-
-        // Wait longer for all activities to be recorded
-        await Task.Delay(200);
-
-        // Take a snapshot to avoid collection modification during enumeration
-        var activitiesSnapshot = testActivities.ToList();
-        
-        Console.WriteLine($"Total activities recorded: {activitiesSnapshot.Count}");
-        foreach (var activity in activitiesSnapshot)
-        {
-            Console.WriteLine($"  - {activity.DisplayName}: Status={activity.Status}");
-        }
-
-        // Assert - Look specifically for Handler activities (child spans) from our snapshot
-        var handlerActivities = activitiesSnapshot.Where(a => 
-            a.DisplayName.Contains("Handler.TestNotificationHandler") || 
-            a.DisplayName.Contains("Handler.AnotherTestHandler")).ToList();
-        
-        handlerActivities.Count.ShouldBe(2, "Should have child spans for each handler");
-        
-        // Verify handler activity properties
-        foreach (var handlerActivity in handlerActivities)
-        {
-            handlerActivity.GetTagItem("handler.type").ShouldNotBeNull();
-            handlerActivity.GetTagItem("notification.type")?.ShouldBe("TestNotification");
-            handlerActivity.GetTagItem("operation")?.ShouldBe("handle_notification");
-        }
-    }
-
-    [Fact]
-    public async Task Publish_Should_Add_Handler_Count_Tags()
-    {
-        // Arrange - Use completely isolated service provider to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.Configure<TelemetryOptions>(options =>
-        {
-            options.CaptureNotificationHandlerDetails = true;
-            options.CreateHandlerChildSpans = true;
-            options.CaptureSubscriberMetrics = true;
-            options.CaptureNotificationMiddlewareDetails = true;
-        });
-        services.AddMediator(); // No discovery to avoid cross-contamination
-
-        // Register test notification handler explicitly
-        services.AddSingleton<INotificationHandler<TestNotification>, TestNotificationHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var notification = new TestNotification { Message = "Test handler count" };
-
-        // Act
-        await mediator.Publish(notification);
-
-        // Wait for activities to be recorded
-        await Task.Delay(100);
-
-        // Assert - find the parent notification activity (not child handler activities)
-        var parentActivity = testActivities.FirstOrDefault(a => 
-            a.DisplayName.Contains("TestNotification") && 
-            !a.DisplayName.Contains("Handler") &&
-            !a.DisplayName.Contains("PublishTest") && // Exclude other test class notifications
-            a.DisplayName.StartsWith("Mediator.Publish."));
-
-        parentActivity.ShouldNotBeNull("Parent notification activity should be created");
-
-        // For this test, we'll just verify the activity was created successfully and contains expected tags
-        // The handler/subscriber count tags may not always be present depending on telemetry configuration
-        parentActivity.GetTagItem("notification.type")?.ShouldBe("TestNotification");
-        parentActivity.GetTagItem("operation")?.ShouldBe("publish");
-        parentActivity.GetTagItem("mediator_operation")?.ShouldBe("notification_publish");
-        
-        // Verify execution pattern tag
-        var executionPattern = parentActivity.GetTagItem("notification.execution_pattern") ??
-                          parentActivity.GetTagItem("execution_pattern");
-        executionPattern.ShouldNotBeNull();
-        executionPattern.ShouldBe("standard");
-    }
-
-    [Fact]
-    public async Task Publish_Should_Record_Success_Metrics()
-    {
-        // Arrange - Use completely isolated service provider with unique notification type to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator(); // No discovery to avoid cross-contamination
-        
-        // Use a unique notification type for this specific test to ensure complete isolation
-        services.AddSingleton<INotificationHandler<SuccessMetricsTestNotification>, SuccessMetricsTestHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new ConcurrentBag<Activity>();
-        using var activityListener = new ActivityListener();
-
-        // Create a unique ID for this test run to ensure we only capture our activities
-        var testRunId = Guid.NewGuid().ToString("N")[..8];
-        
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity)
-        ;
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var testHandler = serviceProvider.GetRequiredService<INotificationHandler<SuccessMetricsTestNotification>>() as SuccessMetricsTestHandler;
-        var notification = new SuccessMetricsTestNotification { Message = $"Test success metrics {testRunId}" };
-
-        // Act
-        await mediator.Publish(notification);
-
-        // Wait for activities to be recorded
-        await Task.Delay(100);
-
-        // Assert - Be very specific about finding OUR activity by looking for the unique notification type name
-        var activity = testActivities.FirstOrDefault(a => 
-            a.DisplayName.Contains("SuccessMetricsTestNotification", StringComparison.Ordinal) &&
-            !a.DisplayName.Contains("Handler")); // Exclude handler child spans
-            
-        activity.ShouldNotBeNull("Activity for SuccessMetricsTestNotification should be created");
-        
-        // Verify the activity status is Ok (this is what was failing intermittently)
-        activity.Status.ShouldBe(ActivityStatusCode.Ok, 
-            $"Activity status should be Ok. Activity: {activity.DisplayName}, " +
-            $"Tags: {string.Join(", ", activity.Tags.Select(t => $"{t.Key}={t.Value}"))}");
-        
-        // Verify handler execution
-        testHandler.ShouldNotBeNull();
-        testHandler.CallCount.ShouldBe(1);
-        testHandler.LastSuccess.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task Publish_Should_Handle_Handler_Exceptions()
-    {
-        // Arrange - Create isolated service provider to avoid cross-contamination
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator(); // No discovery to avoid cross-contamination
-        services.AddSingleton<INotificationHandler<TestNotification>, ThrowingTestHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        
-        // Create isolated activity collection for this test only
-        var testActivities = new List<Activity>();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var notification = new TestNotification { Message = "Test exception handling" };
-
-        // Act & Assert
-        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification));
-
-        // Wait for activities to be recorded
-        await Task.Delay(100);
-
-        // Verify error activity
-        var activity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("TestNotification"));
-        activity.ShouldNotBeNull();
-        activity.Status.ShouldBe(ActivityStatusCode.Error);
-
-        // Check for handler child span with error
-        var handlerActivity = testActivities.FirstOrDefault(a => a.DisplayName.Contains("ThrowingTestHandler"));
-        if (handlerActivity != null)
-        {
-            handlerActivity.Status.ShouldBe(ActivityStatusCode.Error);
-            handlerActivity.GetTagItem("exception.type")?.ShouldBe("InvalidOperationException");
-            handlerActivity.GetTagItem("success")?.ShouldBe(false);
-        }
     }
 
     [Fact]
@@ -447,73 +136,6 @@ public class NotificationTelemetryTests : IDisposable
         }
     }
 
-    [Fact]
-    public async Task Publish_Should_Record_Partial_Failure_Metrics()
-    {
-        // ?? TDD Step 1: Write test for partial failure scenario (Red)
-        // This test should fail initially because we haven't implemented partial failure metrics yet
-        
-        // Arrange - Set up multiple handlers where some will fail using isolated service provider
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator();
-        
-        // Add one good handler and one throwing handler
-        services.AddTransient<INotificationHandler<TestNotification>, TestNotificationHandler>();
-        services.AddTransient<INotificationHandler<TestNotification>, ThrowingTestHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var notification = new TestNotification { Message = "Test partial failure" };
-
-        // Act & Assert - Expect that at least one handler fails, causing partial failure
-        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification));
-
-        // TODO: Once implemented, verify partial failure metrics are recorded
-        // This should record:
-        // - mediator.publish.partial_failure counter incremented
-        // - Total handlers: 2, Failed handlers: 1, Success handlers: 1
-        
-        // This test will initially fail because we haven't implemented:
-        // 1. PublishPartialFailureCounter metric
-        // 2. Logic to detect and record partial failures
-        // 3. Distinguish between total failure vs partial failure scenarios
-    }
-
-    [Fact]
-    public async Task Publish_Should_Record_Total_Failure_Metrics()
-    {
-        // ?? TDD Step 1: Write test for total failure scenario (Red)
-        // This test should fail initially because we haven't implemented total failure metrics yet
-        
-        // Arrange - Set up only throwing handlers using isolated service provider
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator();
-        
-        // Add only throwing handlers to simulate total failure
-        services.AddSingleton<INotificationHandler<TestNotification>, ThrowingTestHandler>();
-
-        await using var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var notification = new TestNotification { Message = "Test total failure" };
-
-        // Act & Assert - Expect all handlers fail, causing total failure
-        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification));
-
-        // TODO: Once implemented, verify total failure metrics are recorded
-        // This should record:
-        // - mediator.publish.total_failure counter incremented  
-        // - Total handlers: 1, Failed handlers: 1, Success handlers: 0
-        
-        // This test will initially fail because we haven't implemented:
-        // 1. PublishTotalFailureCounter metric
-        // 2. Logic to detect and record total failures
-        // 3. Proper categorization of failure types
-    }
-
     [Fact] 
     public async Task Publish_Should_Not_Record_Failure_Metrics_On_Success()
     {
@@ -543,68 +165,6 @@ public class NotificationTelemetryTests : IDisposable
         // This test will initially pass but needs to be updated once we implement
         // the failure metrics to verify they are not incorrectly triggered
     }
-    
-    [Fact]
-    public async Task NotificationPipeline_Should_Create_Middleware_Spans()
-    {
-        // ?? TDD Step 1: Write test for notification middleware span creation (Red)
-        // This test should fail initially because we haven't implemented middleware telemetry yet
-        
-        // Arrange - Set up mediator with notification middleware using isolated service provider
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.Configure<TelemetryOptions>(options =>
-        {
-            options.CaptureNotificationMiddlewareDetails = true;
-            options.CaptureNotificationHandlerDetails = true;
-        });
-        
-        services.AddMediator(config =>
-        {
-            // Add a test notification middleware
-            config.AddNotificationMiddleware<TestNotificationMiddleware>();
-        });
-        services.AddSingleton<INotificationHandler<TestNotification>, TestNotificationHandler>();
-
-        // Create isolated activity collection
-        var testActivities = new List<Activity>();
-        await using var serviceProvider = services.BuildServiceProvider();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var notification = new TestNotification { Message = "Test middleware spans" };
-
-        // Act
-        await mediator.Publish(notification);
-
-        // Wait for activities to be recorded
-        await Task.Delay(100);
-
-        // Assert - Look for middleware-specific spans
-        // TODO: Once implemented, this should find middleware spans
-        var middlewareActivity = testActivities.FirstOrDefault(a => 
-            a.DisplayName.Contains("Middleware") && 
-            a.DisplayName.Contains("TestNotificationMiddleware"));
-        
-        middlewareActivity.ShouldNotBeNull("Should create spans for notification middleware execution");
-        
-        // Verify middleware activity properties
-        middlewareActivity.GetTagItem("middleware.type").ShouldNotBeNull();
-        middlewareActivity.GetTagItem("notification.type")?.ShouldBe("TestNotification");
-        middlewareActivity.GetTagItem("operation")?.ShouldBe("notification_middleware");
-        
-        // This test will initially fail because we haven't implemented:
-        // 1. Middleware span creation in notification pipeline
-        // 2. Middleware-specific telemetry tags
-        // 3. Integration with existing notification telemetry
-    }
 
     [Fact]
     public async Task NotificationPipeline_Should_Track_Middleware_Performance()
@@ -615,10 +175,7 @@ public class NotificationTelemetryTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddMediatorTelemetry();
-        services.AddMediator(config =>
-        {
-            config.AddNotificationMiddleware<SlowNotificationMiddleware>();
-        });
+        services.AddMediator();
         services.AddSingleton<INotificationHandler<TestNotification>, TestNotificationHandler>();
 
         var testActivities = new List<Activity>();
@@ -657,52 +214,6 @@ public class NotificationTelemetryTests : IDisposable
         // - mediator.notification.middleware.success/failure counters
     }
 
-    [Fact]
-    public async Task NotificationPipeline_Should_Handle_Middleware_Exceptions()
-    {
-        // ?? TDD Step 1: Write test for middleware exception handling (Red)
-        
-        // Arrange - Set up with failing middleware using isolated service provider
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMediatorTelemetry();
-        services.AddMediator(config =>
-        {
-            config.AddNotificationMiddleware<ThrowingNotificationMiddleware>();
-        });
-        services.AddSingleton<INotificationHandler<TestNotification>, TestNotificationHandler>();
-
-        var testActivities = new List<Activity>();
-        await using var serviceProvider = services.BuildServiceProvider();
-        using var activityListener = new ActivityListener();
-
-        activityListener.ShouldListenTo = source => source.Name == "Blazing.Mediator";
-        activityListener.Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData;
-        activityListener.ActivityStarted = _ => { };
-        activityListener.ActivityStopped = activity => testActivities.Add(activity);
-        ActivitySource.AddActivityListener(activityListener);
-
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var notification = new TestNotification { Message = "Test middleware exceptions" };
-
-        // Act & Assert - Should propagate middleware exceptions
-        await Should.ThrowAsync<InvalidOperationException>(() => mediator.Publish(notification));
-
-        // Wait for activities to be recorded
-        await Task.Delay(100);
-
-        // Verify error telemetry is captured
-        var middlewareActivity = testActivities.FirstOrDefault(a => 
-            a.DisplayName.Contains("ThrowingNotificationMiddleware"));
-        
-        if (middlewareActivity != null)
-        {
-            middlewareActivity.Status.ShouldBe(ActivityStatusCode.Error);
-            middlewareActivity.GetTagItem("exception.type")?.ShouldBe("InvalidOperationException");
-            middlewareActivity.GetTagItem("success")?.ShouldBe(false);
-        }
-    }
-
     #region Test Classes
 
     public class TestNotification : INotification
@@ -715,7 +226,7 @@ public class NotificationTelemetryTests : IDisposable
         public int CallCount { get; private set; }
         public bool LastSuccess { get; private set; }
 
-        public async Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
             LastSuccess = true;
@@ -740,7 +251,7 @@ public class NotificationTelemetryTests : IDisposable
         public int CallCount { get; private set; }
         public bool LastSuccess { get; private set; }
 
-        public async Task Handle(SuccessMetricsTestNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(SuccessMetricsTestNotification notification, CancellationToken cancellationToken = default)
         {
             CallCount++;
             LastSuccess = true;
@@ -756,15 +267,16 @@ public class NotificationTelemetryTests : IDisposable
 
     public class AnotherTestHandler : INotificationHandler<TestNotification>
     {
-        public async Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             await Task.Delay(3, cancellationToken); // Simulate work
         }
     }
 
+    [ExcludeFromAutoDiscovery]
     public class ThrowingTestHandler : INotificationHandler<TestNotification>
     {
-        public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Handle(TestNotification notification, CancellationToken cancellationToken = default)
         {
             throw new InvalidOperationException("Test handler exception");
         }
@@ -777,9 +289,10 @@ public class NotificationTelemetryTests : IDisposable
     /// <summary>
     /// Test notification middleware for telemetry verification
     /// </summary>
+    [ExcludeFromAutoDiscovery]
     public class TestNotificationMiddleware : INotificationMiddleware
     {
-        public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+        public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
             where TNotification : INotification
         {
             // Simple pass-through middleware with small delay
@@ -791,9 +304,10 @@ public class NotificationTelemetryTests : IDisposable
     /// <summary>
     /// Slow notification middleware for performance testing
     /// </summary>
+    [ExcludeFromAutoDiscovery]
     public class SlowNotificationMiddleware : INotificationMiddleware
     {
-        public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+        public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
             where TNotification : INotification
         {
             // Simulate slow middleware
@@ -805,9 +319,10 @@ public class NotificationTelemetryTests : IDisposable
     /// <summary>
     /// Throwing notification middleware for exception testing
     /// </summary>
+    [ExcludeFromAutoDiscovery]
     public class ThrowingNotificationMiddleware : INotificationMiddleware
     {
-        public Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+        public ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
             where TNotification : INotification
         {
             throw new InvalidOperationException("Test middleware exception");

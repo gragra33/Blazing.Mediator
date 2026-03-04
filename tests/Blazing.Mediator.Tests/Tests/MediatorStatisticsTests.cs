@@ -1,3 +1,4 @@
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Pipeline;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
@@ -140,20 +141,12 @@ public class MediatorStatisticsTests
         // Arrange
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
-        var statistics = new MediatorStatistics(renderer);
 
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddSingleton(statistics);
-
-        // Register only the core mediator services without assembly scanning
-        services.AddSingleton<IMediator, Mediator>();
-        services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-
-        // Register only the specific handler we need for this test
-        services.AddScoped<IRequestHandler<TestQueryWithInterface, string>, TestQueryWithInterfaceHandler>();
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
+        var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         // Act
@@ -175,20 +168,12 @@ public class MediatorStatisticsTests
         // Arrange
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
-        var statistics = new MediatorStatistics(renderer);
 
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddSingleton(statistics);
-
-        // Register only the core mediator services without assembly scanning
-        services.AddSingleton<IMediator, Mediator>();
-        services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-
-        // Register only the specific handler we need for this test
-        services.AddScoped<IRequestHandler<TestCommandWithInterface, int>, TestCommandWithInterfaceHandler>();
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
+        var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         // Act
@@ -210,20 +195,12 @@ public class MediatorStatisticsTests
         // Arrange
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
-        var statistics = new MediatorStatistics(renderer);
 
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddSingleton(statistics);
-
-        // Register only the core mediator services without assembly scanning
-        services.AddSingleton<IMediator, Mediator>();
-        services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-
-        // Register only the specific handler we need for this test
-        services.AddScoped<IRequestHandler<TestRequestNamedQuery, string>, TestRequestNamedQueryHandler>();
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
+        var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         // Act
@@ -245,20 +222,12 @@ public class MediatorStatisticsTests
         // Arrange
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
-        var statistics = new MediatorStatistics(renderer);
 
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddSingleton(statistics);
-
-        // Register only the core mediator services without assembly scanning
-        services.AddSingleton<IMediator, Mediator>();
-        services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-
-        // Register only the specific handler we need for this test
-        services.AddScoped<IRequestHandler<TestRequestNamedCommand, bool>, TestRequestNamedCommandHandler>();
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
+        var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         // Act
@@ -280,20 +249,12 @@ public class MediatorStatisticsTests
         // Arrange
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
-        var statistics = new MediatorStatistics(renderer);
 
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddSingleton(statistics);
-
-        // Register only the core mediator services without assembly scanning
-        services.AddSingleton<IMediator, Mediator>();
-        services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-
-        // Register only the specific handler we need for this test
-        services.AddScoped<IRequestHandler<TestRequestLowercasequery, string>, TestRequestLowercasequeryHandler>();
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
+        var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         // Act
@@ -315,20 +276,12 @@ public class MediatorStatisticsTests
         // Arrange
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
-        var statistics = new MediatorStatistics(renderer);
 
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddSingleton(statistics);
-
-        // Register only the core mediator services without assembly scanning
-        services.AddSingleton<IMediator, Mediator>();
-        services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-
-        // Register only the specific handler we need for this test
-        services.AddScoped<IRequestHandler<TestRequestLowercasecommand, int>, TestRequestLowercasecommandHandler>();
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
+        var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         // Act
@@ -350,29 +303,21 @@ public class MediatorStatisticsTests
         // Arrange
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
-        var statistics = new MediatorStatistics(renderer);
 
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddSingleton(statistics);
-
-        // Register only the core mediator services without assembly scanning
-        services.AddSingleton<IMediator, Mediator>();
-        services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-
-        // Register only the specific handler we need for this test
-        services.AddScoped<IRequestHandler<AmbiguousRequest, string>, AmbiguousRequestHandler>();
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
+        var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         // Act
         var result = await mediator.Send(new AmbiguousRequest { Value = "test" });
 
-        // Assert - Should default to query tracking
+        // Assert - v3: requests not implementing IQuery<T> and not ending with 'Query' are tracked as commands.
         statistics.ReportStatistics();
-        renderer.Messages.ShouldContain("Queries: 1");
-        renderer.Messages.ShouldContain("Commands: 0");
+        renderer.Messages.ShouldContain("Queries: 0");
+        renderer.Messages.ShouldContain("Commands: 1");
         result.ShouldBe("ambiguous: test");
     }
 
@@ -385,20 +330,12 @@ public class MediatorStatisticsTests
         // Arrange
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
-        var statistics = new MediatorStatistics(renderer);
 
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddSingleton(statistics);
-
-        // Register only the core mediator services without assembly scanning
-        services.AddSingleton<IMediator, Mediator>();
-        services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-
-        // Register only the specific handler we need for this test
-        services.AddScoped<IRequestHandler<QueryNamedAsCommand, string>, QueryNamedAsCommandHandler>();
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
+        var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         // Act - This implements IQuery<T> but has "Command" in the name
@@ -420,23 +357,12 @@ public class MediatorStatisticsTests
         // Arrange
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
-        var statistics = new MediatorStatistics(renderer);
 
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddSingleton(statistics);
-
-        // Register only the core mediator services without assembly scanning
-        services.AddSingleton<IMediator, Mediator>();
-        services.AddSingleton<IMiddlewarePipelineBuilder, MiddlewarePipelineBuilder>();
-        services.AddSingleton<INotificationPipelineBuilder, NotificationPipelineBuilder>();
-
-        // Register only the specific handlers we need for this test
-        services.AddScoped<IRequestHandler<TestQueryWithInterface, string>, TestQueryWithInterfaceHandler>();
-        services.AddScoped<IRequestHandler<TestCommandWithInterface, int>, TestCommandWithInterfaceHandler>();
-        services.AddScoped<IRequestHandler<TestRequestNamedQuery, string>, TestRequestNamedQueryHandler>();
-        services.AddScoped<IRequestHandler<TestRequestNamedCommand, bool>, TestRequestNamedCommandHandler>();
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
+        var statistics = serviceProvider.GetRequiredService<MediatorStatistics>();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         // Act - Execute multiple queries and commands
@@ -829,7 +755,7 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
 
         // Use AddMediator to ensure proper registration
-        services.AddMediator(typeof(TestQuery).Assembly);
+        services.AddMediator();
         services.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
 
         var serviceProvider = services.BuildServiceProvider();
@@ -867,7 +793,7 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
 
         // Use AddMediator to ensure proper registration
-        services.AddMediator(typeof(TestCommand).Assembly);
+        services.AddMediator();
         services.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
 
         var serviceProvider = services.BuildServiceProvider();
@@ -934,7 +860,7 @@ public class MediatorStatisticsTests
         var services = new ServiceCollection();
 
         // Use AddMediator to ensure proper registration
-        services.AddMediator(typeof(TestCommand).Assembly);
+        services.AddMediator();
 
         // Register multiple handlers for the same command - this will actually cause DI issues,
         // but we want to test the detection logic
@@ -1066,12 +992,14 @@ public class MediatorStatisticsTests
 
 /// <summary>
 /// Second test command handler for multiple handler tests.
+/// Excluded from auto-discovery to prevent conflicts with TestCommandHandler.
 /// </summary>
+[ExcludeFromAutoDiscovery]
 public class SecondTestCommandHandler : IRequestHandler<TestCommand>
 {
-    public Task Handle(TestCommand request, CancellationToken cancellationToken)
+    public ValueTask Handle(TestCommand request, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 

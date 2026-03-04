@@ -1,12 +1,12 @@
 namespace Blazing.Mediator.Tests.Statistics;
 
 /// <summary>
-/// Test query handler.
+/// Test query handler for Statistics namespace.
 /// </summary>
-public class TestQueryHandler : IRequestHandler<TestQuery, string>
+public class TestsTestQueryHandler : IRequestHandler<TestsTestQuery, string>
 {
-    public Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
+    public ValueTask<string> Handle(TestsTestQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult($"Handled: {request.Value}");
+        return ValueTask.FromResult($"Handled: {request.Value}");
     }
 }

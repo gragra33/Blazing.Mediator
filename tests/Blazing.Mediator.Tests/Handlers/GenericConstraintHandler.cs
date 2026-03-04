@@ -11,9 +11,9 @@ public class GenericConstraintHandler<TEntity> : IRequestHandler<GenericConstrai
 {
     public static object? LastProcessedEntity { get; private set; }
 
-    public Task Handle(GenericConstraintCommand<TEntity> request, CancellationToken cancellationToken)
+    public ValueTask Handle(GenericConstraintCommand<TEntity> request, CancellationToken cancellationToken)
     {
         LastProcessedEntity = request.Data;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

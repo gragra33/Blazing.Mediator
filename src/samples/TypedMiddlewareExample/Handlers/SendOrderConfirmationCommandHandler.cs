@@ -9,7 +9,7 @@ namespace TypedMiddlewareExample.Handlers;
 public class SendOrderConfirmationCommandHandler(ILogger<SendOrderConfirmationCommandHandler> logger)
     : IRequestHandler<SendOrderConfirmationCommand>
 {
-    public Task Handle(SendOrderConfirmationCommand request, CancellationToken cancellationToken)
+    public ValueTask Handle(SendOrderConfirmationCommand request, CancellationToken cancellationToken)
     {
         logger.LogInformation(".. Sending order confirmation for order: {OrderId} to: {CustomerEmail}",
             request.OrderId, request.CustomerEmail);
@@ -17,6 +17,6 @@ public class SendOrderConfirmationCommandHandler(ILogger<SendOrderConfirmationCo
         // Simulate email sending
         logger.LogInformation("-- Order confirmation email sent successfully for order {OrderId}", request.OrderId);
 
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

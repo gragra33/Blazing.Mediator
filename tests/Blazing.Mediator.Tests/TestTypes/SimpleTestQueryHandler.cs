@@ -5,8 +5,8 @@ namespace Blazing.Mediator.Tests.TestTypes;
 /// </summary>
 public class SimpleTestQueryHandler : IRequestHandler<SimpleTestQuery, string>
 {
-    public Task<string> Handle(SimpleTestQuery request, CancellationToken cancellationToken)
+    public ValueTask<string> Handle(SimpleTestQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult($"Result for: {request.SearchTerm}");
+        return ValueTask.FromResult($"Result for: {request.SearchTerm}");
     }
 }

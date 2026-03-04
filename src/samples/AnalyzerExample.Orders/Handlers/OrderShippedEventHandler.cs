@@ -16,7 +16,7 @@ public class OrderShippedEventHandler : INotificationHandler<OrderShippedEvent>
         _logger = logger;
     }
 
-    public async Task Handle(OrderShippedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderShippedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Order {OrderId} shipped with tracking {TrackingNumber}", 
             notification.OrderId, notification.TrackingNumber);

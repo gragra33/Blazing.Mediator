@@ -45,7 +45,7 @@ public partial class RecentTracesCard : ComponentBase
     private int _timeWindowMinutes = 30;
     private bool _isLoading;
     private int _lastRefreshTrigger;
-    private DisplayMode _displayMode = DisplayMode.Raw;
+    private DisplayMode _displayMode = DisplayMode.Grouped;
     private TraceDetailsModal? _traceDetailsModal;
 
     // Pagination state

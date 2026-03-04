@@ -16,7 +16,7 @@ public class AuditMiddleware<TRequest> : IRequestMiddleware<TRequest>
         _logger = logger;
     }
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         _logger.LogInformation("?? [Audit] Command: {CommandType}, User: {UserId}, Reason: {Reason}",
             typeof(TRequest).Name, request.AuditUserId, request.AuditReason);

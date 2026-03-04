@@ -10,7 +10,7 @@ namespace UserManagement.Api.Application.Handlers.Queries;
 public class GetUserStatisticsHandler(UserManagementDbContext context)
     : IRequestHandler<GetUserStatisticsQuery, UserStatisticsDto>
 {
-    public async Task<UserStatisticsDto> Handle(GetUserStatisticsQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<UserStatisticsDto> Handle(GetUserStatisticsQuery request, CancellationToken cancellationToken = default)
     {
         User? user = await context.Users
             .AsNoTracking()

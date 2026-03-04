@@ -11,7 +11,7 @@ namespace UserManagement.Api.Application.Handlers.Queries;
 public class GetActiveUsersHandler(UserManagementDbContext context)
     : IRequestHandler<GetActiveUsersQuery, List<UserDto>>
 {
-    public async Task<List<UserDto>> Handle(GetActiveUsersQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<List<UserDto>> Handle(GetActiveUsersQuery request, CancellationToken cancellationToken = default)
     {
         List<User> users = await context.Users
             .AsNoTracking()

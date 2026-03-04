@@ -9,7 +9,7 @@ namespace AnalyzerExample.Users.Handlers;
 /// </summary>
 public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, OperationResult<int>>
 {
-    public async Task<OperationResult<int>> Handle(CreateUserCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult<int>> Handle(CreateUserCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate user creation
         await Task.Delay(90, cancellationToken);

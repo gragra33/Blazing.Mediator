@@ -24,7 +24,7 @@ public class JingHandler : IRequestHandler<Jing>
     /// <param name="request">The jing request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task Handle(Jing request, CancellationToken cancellationToken)
+    public async ValueTask Handle(Jing request, CancellationToken cancellationToken)
     {
         await _writer.WriteLineAsync($"--- Handled Jing: {request.Message}");
     }

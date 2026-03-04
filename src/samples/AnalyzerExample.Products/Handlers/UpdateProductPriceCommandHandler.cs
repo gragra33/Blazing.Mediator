@@ -9,7 +9,7 @@ namespace AnalyzerExample.Products.Handlers;
 /// </summary>
 public class UpdateProductPriceCommandHandler : IRequestHandler<UpdateProductPriceCommand, OperationResult>
 {
-    public async Task<OperationResult> Handle(UpdateProductPriceCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult> Handle(UpdateProductPriceCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate price update
         await Task.Delay(35, cancellationToken);

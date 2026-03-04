@@ -16,7 +16,7 @@ public class ProductCreatedRecommendationHandler : INotificationHandler<ProductC
         _logger = logger;
     }
 
-    public async Task Handle(ProductCreatedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(ProductCreatedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Processing recommendations for new product {ProductId} ({ProductName}) in category {Category}", 
             notification.ProductId, notification.ProductName, notification.Category);

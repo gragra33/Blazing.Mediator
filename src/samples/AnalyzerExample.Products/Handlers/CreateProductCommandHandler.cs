@@ -20,7 +20,7 @@ public class CreateProductCommandHandler : ICommandHandler<CreateProductCommand,
         _mediator = mediator;
     }
 
-    public async Task<OperationResult<int>> Handle(CreateProductCommand request, CancellationToken cancellationToken)
+    public async ValueTask<OperationResult<int>> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("?? [Products] Creating product: {ProductName}", request.Name);
         

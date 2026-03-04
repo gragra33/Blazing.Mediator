@@ -17,7 +17,7 @@ public class UpdateProductStockCommandHandler : ICommandHandler<UpdateProductSto
         _mediator = mediator;
     }
 
-    public async Task<OperationResult<int>> Handle(UpdateProductStockCommand request, CancellationToken cancellationToken)
+    public async ValueTask<OperationResult<int>> Handle(UpdateProductStockCommand request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("?? [Products] Updating stock for product {ProductId}: {QuantityChange}", 
             request.ProductId, request.QuantityChange);

@@ -15,4 +15,10 @@
     <ProjectReference Include="..\Example.Common\Example.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Blazing.Mediator.SourceGenerators\Blazing.Mediator.SourceGenerators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
 </Project>

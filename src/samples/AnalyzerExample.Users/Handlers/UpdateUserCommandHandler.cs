@@ -9,7 +9,7 @@ namespace AnalyzerExample.Users.Handlers;
 /// </summary>
 public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, OperationResult>
 {
-    public async Task<OperationResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate user update
         await Task.Delay(60, cancellationToken);

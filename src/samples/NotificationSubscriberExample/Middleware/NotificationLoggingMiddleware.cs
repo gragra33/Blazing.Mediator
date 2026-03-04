@@ -11,7 +11,7 @@ public class NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware
 {
     public int Order => 10;
 
-    public async Task InvokeAsync<TNotification>(TNotification notification,
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
     {

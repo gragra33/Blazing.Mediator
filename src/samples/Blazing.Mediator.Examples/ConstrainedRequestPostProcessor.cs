@@ -44,7 +44,7 @@ public class ConstrainedRequestPostProcessor : IConditionalMiddleware<Ping, Pong
     /// <param name="next">The next delegate in the pipeline.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The pong response.</returns>
-    public async Task<Pong> HandleAsync(Ping request, RequestHandlerDelegate<Pong> next, CancellationToken cancellationToken)
+    public async ValueTask<Pong> HandleAsync(Ping request, RequestHandlerDelegate<Pong> next, CancellationToken cancellationToken)
     {
         var response = await next();
         await _writer.WriteLineAsync("- All Done with Ping");

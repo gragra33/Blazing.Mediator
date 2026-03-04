@@ -14,7 +14,7 @@ public sealed class PerformanceMiddleware<TRequest>(ILogger<PerformanceMiddlewar
 
     public int Order => -100; // Execute close to handler
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         var requestType = typeof(TRequest).Name;
         var stopwatch = Stopwatch.StartNew();
@@ -58,7 +58,7 @@ public sealed class PerformanceMiddleware<TRequest, TResponse>(
 
     public int Order => -100; // Execute close to handler
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
         var requestType = typeof(TRequest).Name;

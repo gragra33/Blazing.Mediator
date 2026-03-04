@@ -15,7 +15,7 @@ public class StatisticsTrackingMiddleware<TRequest, TResponse>(MediatorStatistic
     public int Order => 0; // Execute first to track all requests
 
     /// <inheritdoc/>
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         // Get session ID from HTTP context (set by SessionTrackingMiddleware)
         var sessionId = GetSessionId();
@@ -87,7 +87,7 @@ public class StatisticsTrackingVoidMiddleware<TRequest>(MediatorStatisticsTracke
     public int Order => 0; // Execute first to track all requests
 
     /// <inheritdoc/>
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         // Get session ID from HTTP context
         var sessionId = GetSessionId();

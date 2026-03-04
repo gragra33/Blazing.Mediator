@@ -8,7 +8,7 @@ namespace Blazing.Mediator.Tests.Middleware;
 public class NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware>? logger = null)
     : INotificationMiddleware
 {
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
         where TNotification : INotification
     {
         logger?.LogInformation("Processing notification: {NotificationType}", typeof(TNotification).Name);

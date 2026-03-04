@@ -15,6 +15,8 @@ public class InventoryManagementService : BackgroundService,
 {
     private readonly ILogger<InventoryManagementService> _logger;
     private readonly IServiceProvider _serviceProvider;
+    private IServiceScope? _scope;
+    private IMediator? _mediator;
 
     /// <summary>
     /// Initializes a new instance of the InventoryManagementService.
@@ -265,15 +267,17 @@ public class InventoryManagementService : BackgroundService,
     /// <returns>A task representing the asynchronous operation.</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Yield immediately so the host startup thread is not blocked
+        await Task.Yield();
+
         _logger.LogInformation("Inventory Management Service started");
 
-        // Subscribe to notifications through the mediator
-        using var scope = _serviceProvider.CreateScope();
-        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        _scope = _serviceProvider.CreateScope();
+        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
 
-        mediator.Subscribe<ProductStockLowNotification>(this);
-        mediator.Subscribe<ProductOutOfStockNotification>(this);
-        mediator.Subscribe<OrderCreatedNotification>(this);
+        _mediator.Subscribe<ProductStockLowNotification>(this);
+        _mediator.Subscribe<ProductOutOfStockNotification>(this);
+        _mediator.Subscribe<OrderCreatedNotification>(this);
 
         _logger.LogInformation("Inventory Management Service subscribed to inventory notifications");
 
@@ -295,15 +299,13 @@ public class InventoryManagementService : BackgroundService,
     {
         try
         {
-            // Unsubscribe from notifications
-            using var scope = _serviceProvider.CreateScope();
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-
-            mediator.Unsubscribe<ProductStockLowNotification>(this);
-            mediator.Unsubscribe<ProductOutOfStockNotification>(this);
-            mediator.Unsubscribe<OrderCreatedNotification>(this);
-
-            _logger.LogInformation("Inventory Management Service unsubscribed from notifications");
+            if (_mediator != null)
+            {
+                _mediator.Unsubscribe<ProductStockLowNotification>(this);
+                _mediator.Unsubscribe<ProductOutOfStockNotification>(this);
+                _mediator.Unsubscribe<OrderCreatedNotification>(this);
+                _logger.LogInformation("Inventory Management Service unsubscribed from notifications");
+            }
         }
         catch (Exception ex)
         {
@@ -311,6 +313,7 @@ public class InventoryManagementService : BackgroundService,
         }
         finally
         {
+            _scope?.Dispose();
             base.Dispose();
         }
     }

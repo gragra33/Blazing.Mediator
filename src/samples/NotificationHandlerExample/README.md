@@ -5,16 +5,19 @@ This example demonstrates the **NEW automatic notification handler pattern** in 
 ## ?? Key Features
 
 ### Automatic Handler Discovery
+
 - **Zero Configuration**: Handlers are automatically discovered and registered
 - **No Manual Subscription**: Just implement `INotificationHandler<T>` - that's it!
 - **Compile-time Registration**: Better performance and reliability than runtime subscription
 
 ### Multiple Handler Pattern
+
 - **Scalable Architecture**: Multiple handlers can process the same notification independently
 - **Easy to Extend**: Add new handlers by simply implementing the interface
 - **Isolated Error Handling**: Each handler's errors don't affect others
 
 ### Complete Middleware Pipeline
+
 - **Automatic Middleware Discovery**: Middleware is found and ordered automatically
 - **Validation**: Input validation before handler execution
 - **Logging**: Comprehensive pipeline logging
@@ -22,60 +25,63 @@ This example demonstrates the **NEW automatic notification handler pattern** in 
 
 ## ?? Handler vs Subscriber Pattern Comparison
 
-| Feature | ?? Notification Handlers (NEW) | ?? Notification Subscribers (Legacy) |
-|---------|--------------------------------|--------------------------------------|
-| **Registration** | ? Automatic Discovery | ? Manual Subscription Required |
-| **Setup Code** | ? Zero - Just implement interface | ? Must call `mediator.Subscribe()` |
-| **Performance** | ? Compile-time registration | ?? Runtime subscription overhead |
-| **Maintainability** | ? Simple - implement interface | ?? Remember to subscribe each handler |
-| **Reliability** | ? Compile-time validation | ?? Runtime subscription management |
-| **Scalability** | ? Easy to add new handlers | ?? Must remember configuration |
+| Feature             | ?? Notification Handlers (NEW)    | ?? Notification Subscribers (Legacy)  |
+| ------------------- | --------------------------------- | ------------------------------------- |
+| **Registration**    | ? Automatic Discovery             | ? Manual Subscription Required        |
+| **Setup Code**      | ? Zero - Just implement interface | ? Must call `mediator.Subscribe()`    |
+| **Performance**     | ? Compile-time registration       | ?? Runtime subscription overhead      |
+| **Maintainability** | ? Simple - implement interface    | ?? Remember to subscribe each handler |
+| **Reliability**     | ? Compile-time validation         | ?? Runtime subscription management    |
+| **Scalability**     | ? Easy to add new handlers        | ?? Must remember configuration        |
 
 ## ?? What This Example Demonstrates
 
 ### Automatic Handler Discovery
+
 Four handlers are automatically discovered and registered:
 
 1. **EmailNotificationHandler** ??
-   - Sends order confirmation emails
-   - Demonstrates basic handler implementation
+    - Sends order confirmation emails
+    - Demonstrates basic handler implementation
 
 2. **InventoryNotificationHandler** ??
-   - Updates inventory levels
-   - Performs stock level checks and alerts
-   - Shows business logic integration
+    - Updates inventory levels
+    - Performs stock level checks and alerts
+    - Shows business logic integration
 
 3. **AuditNotificationHandler** ??
-   - Logs orders for compliance and auditing
-   - Performs compliance checks
-   - Demonstrates audit trail creation
+    - Logs orders for compliance and auditing
+    - Performs compliance checks
+    - Demonstrates audit trail creation
 
 4. **ShippingNotificationHandler** ??
-   - Handles shipping and fulfillment
-   - Calculates delivery estimates
-   - Creates shipping labels and tracking numbers
+    - Handles shipping and fulfillment
+    - Calculates delivery estimates
+    - Creates shipping labels and tracking numbers
 
 ### Middleware Pipeline
+
 Three middleware components are automatically discovered and executed in order:
 
 1. **NotificationLoggingMiddleware** (Order: 100) ??
-   - Logs pipeline start/completion
-   - Tracks execution duration
-   - Handles error logging
+    - Logs pipeline start/completion
+    - Tracks execution duration
+    - Handles error logging
 
 2. **NotificationValidationMiddleware** (Order: 200) ?
-   - Validates notification data
-   - Prevents invalid notifications from processing
-   - Shows comprehensive validation logic
+    - Validates notification data
+    - Prevents invalid notifications from processing
+    - Shows comprehensive validation logic
 
 3. **NotificationMetricsMiddleware** (Order: 300) ??
-   - Collects performance metrics
-   - Tracks success/failure rates
-   - Provides execution statistics
+    - Collects performance metrics
+    - Tracks success/failure rates
+    - Provides execution statistics
 
 ## ?? How It Works
 
 ### 1. Handler Implementation
+
 ```csharp
 // Just implement the interface - no other setup required!
 public class EmailNotificationHandler : INotificationHandler<OrderCreatedNotification>
@@ -89,17 +95,17 @@ public class EmailNotificationHandler : INotificationHandler<OrderCreatedNotific
 ```
 
 ### 2. Automatic Registration
+
 ```csharp
 // Enable automatic handler discovery
 services.AddMediator(config =>
 {
-    config.WithNotificationHandlerDiscovery()           // Enable handler discovery
-          .WithNotificationMiddlewareDiscovery()        // Enable middleware discovery
-          .WithStatisticsTracking();                    // Enable metrics collection
-}, Assembly.GetExecutingAssembly());
+    config.WithStatisticsTracking();    // Enable metrics collection
+});
 ```
 
 ### 3. Publishing Notifications
+
 ```csharp
 // Publish once - all handlers execute automatically
 var notification = new OrderCreatedNotification { /* ... */ };
@@ -107,7 +113,7 @@ await mediator.Publish(notification);
 
 // All 4 handlers will execute automatically:
 // 1. EmailNotificationHandler
-// 2. InventoryNotificationHandler  
+// 2. InventoryNotificationHandler
 // 3. AuditNotificationHandler
 // 4. ShippingNotificationHandler
 ```
@@ -115,17 +121,21 @@ await mediator.Publish(notification);
 ## ?? Running the Example
 
 ### Prerequisites
+
 - .NET 9.0 or later
 - Visual Studio 2022 or VS Code
 
 ### Running
+
 ```bash
 cd src/samples/NotificationHandlerExample
 dotnet run
 ```
 
 ### Expected Output
+
 You'll see:
+
 1. **Discovery Status** - Confirmation that handlers were automatically found
 2. **Sample Orders** - Three orders with different characteristics being processed
 3. **Middleware Pipeline** - Logging, validation, and metrics for each notification
@@ -134,6 +144,7 @@ You'll see:
 6. **Performance Metrics** - Statistics and performance data collection
 
 ## ?? Sample Output
+
 ```
 ==============================================================================
 *** Blazing.Mediator - Notification Handler Example (Automatic Discovery) ***
@@ -191,19 +202,22 @@ COMPARED TO NOTIFICATION SUBSCRIBERS:
 [+] Validation correctly failed: Notification validation failed
 
 *** Demo completed! All handlers were automatically discovered and executed. ***
-````````
+```
+
 ### Adding Custom Middleware
+
 1. Create a class implementing `INotificationMiddleware`
 2. Set the `Order` property to control execution sequence
 3. Implement the `InvokeAsync` method with your middleware logic
 4. It will be automatically discovered and added to the pipeline
 
 Example:
+
 ```csharp
 public class CustomMiddleware : INotificationMiddleware
 {
     public int Order => 250; // Execute between validation (200) and metrics (300)
-    
+
     public async Task InvokeAsync<TNotification>(TNotification notification,
         NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
@@ -212,3 +226,4 @@ public class CustomMiddleware : INotificationMiddleware
         await next(notification, cancellationToken);
     }
 }
+```

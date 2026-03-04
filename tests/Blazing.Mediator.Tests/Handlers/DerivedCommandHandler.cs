@@ -21,10 +21,10 @@ public class DerivedCommandHandler : IRequestHandler<DerivedCommand>
     /// <param name="request">The command request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A completed task.</returns>
-    public Task Handle(DerivedCommand request, CancellationToken cancellationToken = default)
+    public ValueTask Handle(DerivedCommand request, CancellationToken cancellationToken = default)
     {
         WasExecuted = true;
         ProcessedCommand = request;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

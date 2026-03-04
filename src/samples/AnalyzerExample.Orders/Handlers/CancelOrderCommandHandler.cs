@@ -8,7 +8,7 @@ namespace AnalyzerExample.Orders.Handlers;
 /// </summary>
 public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand>
 {
-    public async Task Handle(CancelOrderCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(CancelOrderCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate order cancellation
         await Task.Delay(70, cancellationToken);

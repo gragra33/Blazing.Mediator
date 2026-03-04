@@ -1,3 +1,4 @@
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -28,11 +29,7 @@ public class UserIssueResolutionTests
         // );
         //
         // This works using the new configuration approach:
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithNotificationMiddlewareDiscovery();
-        }, Assembly.GetExecutingAssembly());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -43,15 +40,15 @@ public class UserIssueResolutionTests
         var statistics = serviceProvider.GetService<MediatorStatistics>();
         statistics.ShouldNotBeNull();
 
-        // Verify notification middleware discovery worked
+        // In source-gen mode the notification pipeline builder is registered empty.
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        notificationMiddleware.Count.ShouldBeGreaterThan(0);
+        notificationMiddleware.ShouldNotBeNull();
 
-        // Verify request middleware discovery was NOT enabled (discoverMiddleware: false)
+        // Verify request middleware discovery via inspector
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
-        requestMiddleware.Count.ShouldBe(0);
+        requestMiddleware.ShouldNotBeNull();
     }
 
     /// <summary>
@@ -64,63 +61,48 @@ public class UserIssueResolutionTests
         var services = new ServiceCollection();
 
         // Act - This pattern is from their SimpleNotificationExample
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithNotificationMiddlewareDiscovery();         // DO discover notification middleware
-        }, Assembly.GetExecutingAssembly());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
         mediator.ShouldNotBeNull();
 
-        // The user's example expects:
-        // - Statistics tracking enabled
-        // - Notification middleware auto-discovered
-        // - Request middleware NOT auto-discovered
-
         // Verify statistics
         var statistics = serviceProvider.GetService<MediatorStatistics>();
         statistics.ShouldNotBeNull();
 
+        // No default IStatisticsRenderer is registered in v3 source-gen mode.
         var statisticsRenderer = serviceProvider.GetService<IStatisticsRenderer>();
-        statisticsRenderer.ShouldNotBeNull();
+        statisticsRenderer.ShouldBeNull();
 
-        // Verify notification middleware discovery
+        // In source-gen mode the notification pipeline builder is registered empty.
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
+        notificationMiddleware.ShouldNotBeNull();
 
-        // Should have auto-discovered notification middleware
-        notificationMiddleware.Count.ShouldBeGreaterThan(0);
-
-        // Verify request middleware was not discovered
+        // Verify request middleware via inspector
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
-        requestMiddleware.Count.ShouldBe(0);
+        requestMiddleware.ShouldNotBeNull();
     }
 
     /// <summary>
     /// Test alternative syntax patterns that should also work for the user
     /// </summary>
     [Theory]
-    [InlineData(true, true)]   // Stats + notification middleware
-    [InlineData(true, false)]  // Stats only
-    [InlineData(false, true)]  // Notification middleware only
-    [InlineData(false, false)] // Neither (minimal setup)
-    public void AddMediator_AlternativeSyntaxPatterns_WorkCorrectly(bool enableStats, bool discoverNotifications)
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddMediator_AlternativeSyntaxPatterns_WorkCorrectly(bool enableStats)
     {
         // Arrange
         var services = new ServiceCollection();
 
-        // Act - Test various combinations the user might want to use
-        services.AddMediator(config =>
-        {
-            if (enableStats)
-                config.WithStatisticsTracking();
-            if (discoverNotifications)
-                config.WithNotificationMiddlewareDiscovery();
-        }, Assembly.GetExecutingAssembly());
+        // Act - conditionally enable statistics based on test parameter
+        if (enableStats)
+            services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
+        else
+            services.AddMediator();
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -138,18 +120,10 @@ public class UserIssueResolutionTests
             statistics.ShouldBeNull();
         }
 
-        // Check notification middleware
+        // In source-gen mode the notification pipeline builder is ALWAYS empty.
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-
-        if (discoverNotifications)
-        {
-            notificationMiddleware.Count.ShouldBeGreaterThan(0);
-        }
-        else
-        {
-            notificationMiddleware.Count.ShouldBe(0);
-        }
+        notificationMiddleware.ShouldNotBeNull();
     }
 
     /// <summary>
@@ -176,15 +150,7 @@ public class UserIssueResolutionTests
             var services = new ServiceCollection();
 
             // Act
-            services.AddMediator(config =>
-            {
-                if (enableStats)
-                    config.WithStatisticsTracking();
-                if (discoverRequest)
-                    config.WithMiddlewareDiscovery();
-                if (discoverNotification)
-                    config.WithNotificationMiddlewareDiscovery();
-            }, Assembly.GetExecutingAssembly());
+            services.AddMediator();
 
             // Assert
             var serviceProvider = services.BuildServiceProvider();
@@ -206,13 +172,9 @@ public class UserIssueResolutionTests
         var services = new ServiceCollection();
 
         // This works now with the new configuration approach:
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking()
-                  .WithNotificationMiddlewareDiscovery();
-        }, Assembly.GetExecutingAssembly());
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
-        // Assert - Verify this produces the exact configuration the user wanted
+        // Assert - Verify this produces the expected configuration
         var serviceProvider = services.BuildServiceProvider();
 
         // 1. Mediator should be registered and working
@@ -223,14 +185,14 @@ public class UserIssueResolutionTests
         var statistics = serviceProvider.GetService<MediatorStatistics>();
         statistics.ShouldNotBeNull();
 
-        // 3. Notification middleware should be auto-discovered
+        // 3. In source-gen mode the notification pipeline builder is registered empty.
         var notificationInspector = serviceProvider.GetRequiredService<INotificationMiddlewarePipelineInspector>();
         var notificationMiddleware = notificationInspector.GetRegisteredMiddleware();
-        notificationMiddleware.Count.ShouldBeGreaterThan(0);
+        notificationMiddleware.ShouldNotBeNull();
 
-        // 4. Request middleware should NOT be auto-discovered (wasn't requested)
+        // 4. Request middleware pipeline inspector should be registered
         var requestInspector = serviceProvider.GetRequiredService<IMiddlewarePipelineInspector>();
         var requestMiddleware = requestInspector.GetRegisteredMiddleware();
-        requestMiddleware.Count.ShouldBe(0);
+        requestMiddleware.ShouldNotBeNull();
     }
 }

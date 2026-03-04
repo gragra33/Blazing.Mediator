@@ -17,7 +17,7 @@ public class QueryCommandAnalysisExtensionsTests : IDisposable
     public QueryCommandAnalysisExtensionsTests()
     {
         _services = new ServiceCollection();
-        _services.AddMediator(typeof(QueryCommandAnalysisExtensionsTests).Assembly);
+        _services.AddMediator();
         _services.AddLogging();
         
         _serviceProvider = _services.BuildServiceProvider();
@@ -600,17 +600,17 @@ public class UserUpdatedNotification : INotification
 
 public class GetUserQueryHandler : IRequestHandler<GetUserQuery, UserTestDto>
 {
-    public Task<UserTestDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    public ValueTask<UserTestDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new UserTestDto { Id = request.UserId, Name = "Test User", Email = "test@example.com" });
+        return ValueTask.FromResult(new UserTestDto { Id = request.UserId, Name = "Test User", Email = "test@example.com" });
     }
 }
 
 public class GetUserListQueryHandler : IRequestHandler<GetUserListQuery, List<UserTestDto>>
 {
-    public Task<List<UserTestDto>> Handle(GetUserListQuery request, CancellationToken cancellationToken)
+    public ValueTask<List<UserTestDto>> Handle(GetUserListQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new List<UserTestDto> 
+        return ValueTask.FromResult(new List<UserTestDto> 
         { 
             new() { Id = 1, Name = "User 1", Email = "user1@example.com" },
             new() { Id = 2, Name = "User 2", Email = "user2@example.com" }
@@ -620,9 +620,9 @@ public class GetUserListQueryHandler : IRequestHandler<GetUserListQuery, List<Us
 
 public class GetCustomerInfoQueryHandler : IRequestHandler<GetCustomerInfoQuery, CustomerTestDto>
 {
-    public Task<CustomerTestDto> Handle(GetCustomerInfoQuery request, CancellationToken cancellationToken)
+    public ValueTask<CustomerTestDto> Handle(GetCustomerInfoQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new CustomerTestDto 
+        return ValueTask.FromResult(new CustomerTestDto 
         { 
             Id = request.CustomerId, 
             Name = "Test Customer", 
@@ -633,9 +633,9 @@ public class GetCustomerInfoQueryHandler : IRequestHandler<GetCustomerInfoQuery,
 
 public class GetNestedGenericQueryHandler : IRequestHandler<GetNestedGenericQuery, Dictionary<string, List<UserTestDto>>>
 {
-    public Task<Dictionary<string, List<UserTestDto>>> Handle(GetNestedGenericQuery request, CancellationToken cancellationToken)
+    public ValueTask<Dictionary<string, List<UserTestDto>>> Handle(GetNestedGenericQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new Dictionary<string, List<UserTestDto>>
+        return ValueTask.FromResult(new Dictionary<string, List<UserTestDto>>
         {
             ["users"] = new List<UserTestDto> 
             { 
@@ -647,15 +647,15 @@ public class GetNestedGenericQueryHandler : IRequestHandler<GetNestedGenericQuer
 
 public class GetComplexQueryHandler : IRequestHandler<GetComplexQuery, ComplexTestDto>
 {
-    public Task<ComplexTestDto> Handle(GetComplexQuery request, CancellationToken cancellationToken)
+    public ValueTask<ComplexTestDto> Handle(GetComplexQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new ComplexTestDto());
+        return ValueTask.FromResult(new ComplexTestDto());
     }
 }
 
 public class GetGenericQueryHandler<T> : IRequestHandler<GetGenericQuery<T>, T> where T : class
 {
-    public Task<T> Handle(GetGenericQuery<T> request, CancellationToken cancellationToken)
+    public ValueTask<T> Handle(GetGenericQuery<T> request, CancellationToken cancellationToken)
     {
         throw new NotImplementedException("Generic handler for testing");
     }
@@ -663,17 +663,17 @@ public class GetGenericQueryHandler<T> : IRequestHandler<GetGenericQuery<T>, T> 
 
 public class DeleteUserCommandHandler : IRequestHandler<DeleteUserCommand>
 {
-    public Task Handle(DeleteUserCommand request, CancellationToken cancellationToken)
+    public ValueTask Handle(DeleteUserCommand request, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
 public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, UserTestDto>
 {
-    public Task<UserTestDto> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
+    public ValueTask<UserTestDto> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new UserTestDto 
+        return ValueTask.FromResult(new UserTestDto 
         { 
             Id = request.UserId, 
             Name = request.Name, 
@@ -684,17 +684,17 @@ public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, UserT
 
 public class UserCreatedNotificationHandler : INotificationHandler<UserCreatedNotification>
 {
-    public Task Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
+    public ValueTask Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
 public class UserUpdatedNotificationHandler : INotificationHandler<UserUpdatedNotification>
 {
-    public Task Handle(UserUpdatedNotification notification, CancellationToken cancellationToken)
+    public ValueTask Handle(UserUpdatedNotification notification, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 

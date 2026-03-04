@@ -10,7 +10,7 @@ namespace UserManagement.Api.Application.Handlers.Commands;
 public class DeactivateUserAccountHandler(UserManagementDbContext context)
     : IRequestHandler<DeactivateUserAccountCommand>
 {
-    public async Task Handle(DeactivateUserAccountCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(DeactivateUserAccountCommand request, CancellationToken cancellationToken = default)
     {
         User? user = await context.Users
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);

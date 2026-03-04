@@ -14,7 +14,7 @@ public class GlobalNotificationMiddleware : INotificationMiddleware
         _logger = logger;
     }
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) 
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) 
         where TNotification : INotification
     {
         var notificationType = typeof(TNotification).Name;

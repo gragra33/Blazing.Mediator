@@ -16,7 +16,7 @@ public class PaymentRequiredNotificationHandler : INotificationHandler<PaymentRe
         _logger = logger;
     }
 
-    public async Task Handle(PaymentRequiredNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(PaymentRequiredNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogWarning("Payment required for order {OrderId} ({OrderNumber}). Amount: {Amount:C}, Due: {PaymentDueDate}",
             notification.OrderId, notification.OrderNumber, notification.Amount, notification.PaymentDueDate);

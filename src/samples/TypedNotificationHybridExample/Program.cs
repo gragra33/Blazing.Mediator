@@ -6,9 +6,9 @@ var host = Host.CreateDefaultBuilder(args)
         //   - Automatic discovery for INotificationHandler<T> implementations
         //   - Type-constrained middleware (INotificationMiddleware<T>) for specific notification categories
         //   - Manual subscription support for INotificationSubscriber<T> implementations
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        var mediatorConfig = new MediatorConfiguration();
+        mediatorConfig
+            .WithStatisticsTracking(options =>
                 {
                     options.EnableRequestMetrics = true;
                     options.EnableNotificationMetrics = true;
@@ -18,9 +18,9 @@ var host = Host.CreateDefaultBuilder(args)
                     options.MetricsRetentionPeriod = TimeSpan.FromHours(1);
                     options.CleanupInterval = TimeSpan.FromMinutes(15);
                 })
-                  .WithNotificationHandlerDiscovery()    // Enable automatic handler discovery
-                  .WithNotificationMiddlewareDiscovery(); // Enable automatic middleware discovery (including type-constrained)
-        }, Assembly.GetExecutingAssembly());
+            .WithNotificationHandlerDiscovery()    // Enable automatic handler discovery
+            .WithNotificationMiddlewareDiscovery(); // Enable automatic middleware discovery (including type-constrained)
+        services.AddMediator(mediatorConfig);
 
         // Register manual notification subscribers as scoped services
         // These require explicit subscription but offer more control over execution
@@ -116,22 +116,22 @@ Console.WriteLine("  [OK] Maximum flexibility with optimal performance");
 Console.WriteLine();
 Console.WriteLine("Pattern Decision Guide:");
 Console.WriteLine("  *Use AUTOMATIC HANDLERS when:");
-Console.WriteLine("     • Core business logic that should always execute");
-Console.WriteLine("     • Simple, stateless processing");
-Console.WriteLine("     • You want zero configuration overhead");
-Console.WriteLine("     • The logic is tightly coupled to the notification");
+Console.WriteLine("     ï¿½ Core business logic that should always execute");
+Console.WriteLine("     ï¿½ Simple, stateless processing");
+Console.WriteLine("     ï¿½ You want zero configuration overhead");
+Console.WriteLine("     ï¿½ The logic is tightly coupled to the notification");
 Console.WriteLine();
 Console.WriteLine("  *Use MANUAL SUBSCRIBERS when:");
-Console.WriteLine("     • Optional or conditional processing");
-Console.WriteLine("     • Complex initialization or setup required");
-Console.WriteLine("     • Dynamic subscription/unsubscription needed");
-Console.WriteLine("     • Integration with external systems or legacy code");
+Console.WriteLine("     ï¿½ Optional or conditional processing");
+Console.WriteLine("     ï¿½ Complex initialization or setup required");
+Console.WriteLine("     ï¿½ Dynamic subscription/unsubscription needed");
+Console.WriteLine("     ï¿½ Integration with external systems or legacy code");
 Console.WriteLine();
 Console.WriteLine("  *Use TYPE-CONSTRAINED MIDDLEWARE when:");
-Console.WriteLine("     • Category-specific validation or processing");
-Console.WriteLine("     • Performance optimization (avoid unnecessary middleware execution)");
-Console.WriteLine("     • Type-safe processing with compile-time guarantees");
-Console.WriteLine("     • Different processing logic for different notification categories");
+Console.WriteLine("     ï¿½ Category-specific validation or processing");
+Console.WriteLine("     ï¿½ Performance optimization (avoid unnecessary middleware execution)");
+Console.WriteLine("     ï¿½ Type-safe processing with compile-time guarantees");
+Console.WriteLine("     ï¿½ Different processing logic for different notification categories");
 Console.WriteLine();
 Console.WriteLine("Next steps:");
 Console.WriteLine("  * Experiment with creating new notification categories and interfaces");
@@ -140,4 +140,3 @@ Console.WriteLine("  * Monitor the performance benefits using MediatorStatistics
 Console.WriteLine("  * Use this pattern in production for maximum flexibility and performance");
 Console.WriteLine();
 Console.WriteLine("Press any key to exit...");
-Console.ReadKey();

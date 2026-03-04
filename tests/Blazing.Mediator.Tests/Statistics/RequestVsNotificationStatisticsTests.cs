@@ -1,3 +1,4 @@
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.Statistics;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,55 +27,55 @@ public class RequestVsNotificationStatisticsTests
     // Handlers
     public class TestQueryHandler : IRequestHandler<TestQuery, string>
     {
-        public Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
-            => Task.FromResult($"Response: {request.Message}");
+        public ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
+            => ValueTask.FromResult($"Response: {request.Message}");
     }
 
     public class AnotherQueryHandler : IRequestHandler<AnotherQuery, int>
     {
-        public Task<int> Handle(AnotherQuery request, CancellationToken cancellationToken)
-            => Task.FromResult(request.Id * 2);
+        public ValueTask<int> Handle(AnotherQuery request, CancellationToken cancellationToken)
+            => ValueTask.FromResult(request.Id * 2);
     }
 
     public class TestCommandHandler : IRequestHandler<TestCommand>
     {
-        public Task Handle(TestCommand request, CancellationToken cancellationToken)
-            => Task.CompletedTask;
+        public ValueTask Handle(TestCommand request, CancellationToken cancellationToken)
+            => ValueTask.CompletedTask;
     }
 
     public class AnotherCommandHandler : IRequestHandler<AnotherCommand>
     {
-        public Task Handle(AnotherCommand request, CancellationToken cancellationToken)
-            => Task.CompletedTask;
+        public ValueTask Handle(AnotherCommand request, CancellationToken cancellationToken)
+            => ValueTask.CompletedTask;
     }
 
     public class OrderNotificationHandler : INotificationHandler<OrderNotification>
     {
         public int CallCount { get; private set; }
-        public Task Handle(OrderNotification notification, CancellationToken cancellationToken)
+        public ValueTask Handle(OrderNotification notification, CancellationToken cancellationToken)
         {
             CallCount++;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
     public class UserNotificationHandler : INotificationHandler<UserNotification>
     {
         public int CallCount { get; private set; }
-        public Task Handle(UserNotification notification, CancellationToken cancellationToken)
+        public ValueTask Handle(UserNotification notification, CancellationToken cancellationToken)
         {
             CallCount++;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
     public class ProductNotificationHandler : INotificationHandler<ProductNotification>
     {
         public int CallCount { get; private set; }
-        public Task Handle(ProductNotification notification, CancellationToken cancellationToken)
+        public ValueTask Handle(ProductNotification notification, CancellationToken cancellationToken)
         {
             CallCount++;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -93,16 +94,15 @@ public class RequestVsNotificationStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
             {
                 options.EnableRequestMetrics = true;
                 options.EnableNotificationMetrics = true;
                 options.EnablePerformanceCounters = true;
                 options.EnableDetailedAnalysis = true;
-            }).WithNotificationHandlerDiscovery();
-        }, typeof(RequestVsNotificationStatisticsTests).Assembly);
+            }).WithNotificationHandlerDiscovery()
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -161,14 +161,13 @@ public class RequestVsNotificationStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
             {
                 options.EnableRequestMetrics = true;
                 options.EnableNotificationMetrics = true;
-            }).WithNotificationHandlerDiscovery();
-        }, typeof(RequestVsNotificationStatisticsTests).Assembly);
+            }).WithNotificationHandlerDiscovery()
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -208,14 +207,13 @@ public class RequestVsNotificationStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
             {
                 options.EnableRequestMetrics = true;
                 options.EnableNotificationMetrics = true;
-            });
-        }, typeof(RequestVsNotificationStatisticsTests).Assembly);
+            })
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -253,10 +251,7 @@ public class RequestVsNotificationStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking().WithNotificationHandlerDiscovery();
-        }, typeof(RequestVsNotificationStatisticsTests).Assembly);
+        services.AddMediator(new MediatorConfiguration().WithStatisticsTracking());
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
@@ -313,14 +308,13 @@ public class RequestVsNotificationStatisticsTests
         var services1 = new ServiceCollection();
         var renderer1 = new TestStatisticsRenderer();
         services1.AddSingleton<IStatisticsRenderer>(renderer1);
-        services1.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        services1.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
             {
                 options.EnableRequestMetrics = false;
                 options.EnableNotificationMetrics = true;
-            }).WithNotificationHandlerDiscovery();
-        }, typeof(RequestVsNotificationStatisticsTests).Assembly);
+            }).WithNotificationHandlerDiscovery()
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider1 = services1.BuildServiceProvider();
         var mediator1 = serviceProvider1.GetRequiredService<IMediator>();
@@ -342,14 +336,13 @@ public class RequestVsNotificationStatisticsTests
         var services2 = new ServiceCollection();
         var renderer2 = new TestStatisticsRenderer();
         services2.AddSingleton<IStatisticsRenderer>(renderer2);
-        services2.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        services2.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
             {
                 options.EnableRequestMetrics = true;
                 options.EnableNotificationMetrics = false;
-            }).WithNotificationHandlerDiscovery();
-        }, typeof(RequestVsNotificationStatisticsTests).Assembly);
+            }).WithNotificationHandlerDiscovery()
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider2 = services2.BuildServiceProvider();
         var mediator2 = serviceProvider2.GetRequiredService<IMediator>();
@@ -383,15 +376,14 @@ public class RequestVsNotificationStatisticsTests
         var services = new ServiceCollection();
         var renderer = new TestStatisticsRenderer();
         services.AddSingleton<IStatisticsRenderer>(renderer);
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        services.AddMediator(new MediatorConfiguration()
+            .WithStatisticsTracking(options =>
             {
                 options.EnableRequestMetrics = true;
                 options.EnableNotificationMetrics = true;
                 options.EnablePerformanceCounters = true; // Enable performance summary
-            }).WithNotificationHandlerDiscovery();
-        }, typeof(RequestVsNotificationStatisticsTests).Assembly);
+            }).WithNotificationHandlerDiscovery()
+            .AddFromAssembly(typeof(RequestVsNotificationStatisticsTests).Assembly));
 
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();

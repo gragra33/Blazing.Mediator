@@ -58,6 +58,31 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
     }
 
     /// <summary>
+    /// Adds middleware with a compile-time-known order to the pipeline.
+    /// This overload skips all runtime reflection for order detection — the caller guarantees
+    /// the order value is correct (e.g. the source generator reading it from Roslyn syntax).
+    /// </summary>
+    /// <param name="middlewareType">The middleware type to add.</param>
+    /// <param name="knownOrder">The pre-determined order value — no reflection performed.</param>
+    /// <param name="configuration">Optional configuration object.</param>
+    protected void AddMiddlewareCore(Type middlewareType, int knownOrder, object? configuration = null)
+    {
+        var middlewareInfo = new MiddlewareInfo(middlewareType, knownOrder, configuration, IsOrderKnown: true);
+        
+        // Optimize middleware info with comprehensive pre-caching
+        var optimizedInfo = PipelineUtilities.OptimizeMiddlewareInfo(middlewareInfo);
+        
+        // Add the optimized info to collection
+        _middlewareInfos.Add(optimizedInfo);
+        
+        // Update registration indices for fast lookup
+        _registrationIndices[middlewareType] = _middlewareInfos.Count - 1;
+        
+        // Cache type name for display purposes
+        _cachedTypeNames[middlewareType] = optimizedInfo.CleanTypeName;
+    }
+
+    /// <summary>
     /// High-performance middleware order calculation with context-aware caching.
     /// Uses single cache with context-aware keys for optimal performance.
     /// </summary>
@@ -500,11 +525,18 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
     {
         try
         {
-            // Check if it's a read-only property with a simple getter
-            return orderProperty is { CanRead: true, CanWrite: false } && 
-                   orderProperty.GetMethod != null &&
-                   !orderProperty.GetMethod.IsVirtual &&
-                   !orderProperty.GetMethod.IsAbstract;
+            var getMethod = orderProperty.GetMethod;
+            if (getMethod == null) return false;
+
+            if (!orderProperty.CanRead || orderProperty.CanWrite) return false;
+            if (getMethod.IsAbstract) return false;
+
+            // Allow non-virtual methods AND sealed-virtual methods.
+            // The C# compiler marks interface implementations as virtual+final (IsVirtual=true, IsFinal=true).
+            // These are effectively non-overridable and safe for IL constant extraction.
+            if (getMethod.IsVirtual && !getMethod.IsFinal) return false;
+
+            return true;
         }
         catch
         {
@@ -701,6 +733,11 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
     /// </summary>
     protected virtual int GetRuntimeOrder(MiddlewareInfo middlewareInfo, IServiceProvider serviceProvider)
     {
+        // Short-circuit: when the order was supplied at registration time (e.g. by the source generator
+        // reading it from Roslyn syntax), trust it unconditionally — no reflection needed.
+        if (middlewareInfo.IsOrderKnown)
+            return middlewareInfo.Order;
+
         if (middlewareInfo.Type.IsGenericTypeDefinition)
         {
             // For generic type definitions, try to find a suitable concrete type

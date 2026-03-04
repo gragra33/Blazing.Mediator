@@ -12,7 +12,7 @@ public class NotificationMetricsMiddleware(ILogger<NotificationMetricsMiddleware
 
     public int Order => 300; // Execute after validation but before audit
 
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, 
         CancellationToken cancellationToken = default) where TNotification : INotification
     {
         var notificationType = typeof(TNotification).Name;

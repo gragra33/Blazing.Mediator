@@ -37,7 +37,7 @@ public class GenericRequestPreProcessor<TRequest, TResponse> : IRequestMiddlewar
     /// <param name="next">The next delegate in the pipeline.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The response from the pipeline.</returns>
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
         Console.WriteLine($"[TIMING] {DateTime.Now:HH:mm:ss.fff} - GenericRequestPreProcessor starting for {typeof(TRequest).Name}");

@@ -22,7 +22,7 @@ public class ConditionalQueryMiddleware : IConditionalMiddleware<ConditionalQuer
     /// <param name="next">The next handler in the pipeline.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The response with "Conditional: " prefix.</returns>
-    public async Task<string> HandleAsync(ConditionalQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+    public async ValueTask<string> HandleAsync(ConditionalQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
     {
         string result = await next();
         return $"Conditional: {result}";

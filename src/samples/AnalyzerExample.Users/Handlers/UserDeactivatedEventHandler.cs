@@ -16,7 +16,7 @@ public class UserDeactivatedEventHandler : INotificationHandler<UserDeactivatedE
         _logger = logger;
     }
 
-    public async Task Handle(UserDeactivatedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UserDeactivatedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("User {UserId} ({FullName}) deactivated by {DeactivatedBy}. Reason: {Reason}",
             notification.UserId, notification.FullName, notification.DeactivatedBy, notification.Reason);

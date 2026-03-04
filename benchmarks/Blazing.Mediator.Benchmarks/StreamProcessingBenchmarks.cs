@@ -1,27 +1,30 @@
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using Microsoft.Extensions.DependencyInjection;
-using System.Runtime.CompilerServices;
 
 namespace Blazing.Mediator.Benchmarks;
 
 /// <summary>
-/// Performance benchmarks for stream processing variations in Blazing.Mediator.
-/// Measures the performance of different streaming scenarios and configurations.
+///     Performance benchmarks for stream processing variations in Blazing.Mediator.
+///     Measures the performance of different streaming scenarios and configurations.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net90)]
+[SimpleJob]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
 public class StreamProcessingBenchmarks
 {
+    private LargeStreamRequest _largeStreamRequest = null!;
     private IMediator _mediatorNoMiddleware = null!;
     private IMediator _mediatorWithMiddleware = null!;
-
-    private SmallStreamRequest _smallStreamRequest = null!;
     private MediumStreamRequest _mediumStreamRequest = null!;
-    private LargeStreamRequest _largeStreamRequest = null!;
+    private SmallStreamRequest _smallStreamRequest = null!;
+
+    // Service providers and scopes — disposed in GlobalCleanup
+    private readonly List<ServiceProvider> _providers = new();
+    private readonly List<IServiceScope> _scopes = new();
 
     [GlobalSetup]
     public void Setup()
@@ -30,19 +33,51 @@ public class StreamProcessingBenchmarks
         _mediumStreamRequest = new MediumStreamRequest { Count = 1000 };
         _largeStreamRequest = new LargeStreamRequest { Count = 10000 };
 
-        // Setup mediator WITHOUT stream middleware
-        var servicesNoMiddleware = new ServiceCollection();
-        servicesNoMiddleware.AddMediator(typeof(StreamProcessingBenchmarks).Assembly);
-        var providerNoMiddleware = servicesNoMiddleware.BuildServiceProvider();
-        _mediatorNoMiddleware = providerNoMiddleware.GetRequiredService<IMediator>();
+        ServiceCollection servicesNoMiddleware = new();
+        servicesNoMiddleware.AddMediator();
+        _mediatorNoMiddleware = ResolveFromScope(servicesNoMiddleware);
 
-        // Setup mediator WITH stream middleware
-        var servicesWithMiddleware = new ServiceCollection();
-        servicesWithMiddleware.AddMediator(typeof(StreamProcessingBenchmarks).Assembly);
+        ServiceCollection servicesWithMiddleware = new();
+        servicesWithMiddleware.AddMediator();
         servicesWithMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(StreamLoggingMiddleware<,>));
-        var providerWithMiddleware = servicesWithMiddleware.BuildServiceProvider();
-        _mediatorWithMiddleware = providerWithMiddleware.GetRequiredService<IMediator>();
+        _mediatorWithMiddleware = ResolveFromScope(servicesWithMiddleware);
     }
+
+    private IMediator ResolveFromScope(ServiceCollection services)
+    {
+        ServiceProvider provider = services.BuildServiceProvider();
+        _providers.Add(provider);
+        IServiceScope scope = provider.CreateScope();
+        _scopes.Add(scope);
+        return scope.ServiceProvider.GetRequiredService<IMediator>();
+    }
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        foreach (IServiceScope scope in _scopes) scope.Dispose();
+        foreach (ServiceProvider provider in _providers) provider.Dispose();
+        _scopes.Clear();
+        _providers.Clear();
+    }
+
+    #region Stream Middleware
+
+    public class StreamLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+        where TRequest : IRequest<TResponse>
+    {
+        public int Order => 0;
+
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+            CancellationToken cancellationToken)
+        {
+            // For stream requests, we just pass through to the handler
+            // Stream-specific middleware would need to be implemented differently
+            return await next();
+        }
+    }
+
+    #endregion
 
     #region Small Stream Benchmarks (10-100 items)
 
@@ -50,11 +85,8 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Small_Streams")]
     public async Task<int> SmallStream_NoMiddleware()
     {
-        var count = 0;
-        await foreach (var item in _mediatorNoMiddleware.SendStream(_smallStreamRequest))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorNoMiddleware.SendStream(_smallStreamRequest)) count++;
         return count;
     }
 
@@ -62,11 +94,8 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Small_Streams")]
     public async Task<int> SmallStream_WithMiddleware()
     {
-        var count = 0;
-        await foreach (var item in _mediatorWithMiddleware.SendStream(_smallStreamRequest))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorWithMiddleware.SendStream(_smallStreamRequest)) count++;
         return count;
     }
 
@@ -78,11 +107,8 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Medium_Streams")]
     public async Task<int> MediumStream_NoMiddleware()
     {
-        var count = 0;
-        await foreach (var item in _mediatorNoMiddleware.SendStream(_mediumStreamRequest))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorNoMiddleware.SendStream(_mediumStreamRequest)) count++;
         return count;
     }
 
@@ -90,11 +116,8 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Medium_Streams")]
     public async Task<int> MediumStream_WithMiddleware()
     {
-        var count = 0;
-        await foreach (var item in _mediatorWithMiddleware.SendStream(_mediumStreamRequest))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorWithMiddleware.SendStream(_mediumStreamRequest)) count++;
         return count;
     }
 
@@ -106,11 +129,8 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Large_Streams")]
     public async Task<int> LargeStream_NoMiddleware()
     {
-        var count = 0;
-        await foreach (var item in _mediatorNoMiddleware.SendStream(_largeStreamRequest))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorNoMiddleware.SendStream(_largeStreamRequest)) count++;
         return count;
     }
 
@@ -118,11 +138,8 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Large_Streams")]
     public async Task<int> LargeStream_WithMiddleware()
     {
-        var count = 0;
-        await foreach (var item in _mediatorWithMiddleware.SendStream(_largeStreamRequest))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorWithMiddleware.SendStream(_largeStreamRequest)) count++;
         return count;
     }
 
@@ -134,12 +151,10 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Memory_Efficient_Streams")]
     public async Task<int> MemoryEfficientStream_Small()
     {
-        var count = 0;
-        await foreach (var item in _mediatorNoMiddleware.SendStream(new MemoryEfficientStreamRequest { Count = 100 }))
-        {
-            count++;
-            // Process immediately without storing
-        }
+        int count = 0;
+        await foreach (string item in
+                       _mediatorNoMiddleware.SendStream(new MemoryEfficientStreamRequest { Count = 100 })) count++;
+        // Process immediately without storing
         return count;
     }
 
@@ -147,12 +162,10 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Memory_Efficient_Streams")]
     public async Task<int> MemoryEfficientStream_Large()
     {
-        var count = 0;
-        await foreach (var item in _mediatorNoMiddleware.SendStream(new MemoryEfficientStreamRequest { Count = 5000 }))
-        {
-            count++;
-            // Process immediately without storing
-        }
+        int count = 0;
+        await foreach (string item in _mediatorNoMiddleware.SendStream(
+                           new MemoryEfficientStreamRequest { Count = 5000 })) count++;
+        // Process immediately without storing
         return count;
     }
 
@@ -164,11 +177,8 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Fast_Processing_Streams")]
     public async Task<int> FastProcessingStream_NoDelay()
     {
-        var count = 0;
-        await foreach (var item in _mediatorNoMiddleware.SendStream(new FastStreamRequest { Count = 1000 }))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorNoMiddleware.SendStream(new FastStreamRequest { Count = 1000 })) count++;
         return count;
     }
 
@@ -176,16 +186,15 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Fast_Processing_Streams")]
     public async Task<int> FastProcessingStream_WithBatching()
     {
-        var items = new List<string>();
-        await foreach (var item in _mediatorNoMiddleware.SendStream(new FastStreamRequest { Count = 1000 }))
+        List<string> items = new();
+        await foreach (string item in _mediatorNoMiddleware.SendStream(new FastStreamRequest { Count = 1000 }))
         {
             items.Add(item);
             if (items.Count >= 100)
-            {
                 // Process batch
                 items.Clear();
-            }
         }
+
         return items.Count;
     }
 
@@ -197,11 +206,10 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Stream_Variations")]
     public async Task<int> StringStream_Processing()
     {
-        var count = 0;
-        await foreach (var item in _mediatorNoMiddleware.SendStream(new StringStreamRequest { Count = 500 }))
-        {
-            count += item.Length; // Some processing
-        }
+        int count = 0;
+        await foreach (string item in
+                       _mediatorNoMiddleware.SendStream(new StringStreamRequest
+                           { Count = 500 })) count += item.Length; // Some processing
         return count;
     }
 
@@ -209,11 +217,9 @@ public class StreamProcessingBenchmarks
     [BenchmarkCategory("Stream_Variations")]
     public async Task<int> ObjectStream_Processing()
     {
-        var count = 0;
-        await foreach (var item in _mediatorNoMiddleware.SendStream(new ObjectStreamRequest { Count = 500 }))
-        {
-            count += item.Id; // Some processing
-        }
+        int count = 0;
+        await foreach (StreamDataObject item in _mediatorNoMiddleware.SendStream(
+                           new ObjectStreamRequest { Count = 500 })) count += item.Id; // Some processing
         return count;
     }
 
@@ -389,23 +395,6 @@ public class StreamProcessingBenchmarks
                 };
                 await Task.Yield(); // Yield control
             }
-        }
-    }
-
-    #endregion
-
-    #region Stream Middleware
-
-    public class StreamLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
-    {
-        public int Order => 0;
-
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
-        {
-            // For stream requests, we just pass through to the handler
-            // Stream-specific middleware would need to be implemented differently
-            return await next();
         }
     }
 

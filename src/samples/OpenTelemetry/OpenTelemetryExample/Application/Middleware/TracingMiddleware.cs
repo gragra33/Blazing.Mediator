@@ -11,7 +11,7 @@ public class TracingMiddleware<TRequest, TResponse> : IRequestMiddleware<TReques
 {
     public int Order => -1000; // Run early
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var activitySource = new ActivitySource("OpenTelemetryExample.Mediator");
         using var activity = activitySource.StartActivity($"Mediator:{typeof(TRequest).Name}", ActivityKind.Internal);
@@ -28,7 +28,7 @@ public class TracingMiddleware<TRequest> : IRequestMiddleware<TRequest>
 {
     public int Order => -1000; // Run early
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         var activitySource = new ActivitySource("OpenTelemetryExample.Mediator");
         using var activity = activitySource.StartActivity($"Mediator:{typeof(TRequest).Name}", ActivityKind.Internal);

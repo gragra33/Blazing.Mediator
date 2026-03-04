@@ -3,6 +3,7 @@ using Blazing.Mediator;
 /// <summary>
 /// Auto-discovery test middleware with static Order property.
 /// </summary>
+[ExcludeFromAutoDiscovery]
 public class AutoDiscoveryStaticOrderMiddleware : IRequestMiddleware<MiddlewareTestQuery, string>
 {
     /// <summary>
@@ -17,7 +18,7 @@ public class AutoDiscoveryStaticOrderMiddleware : IRequestMiddleware<MiddlewareT
     /// <param name="next">The next handler in the pipeline.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The response with "StaticOrder: " prefix.</returns>
-    public async Task<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+    public async ValueTask<string> HandleAsync(MiddlewareTestQuery request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
     {
         string result = await next();
         return $"StaticOrder: {result}";

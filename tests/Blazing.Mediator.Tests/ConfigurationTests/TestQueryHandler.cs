@@ -1,9 +1,10 @@
 namespace Blazing.Mediator.Tests.ConfigurationTests;
 
-public class TestQueryHandler : IRequestHandler<TestQuery, string>
+public class CfgTestQueryHandler : IRequestHandler<CfgTestQuery, string>
 {
-    public Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
+    public ValueTask<string> Handle(CfgTestQuery request, CancellationToken cancellationToken)
     {
-        return Task.FromResult($"Handled: {request.Value}");
+        return ValueTask.FromResult($"Handled: {request.Value}");
     }
 }
+

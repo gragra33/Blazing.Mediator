@@ -11,8 +11,8 @@ public class MiddlewareTestQueryHandler : IRequestHandler<MiddlewareTestQuery, s
     /// <param name="request">The query request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A response including the query value.</returns>
-    public Task<string> Handle(MiddlewareTestQuery request, CancellationToken cancellationToken = default)
+    public ValueTask<string> Handle(MiddlewareTestQuery request, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult($"Handler: {request.Value}");
+        return ValueTask.FromResult($"Handler: {request.Value}");
     }
 }

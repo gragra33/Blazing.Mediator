@@ -5,9 +5,9 @@ var host = Host.CreateDefaultBuilder(args)
         // This hybrid configuration demonstrates the best of both worlds:
         //   - Automatic discovery for INotificationHandler<T> implementations
         //   - Manual subscription support for INotificationSubscriber<T> implementations
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking(options =>
+        var mediatorConfig = new MediatorConfiguration();
+        mediatorConfig
+            .WithStatisticsTracking(options =>
                 {
                     options.EnableRequestMetrics = true;
                     options.EnableNotificationMetrics = true;
@@ -17,9 +17,9 @@ var host = Host.CreateDefaultBuilder(args)
                     options.MetricsRetentionPeriod = TimeSpan.FromHours(1);
                     options.CleanupInterval = TimeSpan.FromMinutes(15);
                 })
-                  .WithNotificationHandlerDiscovery()    // Enable automatic handler discovery
-                  .WithNotificationMiddlewareDiscovery(); // Enable automatic middleware discovery
-        }, Assembly.GetExecutingAssembly());
+            .WithNotificationHandlerDiscovery()    // Enable automatic handler discovery
+            .WithNotificationMiddlewareDiscovery(); // Enable automatic middleware discovery
+        services.AddMediator(mediatorConfig);
 
         // Register manual notification subscribers as scoped services
         // These require explicit subscription but offer more control
@@ -106,16 +106,16 @@ Console.WriteLine("  [OK] Maximum flexibility - use the right tool for each job"
 Console.WriteLine();
 Console.WriteLine("Pattern Decision Guide:");
 Console.WriteLine("  * Use AUTOMATIC HANDLERS when:");
-Console.WriteLine("     • Core business logic that should always execute");
-Console.WriteLine("     • Simple, stateless processing");
-Console.WriteLine("     • You want zero configuration overhead");
-Console.WriteLine("     • The logic is tightly coupled to the notification");
+Console.WriteLine("     ï¿½ Core business logic that should always execute");
+Console.WriteLine("     ï¿½ Simple, stateless processing");
+Console.WriteLine("     ï¿½ You want zero configuration overhead");
+Console.WriteLine("     ï¿½ The logic is tightly coupled to the notification");
 Console.WriteLine();
 Console.WriteLine("  * Use MANUAL SUBSCRIBERS when:");
-Console.WriteLine("     • Optional or conditional processing");
-Console.WriteLine("     • Complex initialization or setup required");
-Console.WriteLine("     • Dynamic subscription/unsubscription needed");
-Console.WriteLine("     • Integration with external systems or legacy code");
+Console.WriteLine("     ï¿½ Optional or conditional processing");
+Console.WriteLine("     ï¿½ Complex initialization or setup required");
+Console.WriteLine("     ï¿½ Dynamic subscription/unsubscription needed");
+Console.WriteLine("     ï¿½ Integration with external systems or legacy code");
 Console.WriteLine();
 Console.WriteLine("Next steps:");
 Console.WriteLine("  * Experiment with adding your own handlers and subscribers");
@@ -124,4 +124,3 @@ Console.WriteLine("  * Monitor the performance differences using MediatorStatist
 Console.WriteLine("  * Use this pattern in production for maximum flexibility");
 Console.WriteLine();
 Console.WriteLine("Press any key to exit...");
-Console.ReadKey();

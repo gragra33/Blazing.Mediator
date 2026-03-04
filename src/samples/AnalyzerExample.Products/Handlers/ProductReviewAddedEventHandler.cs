@@ -16,7 +16,7 @@ public class ProductReviewAddedEventHandler : INotificationHandler<ProductReview
         _logger = logger;
     }
 
-    public async Task Handle(ProductReviewAddedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(ProductReviewAddedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("New review added for product {ProductId} with rating {Rating}", 
             notification.ProductId, notification.Rating);

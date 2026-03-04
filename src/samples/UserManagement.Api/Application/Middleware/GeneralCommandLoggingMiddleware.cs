@@ -19,7 +19,7 @@ public class GeneralCommandLoggingMiddleware<TRequest> : IRequestMiddleware<TReq
     /// <summary>
     /// Handles all commands by logging them
     /// </summary>
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         // Use Console.WriteLine for simple logging since we can't easily inject ILogger
         var requestType = request.GetType().Name;

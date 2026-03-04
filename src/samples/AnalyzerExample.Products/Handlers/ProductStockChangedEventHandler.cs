@@ -16,7 +16,7 @@ public class ProductStockChangedEventHandler : INotificationHandler<ProductStock
         _logger = logger;
     }
 
-    public async Task Handle(ProductStockChangedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(ProductStockChangedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Product {ProductId} stock changed from {OldQuantity} to {NewQuantity}", 
             notification.ProductId, notification.OldQuantity, notification.NewQuantity);

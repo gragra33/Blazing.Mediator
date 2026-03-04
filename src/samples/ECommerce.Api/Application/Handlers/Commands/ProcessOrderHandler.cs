@@ -2,14 +2,15 @@ using Blazing.Mediator;
 using ECommerce.Api.Application.Commands;
 using ECommerce.Api.Application.DTOs;
 using ECommerce.Api.Domain.Entities;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ECommerce.Api.Application.Handlers.Commands;
 
 /// <summary>
 /// Handler for processing a complete order including creation, validation, and payment processing.
 /// </summary>
-/// <param name="mediator">The mediator for sending commands and queries.</param>
-public class ProcessOrderHandler(IMediator mediator)
+/// <param name="serviceProvider">The service provider for resolving dependencies.</param>
+public class ProcessOrderHandler(IServiceProvider serviceProvider)
     : IRequestHandler<ProcessOrderCommand, OperationResult<ProcessOrderResponse>>
 {
     /// <summary>
@@ -18,8 +19,10 @@ public class ProcessOrderHandler(IMediator mediator)
     /// <param name="request">The command containing order processing details.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The operation result with processing response containing order details.</returns>
-    public async Task<OperationResult<ProcessOrderResponse>> Handle(ProcessOrderCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult<ProcessOrderResponse>> Handle(ProcessOrderCommand request, CancellationToken cancellationToken = default)
     {
+        // Resolve IMediator lazily to avoid circular dependency during ContainerMetadata initialization
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
         try
         {
             // Step 1: Create the order

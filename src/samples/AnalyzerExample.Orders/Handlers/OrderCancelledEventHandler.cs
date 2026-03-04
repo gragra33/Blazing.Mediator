@@ -16,7 +16,7 @@ public class OrderCancelledEventHandler : INotificationHandler<OrderCancelledEve
         _logger = logger;
     }
 
-    public async Task Handle(OrderCancelledEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCancelledEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Order {OrderId} cancelled. Reason: {CancellationReason}", 
             notification.OrderId, notification.CancellationReason);

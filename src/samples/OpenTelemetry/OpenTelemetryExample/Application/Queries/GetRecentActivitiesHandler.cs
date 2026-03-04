@@ -11,7 +11,7 @@ namespace OpenTelemetryExample.Application.Queries;
 internal sealed class GetRecentActivitiesHandler(ApplicationDbContext context, ILogger<GetRecentActivitiesHandler> logger)
     : IRequestHandler<GetRecentActivitiesQuery, RecentActivitiesDto>
 {
-    public async Task<RecentActivitiesDto> Handle(GetRecentActivitiesQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<RecentActivitiesDto> Handle(GetRecentActivitiesQuery request, CancellationToken cancellationToken = default)
     {
         var cutoffTime = DateTime.UtcNow - request.TimeWindow;
         try

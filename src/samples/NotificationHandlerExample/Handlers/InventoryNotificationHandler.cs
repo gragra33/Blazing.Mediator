@@ -8,7 +8,7 @@ namespace NotificationHandlerExample.Handlers;
 public class InventoryNotificationHandler(ILogger<InventoryNotificationHandler> logger) 
     : INotificationHandler<OrderCreatedNotification>
 {
-    public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
     {
         try
         {

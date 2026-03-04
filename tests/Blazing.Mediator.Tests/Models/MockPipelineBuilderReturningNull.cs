@@ -15,12 +15,12 @@ public class MockPipelineBuilderReturningNull : IMiddlewarePipelineBuilder, IMid
     public IReadOnlyList<(Type Type, object? Configuration)> GetMiddlewareConfiguration() => new List<(Type, object?)>();
 
     // ExecutePipeline methods that will be called via reflection and can return appropriate results
-    public Task<TResponse> ExecutePipeline<TRequest, TResponse>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate<TResponse> finalHandler, CancellationToken cancellationToken) where TRequest : IRequest<TResponse>
+    public ValueTask<TResponse> ExecutePipeline<TRequest, TResponse>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate<TResponse> finalHandler, CancellationToken cancellationToken) where TRequest : IRequest<TResponse>
     {
         return finalHandler();
     }
 
-    public Task ExecutePipeline<TRequest>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate finalHandler, CancellationToken cancellationToken) where TRequest : IRequest
+    public ValueTask ExecutePipeline<TRequest>(TRequest request, IServiceProvider serviceProvider, RequestHandlerDelegate finalHandler, CancellationToken cancellationToken) where TRequest : IRequest
     {
         return finalHandler();
     }

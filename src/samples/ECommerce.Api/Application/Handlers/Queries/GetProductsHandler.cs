@@ -21,7 +21,7 @@ public class GetProductsHandler(ECommerceDbContext context)
     /// <param name="request">The query containing filtering and pagination parameters.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A paginated result of products matching the specified criteria.</returns>
-    public async Task<PagedResult<ProductDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<PagedResult<ProductDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken = default)
     {
         IQueryable<Product> query = context.Products.AsNoTracking();
 

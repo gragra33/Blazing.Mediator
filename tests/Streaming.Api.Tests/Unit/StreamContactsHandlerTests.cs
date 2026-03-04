@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Streaming.Api.Handlers;
 using Streaming.Api.Requests;
 using Streaming.Api.Services;
-using System.Reflection;
 
 namespace Streaming.Api.Tests.Unit;
 
@@ -26,8 +25,8 @@ public class StreamContactsHandlerTests
         // Register ContactService first
         services.AddSingleton<IContactService, ContactService>();
 
-        // Add Mediator with manual handler registration since assembly scanning has issues in test context
-        services.AddMediator(Array.Empty<Assembly>());
+        // Register Mediator - source generator bakes in all handlers at compile time
+        services.AddMediator();
 
         // Manually register all the handlers we need for testing
         services.AddScoped<IStreamRequestHandler<StreamContactsRequest, ContactDto>, StreamContactsHandler>();

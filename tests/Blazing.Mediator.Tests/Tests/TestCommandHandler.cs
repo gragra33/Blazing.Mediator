@@ -1,12 +1,12 @@
 namespace Blazing.Mediator.Tests.Statistics;
 
 /// <summary>
-/// Test command handler.
+/// Test command handler for Statistics namespace.
 /// </summary>
-public class TestCommandHandler : IRequestHandler<TestCommand>
+public class TestsTestCommandHandler : IRequestHandler<TestsTestCommand>
 {
-    public Task Handle(TestCommand request, CancellationToken cancellationToken)
+    public ValueTask Handle(TestsTestCommand request, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

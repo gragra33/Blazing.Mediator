@@ -15,7 +15,7 @@ public class GetProductsQueryHandler : IQueryHandler<GetProductsQuery, PagedResu
         _logger = logger;
     }
 
-    public async Task<PagedResult<ProductSummaryDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
+    public async ValueTask<PagedResult<ProductSummaryDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("?? [Products] Getting products page {Page}, size {PageSize}", request.Page, request.PageSize);
         

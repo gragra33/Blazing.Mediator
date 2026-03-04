@@ -13,7 +13,7 @@ public class OperationalMonitoringMiddleware<TRequest>(ILogger<OperationalMonito
     public int Order => 40;
 
     /// <inheritdoc />
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         var operationType = typeof(TRequest).Name;
         logger.LogDebug(">> Monitoring operation started: {OperationType}", operationType);

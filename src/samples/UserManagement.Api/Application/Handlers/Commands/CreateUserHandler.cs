@@ -14,7 +14,7 @@ public class CreateUserHandler(
     ILogger<CreateUserHandler> logger)
     : IRequestHandler<CreateUserCommand>
 {
-    public async Task Handle(CreateUserCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(CreateUserCommand request, CancellationToken cancellationToken = default)
     {
         // Business validation
         ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);

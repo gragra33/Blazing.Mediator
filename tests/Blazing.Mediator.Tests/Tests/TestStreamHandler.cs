@@ -3,9 +3,9 @@ namespace Blazing.Mediator.Tests;
 /// <summary>
 /// Test stream handler.
 /// </summary>
-public class TestStreamHandler : IStreamRequestHandler<TestStreamRequest, string>
+public class TestStreamHandler : IStreamRequestHandler<TestsTestStreamRequest, string>
 {
-    public async IAsyncEnumerable<string> Handle(TestStreamRequest request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<string> Handle(TestsTestStreamRequest request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         for (int i = 1; i <= 3; i++)
         {

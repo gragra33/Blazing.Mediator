@@ -16,7 +16,7 @@ public class UserCreatedAnalyticsHandler : INotificationHandler<UserCreatedEvent
         _logger = logger;
     }
 
-    public async Task Handle(UserCreatedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UserCreatedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Processing analytics for new user {UserId} ({FirstName} {LastName})", 
             notification.UserId, notification.FirstName, notification.LastName);

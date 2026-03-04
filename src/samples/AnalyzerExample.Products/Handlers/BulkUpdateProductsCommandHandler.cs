@@ -9,7 +9,7 @@ namespace AnalyzerExample.Products.Handlers;
 /// </summary>
 public class BulkUpdateProductsCommandHandler : IRequestHandler<BulkUpdateProductsCommand, OperationResult<int>>
 {
-    public async Task<OperationResult<int>> Handle(BulkUpdateProductsCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult<int>> Handle(BulkUpdateProductsCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate bulk update
         await Task.Delay(200, cancellationToken);

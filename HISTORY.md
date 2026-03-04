@@ -1,5 +1,19 @@
 ﻿# Version History
 
+### V3.0.0
+
+- **Source-Generated Dispatch**: All runtime reflection replaced with compile-time source generation via `Blazing.Mediator.SourceGenerators` — zero-allocation dispatch on request, notification, and streaming hot paths
+- **`ValueTask` Throughout**: All handler and middleware return types changed from `Task`/`Task<T>` to `ValueTask`/`ValueTask<T>` for reduced allocations and improved throughput
+- **Auto-Discovered Middleware**: Source generator discovers all middleware at compile time — no manual `config.AddMiddleware(...)` calls needed
+- **Simplified Registration**: `services.AddMediator()` with no assembly arguments; source generator handles handler and middleware discovery automatically
+- **`#if USE_SOURCE_GENERATORS` Removed**: No preprocessor guards required — source generator activates automatically when `Blazing.Mediator.SourceGenerators` is referenced
+- **Singleton Lifetime**: Default and recommended `IMediator` lifetime changed from Scoped to Singleton, eliminating per-request DI resolution overhead
+- **Pluggable Notification Publisher**: `INotificationPublisher` interface allows opt-in concurrent notification dispatch (`config.WithConcurrentNotificationPublisher()`)
+- **`[ExcludeFromAutoDiscovery]` Attribute**: Opt individual handlers out of source-generator discovery
+- **`MediatorDispatcherBase`**: New abstract base class bridges the pre-compiled library and the source-generated `ContainerMetadata`
+- **Performance**: 114× faster than v2.0.1 for requests (17 ns vs 2,003 ns), 70× faster for notifications, 30× faster for streaming; 75.8% faster than MediatR on the request path with zero allocations
+- **Migration Guide**: See [MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/docs/MIGRATION_GUIDE.md) for full upgrade steps; [BREAKING_CHANGES.md](https://github.com/gragra33/Blazing.Mediator/docs/BREAKING_CHANGES.md) for a concise API change reference
+
 ### V2.0.1 - 11 December, 2025
 
 - Updated package dependencies to latest versions for improved security and performance

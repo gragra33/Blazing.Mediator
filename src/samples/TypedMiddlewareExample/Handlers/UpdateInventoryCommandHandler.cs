@@ -16,7 +16,7 @@ public class UpdateInventoryCommandHandler : IRequestHandler<UpdateInventoryComm
         _logger = logger;
     }
 
-    public async Task<int> Handle(UpdateInventoryCommand request, CancellationToken cancellationToken)
+    public async ValueTask<int> Handle(UpdateInventoryCommand request, CancellationToken cancellationToken)
     {
         using var activity = ActivitySource.StartActivity("Handle_UpdateInventoryCommand");
         activity?.SetTag("inventory.product_id", request.ProductId);

@@ -7,7 +7,7 @@ public class UpdateInventoryCommandHandler(ILogger<UpdateInventoryCommandHandler
     : IRequestHandler<UpdateInventoryCommand, int>
 {
     /// <inheritdoc />
-    public Task<int> Handle(UpdateInventoryCommand request, CancellationToken cancellationToken)
+    public async ValueTask<int> Handle(UpdateInventoryCommand request, CancellationToken cancellationToken)
     {
         logger.LogDebug(".. Updating inventory for product: {ProductId}, change: {QuantityChange}",
             request.ProductId, request.QuantityChange);
@@ -18,6 +18,6 @@ public class UpdateInventoryCommandHandler(ILogger<UpdateInventoryCommandHandler
         logger.LogInformation("-- Inventory updated for {ProductId}. New stock count: {StockCount}",
             request.ProductId, newStockCount);
 
-        return Task.FromResult(newStockCount);
+        return newStockCount;
     }
 }

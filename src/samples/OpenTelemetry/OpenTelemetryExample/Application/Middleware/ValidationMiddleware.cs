@@ -18,7 +18,7 @@ public sealed class ValidationMiddleware<TRequest>(
 
     public int Order => -1000; // Execute early
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         var validator = serviceProvider.GetService<IValidator<TRequest>>();
         
@@ -60,7 +60,7 @@ public sealed class ValidationMiddleware<TRequest, TResponse>(
 
     public int Order => -1000; // Execute early
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
         var validator = serviceProvider.GetService<IValidator<TRequest>>();

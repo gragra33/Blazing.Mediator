@@ -1,8 +1,8 @@
 namespace TypedNotificationSubscriberExample.Services;
 
 public class NotificationPipelineDisplayer(
-    INotificationMiddlewarePipelineInspector pipelineInspector,
-    IServiceProvider serviceProvider)
+    IMediatorTypeCatalog catalog,
+    MediatorStatistics mediatorStatistics)
 {
     public void DisplayPipelineInfo()
     {
@@ -95,7 +95,7 @@ public class NotificationPipelineDisplayer(
     {
         Console.WriteLine("TYPE-CONSTRAINED MIDDLEWARE:");
 
-        var middlewareAnalysis = pipelineInspector.AnalyzeMiddleware(serviceProvider);
+        var middlewareAnalysis = mediatorStatistics.AnalyzeNotificationMiddleware(catalog);
 
         if (middlewareAnalysis.Count == 0)
         {
@@ -156,7 +156,7 @@ public class NotificationPipelineDisplayer(
         // Dynamically determine features based on what's actually registered
         var features = new List<string>();
 
-        var middlewareAnalysis = pipelineInspector.AnalyzeMiddleware(serviceProvider);
+        var middlewareAnalysis = mediatorStatistics.AnalyzeNotificationMiddleware(catalog);
         if (middlewareAnalysis.Any(m => !string.IsNullOrEmpty(m.GenericConstraints)))
         {
             features.Add("Type constraints for selective middleware execution");

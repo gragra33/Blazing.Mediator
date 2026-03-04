@@ -36,7 +36,7 @@ public class GenericRequestPostProcessor<TRequest, TResponse> : IRequestMiddlewa
     /// <param name="next">The next delegate in the pipeline.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The response from the pipeline.</returns>
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var response = await next();
         await _writer.WriteLineAsync("- All Done");

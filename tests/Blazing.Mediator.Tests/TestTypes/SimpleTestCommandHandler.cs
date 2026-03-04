@@ -5,9 +5,9 @@ namespace Blazing.Mediator.Tests.TestTypes;
 /// </summary>
 public class SimpleTestCommandHandler : IRequestHandler<SimpleTestCommand>
 {
-    public Task Handle(SimpleTestCommand request, CancellationToken cancellationToken)
+    public ValueTask Handle(SimpleTestCommand request, CancellationToken cancellationToken)
     {
         // Simulate command execution
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

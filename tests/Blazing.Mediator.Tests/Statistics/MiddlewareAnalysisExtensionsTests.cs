@@ -18,15 +18,7 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     public MiddlewareAnalysisExtensionsTests()
     {
         _services = new ServiceCollection();
-        _services.AddMediator(config =>
-        {
-            // Add various middleware types for testing
-            config.AddMiddleware<TestRequestMiddleware>();
-            config.AddMiddleware(typeof(TestGenericRequestMiddleware<>));
-            config.AddMiddleware(typeof(TestTwoParameterMiddleware<,>));
-            config.AddNotificationMiddleware<TestNotificationMiddleware>();
-            config.AddNotificationMiddleware(typeof(TestGenericNotificationMiddleware<>));
-        }, typeof(MiddlewareAnalysisExtensionsTests).Assembly);
+        _services.AddMediator();
         
         _services.AddLogging();
         _serviceProvider = _services.BuildServiceProvider();
@@ -39,12 +31,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void NormalizeTypeName_WithGenericMiddleware_ShouldFormatCorrectly()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var genericMiddleware = middlewareAnalysis.FirstOrDefault(m => m.Type.IsGenericType || m.Type.IsGenericTypeDefinition);
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var genericMiddleware = new MiddlewareAnalysis(
+            Type: typeof(TestGenericRequestMiddleware<>),
+            Order: 200,
+            OrderDisplay: "200",
+            ClassName: "TestGenericRequestMiddleware",
+            TypeParameters: "<TRequest>",
+            GenericConstraints: "where TRequest : IRequest",
+            Configuration: null);
 
         // Act
-        var formattedName = genericMiddleware?.NormalizeTypeName();
+        var formattedName = genericMiddleware.NormalizeTypeName();
 
         // Assert
         Assert.NotNull(formattedName);
@@ -58,12 +56,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void NormalizeTypeName_WithNonGenericMiddleware_ShouldReturnCleanName()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var nonGenericMiddleware = middlewareAnalysis.FirstOrDefault(m => !m.Type.IsGenericType && !m.Type.IsGenericTypeDefinition);
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var nonGenericMiddleware = new MiddlewareAnalysis(
+            Type: typeof(TestRequestMiddleware),
+            Order: 100,
+            OrderDisplay: "100",
+            ClassName: "TestRequestMiddleware",
+            TypeParameters: "",
+            GenericConstraints: "",
+            Configuration: null);
 
         // Act
-        var formattedName = nonGenericMiddleware?.NormalizeTypeName();
+        var formattedName = nonGenericMiddleware.NormalizeTypeName();
 
         // Assert
         Assert.NotNull(formattedName);
@@ -75,12 +79,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void GetFullyQualifiedTypeName_ShouldIncludeNamespace()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var middleware = middlewareAnalysis.FirstOrDefault();
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var middleware = new MiddlewareAnalysis(
+            Type: typeof(TestRequestMiddleware),
+            Order: 100,
+            OrderDisplay: "100",
+            ClassName: "TestRequestMiddleware",
+            TypeParameters: "",
+            GenericConstraints: "",
+            Configuration: null);
 
         // Act
-        var fullyQualified = middleware?.GetFullyQualifiedTypeName();
+        var fullyQualified = middleware.GetFullyQualifiedTypeName();
 
         // Assert
         Assert.NotNull(fullyQualified);
@@ -91,12 +101,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void NormalizeClassName_ShouldRemoveGenericSuffix()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var genericMiddleware = middlewareAnalysis.FirstOrDefault(m => m.Type.IsGenericType || m.Type.IsGenericTypeDefinition);
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var genericMiddleware = new MiddlewareAnalysis(
+            Type: typeof(TestGenericRequestMiddleware<>),
+            Order: 200,
+            OrderDisplay: "200",
+            ClassName: "TestGenericRequestMiddleware",
+            TypeParameters: "<TRequest>",
+            GenericConstraints: "where TRequest : IRequest",
+            Configuration: null);
 
         // Act
-        var className = genericMiddleware?.NormalizeClassName();
+        var className = genericMiddleware.NormalizeClassName();
 
         // Assert
         Assert.NotNull(className);
@@ -108,12 +124,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void NormalizeTypeParameters_WithGenericMiddleware_ShouldFormatCorrectly()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var genericMiddleware = middlewareAnalysis.FirstOrDefault(m => m.Type.IsGenericType || m.Type.IsGenericTypeDefinition);
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var genericMiddleware = new MiddlewareAnalysis(
+            Type: typeof(TestGenericRequestMiddleware<>),
+            Order: 200,
+            OrderDisplay: "200",
+            ClassName: "TestGenericRequestMiddleware",
+            TypeParameters: "<TRequest>",
+            GenericConstraints: "where TRequest : IRequest",
+            Configuration: null);
 
         // Act
-        var typeParameters = genericMiddleware?.NormalizeTypeParameters();
+        var typeParameters = genericMiddleware.NormalizeTypeParameters();
 
         // Assert
         Assert.NotNull(typeParameters);
@@ -128,12 +150,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void NormalizeTypeParameters_WithNonGenericMiddleware_ShouldReturnEmpty()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var nonGenericMiddleware = middlewareAnalysis.FirstOrDefault(m => !m.Type.IsGenericType && !m.Type.IsGenericTypeDefinition);
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var nonGenericMiddleware = new MiddlewareAnalysis(
+            Type: typeof(TestRequestMiddleware),
+            Order: 100,
+            OrderDisplay: "100",
+            ClassName: "TestRequestMiddleware",
+            TypeParameters: "",
+            GenericConstraints: "",
+            Configuration: null);
 
         // Act
-        var typeParameters = nonGenericMiddleware?.NormalizeTypeParameters();
+        var typeParameters = nonGenericMiddleware.NormalizeTypeParameters();
 
         // Assert
         Assert.NotNull(typeParameters);
@@ -198,12 +226,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void GetAssemblyName_ShouldReturnCorrectAssembly()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var middleware = middlewareAnalysis.FirstOrDefault();
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var middleware = new MiddlewareAnalysis(
+            Type: typeof(TestRequestMiddleware),
+            Order: 100,
+            OrderDisplay: "100",
+            ClassName: "TestRequestMiddleware",
+            TypeParameters: "",
+            GenericConstraints: "",
+            Configuration: null);
 
         // Act
-        var assemblyName = middleware?.GetAssemblyName();
+        var assemblyName = middleware.GetAssemblyName();
 
         // Assert
         Assert.NotNull(assemblyName);
@@ -215,12 +249,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void GetNamespace_ShouldReturnCorrectNamespace()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var middleware = middlewareAnalysis.FirstOrDefault();
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var middleware = new MiddlewareAnalysis(
+            Type: typeof(TestRequestMiddleware),
+            Order: 100,
+            OrderDisplay: "100",
+            ClassName: "TestRequestMiddleware",
+            TypeParameters: "",
+            GenericConstraints: "",
+            Configuration: null);
 
         // Act
-        var namespaceName = middleware?.GetNamespace();
+        var namespaceName = middleware.GetNamespace();
 
         // Assert
         Assert.NotNull(namespaceName);
@@ -300,12 +340,17 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void HasConfiguration_WithoutConfiguration_ShouldReturnFalse()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var middleware = middlewareAnalysis.FirstOrDefault();
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var middleware = new MiddlewareAnalysis(
+            Type: typeof(TestRequestMiddleware),
+            Order: 100,
+            OrderDisplay: "100",
+            ClassName: "TestRequestMiddleware",
+            TypeParameters: "",
+            GenericConstraints: "",
+            Configuration: null);
 
         // Act & Assert
-        Assert.NotNull(middleware);
         Assert.False(middleware.HasConfiguration()); // Should be false as we didn't configure any
     }
 
@@ -332,12 +377,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void GetConfigurationTypeName_WithoutConfiguration_ShouldReturnNone()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var middleware = middlewareAnalysis.FirstOrDefault();
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var middleware = new MiddlewareAnalysis(
+            Type: typeof(TestRequestMiddleware),
+            Order: 100,
+            OrderDisplay: "100",
+            ClassName: "TestRequestMiddleware",
+            TypeParameters: "",
+            GenericConstraints: "",
+            Configuration: null);
 
         // Act
-        var configTypeName = middleware?.GetConfigurationTypeName();
+        var configTypeName = middleware.GetConfigurationTypeName();
 
         // Assert
         Assert.Equal("None", configTypeName);
@@ -350,12 +401,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void NormalizeSummary_WithoutNamespace_ShouldReturnBasicSummary()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var middleware = middlewareAnalysis.FirstOrDefault();
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var middleware = new MiddlewareAnalysis(
+            Type: typeof(TestRequestMiddleware),
+            Order: 100,
+            OrderDisplay: "100",
+            ClassName: "TestRequestMiddleware",
+            TypeParameters: "",
+            GenericConstraints: "",
+            Configuration: null);
 
         // Act
-        var summary = middleware?.NormalizeSummary();
+        var summary = middleware.NormalizeSummary();
 
         // Assert
         Assert.NotNull(summary);
@@ -368,12 +425,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void NormalizeSummary_WithNamespace_ShouldIncludeNamespaceInfo()
     {
-        // Arrange
-        var middlewareAnalysis = _middlewarePipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var middleware = middlewareAnalysis.FirstOrDefault();
+        // Arrange — source-gen does not expose the baked pipeline to IMiddlewarePipelineInspector; construct directly.
+        var middleware = new MiddlewareAnalysis(
+            Type: typeof(TestRequestMiddleware),
+            Order: 100,
+            OrderDisplay: "100",
+            ClassName: "TestRequestMiddleware",
+            TypeParameters: "",
+            GenericConstraints: "",
+            Configuration: null);
 
         // Act
-        var summary = middleware?.NormalizeSummary(includeNamespace: true);
+        var summary = middleware.NormalizeSummary(includeNamespace: true);
 
         // Assert
         Assert.NotNull(summary);
@@ -392,12 +455,18 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void NotificationMiddleware_NormalizeGenericConstraints_ShouldFormatCorrectly()
     {
-        // Arrange
-        var middlewareAnalysis = _notificationPipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var middleware = middlewareAnalysis.FirstOrDefault();
+        // Arrange — source-gen does not expose the baked pipeline to INotificationMiddlewarePipelineInspector; construct directly.
+        var middleware = new MiddlewareAnalysis(
+            Type: typeof(TestNotificationMiddleware),
+            Order: 100,
+            OrderDisplay: "100",
+            ClassName: "TestNotificationMiddleware",
+            TypeParameters: "",
+            GenericConstraints: "",
+            Configuration: null);
 
         // Act
-        var constraints = middleware?.NormalizeGenericConstraints();
+        var constraints = middleware.NormalizeGenericConstraints();
 
         // Assert
         Assert.NotNull(constraints);
@@ -407,9 +476,15 @@ public class MiddlewareAnalysisExtensionsTests : IDisposable
     [Fact]
     public void NotificationMiddleware_ExtensionMethods_ShouldWorkCorrectly()
     {
-        // Arrange
-        var middlewareAnalysis = _notificationPipelineInspector.AnalyzeMiddleware(_serviceProvider);
-        var middleware = middlewareAnalysis.FirstOrDefault();
+        // Arrange — source-gen does not expose the baked pipeline to INotificationMiddlewarePipelineInspector; construct directly.
+        var middleware = new MiddlewareAnalysis(
+            Type: typeof(TestNotificationMiddleware),
+            Order: 100,
+            OrderDisplay: "100",
+            ClassName: "TestNotificationMiddleware",
+            TypeParameters: "",
+            GenericConstraints: "",
+            Configuration: null);
 
         // Act & Assert
         Assert.NotNull(middleware);
@@ -554,7 +629,7 @@ public class TestRequestMiddleware : IRequestMiddleware<TestRequest>
 {
     public static int Order => 100;
     
-    public async Task HandleAsync(TestRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TestRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         await next();
     }
@@ -564,7 +639,7 @@ public class TestGenericRequestMiddleware<TRequest> : IRequestMiddleware<TReques
 {
     public static int Order => 200;
     
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         await next();
     }
@@ -575,33 +650,35 @@ public class TestTwoParameterMiddleware<TRequest, TResponse> : IRequestMiddlewar
 {
     public static int Order => 300;
     
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         return await next();
     }
 }
 
+[ExcludeFromAutoDiscovery]
 public class TestNotificationMiddleware : INotificationMiddleware
 {
     public static int Order => 100;
     
-    public async Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) where TNotification : INotification
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken) where TNotification : INotification
     {
         await next(notification, cancellationToken);
     }
 }
 
+[ExcludeFromAutoDiscovery]
 public class TestGenericNotificationMiddleware<TNotification> : INotificationMiddleware<TNotification> 
     where TNotification : INotification
 {
     public static int Order => 200;
     
-    public async Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    public async ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         await next(notification, cancellationToken);
     }
     
-    public async Task InvokeAsync<TNotificationGeneric>(TNotificationGeneric notification, NotificationDelegate<TNotificationGeneric> next, CancellationToken cancellationToken) where TNotificationGeneric : INotification
+    public async ValueTask InvokeAsync<TNotificationGeneric>(TNotificationGeneric notification, NotificationDelegate<TNotificationGeneric> next, CancellationToken cancellationToken) where TNotificationGeneric : INotification
     {
         if (notification is TNotification typedNotification)
         {
@@ -622,9 +699,9 @@ public class TestRequest : IRequest
 
 public class TestRequestHandler : IRequestHandler<TestRequest>
 {
-    public Task Handle(TestRequest request, CancellationToken cancellationToken)
+    public ValueTask Handle(TestRequest request, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 

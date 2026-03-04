@@ -8,13 +8,13 @@ namespace TypedMiddlewareExample.Handlers;
 public class RegisterCustomerCommandHandler(ILogger<RegisterCustomerCommandHandler> logger)
     : IRequestHandler<RegisterCustomerCommand>
 {
-    public Task Handle(RegisterCustomerCommand request, CancellationToken cancellationToken)
+    public ValueTask Handle(RegisterCustomerCommand request, CancellationToken cancellationToken)
     {
         logger.LogInformation(".. Registering customer: {FullName} ({Email})", request.FullName, request.Email);
 
         // Simulate customer registration
         logger.LogInformation("-- Customer registered successfully: {FullName}", request.FullName);
         
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

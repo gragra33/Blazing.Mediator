@@ -16,7 +16,7 @@ public class UserUpdatedEventHandler : INotificationHandler<UserUpdatedEvent>
         _logger = logger;
     }
 
-    public async Task Handle(UserUpdatedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UserUpdatedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("User {UserId} ({FirstName} {LastName}) updated by {UpdatedBy}. Changes: {ChangeCount}",
             notification.UserId, notification.FirstName, notification.LastName, 

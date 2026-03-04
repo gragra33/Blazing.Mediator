@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Override multi-targeting from Directory.Build.props -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks></TargetFrameworks>
+    
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    
+    <!-- Suppress RS1035 for compatibility with ISourceGenerator pattern during Phase 4 -->
+    <!-- Suppress NU5128: source generator packages have no lib/ output by design -->
+    <!-- Suppress RS2007: AnalyzerReleases.Unshipped.md header format compatibility with Analyzers 4.14.0 -->
+    <NoWarn>$(NoWarn);RS1035;NU5128;RS2007</NoWarn>
+    
+    <Product>Blazing.Mediator Source Generators</Product>
+    <Description>Source generators for Blazing.Mediator that eliminate reflection and provide AOT compatibility. Generates type-safe dispatch tables, pre-built middleware pipelines, and optimised notification handlers at compile-time.</Description>
+
+    <PackageId>Blazing.Mediator.SourceGenerators</PackageId>
+    <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
+    <PackageReleaseNotes>Version 3.0.0: Source-Gen rewrite; 100% AOT compatible; Net 9 &amp; 10 support; backwards compatible with minor breaking changes.</PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>mediator;source-generator;roslyn;code-generation;aot;performance;cqrs;zero-reflection</PackageTags>
+
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <IncludeSymbols>false</IncludeSymbols>
+    
+    <!-- NuGet package settings -->
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+
+    <!-- This package is a source generator and should not be referenced directly -->
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Roslyn packages for source generation - versions managed centrally -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Include the generator DLL in the package -->
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+</Project>

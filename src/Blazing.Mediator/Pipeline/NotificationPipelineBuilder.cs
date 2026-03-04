@@ -13,7 +13,7 @@ public sealed class NotificationPipelineBuilder
     /// <summary>
     /// CRTP pattern implementation for fluent API.
     /// </summary>
-    protected NotificationPipelineBuilder Self => this;
+    public NotificationPipelineBuilder Self => this;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NotificationPipelineBuilder"/> class with optional logging.
@@ -57,6 +57,22 @@ public sealed class NotificationPipelineBuilder
         }
 
         AddMiddlewareCore(middlewareType);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds notification middleware with a compile-time-known order to the pipeline.
+    /// This overload bypasses all runtime reflection for order detection and skips the interface type check.
+    /// It is used by the source generator to pre-seed the pipeline with baked compile-time orders.
+    /// </summary>
+    /// <param name="middlewareType">The middleware type to add.</param>
+    /// <param name="knownOrder">The compile-time order value — no IL analysis or instance creation is performed.</param>
+    /// <returns>The pipeline builder for chaining.</returns>
+    public INotificationPipelineBuilder AddMiddleware(Type middlewareType, int knownOrder)
+    {
+        // Note: skip the INotificationMiddleware type check — this is called from source-generated
+        // code with compile-time-verified types, which may be open-generic definitions.
+        AddMiddlewareCore(middlewareType, knownOrder);
         return this;
     }
 
@@ -163,7 +179,7 @@ public sealed class NotificationPipelineBuilder
     /// <param name="finalHandler">Final handler to execute after all middleware.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task ExecutePipeline<TNotification>(
+    public async ValueTask ExecutePipeline<TNotification>(
         TNotification notification,
         IServiceProvider serviceProvider,
         NotificationDelegate<TNotification> finalHandler,
@@ -300,7 +316,7 @@ public sealed class NotificationPipelineBuilder
                     await currentPipeline(notif, ct).ConfigureAwait(false);
                     return;
                 }
-                if (IsTypeConstrainedMiddleware(middleware, actualNotificationType, notif))
+                if (IsTypeConstrainedMiddleware(middleware, actualNotificationType))
                 {
                     if (middlewareActivity != null)
                     {
@@ -380,7 +396,7 @@ public sealed class NotificationPipelineBuilder
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <param name="actualNotificationType">The actual notification type.</param>
     /// <returns>True if a constrained method was invoked; otherwise, false.</returns>
-    private async Task<bool> TryInvokeConstrainedMethodAsync<TNotification>(
+    private static async Task<bool> TryInvokeConstrainedMethodAsync<TNotification>(
         INotificationMiddleware middleware, 
         TNotification notification, 
         NotificationDelegate<TNotification> next, 
@@ -433,9 +449,8 @@ public sealed class NotificationPipelineBuilder
     /// </summary>
     /// <param name="middleware">The middleware instance.</param>
     /// <param name="notificationType">The notification type.</param>
-    /// <param name="notification">The notification instance.</param>
     /// <returns>True if the middleware is type-constrained and not compatible; otherwise, false.</returns>
-    private static bool IsTypeConstrainedMiddleware(INotificationMiddleware middleware, Type notificationType, object notification)
+    private static bool IsTypeConstrainedMiddleware(INotificationMiddleware middleware, Type notificationType)
     {
         // Use cached interface lookup to avoid repeated reflection
         var interfaces = PipelineUtilities.GetInterfacesCached(middleware.GetType());

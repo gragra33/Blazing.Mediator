@@ -17,7 +17,7 @@ public class EmailNotificationHandler :
         _logger = logger;
     }
 
-    public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(">> EMAIL: Sending order confirmation email to {CustomerEmail} for Order #{OrderId}", 
             notification.CustomerEmail, notification.OrderId);
@@ -33,7 +33,7 @@ public class EmailNotificationHandler :
         _logger.LogDebug("Email notification sent successfully for order {OrderId}", notification.OrderId);
     }
 
-    public async Task Handle(OrderStatusChangedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderStatusChangedNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(">> EMAIL: Sending order status update email to {CustomerEmail} for Order #{OrderId}", 
             notification.CustomerEmail, notification.OrderId);
@@ -48,7 +48,7 @@ public class EmailNotificationHandler :
         _logger.LogDebug("Status update email sent for order {OrderId}", notification.OrderId);
     }
 
-    public async Task Handle(CustomerRegisteredNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(CustomerRegisteredNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(">> EMAIL: Sending welcome email to new customer {CustomerEmail}", 
             notification.CustomerEmail);
@@ -78,7 +78,7 @@ public class InventoryNotificationHandler : INotificationHandler<InventoryUpdate
         _logger = logger;
     }
 
-    public async Task Handle(InventoryUpdatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(InventoryUpdatedNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(">> INVENTORY: Processing inventory update for {ProductId}", notification.ProductId);
         
@@ -123,7 +123,7 @@ public class BusinessOperationsHandler :
         _logger = logger;
     }
 
-    public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(">> BUSINESS: Processing new order business logic for Order #{OrderId}", notification.OrderId);
         
@@ -146,7 +146,7 @@ public class BusinessOperationsHandler :
         _logger.LogDebug("Business operations completed for order {OrderId}", notification.OrderId);
     }
 
-    public async Task Handle(OrderStatusChangedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderStatusChangedNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(">> BUSINESS: Processing status change business logic for Order #{OrderId}", notification.OrderId);
         
@@ -195,7 +195,7 @@ public class AuditNotificationHandler :
         _logger = logger;
     }
 
-    public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(">> AUDIT: Recording order creation event for Order #{OrderId}", notification.OrderId);
         
@@ -210,7 +210,7 @@ public class AuditNotificationHandler :
         _logger.LogDebug("Order creation audit completed for {OrderId}", notification.OrderId);
     }
 
-    public async Task Handle(OrderStatusChangedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderStatusChangedNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(">> AUDIT: Recording order status change for Order #{OrderId}", notification.OrderId);
         
@@ -225,7 +225,7 @@ public class AuditNotificationHandler :
         _logger.LogDebug("Status change audit completed for {OrderId}", notification.OrderId);
     }
 
-    public async Task Handle(CustomerRegisteredNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(CustomerRegisteredNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(">> AUDIT: Recording customer registration for {CustomerEmail}", notification.CustomerEmail);
         
@@ -240,7 +240,7 @@ public class AuditNotificationHandler :
         _logger.LogDebug("Customer registration audit completed for {CustomerEmail}", notification.CustomerEmail);
     }
 
-    public async Task Handle(InventoryUpdatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(InventoryUpdatedNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(">> AUDIT: Recording inventory update for {ProductId}", notification.ProductId);
         

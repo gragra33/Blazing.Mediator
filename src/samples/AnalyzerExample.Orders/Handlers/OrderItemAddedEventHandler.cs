@@ -16,7 +16,7 @@ public class OrderItemAddedEventHandler : INotificationHandler<OrderItemAddedEve
         _logger = logger;
     }
 
-    public async Task Handle(OrderItemAddedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderItemAddedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Item added to order {OrderId}: Product {ProductName} (Qty: {Quantity}) by {AddedBy}",
             notification.OrderId, notification.ProductName, notification.Quantity, notification.AddedBy);

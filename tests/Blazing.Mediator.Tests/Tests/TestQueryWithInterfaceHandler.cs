@@ -5,8 +5,8 @@ namespace Blazing.Mediator.Tests.Statistics;
 /// </summary>
 public class TestQueryWithInterfaceHandler : IRequestHandler<TestQueryWithInterface, string>
 {
-    public Task<string> Handle(TestQueryWithInterface request, CancellationToken cancellationToken)
+    public ValueTask<string> Handle(TestQueryWithInterface request, CancellationToken cancellationToken)
     {
-        return Task.FromResult($"Handled: {request.Value}");
+        return ValueTask.FromResult($"Handled: {request.Value}");
     }
 }

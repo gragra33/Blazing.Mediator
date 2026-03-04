@@ -16,7 +16,7 @@ public class DomainEventMiddleware<TNotification> : INotificationMiddleware<TNot
         _logger = logger;
     }
 
-    public async Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+    public async ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         _logger.LogInformation("??? [Domain Event] Processing {EventType} v{Version} at {OccurredAt}",
             notification.EventType, notification.Version, notification.OccurredAt);
@@ -26,7 +26,7 @@ public class DomainEventMiddleware<TNotification> : INotificationMiddleware<TNot
         _logger.LogInformation("??? [Domain Event] Completed {EventType}", notification.EventType);
     }
 
-    public async Task InvokeAsync<TNotificationGeneric>(TNotificationGeneric notification, NotificationDelegate<TNotificationGeneric> next, CancellationToken cancellationToken) where TNotificationGeneric : INotification
+    public async ValueTask InvokeAsync<TNotificationGeneric>(TNotificationGeneric notification, NotificationDelegate<TNotificationGeneric> next, CancellationToken cancellationToken) where TNotificationGeneric : INotification
     {
         if (notification is TNotification domainEvent)
         {

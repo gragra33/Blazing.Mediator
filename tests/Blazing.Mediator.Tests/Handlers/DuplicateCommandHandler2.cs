@@ -11,8 +11,8 @@ public class DuplicateCommandHandler2 : IRequestHandler<DuplicateHandlerCommand>
     /// <param name="request">The command request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A completed task.</returns>
-    public Task Handle(DuplicateHandlerCommand request, CancellationToken cancellationToken = default)
+    public ValueTask Handle(DuplicateHandlerCommand request, CancellationToken cancellationToken = default)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

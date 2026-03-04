@@ -1,25 +1,29 @@
-﻿# Blazing.Mediator - Notification Systems Guide
+# Blazing.Mediator - Notification Systems Guide
+
+> [!CAUTION]
+> Version 3.0.0 has breaking changes. See the **[Breaking Changes](https://github.com/gragra33/Blazing.Mediator/docs/BREAKING_CHANGES.md)** document for a complete list of API changes with before/after comparisons, and the **[MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/docs/MIGRATION_GUIDE.md)** for full upgrade steps.
 
 ## Table of Contents
 
 - [Introduction](#introduction)
 - [Quick Reference Tables](#quick-reference-tables)
 - [Pattern 1: Manual Subscriber System (Observer Pattern)](#pattern-1-manual-subscriber-system-observer-pattern-1)
-  - [Core Components](#core-components)
-  - [Implementation Examples](#implementation-examples)
-  - [Service Registration and Configuration](#service-registration-and-configuration)
-  - [Publishing Notifications](#publishing-notifications)
-  - [Pattern 1 Benefits and Use Cases](#pattern-1-benefits-and-use-cases)
-  - [Complete ECommerce Example](#complete-ecommerce-example)
+    - [Core Components](#core-components)
+    - [Implementation Examples](#implementation-examples)
+    - [Service Registration and Configuration](#service-registration-and-configuration)
+    - [Publishing Notifications with Subscribe / Unsubscribe Lifecycle](#publishing-notifications-with-subscribe--unsubscribe-lifecycle)
+    - [Pattern 1 Benefits and Use Cases](#pattern-1-benefits-and-use-cases)
+    - [Complete Blazor Client Example](#complete-blazor-client-example)
 
 - [Pattern 2: Automatic Handler System (Publish-Subscribe Pattern)](#pattern-2-automatic-handler-system-publish-subscribe-pattern-1)
-  - [Core Components](#core-components-1)
-  - [Implementation Examples](#implementation-examples-1)
-  - [Pattern 2 Handler Examples](#pattern-2-handler-examples)
-  - [Service Registration and Configuration](#service-registration-and-configuration-1)
-  - [Publishing Notifications](#publishing-notifications-1)
-  - [Handler Type Comparison](#handler-type-comparison)
-  - [Pattern 2 Benefits and Use Cases](#pattern-2-benefits-and-use-cases)
+    - [Core Components](#core-components-1)
+    - [Implementation Examples](#implementation-examples-1)
+    - [Pattern 2 Handler Examples](#pattern-2-handler-examples)
+    - [Service Registration and Configuration](#service-registration-and-configuration-1)
+    - [Publishing Notifications](#publishing-notifications-1)
+    - [Handler Type Comparison](#handler-type-comparison)
+    - [Pattern 2 Benefits and Use Cases](#pattern-2-benefits-and-use-cases)
+    - [Complete ECommerce Example](#complete-ecommerce-example)
 
 ## Introduction
 
@@ -35,12 +39,12 @@ The Manual Subscriber System implements the classic Observer Pattern, where noti
 
 **Key Characteristics:**
 
--   **Runtime Subscription Management**: Subscribers can join or leave notification streams during application execution
--   **Explicit Control**: Clear, intentional subscribe and unsubscribe operations
--   **Dynamic Behavior**: Subscription state can change based on runtime conditions
--   **Observer Pattern Compliance**: Follows the traditional Gang of Four Observer Pattern implementation
--   **Lifecycle Awareness**: Subscribers manage their own notification lifecycle
--   **Client-Optimized**: Particularly well-suited for client applications like Blazor WebAssembly, MAUI, WPF, WinForms, Console applications, and other desktop/mobile scenarios where dynamic subscription management is essential
+- **Runtime Subscription Management**: Subscribers can join or leave notification streams during application execution
+- **Explicit Control**: Clear, intentional subscribe and unsubscribe operations
+- **Dynamic Behavior**: Subscription state can change based on runtime conditions
+- **Observer Pattern Compliance**: Follows the traditional Gang of Four Observer Pattern implementation
+- **Lifecycle Awareness**: Subscribers manage their own notification lifecycle
+- **Client-Optimized**: Particularly well-suited for client applications like Blazor WebAssembly, MAUI, WPF, WinForms, Console applications, and other desktop/mobile scenarios where dynamic subscription management is essential
 
 #### Pattern 2: Automatic Handler System (Publish-Subscribe Pattern)
 
@@ -48,12 +52,12 @@ The Automatic Handler System implements a Publish-Subscribe Pattern with automat
 
 **Key Characteristics:**
 
--   **Automatic Discovery**: Handlers are discovered and registered through DI container scanning
--   **Convention-Based**: Follows standard dependency injection registration patterns
--   **Compile-Time Registration**: Handler relationships are established during application startup
--   **Zero Configuration**: No manual subscription code required for basic scenarios
--   **DI Integration**: Leverages existing dependency injection infrastructure and patterns
--   **Server-Optimized**: Ideal for server applications like ASP.NET Core, Web API, Blazor Server, and microservices, but equally effective for client applications requiring structured, predictable notification handling
+- **Automatic Discovery**: Handlers are discovered and registered through DI container scanning
+- **Convention-Based**: Follows standard dependency injection registration patterns
+- **Compile-Time Registration**: Handler relationships are established during application startup
+- **Zero Configuration**: No manual subscription code required for basic scenarios
+- **DI Integration**: Leverages existing dependency injection infrastructure and patterns
+- **Server-Optimized**: Ideal for server applications like ASP.NET Core, Web API, Blazor Server, and microservices, but equally effective for client applications requiring structured, predictable notification handling
 
 ### Middleware Integration Architecture
 
@@ -61,148 +65,200 @@ Both notification systems seamlessly integrate with a sophisticated bidirectiona
 
 **Bidirectional Processing:**
 
--   **Pre-notification Processing**: Middleware executes before notification delivery to subscribers/handlers
--   **Post-notification Processing**: Middleware executes after notification processing completes
--   **Exception Handling**: Comprehensive error handling and recovery mechanisms
--   **State Management**: Maintaining context and state throughout the notification pipeline
+- **Pre-notification Processing**: Middleware executes before notification delivery to subscribers/handlers
+- **Post-notification Processing**: Middleware executes after notification processing completes
+- **Exception Handling**: Comprehensive error handling and recovery mechanisms
+- **State Management**: Maintaining context and state throughout the notification pipeline
 
 **Multiple Processor Support:**
 
--   **Concurrent Processing**: Multiple subscribers and handlers can process the same notification simultaneously
--   **Independent Execution**: Each processor operates independently with isolated error handling
--   **Aggregated Results**: Middleware can collect and analyze results from multiple processors
--   **Performance Monitoring**: Individual and aggregate performance metrics for all processors
+- **Concurrent Processing**: Multiple subscribers and handlers can process the same notification simultaneously
+- **Independent Execution**: Each processor operates independently with isolated error handling
+- **Aggregated Results**: Middleware can collect and analyze results from multiple processors
+- **Performance Monitoring**: Individual and aggregate performance metrics for all processors
 
 ### Notification Flow Architecture
 
-The visual diagram below illustrates how notifications flow through the Blazing.Mediator system, showing the dual-pattern processing and bidirectional middleware pipeline that handles both subscriber and handler-based notifications.
+The visual diagram below illustrates how notifications flow through the Blazing.Mediator system. The two patterns are **mutually exclusive dispatch paths**: a notification type is handled by _either_ the source-gen handler path _or_ the subscriber path — never both. Both paths support notification middleware, but via different mechanisms.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                     Blazing.Mediator Dual Notification Flow                     │
+│                   Blazing.Mediator Notification Dispatch Flow                   │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
-📢 Notification Published
+📢 IMediator.Publish<TNotification>(notification, ct)
     │
     ▼
-┌─────────────────┐
-│ Notification    │
-│ Middleware      │
-│ Pipeline        │
-│ (Bidirectional) │
-└─────────┬───────┘
-          │
-          │ Pre-processing
-          ▼
-    ┌──────────────────────────────────────────────────┐
-    │           Notification Dispatcher                │
-    │         (Processes Both Systems)                 │
-    └─────────────┬────────────────────────────────────┘
-                  │
-                  ├─── PATTERN 1: Manual Subscriber System ───┐
-                  │                                           │
-                  │    ┌─────────────────────────────────┐    │
-                  │    │     Registered Subscribers      │    │
-                  │    │   (Runtime Subscription)        │    │
-                  │    └─────────┬───────────────────────┘    │
-                  │              │                            │
-                  │              ├─ Specific Subscriber A     │
-                  │              ├─ Specific Subscriber B     │
-                  │              └─ Generic Subscriber C      │
-                  │                                           │
-                  └─── PATTERN 2: Automatic Handler System ───┤
-                                                              │
-                       ┌─────────────────────────────────┐    │
-                       │    DI Container Handlers        │    │
-                       │   (Compile-time Registration)   │    │
-                       └─────────┬───────────────────────┘    │
-                                 │                            │
-                                 ├─ Notification Handler A    │
-                                 ├─ Notification Handler B    │
-                                 └─ Notification Handler C    │
-                                                              │
-    ┌─────────────────────────────────────────────────────────┘
-    │
-    │ Concurrent Processing
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Parallel Processor Execution                   │
-│                                                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
-│  │ Processor 1 │  │ Processor 2 │  │ Processor N │  ...     │
-│  │ (Isolated)  │  │ (Isolated)  │  │ (Isolated)  │          │
-│  └─────────────┘  └─────────────┘  └─────────────┘          │
-│         │                 │                 │               │
-│         │ Individual      │ Individual      │ Individual    │
-│         │ Error           │ Error           │ Error         │
-│         │ Handling        │ Handling        │ Handling      │
-│         ▼                 ▼                 ▼               │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
-│  │   Result    │  │   Result    │  │   Result    │          │
-│  │ (Success/   │  │ (Success/   │  │ (Success/   │          │
-│  │  Failure)   │  │  Failure)   │  │  Failure)   │          │
-│  └─────────────┘  └─────────────┘  └─────────────┘          │
-└─────────────────────────────────────────────────────────────┘
-    │
-    │ Post-processing & Aggregation
-    ▼
-┌─────────────────┐
-│ Notification    │
-│ Middleware      │
-│ Pipeline        │
-│ (Post-process)  │
-└─────────┬───────┘
-          │
-          │ Results & Metrics
-          ▼
-    ┌─────────────────┐
-    │ Telemetry &     │
-    │ Logging         │
-    │ • Success Count │
-    │ • Failure Count │
-    │ • Duration      │
-    │ • Error Details │
-    └─────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  GetDispatcher()  ─  retrieve source-gen singleton           │
+└──────────────────────────────┬───────────────────────────────┘
+                               │
+                               ▼
+              ┌────────────────────────────────┐
+              │  IsNotificationHandled         │
+              │      <TNotification>()         │
+              │  (JIT-constant, zero overhead) │
+              └──────────────┬─────────────────┘
+                             │
+              ┌──────────────┴────────────────┐
+              │ true                          │ false
+              ▼                               ▼
+┌─────────────────────────┐   ┌──────────────────────────────────────────────┐
+│  PATTERN 2              │   │  PATTERN 1                                   │
+│  Source-gen Handler     │   │  Subscriber-only Path                        │
+│  Path                   │   │                                              │
+│                         │   │  ┌────────────────────────────────────────┐  │
+│  d.PublishAsync()       │   │  │  Notification Middleware Pipeline      │  │
+│  (generated dispatcher) │   │  │  (pre-processing, runtime DI)          │  │
+│         │               │   │  └────────────────────┬───────────────────┘  │
+│         ▼               │   │                       │                      │
+│  NotificationHandler    │   │       ┌───────────────┴────────────────┐     │
+│  Wrapper_{TypeName}     │   │       │                                │     │
+│  • pre-resolved at      │   │       ▼                                ▼     │
+│    Init() time          │   │  ┌────────────────────┐  ┌─────────────────┐ │
+│  • zero DI per call     │   │  │INotificationSubscri│  │INotification    │ │
+│         │               │   │  │ber<TNotification>  │  │Subscriber       │ │
+│         ▼               │   │  │(specific typed)    │  │(generic, any T) │ │
+│  ┌─────────────────┐    │   │  └────────────────────┘  └─────────────────┘ │
+│  │ Notification    │    │   │                                              │
+│  │ Middleware Chain│    │   │  ┌────────────────────────────────────────┐  │
+│  │ INotification   │    │   │  │  Notification Middleware Pipeline      │  │
+│  │ Middleware      │    │   │  │  (post-processing + telemetry)         │  │
+│  │ <TNotification> │    │   │  └────────────────────────────────────────┘  │
+│  │ (source-gen,    │    │   └──────────────────────────────────────────────┘
+│  │  zero DI/call)  │    │
+│  └────────┬────────┘    │
+│           │             │
+│           ▼             │
+│  INotificationPublisher │
+│  .Publish(handlers,...) │
+│         │               │
+│  ┌──────┴──────┐        │
+│  │ Sequential  │        │
+│  │ (default)   │        │
+│  │  ─OR─       │        │
+│  │ Concurrent  │        │
+│  └──────┬──────┘        │
+│         │               │
+│         ▼               │
+│  INotificationHandler   │
+│  <TNotification>[]      │
+│  ┌──────┐ ┌──────┐      │
+│  │  A   │ │  B   │ ...  │
+│  └──────┘ └──────┘      │
+└─────────────────────────┘
+
+KEY (middleware):
+  Pattern 2 — INotificationMiddleware<TNotification> chain baked by source generator;
+               pre-resolved at Init(), zero DI lookups per call
+  Pattern 1 — INotificationMiddleware (non-generic) executed by runtime pipeline builder;
+               resolved from DI on each publish
+
+═══════════════════════════════════════════════════════════════════════════════════
+```
+
+#### Source-Gen Handler Dispatch Detail
+
+The following diagram shows how the source-gen path resolves and invokes handlers at runtime:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                Source-Gen Handler Dispatch (Pattern 2 deep-dive)                │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+Build time (Roslyn source generator):
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  Blazing.Mediator.SourceGenerators emits  →  Mediator.g.cs                      │
+│                                                                                 │
+│  class ContainerMetadata : MediatorDispatcherBase                               │
+│  {                                                                              │
+│    NotificationHandlerWrapper_OrderCreated  _wrap_OrderCreated;                 │
+│    NotificationHandlerWrapper_UserRegistered _wrap_UserRegistered;              │
+│    ...                                                                          │
+│                                                                                 │
+│    bool IsNotificationHandled<T>() → compile-time type switch (constant)        │
+│    ValueTask PublishAsync<T>()     → compile-time type switch dispatch          │
+│  }                                                                              │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+Startup (Init called once by AddMediator):
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  NotificationHandlerWrapper_OrderCreated.Init(IServiceProvider sp)              │
+│    _handlers = sp.GetServices<INotificationHandler<OrderCreated>>().ToArray()   │
+│    _publisher = sp.GetRequiredService<INotificationPublisher>()                 │
+│    _nmw0     = sp.GetRequiredService<INotificationMiddleware<OrderCreated>>()   │
+│    ...  (one _nmwN field per applicable middleware — resolved once)             │
+│    (all references stored as fields; no DI at call time)                        │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+Per-call (zero DI lookups):
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  PublishAsync<OrderCreated>(notification, ct)                                   │
+│    │                                                                            │
+│    ▼                                                                            │
+│  _wrap_OrderCreated.Handle(notification, ct)                                    │
+│    │                                                                            │
+│    ├─ if middleware registered (notifMiddleware.Count > 0):                     │
+│    │     NotificationDelegate<OrderCreated> next =                              │
+│    │       (n,ct) => _publisher.Publish(                                        │
+│    │           new NotificationHandlers<OrderCreated>(_handlers), n, ct)        │
+│    │     // chain built in reverse order (outermost middleware last):           │
+│    │     next = (n,ct) => _nmw0.InvokeAsync(n, prev0, ct)                       │
+│    │     return next(notification, ct)                                          │
+│    │                                                                            │
+│    └─ if no middleware:                                                         │
+│          return _publisher.Publish(                                             │
+│              new NotificationHandlers<OrderCreated>(_handlers),                 │
+│              notification, ct)                                                  │
+│    │                                                                            │
+│    INotificationPublisher strategies:                                           │
+│    ├── SequentialNotificationPublisher (default)                                │
+│    │     foreach handler → await handler.Handle(notification, ct)               │
+│    │                                                                            │
+│    └── ConcurrentNotificationPublisher (opt-in)                                 │
+│          await Task.WhenAll(handlers.Select(h => h.Handle(notification, ct)))   │
+└─────────────────────────────────────────────────────────────────────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════════
 ```
 
 #### System Characteristics:
 
--   ✅ Dual Pattern Support: Both Observer and Publish-Subscribe patterns available
--   ✅ Bidirectional Middleware: Pre and post-processing capabilities
--   ✅ Concurrent Processing: Multiple processors handle notifications simultaneously
--   ✅ Independent Error Handling: Isolated failure handling per processor
--   ✅ Comprehensive Telemetry: Detailed metrics and monitoring capabilities
--   ✅ Flexible Architecture: Mix and match patterns based on requirements
+- ✅ Dual Pattern Support: Both manual subscriber and automatic handler patterns available
+- ✅ Mutually Exclusive Dispatch: Each notification type routes to exactly one path (no double-firing)
+- ✅ Zero-DI Handler Dispatch: Source-gen path pre-resolves handlers at startup — no DI per call
+- ✅ Middleware on Both Paths: Pattern 2 uses source-gen compiled `INotificationMiddleware<TNotification>` chains (zero DI per call); Pattern 1 uses the runtime `_notificationPipelineBuilder` with `INotificationMiddleware`
+- ✅ Pluggable Publisher Strategy: Sequential (default) or Concurrent handler invocation via `INotificationPublisher`
+- ✅ Comprehensive Telemetry: Detailed metrics and monitoring on the subscriber path
+- ✅ Flexible Architecture: Mix and match patterns based on requirements
 
 ### System Integration Benefits
 
 The dual notification system architecture provides several key advantages:
 
--   **Architectural Flexibility**: Choose the most appropriate pattern for each notification scenario, or combine both patterns within the same application for maximum flexibility.
+- **Architectural Flexibility**: Choose the most appropriate pattern for each notification scenario, or combine both patterns within the same application for maximum flexibility.
 
--   **Gradual Migration**: Existing applications can migrate from one pattern to another incrementally, supporting both systems during transition periods.
+- **Gradual Migration**: Existing applications can migrate from one pattern to another incrementally, supporting both systems during transition periods.
 
--   **Performance Optimization**: Manual subscribers provide runtime control for performance-critical scenarios, while automatic handlers offer zero-configuration convenience.
+- **Performance Optimization**: Manual subscribers provide runtime control for performance-critical scenarios, while automatic handlers offer zero-configuration convenience.
 
--   **Testing Strategies**: Each pattern supports different testing approaches - manual subscribers enable dynamic test scenarios, while automatic handlers support standard dependency injection testing patterns.
+- **Testing Strategies**: Each pattern supports different testing approaches - manual subscribers enable dynamic test scenarios, while automatic handlers support standard dependency injection testing patterns.
 
--   **Scalability Options**: Different scaling strategies can be applied to each pattern based on specific performance and resource requirements.
+- **Scalability Options**: Different scaling strategies can be applied to each pattern based on specific performance and resource requirements.
 
 ### Middleware Pipeline Features
 
 The notification middleware pipeline provides comprehensive processing capabilities:
 
--   **Cross-Cutting Concerns**: Apply logging, validation, authorization, caching, and other cross-cutting concerns uniformly across all notifications.
+- **Cross-Cutting Concerns**: Apply logging, validation, authorization, caching, and other cross-cutting concerns uniformly across all notifications.
 
--   **Error Handling**: Sophisticated error handling with the ability to continue processing other subscribers/handlers even when individual processors fail.
+- **Error Handling**: Sophisticated error handling with the ability to continue processing other subscribers/handlers even when individual processors fail.
 
--   **Performance Monitoring**: Detailed telemetry and metrics collection for monitoring notification processing performance and success rates.
+- **Performance Monitoring**: Detailed telemetry and metrics collection for monitoring notification processing performance and success rates.
 
--   **Conditional Processing**: Middleware can selectively process notifications based on type, content, or runtime conditions.
+- **Conditional Processing**: Middleware can selectively process notifications based on type, content, or runtime conditions.
 
--   **State Management**: Maintain processing context and state throughout the entire notification pipeline execution.
+- **State Management**: Maintain processing context and state throughout the entire notification pipeline execution.
 
 ### Outbox Pattern Integration
 
@@ -302,20 +358,20 @@ Notification handlers serve as the perfect first step in the Outbox Pattern impl
 
 #### Outbox Pattern Benefits:
 
--   ✅ Atomic Operations: Business data and message storage in single transaction
--   ✅ Reliability: Guaranteed message delivery through persistent storage
--   ✅ Consistency: Prevents dual-write problems and data inconsistencies
--   ✅ Resilience: Built-in retry mechanisms and error handling
--   ✅ Observability: Full audit trail of message processing
--   ✅ Scalability: Asynchronous processing decoupled from business operations
+- ✅ Atomic Operations: Business data and message storage in single transaction
+- ✅ Reliability: Guaranteed message delivery through persistent storage
+- ✅ Consistency: Prevents dual-write problems and data inconsistencies
+- ✅ Resilience: Built-in retry mechanisms and error handling
+- ✅ Observability: Full audit trail of message processing
+- ✅ Scalability: Asynchronous processing decoupled from business operations
 
 #### Implementation Considerations:
 
--   🔧 Database Storage: Outbox table in same database as business data
--   🔧 Background Processing: Separate service polls and processes messages
--   🔧 Idempotency: Ensure message processing is idempotent
--   🔧 Monitoring: Track message processing success rates and latency
--   🔧 Cleanup: Regular cleanup of processed messages to prevent table growth
+- 🔧 Database Storage: Outbox table in same database as business data
+- 🔧 Background Processing: Separate service polls and processes messages
+- 🔧 Idempotency: Ensure message processing is idempotent
+- 🔧 Monitoring: Track message processing success rates and latency
+- 🔧 Cleanup: Regular cleanup of processed messages to prevent table growth
 
 ## Quick Reference Tables
 
@@ -323,88 +379,136 @@ Notification handlers serve as the perfect first step in the Outbox Pattern impl
 
 Understanding the two notification systems helps you choose the right approach for your specific requirements. Each pattern serves different architectural needs and provides unique advantages depending on your application's structure and usage patterns.
 
-| **Aspect** | **Manual Subscriber System** | **Automatic Handler System** |
-|------------|-------------------------------|-------------------------------|
-| **Pattern Type** | Observer Pattern | Publish-Subscribe Pattern |
-| **Registration** | Runtime subscription/unsubscription | Compile-time via DI container |
-| **Discovery** | Manual subscription management | Automatic handler discovery |
-| **Interface** | `INotificationSubscriber<T>` | `INotificationHandler<T>` |
-| **Configuration** | `mediator.Subscribe(handler)` | Zero configuration required |
-| **Lifecycle** | Dynamic runtime control | Application startup registration |
-| **Best For** | Client applications, dynamic scenarios | Server applications, structured processing |
-| **Examples** | Blazor WebAssembly, MAUI, WPF | ASP.NET Core, Web API, microservices |
+| **Aspect**        | **Manual Subscriber System**           | **Automatic Handler System**                   |
+| ----------------- | -------------------------------------- | ---------------------------------------------- |
+| **Pattern Type**  | Observer Pattern                       | Publish-Subscribe Pattern                      |
+| **Registration**  | Runtime subscription/unsubscription    | Compile-time source-gen + DI registration      |
+| **Discovery**     | Manual subscription management         | Source-gen compiled dispatch (zero reflection) |
+| **Interface**     | `INotificationSubscriber<T>`           | `INotificationHandler<T>`                      |
+| **Configuration** | `mediator.Subscribe(handler)`          | Zero configuration required                    |
+| **Lifecycle**     | Dynamic runtime control                | Application startup registration               |
+| **Best For**      | Client applications, dynamic scenarios | Server applications, structured processing     |
+| **Examples**      | Blazor WebAssembly, MAUI, WPF          | ASP.NET Core, Web API, microservices           |
 
 ### Core Interfaces
 
 These interfaces form the foundation of both notification systems, providing type-safe contracts for publishing and handling domain events throughout your application.
 
-| **Interface** | **Purpose** | **Pattern** | **Example Usage** |
-|---------------|-------------|-------------|-------------------|
-| `INotification` | Marker interface for all notifications | Both | `public class OrderCreatedNotification : INotification` |
-| `INotificationSubscriber<T>` | Manual subscription interface | Pattern 1 | `public class EmailSubscriber : INotificationSubscriber<OrderCreated>` |
-| `INotificationHandler<T>` | Automatic handler interface | Pattern 2 | `public class EmailHandler : INotificationHandler<OrderCreated>` |
-| `IMediator.Publish()` | Publish notifications | Both | `await _mediator.Publish(new OrderCreatedNotification(...))` |
-| `IMediator.Subscribe()` | Manual subscription | Pattern 1 | `_mediator.Subscribe(emailSubscriber)` |
-| `IMediator.Unsubscribe()` | Manual unsubscription | Pattern 1 | `_mediator.Unsubscribe(emailSubscriber)` |
+| **Interface**                | **Purpose**                                       | **Pattern** | **Example Usage**                                                              |
+| ---------------------------- | ------------------------------------------------- | ----------- | ------------------------------------------------------------------------------ |
+| `INotification`              | Marker interface for all notifications            | Both        | `public class OrderCreatedNotification : INotification`                        |
+| `INotificationSubscriber<T>` | Type-specific manual subscription interface       | Pattern 1   | `public class EmailSubscriber : INotificationSubscriber<OrderCreated>`         |
+| `INotificationSubscriber`    | Broadcast manual subscription (all notifications) | Pattern 1   | `public class AuditSubscriber : INotificationSubscriber`                       |
+| `INotificationHandler<T>`    | Automatic handler interface (source-gen dispatch) | Pattern 2   | `public class EmailHandler : INotificationHandler<OrderCreated>`               |
+| `INotificationPublisher`     | Pluggable handler dispatch strategy               | Pattern 2   | Built-in: `SequentialNotificationPublisher`, `ConcurrentNotificationPublisher` |
+| `IMediator.Publish()`        | Publish notifications                             | Both        | `await _mediator.Publish(new OrderCreatedNotification(...))`                   |
+| `IMediator.Subscribe()`      | Manual subscription                               | Pattern 1   | `_mediator.Subscribe(emailSubscriber)`                                         |
+| `IMediator.Unsubscribe()`    | Manual unsubscription                             | Pattern 1   | `_mediator.Unsubscribe(emailSubscriber)`                                       |
 
 ### Middleware Types
 
 The notification middleware pipeline supports three distinct types of middleware, each providing different levels of type safety and processing scope for comprehensive cross-cutting concerns.
 
-| **Middleware Type** | **Interface** | **Scope** | **Use Case** | **Example** |
-|---------------------|---------------|-----------|--------------|-------------|
-| **Standard Generic** | `INotificationMiddleware<INotification>` | All notifications | Cross-cutting concerns | Logging, validation, metrics |
-| **Type-Constrained** | `INotificationMiddleware<IOrderNotification>` | Specific interface types | Domain-specific processing | Order auditing, customer validation |
-| **Generic Constraints** | `where TNotification : INotification, IAuditableEvent` | Complex type requirements | Advanced scenarios | Security validation, compliance |
-| **Non-Generic** | `INotificationMiddleware` | All notifications (untyped) | Basic processing | Simple logging, error handling |
+| **Middleware Type**     | **Interface**                                          | **Scope**                   | **Use Case**               | **Example**                         |
+| ----------------------- | ------------------------------------------------------ | --------------------------- | -------------------------- | ----------------------------------- |
+| **Standard Generic**    | `INotificationMiddleware<INotification>`               | All notifications           | Cross-cutting concerns     | Logging, validation, metrics        |
+| **Type-Constrained**    | `INotificationMiddleware<IOrderNotification>`          | Specific interface types    | Domain-specific processing | Order auditing, customer validation |
+| **Generic Constraints** | `where TNotification : INotification, IAuditableEvent` | Complex type requirements   | Advanced scenarios         | Security validation, compliance     |
+| **Non-Generic**         | `INotificationMiddleware`                              | All notifications (untyped) | Basic processing           | Simple logging, error handling      |
 
 ### Configuration Options
 
-Choose the appropriate configuration method based on your application's complexity and requirements. The fluent configuration API provides maximum flexibility for complex scenarios.
+Choose the appropriate configuration method based on your application's complexity and requirements.
 
-| **Configuration Method** | **Pattern** | **Registration Style** | **Use Case** |
-|---------------------------|-------------|------------------------|--------------|
-| `AddMediator(assembly)` | Both | Automatic discovery | Simple applications |
-| `config.AddNotificationMiddleware<T>()` | Both | Explicit middleware | Custom cross-cutting concerns |
-| `config.WithNotificationHandlerDiscovery()` | Pattern 2 | Auto-discover handlers | Server applications |
-| `services.AddScoped<INotificationSubscriber<T>>()` | Pattern 1 | Manual subscriber registration | Client applications |
-| `mediator.Subscribe(subscriber)` | Pattern 1 | Runtime subscription | Dynamic scenarios |
+| **Configuration Method**                                                                   | **Pattern** | **Registration Style**                  | **Use Case**                            |
+| ------------------------------------------------------------------------------------------ | ----------- | --------------------------------------- | --------------------------------------- |
+| `AddMediator()`                                                                            | Both        | Source-generated compile-time           | All applications (recommended)          |
+| `AddMediator(config, o => o.NotificationPublisher = NotificationPublisherType.Concurrent)` | Both        | Runtime publisher strategy + source gen | Parallel handler execution              |
+| `AddMediator(config => { config.WithStats... })`                                           | Both        | Runtime options + source gen            | When statistics/telemetry needed        |
+| `services.AddScoped<INotificationSubscriber<T>>()`                                         | Pattern 1   | Manual subscriber registration          | Client applications (Blazor WASM, MAUI) |
+| `mediator.Subscribe(subscriber)`                                                           | Pattern 1   | Runtime subscription                    | Dynamic scenarios                       |
+
+#### MediatorOptions
+
+Passed as an optional `Action<MediatorOptions>` to any `AddMediator()` overload to tune low-level runtime behaviour:
+
+```csharp
+builder.Services.AddMediator(config, options =>
+{
+    // Choose notification dispatch strategy (default: Sequential)
+    options.NotificationPublisher = NotificationPublisherType.Concurrent;
+
+    // DI service lifetime for handlers, middleware, and IMediator (default: Singleton)
+    options.ServiceLifetime = ServiceLifetime.Scoped;
+
+    // Eagerly or lazily initialise handler wrappers (default: Eager)
+    options.CachingMode = CachingMode.Lazy;
+});
+```
+
+| **Option**                  | **Type**                    | **Default**  | **Description**                                             |
+| --------------------------- | --------------------------- | ------------ | ----------------------------------------------------------- |
+| `NotificationPublisher`     | `NotificationPublisherType` | `Sequential` | Sequential or concurrent handler dispatch strategy          |
+| `ServiceLifetime`           | `ServiceLifetime`           | `Singleton`  | DI lifetime for handlers, middleware, and `IMediator`       |
+| `CachingMode`               | `CachingMode`               | `Eager`      | Eager or lazy initialisation of source-gen handler wrappers |
+| `FrozenDictionaryThreshold` | `int`                       | `20`         | Handler count above which a `FrozenDictionary` is used      |
+
+### Notification Publisher Strategies (v3.0.0)
+
+v3.0.0 introduces the `INotificationPublisher` pluggable strategy that controls how `INotificationHandler<T>` handlers are invoked by the source-generated dispatch path. Two built-in strategies are provided:
+
+| **Strategy**                      | **`NotificationPublisherType`** | **Behaviour**                                                                                                                             |
+| --------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `SequentialNotificationPublisher` | `Sequential` (**default**)      | Invokes handlers one-by-one via `foreach await`. Unrolled fast-paths for 1–3 handlers.                                                    |
+| `ConcurrentNotificationPublisher` | `Concurrent`                    | Starts all handlers synchronously before the first `await`, then awaits pending tasks. Throws `AggregateException` if any handler faults. |
+
+Both strategies also have telemetry variants (`TelemetrySequentialPublisher`, `TelemetryConcurrentPublisher`) that are automatically selected when OpenTelemetry with per-handler child spans is configured.
+
+You can also provide a **custom publisher** by registering your own `INotificationPublisher` implementation _before_ calling `AddMediator()`:
+
+```csharp
+// Custom publisher registered before AddMediator() — takes precedence over the built-in default
+builder.Services.AddSingleton<INotificationPublisher, MyCustomPublisher>();
+builder.Services.AddMediator(config);
+```
+
+> **Note:** The `INotificationPublisher` strategy only applies to `INotificationHandler<T>` (Pattern 2 — Automatic Handler System). Manual `INotificationSubscriber<T>` registrations (Pattern 1) are dispatched separately via the subscriber pipeline and are not affected by this setting.
 
 ### Error Handling Strategies
 
 Robust error handling ensures notification processing continues even when individual subscribers or handlers fail, maintaining system stability and reliability.
 
-| **Error Handling Approach** | **Implementation** | **Benefits** | **Example** |
-|------------------------------|-------------------|--------------|-------------|
-| **Isolated Processing** | Try-catch per handler/subscriber | Individual failures don't affect others | `try { await handler.Handle(); } catch { log.Error(); }` |
-| **Middleware Error Handling** | Global error middleware | Centralized error processing | `INotificationMiddleware` with exception handling |
-| **Logging Strategy** | Structured logging | Comprehensive error tracking | `_logger.LogError(ex, "Handler {HandlerType} failed")` |
-| **Circuit Breaker** | Resilience patterns | Prevent cascade failures | `Polly` integration with handlers |
-| **Dead Letter Queue** | Failed message storage | Retry failed notifications | Store failed notifications for later processing |
+| **Error Handling Approach**   | **Implementation**               | **Benefits**                            | **Example**                                              |
+| ----------------------------- | -------------------------------- | --------------------------------------- | -------------------------------------------------------- |
+| **Isolated Processing**       | Try-catch per handler/subscriber | Individual failures don't affect others | `try { await handler.Handle(); } catch { log.Error(); }` |
+| **Middleware Error Handling** | Global error middleware          | Centralized error processing            | `INotificationMiddleware` with exception handling        |
+| **Logging Strategy**          | Structured logging               | Comprehensive error tracking            | `_logger.LogError(ex, "Handler {HandlerType} failed")`   |
+| **Circuit Breaker**           | Resilience patterns              | Prevent cascade failures                | `Polly` integration with handlers                        |
+| **Dead Letter Queue**         | Failed message storage           | Retry failed notifications              | Store failed notifications for later processing          |
 
 ### Performance Considerations
 
 Optimize notification processing performance by understanding the characteristics and trade-offs of different implementation approaches and architectural decisions.
 
-| **Performance Factor** | **Manual Subscribers** | **Automatic Handlers** | **Optimization Tips** |
-|-------------------------|-------------------------|------------------------|-----------------------|
-| **Registration Overhead** | Runtime subscription cost | Compile-time registration | Use automatic handlers for better startup performance |
-| **Memory Usage** | Dynamic subscriber lists | Static handler registration | Unsubscribe unused manual subscribers |
-| **Processing Speed** | Direct method calls | DI container resolution | Consider scoped vs singleton lifetimes |
-| **Concurrency** | Thread-safe subscription | Parallel handler execution | Use `ConfigureAwait(false)` in handlers (excluding ASP.Net) |
-| **Middleware Pipeline** | Same pipeline overhead | Same pipeline overhead | Use conditional middleware for selective processing |
+| **Performance Factor**    | **Manual Subscribers**    | **Automatic Handlers**                                     | **Optimization Tips**                                     |
+| ------------------------- | ------------------------- | ---------------------------------------------------------- | --------------------------------------------------------- |
+| **Registration Overhead** | Runtime subscription cost | Compile-time registration (source gen)                     | Use automatic handlers for zero-overhead startup          |
+| **Memory Usage**          | Dynamic subscriber lists  | Singleton pre-cached handler arrays                        | Unsubscribe unused manual subscribers                     |
+| **Processing Speed**      | Direct method calls       | Source-gen compiled dispatch (zero DI lookups per call)    | Choose `Sequential` or `Concurrent` publisher             |
+| **Concurrency**           | Thread-safe subscription  | `Sequential` (ordered) or `Concurrent` (parallel) handlers | Use `NotificationPublisherType.Concurrent` for throughput |
+| **Middleware Pipeline**   | Same pipeline overhead    | Same pipeline overhead                                     | Use conditional middleware for selective processing       |
 
 ### Testing Strategies
 
 Each notification pattern supports different testing approaches, enabling comprehensive test coverage for various scenarios and requirements.
 
-| **Testing Approach** | **Manual Subscribers** | **Automatic Handlers** | **Best Practices** |
-|----------------------|-------------------------|-------------------------|--------------------|
-| **Unit Testing** | Mock `INotificationSubscriber<T>` | Mock `INotificationHandler<T>` | Test handlers in isolation |
-| **Integration Testing** | Test actual subscription/unsubscription | Test handler discovery and registration | Verify end-to-end notification flow |
-| **Middleware Testing** | Same pipeline testing | Same pipeline testing | Test middleware in isolation and integrated |
-| **Performance Testing** | Measure subscription overhead | Measure handler throughput | Use performance counters and metrics |
-| **Mocking Strategy** | Mock mediator subscription calls | Mock handler dependencies | Use dependency injection for testability |
+| **Testing Approach**    | **Manual Subscribers**                  | **Automatic Handlers**                  | **Best Practices**                          |
+| ----------------------- | --------------------------------------- | --------------------------------------- | ------------------------------------------- |
+| **Unit Testing**        | Mock `INotificationSubscriber<T>`       | Mock `INotificationHandler<T>`          | Test handlers in isolation                  |
+| **Integration Testing** | Test actual subscription/unsubscription | Test handler discovery and registration | Verify end-to-end notification flow         |
+| **Middleware Testing**  | Same pipeline testing                   | Same pipeline testing                   | Test middleware in isolation and integrated |
+| **Performance Testing** | Measure subscription overhead           | Measure handler throughput              | Use performance counters and metrics        |
+| **Mocking Strategy**    | Mock mediator subscription calls        | Mock handler dependencies               | Use dependency injection for testability    |
 
 ## Pattern 1: Manual Subscriber System (Observer Pattern)
 
@@ -425,15 +529,24 @@ public interface INotification
 
 #### Notification Subscriber Interface
 
-Subscribers implement `INotificationSubscriber<TNotification>`:
+Subscribers implement `INotificationSubscriber<TNotification>` for type-specific subscriptions, or the non-generic `INotificationSubscriber` to receive all notifications:
 
 ```csharp
-public interface INotificationSubscriber<in TNotification> : INotificationSubscriber
-    where TNotification : INotification
+// Type-specific subscriber — receives only notifications of TNotification
+public interface INotificationSubscriber<in TNotification> where TNotification : INotification
 {
     Task OnNotification(TNotification notification, CancellationToken cancellationToken = default);
 }
+
+// Generic (broadcast) subscriber — receives every published notification
+public interface INotificationSubscriber
+{
+    Task OnNotification(INotification notification, CancellationToken cancellationToken = default);
+}
 ```
+
+> **Note:** `INotificationSubscriber<T>` and `INotificationSubscriber` are independent interfaces.
+> The typed variant does **not** inherit from the non-generic one.
 
 ### Implementation Examples
 
@@ -574,11 +687,11 @@ Configure the Manual Subscriber System in your application's dependency injectio
 
 #### Basic Registration
 
-The simplest way to get started is with automatic discovery, which scans your assembly and registers all subscribers automatically.
+With v3.0.0, the source generator auto-discovers all subscribers and middleware at compile time:
 
 ```csharp
-// Program.cs - Register mediator and automatically discover subscribers
-builder.Services.AddMediator(typeof(Program).Assembly);
+// Program.cs — source generator discovers all subscribers automatically
+builder.Services.AddMediator();
 
 // Manually register specific subscribers if needed
 builder.Services.AddScoped<INotificationSubscriber<OrderCreatedNotification>, OrderEmailNotificationSubscriber>();
@@ -587,119 +700,109 @@ builder.Services.AddScoped<INotificationSubscriber<UserRegisteredNotification>, 
 
 #### Advanced Registration with Configuration
 
-Configure additional middleware components that provide cross-cutting concerns like logging, metrics, and error handling for all notifications.
+With v3.0.0, notification middleware is auto-discovered — only runtime options need configuration:
 
 ```csharp
-// Program.cs - Advanced configuration with middleware
+// Program.cs — runtime configuration only; middleware is auto-discovered by source generator
 builder.Services.AddMediator(config =>
 {
-    // Add notification middleware for cross-cutting concerns
-    config.AddNotificationMiddleware<NotificationLoggingMiddleware>();
-    config.AddNotificationMiddleware<NotificationMetricsMiddleware>();
-    config.AddNotificationMiddleware<NotificationErrorHandlingMiddleware>();
-
-    // Configure assemblies to scan for subscribers
-    config.AddFromAssembly(typeof(Program).Assembly);
-    config.AddFromAssembly(typeof(OrderCreatedNotification).Assembly);
-
-}, typeof(Program).Assembly);
+    config.WithStatisticsTracking();
+    // Notification middleware is auto-discovered at compile time
+});
 ```
 
-### Publishing Notifications
+### Publishing Notifications with Subscribe / Unsubscribe Lifecycle
 
-Publish notifications from various parts of your application to trigger all subscribed notification handlers through the mediator system.
+The defining characteristic of Pattern 1 is that subscribers control their own lifecycle — they explicitly subscribe when they become active and unsubscribe when they are disposed. The publisher simply calls `IMediator.Publish()` without any knowledge of who is listening.
 
-#### In Business Logic Services
+#### In a Blazor Component
 
-Here's how to publish notifications from your business services after completing business operations. The mediator will automatically deliver notifications to all subscribed handlers.
+Blazor components are a primary use case for Pattern 1. Subscribe during `OnInitialized` and unsubscribe in `Dispose()` to match the component lifecycle:
 
 ```csharp
-// Service that creates orders and publishes notifications
-public class OrderService
-{
-    private readonly IOrderRepository _orderRepository;
-    private readonly IMediator _mediator;
-    private readonly ILogger<OrderService> _logger;
+@implements IDisposable
+@inject IMediator Mediator
+@inject ILogger<CheckoutPage> Logger
+@inject OrderEmailNotificationSubscriber EmailSubscriber
 
-    public OrderService(
-        IOrderRepository orderRepository,
-        IMediator mediator,
-        ILogger<OrderService> logger)
+<button @onclick="PlaceOrderAsync">Place Order</button>
+
+@code {
+    protected override void OnInitialized()
     {
-        _orderRepository = orderRepository;
-        _mediator = mediator;
-        _logger = logger;
+        // Subscribe when the component becomes active
+        Mediator.Subscribe(EmailSubscriber);
     }
 
-    public async Task<int> CreateOrderAsync(CreateOrderRequest request, CancellationToken cancellationToken = default)
+    private async Task PlaceOrderAsync()
     {
-        // Create and save the order
-        var order = new Order
-        {
-            CustomerEmail = request.CustomerEmail,
-            TotalAmount = request.TotalAmount,
-            OrderDate = DateTime.UtcNow,
-            Status = OrderStatus.Created
-        };
+        // ... local state / validation ...
 
-        await _orderRepository.AddAsync(order, cancellationToken);
-        await _orderRepository.SaveChangesAsync(cancellationToken);
+        // Publish — all currently subscribed Pattern 1 subscribers are notified
+        await Mediator.Publish(new OrderCreatedNotification(
+            orderId: 42,
+            customerEmail: "user@example.com",
+            totalAmount: 99.99m,
+            orderDate: DateTime.UtcNow));
 
-        _logger.LogInformation("📦 Order {OrderId} created for {CustomerEmail}",
-            order.Id, order.CustomerEmail);
+        Logger.LogInformation("📢 OrderCreatedNotification published");
+    }
 
-        // Publish notification to all subscribers
-        var notification = new OrderCreatedNotification(
-            order.Id,
-            order.CustomerEmail,
-            order.TotalAmount,
-            order.OrderDate);
-
-        await _mediator.Publish(notification, cancellationToken);
-
-        return order.Id;
+    public void Dispose()
+    {
+        // Unsubscribe when the component is torn down — no memory leaks
+        Mediator.Unsubscribe(EmailSubscriber);
     }
 }
 ```
 
-#### In Command Handlers
+#### In a ViewModel (MAUI / WPF / WinForms)
 
-Publish notifications from CQRS command handlers to enable clean separation between command processing and event notifications.
+ViewModels in desktop and mobile applications manage subscription lifetime in their constructor and `Dispose()` method:
 
 ```csharp
-// Command handler that publishes notifications
-public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, int>
+public class CheckoutViewModel : IDisposable
 {
-    private readonly IOrderRepository _orderRepository;
     private readonly IMediator _mediator;
-    private readonly ILogger<CreateOrderCommandHandler> _logger;
+    private readonly ILogger<CheckoutViewModel> _logger;
+    private readonly OrderEmailNotificationSubscriber _emailSubscriber;
+    private readonly AuditNotificationSubscriber _auditSubscriber;
 
-    public CreateOrderCommandHandler(
-        IOrderRepository orderRepository,
+    public CheckoutViewModel(
         IMediator mediator,
-        ILogger<CreateOrderCommandHandler> logger)
+        ILogger<CheckoutViewModel> logger,
+        OrderEmailNotificationSubscriber emailSubscriber,
+        AuditNotificationSubscriber auditSubscriber)
     {
-        _orderRepository = orderRepository;
         _mediator = mediator;
         _logger = logger;
+        _emailSubscriber = emailSubscriber;
+        _auditSubscriber = auditSubscriber;
+
+        // Subscribe when the ViewModel becomes active
+        _mediator.Subscribe(_emailSubscriber);
+        _mediator.Subscribe(_auditSubscriber);
     }
 
-    public async Task<int> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
+    public async Task PlaceOrderAsync(string customerEmail, decimal totalAmount, CancellationToken cancellationToken = default)
     {
-        // Business logic
-        var order = Order.Create(request.CustomerEmail, request.Items);
-        await _orderRepository.AddAsync(order);
+        // ... local validation / state update ...
 
-        // Publish domain event
+        // Publish — currently subscribed handlers are notified
         await _mediator.Publish(new OrderCreatedNotification(
-            order.Id,
-            order.CustomerEmail,
-            order.TotalAmount,
-            order.CreatedDate), cancellationToken);
+            orderId: 42,
+            customerEmail: customerEmail,
+            totalAmount: totalAmount,
+            orderDate: DateTime.UtcNow), cancellationToken);
 
-        _logger.LogInformation("🎯 Order {OrderId} created and notification published", order.Id);
+        _logger.LogInformation("📢 OrderCreatedNotification published from CheckoutViewModel");
+    }
 
-        return order.Id;
+    public void Dispose()
+    {
+        // Unsubscribe when the ViewModel is destroyed
+        _mediator.Unsubscribe(_emailSubscriber);
+        _mediator.Unsubscribe(_auditSubscriber);
     }
 }
 ```
@@ -710,117 +813,130 @@ The Manual Subscriber System provides key advantages in scenarios requiring runt
 
 **Benefits:**
 
--   **Runtime Flexibility**: Subscribe and unsubscribe dynamically based on conditions
--   **Explicit Control**: Clear, intentional subscription management
--   **Testability**: Easy to mock and test individual subscribers
--   **Loose Coupling**: Publishers don't know about specific subscribers
--   **Error Isolation**: Failed subscribers don't affect others
+- **Runtime Flexibility**: Subscribe and unsubscribe dynamically based on conditions
+- **Explicit Control**: Clear, intentional subscription management
+- **Testability**: Easy to mock and test individual subscribers
+- **Loose Coupling**: Publishers don't know about specific subscribers
+- **Error Isolation**: Failed subscribers don't affect others
 
 **Ideal Use Cases:**
 
--   **Dynamic Subscription Requirements**: When subscription state changes based on user preferences, application state, or business rules
--   **Client Applications**: Desktop (WPF, WinForms), mobile (MAUI), and web client applications (Blazor WebAssembly)
--   **Interactive Scenarios**: Real-time notifications, user interface updates, event-driven workflows
--   **Conditional Processing**: When notifications should only be processed under certain conditions
--   **Plugin Architectures**: Where modules can dynamically register for specific events
+- **Dynamic Subscription Requirements**: When subscription state changes based on user preferences, application state, or business rules
+- **Client Applications**: Desktop (WPF, WinForms), mobile (MAUI), and web client applications (Blazor WebAssembly)
+- **Interactive Scenarios**: Real-time notifications, user interface updates, event-driven workflows
+- **Conditional Processing**: When notifications should only be processed under certain conditions
+- **Plugin Architectures**: Where modules can dynamically register for specific events
 
-### Complete ECommerce Example
+### Complete Blazor Client Example
 
-A comprehensive e-commerce order processing workflow demonstrates how multiple subscribers can handle different aspects of order processing independently using the Manual Subscriber System.
+A complete Blazor WebAssembly shopping cart scenario demonstrates how multiple typed subscribers handle different aspects of an order event, with the component managing the full subscribe/unsubscribe lifecycle.
 
 ```csharp
-// Domain Models
-public class Order
+// Shared notification (defined in a shared project, e.g. MyApp.Shared)
+public class OrderPlacedNotification : INotification
 {
-    public int Id { get; set; }
-    public string CustomerEmail { get; set; } = string.Empty;
-    public decimal TotalAmount { get; set; }
-    public DateTime CreatedDate { get; set; }
-    public OrderStatus Status { get; set; }
-}
+    public int OrderId { get; }
+    public string CustomerEmail { get; }
+    public decimal TotalAmount { get; }
+    public DateTime OrderDate { get; }
 
-public enum OrderStatus
-{
-    Created,
-    Paid,
-    Shipped,
-    Delivered,
-    Cancelled
-}
-
-// Repository Pattern
-public interface IOrderRepository
-{
-    Task AddAsync(Order order, CancellationToken cancellationToken = default);
-    Task<Order?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
-    Task SaveChangesAsync(CancellationToken cancellationToken = default);
-}
-
-public class OrderRepository : IOrderRepository
-{
-    private readonly ApplicationDbContext _context;
-
-    public OrderRepository(ApplicationDbContext context)
+    public OrderPlacedNotification(int orderId, string customerEmail, decimal totalAmount, DateTime orderDate)
     {
-        _context = context;
-    }
-
-    public async Task AddAsync(Order order, CancellationToken cancellationToken = default)
-    {
-        _context.Orders.Add(order);
-    }
-
-    public async Task<Order?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
-    {
-        return await _context.Orders.FindAsync([id], cancellationToken);
-    }
-
-    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        await _context.SaveChangesAsync(cancellationToken);
+        OrderId = orderId;
+        CustomerEmail = customerEmail;
+        TotalAmount = totalAmount;
+        OrderDate = orderDate;
     }
 }
 
-// Email Service
-public interface IEmailService
+// Subscriber 1: updates local UI state (toast / banner)
+public class OrderConfirmationUiSubscriber : INotificationSubscriber<OrderPlacedNotification>
 {
-    Task SendOrderConfirmationAsync(string email, int orderId, decimal amount, CancellationToken cancellationToken = default);
-}
+    private readonly IToastService _toast;
 
-public class EmailService : IEmailService
-{
-    private readonly ILogger<EmailService> _logger;
+    public OrderConfirmationUiSubscriber(IToastService toast) => _toast = toast;
 
-    public EmailService(ILogger<EmailService> logger)
+    public Task OnNotification(OrderPlacedNotification notification, CancellationToken cancellationToken = default)
     {
-        _logger = logger;
-    }
-
-    public async Task SendOrderConfirmationAsync(string email, int orderId, decimal amount, CancellationToken cancellationToken = default)
-    {
-        // Simulate email sending
-        await Task.Delay(100, cancellationToken);
-
-        _logger.LogInformation("📧 Email sent to {Email}: Order {OrderId} confirmed for ${Amount:F2}",
-            email, orderId, amount);
+        _toast.ShowSuccess($"✅ Order #{notification.OrderId} placed for ${notification.TotalAmount:F2}");
+        return Task.CompletedTask;
     }
 }
 
-// Complete setup in Program.cs
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Subscriber 2: clears the local cart state
+public class CartClearSubscriber : INotificationSubscriber<OrderPlacedNotification>
+{
+    private readonly ICartState _cart;
 
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<OrderService>();
+    public CartClearSubscriber(ICartState cart) => _cart = cart;
 
-// Register Blazing.Mediator with automatic subscriber discovery
-builder.Services.AddMediator(typeof(Program).Assembly);
+    public async Task OnNotification(OrderPlacedNotification notification, CancellationToken cancellationToken = default)
+    {
+        await _cart.ClearAsync(cancellationToken);
+    }
+}
+
+// Blazor component — manages full subscribe/unsubscribe lifecycle
+@page "/checkout"
+@implements IDisposable
+@inject IMediator Mediator
+@inject OrderConfirmationUiSubscriber UiSubscriber
+@inject CartClearSubscriber CartSubscriber
+@inject ILogger<CheckoutPage> Logger
+
+<h2>Checkout</h2>
+<button @onclick="PlaceOrderAsync" disabled="@_isProcessing">Place Order</button>
+
+@code {
+    private bool _isProcessing;
+
+    protected override void OnInitialized()
+    {
+        // Subscribe when the page becomes active
+        Mediator.Subscribe(UiSubscriber);
+        Mediator.Subscribe(CartSubscriber);
+    }
+
+    private async Task PlaceOrderAsync()
+    {
+        _isProcessing = true;
+        try
+        {
+            // ... call API / local logic to create the order record ...
+            int newOrderId = 42; // result from API call
+
+            // Publish — notifies all currently subscribed Pattern 1 subscribers
+            await Mediator.Publish(new OrderPlacedNotification(
+                orderId: newOrderId,
+                customerEmail: "user@example.com",
+                totalAmount: 99.99m,
+                orderDate: DateTime.UtcNow));
+
+            Logger.LogInformation("📢 OrderPlacedNotification published for order {OrderId}", newOrderId);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe when the component is torn down — prevents stale subscriptions
+        Mediator.Unsubscribe(UiSubscriber);
+        Mediator.Unsubscribe(CartSubscriber);
+    }
+}
+
+// DI registration in Program.cs (Blazor WASM / MAUI client)
+builder.Services.AddMediator();
+builder.Services.AddScoped<OrderConfirmationUiSubscriber>();
+builder.Services.AddScoped<CartClearSubscriber>();
 ```
 
 ## Pattern 2: Automatic Handler System (Publish-Subscribe Pattern)
 
-The Automatic Handler System implements a Publish-Subscribe Pattern with automatic handler discovery through the Dependency Injection container. This system provides a convention-based approach where notification handlers are automatically registered during application startup and invoked without explicit subscription management. Handlers are discovered through assembly scanning and registered automatically, requiring zero configuration for basic scenarios.
+The Automatic Handler System implements a Publish-Subscribe Pattern with compile-time handler discovery via the Roslyn source generator. Handlers are registered in DI and wired into a pre-compiled dispatch chain at build time — no runtime assembly scanning, no reflection at call time. Invoke them by simply calling `IMediator.Publish()` and the source-generated dispatcher routes the notification to all registered handlers with zero DI lookups per call.
 
 ### Core Components
 
@@ -833,12 +949,13 @@ The primary interface that all automatic handlers must implement to receive noti
 Handlers implement `INotificationHandler<T>`:
 
 ```csharp
-public interface INotificationHandler<in TNotification> : INotificationHandler
-    where TNotification : INotification
+public interface INotificationHandler<in TNotification> where TNotification : INotification
 {
-    Task Handle(TNotification notification, CancellationToken cancellationToken = default);
+    ValueTask Handle(TNotification notification, CancellationToken cancellationToken = default);
 }
 ```
+
+> **Note:** There is no non-generic `INotificationHandler` base interface. Each handler directly implements the typed generic variant.
 
 #### Notification Middleware Interface
 
@@ -849,17 +966,21 @@ The system supports three distinct types of notification middleware, each provid
 Generic middleware that processes all notifications implementing `INotification`:
 
 ```csharp
-// Processes all notifications in the system
-public interface INotificationMiddleware<in TNotification> : INotificationMiddleware
-    where TNotification : INotification
-{
-    Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default);
-}
-
-// Non-generic interface for all notifications
+// Non-generic base interface — handles every notification in the system
 public interface INotificationMiddleware
 {
-    Task InvokeAsync(INotification notification, NotificationDelegate next, CancellationToken cancellationToken = default);
+    // Execution order — lower numbers run first. Defaults to 0.
+    int Order => 0;
+
+    ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+        where TNotification : INotification;
+}
+
+// Generic (type-constrained) interface — extends the non-generic base
+public interface INotificationMiddleware<TNotification> : INotificationMiddleware
+    where TNotification : INotification
+{
+    ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken);
 }
 ```
 
@@ -877,7 +998,7 @@ public interface IOrderNotification : INotification
 
 public class OrderNotificationMiddleware : INotificationMiddleware<IOrderNotification>
 {
-    public async Task InvokeAsync(IOrderNotification notification, NotificationDelegate<IOrderNotification> next, CancellationToken cancellationToken = default)
+    public async ValueTask InvokeAsync(IOrderNotification notification, NotificationDelegate<IOrderNotification> next, CancellationToken cancellationToken = default)
     {
         // Process only order notifications
         await next(notification, cancellationToken);
@@ -894,7 +1015,7 @@ Middleware with complex generic type constraints for advanced scenarios:
 public class ComplexNotificationMiddleware<TNotification> : INotificationMiddleware<TNotification>
     where TNotification : INotification, IOrderNotification
 {
-    public async Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+    public async ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
     {
         // Process notifications that implement both INotification and IOrderNotification
         await next(notification, cancellationToken);
@@ -1004,7 +1125,7 @@ public class OrderCreatedHandler : INotificationHandler<OrderCreatedNotification
         _logger = logger;
     }
 
-    public async Task Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Processing order created event for Order {OrderId}", notification.OrderId);
 
@@ -1038,7 +1159,7 @@ public class UserRegisteredHandler : INotificationHandler<UserRegisteredNotifica
         _logger = logger;
     }
 
-    public async Task Handle(UserRegisteredNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UserRegisteredNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Processing user registration for User {UserId}", notification.UserId);
 
@@ -1068,7 +1189,7 @@ public class LoggingNotificationMiddleware : INotificationMiddleware<INotificati
         _logger = logger;
     }
 
-    public async Task InvokeAsync(INotification notification, NotificationDelegate<INotification> next, CancellationToken cancellationToken = default)
+    public async ValueTask InvokeAsync(INotification notification, NotificationDelegate<INotification> next, CancellationToken cancellationToken = default)
     {
         var notificationType = notification.GetType().Name;
         _logger.LogInformation("Processing notification: {NotificationType}", notificationType);
@@ -1102,7 +1223,8 @@ public class ValidationNotificationMiddleware : INotificationMiddleware
         _logger = logger;
     }
 
-    public async Task InvokeAsync(INotification notification, NotificationDelegate next, CancellationToken cancellationToken = default)
+    public async ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
+        where TNotification : INotification
     {
         // Basic validation for all notifications
         if (notification == null)
@@ -1175,7 +1297,7 @@ public class OrderShippedHandler : INotificationHandler<OrderShippedNotification
         _logger = logger;
     }
 
-    public async Task Handle(OrderShippedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderShippedNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Processing order shipped event for Order {OrderId}", notification.OrderId);
 
@@ -1228,7 +1350,7 @@ public class OrderNotificationMiddleware : INotificationMiddleware<IOrderNotific
         _logger = logger;
     }
 
-    public async Task InvokeAsync(IOrderNotification notification, NotificationDelegate<IOrderNotification> next, CancellationToken cancellationToken = default)
+    public async ValueTask InvokeAsync(IOrderNotification notification, NotificationDelegate<IOrderNotification> next, CancellationToken cancellationToken = default)
     {
         var notificationType = notification.GetType().Name;
         _logger.LogInformation("Processing order notification: {NotificationType} for Order {OrderId}",
@@ -1305,7 +1427,7 @@ public class ComplexOrderHandler<TNotification> : INotificationHandler<TNotifica
         _logger = logger;
     }
 
-    public async Task Handle(TNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(TNotification notification, CancellationToken cancellationToken = default)
     {
         var notificationType = typeof(TNotification).Name;
         _logger.LogInformation("Processing complex order notification: {NotificationType} for Order {OrderId}",
@@ -1373,7 +1495,7 @@ public class AdvancedOrderMiddleware<TNotification> : INotificationMiddleware<TN
         _logger = logger;
     }
 
-    public async Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+    public async ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
     {
         var notificationType = typeof(TNotification).Name;
         var performanceContext = _monitoringService.StartMonitoring($"OrderNotification_{notificationType}", notification.OrderId);
@@ -1432,7 +1554,7 @@ public class SecurityOrderMiddleware<TNotification> : INotificationMiddleware<TN
         _logger = logger;
     }
 
-    public async Task InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
+    public async ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default)
     {
         // Security validation for order notifications
         var isAuthorized = await _securityService.ValidateOrderAccessAsync(
@@ -1458,13 +1580,13 @@ Configure the Automatic Handler System in your application's dependency injectio
 
 #### Basic Registration
 
-The simplest configuration automatically discovers and registers all handlers and middleware from your assembly, requiring minimal setup code.
+With v3.0.0, the source generator auto-discovers all handlers and middleware at compile time:
 
 ```csharp
-// Program.cs - Register mediator and automatically discover handlers
-builder.Services.AddMediator(typeof(Program).Assembly);
+// Source generator discovers all INotificationHandler<T> implementations automatically
+builder.Services.AddMediator();
 
-// The following are automatically registered:
+// The following are automatically registered by the source generator:
 // - OrderCreatedHandler
 // - OrderShippedHandler
 // - UserRegisteredHandler
@@ -1473,27 +1595,15 @@ builder.Services.AddMediator(typeof(Program).Assembly);
 
 #### Advanced Registration with Middleware
 
-Advanced configuration provides maximum control over the processing pipeline by explicitly registering all three types of middleware alongside automatic handler discovery.
+With v3.0.0, notification middleware is auto-discovered — only runtime options need configuration:
 
 ```csharp
-// Program.cs - Advanced configuration with all middleware types
+// Program.cs — runtime configuration only; all middleware auto-discovered by source generator
 builder.Services.AddMediator(config =>
 {
-    // Register Standard Generic Middleware
-    config.AddNotificationMiddleware<LoggingNotificationMiddleware>();
-    config.AddNotificationMiddleware<ValidationNotificationMiddleware>();
-
-    // Register Type-Constrained Middleware
-    config.AddNotificationMiddleware<OrderNotificationMiddleware>();
-
-    // Register Generic Type Constraints Middleware
-    config.AddNotificationMiddleware(typeof(AdvancedOrderMiddleware<>));
-    config.AddNotificationMiddleware(typeof(SecurityOrderMiddleware<>));
-
-    // Scan for handlers and other middleware
-    config.AddFromAssembly(typeof(Program).Assembly);
-
-}, typeof(Program).Assembly);
+    config.WithStatisticsTracking();
+    // Notification middleware is auto-discovered at compile time
+});
 
 // Register supporting services
 builder.Services.AddScoped<IOrderAuditService, OrderAuditService>();
@@ -1578,24 +1688,24 @@ Choose the right middleware type for your specific requirements by understanding
 
 #### Standard Generic Middleware
 
--   **Scope**: Processes ALL notifications in the system
--   **Use Case**: Cross-cutting concerns like logging, validation, performance monitoring
--   **Type Safety**: Works with `INotification` base interface
--   **Registration**: `INotificationMiddleware<INotification>` or `INotificationMiddleware`
+- **Scope**: Processes ALL notifications in the system
+- **Use Case**: Cross-cutting concerns like logging, validation, performance monitoring
+- **Type Safety**: Works with `INotification` base interface
+- **Registration**: `INotificationMiddleware<INotification>` or `INotificationMiddleware`
 
 #### Type-Constrained Middleware
 
--   **Scope**: Processes notifications implementing specific interfaces or base types
--   **Use Case**: Domain-specific logic for related notification groups
--   **Type Safety**: Strongly typed to specific interfaces (e.g., `IOrderNotification`)
--   **Registration**: `INotificationMiddleware<IOrderNotification>`
+- **Scope**: Processes notifications implementing specific interfaces or base types
+- **Use Case**: Domain-specific logic for related notification groups
+- **Type Safety**: Strongly typed to specific interfaces (e.g., `IOrderNotification`)
+- **Registration**: `INotificationMiddleware<IOrderNotification>`
 
 #### Generic Type Constraints
 
--   **Scope**: Processes notifications meeting complex generic constraints
--   **Use Case**: Advanced scenarios requiring multiple interface implementations
--   **Type Safety**: Multiple generic constraints with `where` clauses
--   **Registration**: Open generic types like `typeof(AdvancedOrderMiddleware<>)`
+- **Scope**: Processes notifications meeting complex generic constraints
+- **Use Case**: Advanced scenarios requiring multiple interface implementations
+- **Type Safety**: Multiple generic constraints with `where` clauses
+- **Registration**: Open generic types like `typeof(AdvancedOrderMiddleware<>)`
 
 ### Pattern 2 Benefits and Use Cases
 
@@ -1603,19 +1713,193 @@ Key advantages of the Automatic Handler System and scenarios where convention-ba
 
 **Benefits:**
 
--   **Zero Configuration**: Handlers are discovered and registered automatically
--   **Convention-Based**: Follows standard DI patterns and conventions
--   **Compile-Time Safety**: Strongly typed handler interfaces with compile-time checking
--   **Separation of Concerns**: Each handler focuses on a single notification type
--   **Testability**: Easy to unit test individual handlers in isolation
--   **Scalability**: Automatic registration scales with application growth
--   **Middleware Integration**: Seamless integration with sophisticated middleware pipeline
--   **Multiple Handler Support**: Multiple handlers can process the same notification type
+- **Zero Configuration**: Handlers are discovered and registered automatically
+- **Convention-Based**: Follows standard DI patterns and conventions
+- **Compile-Time Safety**: Strongly typed handler interfaces with compile-time checking
+- **Separation of Concerns**: Each handler focuses on a single notification type
+- **Testability**: Easy to unit test individual handlers in isolation
+- **Scalability**: Automatic registration scales with application growth
+- **Middleware Integration**: Seamless integration with sophisticated middleware pipeline
+- **Multiple Handler Support**: Multiple handlers can process the same notification type
 
 **Ideal Use Cases:**
 
--   **Server Applications**: ASP.NET Core, Web API, Blazor Server, microservices
--   **Background Services**: Worker services, scheduled tasks, message processors
--   **Event-Driven Architecture**: Domain events, integration events, system events
--   **CQRS Implementation**: Command and query responsibility separation
--   **Clean Architecture**: Domain layer event handling and cross-cutting concerns
+- **Server Applications**: ASP.NET Core, Web API, Blazor Server, microservices
+- **Background Services**: Worker services, scheduled tasks, message processors
+- **Event-Driven Architecture**: Domain events, integration events, system events
+- **CQRS Implementation**: Command and query responsibility separation
+- **Clean Architecture**: Domain layer event handling and cross-cutting concerns
+
+### Complete ECommerce Example
+
+A complete ASP.NET Core Web API e-commerce order workflow demonstrating Pattern 2's compile-time handler discovery. Multiple `INotificationHandler<T>` implementations are automatically discovered and wired by the source generator — the API endpoint simply publishes; no subscription management required.
+
+```csharp
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+public class OrderCreatedNotification : INotification
+{
+    public int OrderId { get; }
+    public string CustomerEmail { get; }
+    public decimal TotalAmount { get; }
+    public List<OrderItem> Items { get; }
+
+    public OrderCreatedNotification(int orderId, string customerEmail, decimal totalAmount, List<OrderItem> items)
+    {
+        OrderId = orderId;
+        CustomerEmail = customerEmail;
+        TotalAmount = totalAmount;
+        Items = items;
+    }
+}
+
+public class OrderShippedNotification : INotification
+{
+    public int OrderId { get; }
+    public string TrackingNumber { get; }
+    public string Carrier { get; }
+
+    public OrderShippedNotification(int orderId, string trackingNumber, string carrier)
+    {
+        OrderId = orderId;
+        TrackingNumber = trackingNumber;
+        Carrier = carrier;
+    }
+}
+
+// ── Handlers for OrderCreatedNotification (auto-discovered at compile time) ────
+
+// Sends order confirmation email
+public class OrderConfirmationEmailHandler : INotificationHandler<OrderCreatedNotification>
+{
+    private readonly IEmailService _email;
+    private readonly ILogger<OrderConfirmationEmailHandler> _logger;
+
+    public OrderConfirmationEmailHandler(IEmailService email, ILogger<OrderConfirmationEmailHandler> logger)
+    {
+        _email = email;
+        _logger = logger;
+    }
+
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    {
+        await _email.SendOrderConfirmationAsync(
+            notification.CustomerEmail, notification.OrderId, notification.TotalAmount, cancellationToken);
+
+        _logger.LogInformation("📧 Confirmation email sent for order {OrderId}", notification.OrderId);
+    }
+}
+
+// Reserves inventory for all order items
+public class InventoryReservationHandler : INotificationHandler<OrderCreatedNotification>
+{
+    private readonly IInventoryService _inventory;
+    private readonly ILogger<InventoryReservationHandler> _logger;
+
+    public InventoryReservationHandler(IInventoryService inventory, ILogger<InventoryReservationHandler> logger)
+    {
+        _inventory = inventory;
+        _logger = logger;
+    }
+
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    {
+        foreach (var item in notification.Items)
+            await _inventory.ReserveAsync(item.ProductId, item.Quantity, cancellationToken);
+
+        _logger.LogInformation("📦 Inventory reserved for order {OrderId} ({Count} lines)",
+            notification.OrderId, notification.Items.Count);
+    }
+}
+
+// Writes an audit record
+public class OrderAuditHandler : INotificationHandler<OrderCreatedNotification>
+{
+    private readonly IAuditService _audit;
+
+    public OrderAuditHandler(IAuditService audit) => _audit = audit;
+
+    public async ValueTask Handle(OrderCreatedNotification notification, CancellationToken cancellationToken = default)
+    {
+        await _audit.RecordAsync("OrderCreated", notification.OrderId,
+            new { notification.CustomerEmail, notification.TotalAmount }, cancellationToken);
+    }
+}
+
+// ── Handler for OrderShippedNotification ──────────────────────────────────────
+
+public class ShipmentEmailHandler : INotificationHandler<OrderShippedNotification>
+{
+    private readonly IEmailService _email;
+    private readonly ILogger<ShipmentEmailHandler> _logger;
+
+    public ShipmentEmailHandler(IEmailService email, ILogger<ShipmentEmailHandler> logger)
+    {
+        _email = email;
+        _logger = logger;
+    }
+
+    public async ValueTask Handle(OrderShippedNotification notification, CancellationToken cancellationToken = default)
+    {
+        await _email.SendShipmentNotificationAsync(
+            notification.OrderId, notification.TrackingNumber, notification.Carrier, cancellationToken);
+
+        _logger.LogInformation("🚚 Shipment notification sent for order {OrderId} via {Carrier}",
+            notification.OrderId, notification.Carrier);
+    }
+}
+
+// ── CQRS command handler — publishes after persisting ─────────────────────────
+
+public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, int>
+{
+    private readonly IOrderRepository _orders;
+    private readonly IMediator _mediator;
+
+    public CreateOrderCommandHandler(IOrderRepository orders, IMediator mediator)
+    {
+        _orders = orders;
+        _mediator = mediator;
+    }
+
+    public async ValueTask<int> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
+    {
+        var order = Order.Create(command.CustomerEmail, command.Items);
+        await _orders.AddAsync(order, cancellationToken);
+        await _orders.SaveChangesAsync(cancellationToken);
+
+        // Publish — source-gen dispatcher routes to all three handlers above automatically
+        await _mediator.Publish(new OrderCreatedNotification(
+            order.Id, order.CustomerEmail, order.TotalAmount, order.Items), cancellationToken);
+
+        return order.Id;
+    }
+}
+
+// ── ASP.NET Core Minimal API endpoint ─────────────────────────────────────────
+
+app.MapPost("/orders", async (
+    CreateOrderRequest req,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    // Send CQRS command — handler persists order and publishes notification
+    var orderId = await mediator.Send(new CreateOrderCommand(req.CustomerEmail, req.Items), ct);
+    return Results.Created($"/orders/{orderId}", new { orderId });
+});
+
+// ── Program.cs registration ───────────────────────────────────────────────────
+
+builder.Services.AddDbContext<OrderDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+
+// AddMediator() — source generator has already discovered and wired all three
+// OrderCreatedNotification handlers and the ShipmentEmailHandler at compile time.
+// No explicit handler registration required.
+builder.Services.AddMediator();
+```

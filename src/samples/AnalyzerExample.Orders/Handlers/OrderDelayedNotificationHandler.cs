@@ -16,7 +16,7 @@ public class OrderDelayedNotificationHandler : INotificationHandler<OrderDelayed
         _logger = logger;
     }
 
-    public async Task Handle(OrderDelayedNotification notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderDelayedNotification notification, CancellationToken cancellationToken = default)
     {
         _logger.LogWarning("Order {OrderId} ({OrderNumber}) is delayed. Expected: {ExpectedDate}, Actual: {ActualDate}, Reason: {Reason}",
             notification.OrderId, notification.OrderNumber, notification.ExpectedDate, 

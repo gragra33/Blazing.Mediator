@@ -10,7 +10,7 @@ public class BasicOperationalMonitoringMiddleware<TRequest>(ILogger<BasicOperati
 {
     public int Order => 40; // Execute after business operation audit
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var requestType = typeof(TRequest).Name;
@@ -44,7 +44,7 @@ public class OperationalMonitoringMiddleware<TRequest, TResponse> : IRequestMidd
 
     public int Order => 2146483650; // Execute after validation middleware
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var requestName = typeof(TRequest).Name;
         using var activity = ActivitySource.StartActivity($"Monitor_{requestName}");

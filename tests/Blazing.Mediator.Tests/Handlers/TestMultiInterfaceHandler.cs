@@ -14,8 +14,8 @@ public class TestMultiInterfaceHandler :
     /// <param name="request">The test multi command to handle.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A completed task.</returns>
-    public Task Handle(TestMultiCommand request, CancellationToken cancellationToken = default)
-        => Task.CompletedTask;
+    public ValueTask Handle(TestMultiCommand request, CancellationToken cancellationToken = default)
+        => ValueTask.CompletedTask;
 
     /// <summary>
     /// Handles the test multi query and returns a fixed response.
@@ -23,6 +23,6 @@ public class TestMultiInterfaceHandler :
     /// <param name="request">The test multi query to handle.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task containing the string "multi".</returns>
-    public Task<string> Handle(TestMultiQuery request, CancellationToken cancellationToken = default)
-        => Task.FromResult("multi");
+    public ValueTask<string> Handle(TestMultiQuery request, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult("multi");
 }

@@ -9,13 +9,12 @@
     <!-- Enable central package management -->
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 
-
     <!-- Default versioning (can be overridden in individual projects) -->
-    <ApplicationDisplayVersion>2.0.1</ApplicationDisplayVersion>
-    <ApplicationVersion>2,0,1</ApplicationVersion>
-    <AssemblyVersion>2.0.1.0</AssemblyVersion>
-    <FileVersion>2.0.1.0</FileVersion>
-    <Version>2.0.1</Version>
+    <ApplicationDisplayVersion>3.0.0</ApplicationDisplayVersion>
+    <ApplicationVersion>3,0,0</ApplicationVersion>
+    <AssemblyVersion>3.0.0.0</AssemblyVersion>
+    <FileVersion>3.0.0.0</FileVersion>
+    <Version>3.0.0</Version>
 
     <!-- Repository information -->
     <RepositoryUrl>https://github.com/gragra33/Blazing.Mediator</RepositoryUrl>
@@ -27,7 +26,7 @@
     <NoWarn>$(NoWarn);NETSDK1057;NU1608;CS1591;NU1605</NoWarn>
     
     <!-- Treat all warnings as errors -->
-    <!--- <TreatWarningsAsErrors>true</TreatWarningsAsErrors> -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
     <!-- Code analysis and style enforcement -->
     <!-- <AnalysisLevel>latest</AnalysisLevel>

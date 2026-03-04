@@ -1,45 +1,49 @@
 # Mediator Statistics Configuration Guide
 
+> [!CAUTION]
+> Version 3.0.0 has breaking changes. See the **[Breaking Changes](https://github.com/gragra33/Blazing.Mediator/docs/BREAKING_CHANGES.md)** document for a complete list of API changes with before/after comparisons, and the **[MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/docs/MIGRATION_GUIDE.md)** for full upgrade steps.
+
 ## Table of Contents
 
 1. [Overview](#overview)
 2. [Quick Reference Tables](#quick-reference-tables)
-   - [StatisticsOptions Configuration Properties](#statisticsoptions-configuration-properties)
-   - [StatisticsOptions Preset Configurations](#statisticsoptions-preset-configurations)
-   - [Query & Command Analysis Properties (QueryCommandAnalysis)](#query--command-analysis-properties-querycommandanalysis)
-   - [Notification Analysis Properties (NotificationAnalysis)](#notification-analysis-properties-notificationanalysis)
-   - [Handler & Subscriber Status Enums](#handler--subscriber-status-enums)
-   - [Performance Metrics Properties (PerformanceMetrics)](#performance-metrics-properties-performancemetrics)
-   - [Performance Summary Properties (PerformanceSummary)](#performance-summary-properties-performancesummary)
-   - [Middleware Analysis Properties (MiddlewareAnalysis)](#middleware-analysis-properties-middlewareanalysis)
-   - [Statistics Tracking Methods](#statistics-tracking-methods)
+    - [StatisticsOptions Configuration Properties](#statisticsoptions-configuration-properties)
+    - [StatisticsOptions Preset Configurations](#statisticsoptions-preset-configurations)
+    - [Query & Command Analysis Properties (QueryCommandAnalysis)](#query--command-analysis-properties-querycommandanalysis)
+    - [Notification Analysis Properties (NotificationAnalysis)](#notification-analysis-properties-notificationanalysis)
+    - [Handler & Subscriber Status Enums](#handler--subscriber-status-enums)
+    - [NotificationPattern Enum](#notificationpattern-enum)
+    - [Performance Metrics Properties (PerformanceMetrics)](#performance-metrics-properties-performancemetrics)
+    - [Performance Summary Properties (PerformanceSummary)](#performance-summary-properties-performancesummary)
+    - [Middleware Analysis Properties (MiddlewareAnalysis)](#middleware-analysis-properties-middlewareanalysis)
+    - [Statistics Tracking Methods](#statistics-tracking-methods)
 3. [Basic Statistics Configuration](#1-basic-statistics-configuration)
-   - [Default Configuration](#default-configuration)
-   - [Custom Configuration](#custom-configuration)
+    - [Default Configuration](#default-configuration)
+    - [Custom Configuration](#custom-configuration)
 4. [Statistics Configuration Levels](#2-statistics-configuration-levels)
-   - [Development Configuration](#development-configuration)
-   - [Production Configuration](#production-configuration)
-   - [High-Performance Configuration](#high-performance-configuration)
-   - [Custom High-Observability Configuration](#custom-high-observability-configuration)
+    - [Development Configuration](#development-configuration)
+    - [Production Configuration](#production-configuration)
+    - [High-Performance Configuration](#high-performance-configuration)
+    - [Custom High-Observability Configuration](#custom-high-observability-configuration)
 5. [Statistics Features by Configuration Level](#3-statistics-features-by-configuration-level)
-   - [Request Metrics (`EnableRequestMetrics = true`)](#request-metrics-enablerequestmetrics--true)
-   - [Notification Metrics (`EnableNotificationMetrics = true`)](#notification-metrics-enablenotificationmetrics--true)
-   - [Middleware Metrics (`EnableMiddlewareMetrics = true`)](#middleware-metrics-enablemiddlewaremetrics--true)
-   - [Performance Counters (`EnablePerformanceCounters = true`)](#performance-counters-enableperformancecounters--true)
-   - [Detailed Analysis (`EnableDetailedAnalysis = true`)](#detailed-analysis-enabledetailedanalysis--true)
+    - [Request Metrics (`EnableRequestMetrics = true`)](#request-metrics-enablerequestmetrics--true)
+    - [Notification Metrics (`EnableNotificationMetrics = true`)](#notification-metrics-enablenotificationmetrics--true)
+    - [Middleware Metrics (`EnableMiddlewareMetrics = true`)](#middleware-metrics-enablemiddlewaremetrics--true)
+    - [Performance Counters (`EnablePerformanceCounters = true`)](#performance-counters-enableperformancecounters--true)
+    - [Detailed Analysis (`EnableDetailedAnalysis = true`)](#detailed-analysis-enabledetailedanalysis--true)
 6. [Using Statistics in Your Application](#4-using-statistics-in-your-application)
-   - [Basic Statistics Reporting](#basic-statistics-reporting)
-   - [Health Check Integration](#health-check-integration)
-   - [Performance Monitoring](#performance-monitoring)
+    - [Basic Statistics Reporting](#basic-statistics-reporting)
+    - [Health Check Integration](#health-check-integration)
+    - [Performance Monitoring](#performance-monitoring)
 7. [Real-Time Session-Based Statistics](#5-real-time-session-based-statistics)
-   - [Session Tracking Setup](#session-tracking-setup)
-   - [Session Statistics Middleware](#session-statistics-middleware)
-   - [Request-Level Statistics Tracking](#request-level-statistics-tracking)
+    - [Session Tracking Setup](#session-tracking-setup)
+    - [Session Statistics Middleware](#session-statistics-middleware)
+    - [Request-Level Statistics Tracking](#request-level-statistics-tracking)
 8. [Advanced Analysis and Insights](#6-advanced-analysis-and-insights)
-   - [Query/Command Analysis](#querycommand-analysis)
-   - [Performance Insights](#performance-insights)
+    - [Query/Command Analysis](#querycommand-analysis)
+    - [Performance Insights](#performance-insights)
 9. [API Endpoints for Statistics](#7-api-endpoints-for-statistics)
-   - [Statistics Dashboard Endpoints (Sample Implementation)](#statistics-dashboard-endpoints-sample-implementation)
+    - [Statistics Dashboard Endpoints (Sample Implementation)](#statistics-dashboard-endpoints-sample-implementation)
 10. [Statistics Configuration Best Practices](#8-statistics-configuration-best-practices)
     - [Performance Considerations](#performance-considerations)
     - [Monitoring Setup](#monitoring-setup)
@@ -66,124 +70,151 @@ The following quick reference tables provide comprehensive information about all
 
 The `StatisticsOptions` class controls all aspects of statistics collection in Blazing.Mediator. Each property enables different levels of monitoring, from basic request counting to advanced performance analytics. Understanding these properties is crucial for configuring the appropriate level of observability for your application while maintaining optimal performance. The default values are carefully chosen to provide basic tracking with minimal overhead, but you can adjust them based on your monitoring needs and performance requirements.
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `EnableRequestMetrics` | `bool` | `true` | Track queries and commands execution counts |
-| `EnableNotificationMetrics` | `bool` | `true` | Track notification publication counts |
-| `EnableMiddlewareMetrics` | `bool` | `false` | Track middleware execution times and success rates |
-| `EnablePerformanceCounters` | `bool` | `false` | Advanced metrics: percentiles, memory allocation, timing |
-| `EnableDetailedAnalysis` | `bool` | `false` | Comprehensive analysis with all properties populated |
-| `MetricsRetentionPeriod` | `TimeSpan` | `TimeSpan.Zero` | How long to keep metrics data (0 = indefinite) |
-| `CleanupInterval` | `TimeSpan` | `TimeSpan.FromHours(1)` | Frequency of automatic cleanup |
-| `MaxTrackedRequestTypes` | `int` | `0` | Maximum number of request types to track (0 = unlimited) |
+| Property                    | Type       | Default                  | Description                                              |
+| --------------------------- | ---------- | ------------------------ | -------------------------------------------------------- |
+| `EnableRequestMetrics`      | `bool`     | `true`                   | Track queries and commands execution counts              |
+| `EnableNotificationMetrics` | `bool`     | `true`                   | Track notification publication counts                    |
+| `EnableMiddlewareMetrics`   | `bool`     | `false`                  | Track middleware execution times and success rates       |
+| `EnablePerformanceCounters` | `bool`     | `false`                  | Advanced metrics: percentiles, memory allocation, timing |
+| `EnableDetailedAnalysis`    | `bool`     | `false`                  | Comprehensive analysis with all properties populated     |
+| `MetricsRetentionPeriod`    | `TimeSpan` | `TimeSpan.FromHours(24)` | How long to keep metrics data (Zero = indefinite)        |
+| `CleanupInterval`           | `TimeSpan` | `TimeSpan.FromHours(1)`  | Frequency of automatic cleanup                           |
+| `MaxTrackedRequestTypes`    | `int`      | `1000`                   | Maximum number of request types to track (0 = unlimited) |
 
 ### StatisticsOptions Preset Configurations
 
 Blazing.Mediator provides several preset configurations that are optimized for different environments and use cases. These presets represent battle-tested combinations of settings that balance observability needs with performance considerations. The Development preset maximizes visibility for debugging and troubleshooting, while the Production preset focuses on essential metrics with minimal performance impact. The Disabled preset turns off all tracking for maximum performance in scenarios where statistics are not needed.
 
-| Configuration | Request | Notification | Middleware | Performance | Detailed | Retention | Cleanup |
-|---------------|---------|-------------|------------|-------------|----------|-----------|---------|
-| `StatisticsOptions.Development()` | ? | ? | ? | ? | ? | 1 hour | 15 min |
-| `StatisticsOptions.Production()` | ? | ? | ? | ? | ? | 24 hours | 4 hours |
-| `StatisticsOptions.Disabled()` | ? | ? | ? | ? | ? | 0 | Never |
-| Custom High-Observability | ? | ? | ? | ? | ? | 7 days | 2 hours |
+| Configuration                     | Request | Notification | Middleware | Performance | Detailed | Retention | Cleanup |
+| --------------------------------- | ------- | ------------ | ---------- | ----------- | -------- | --------- | ------- |
+| `StatisticsOptions.Development()` | ✓       | ✓            | ✓          | ✓           | ✓        | 1 hour    | 15 min  |
+| `StatisticsOptions.Production()`  | ✓       | ✓            | ✗          | ✗           | ✗        | 24 hours  | 4 hours |
+| `StatisticsOptions.Disabled()`    | ✗       | ✗            | ✗          | ✗           | ✗        | n/a       | n/a     |
+| Custom High-Observability         | ✓       | ✓            | ✓          | ✓           | ✓        | 7 days    | 2 hours |
 
 ### Query & Command Analysis Properties (QueryCommandAnalysis)
 
 The `QueryCommandAnalysis` record provides comprehensive information about each query and command type discovered in your application. This analysis is essential for understanding your application's CQRS structure, verifying handler registration, and identifying potential architectural issues. The analysis can be run in detailed or compact mode, with detailed mode providing additional properties for thorough investigation and compact mode focusing on essential information for quick overviews. The handler status information is particularly valuable for detecting missing or duplicate handlers during development and deployment verification.
 
-| Property | Type | Description | Detailed Mode | Compact Mode |
-|----------|------|-------------|---------------|--------------|
-| `Type` | `Type` | Actual .NET Type being analyzed | ? | ? |
-| `ClassName` | `string` | Clean class name without generic parameters | ? | ? |
-| `TypeParameters` | `string` | String representation of generic parameters | ? | ? |
-| `Assembly` | `string` | Assembly name containing the type | ? | ? |
-| `Namespace` | `string` | Namespace of the type | ? | ? |
-| `ResponseType` | `Type?` | Response type for queries/commands with return values | ? | ? |
-| `PrimaryInterface` | `string` | Primary interface (IQuery<T>, ICommand, etc.) | ? | ? |
-| `IsResultType` | `bool` | True if response implements IResult interface | ? | ? |
-| `HandlerStatus` | `HandlerStatus` | Handler registration status | ? | ? |
-| `HandlerDetails` | `string` | Detailed handler information | Full details | Simplified |
-| `Handlers` | `IReadOnlyList<Type>` | List of registered handler types | ? | ? |
+| Property           | Type                  | Description                                           | Detailed Mode | Compact Mode |
+| ------------------ | --------------------- | ----------------------------------------------------- | ------------- | ------------ |
+| `Type`             | `Type`                | Actual .NET Type being analyzed                       | ✓             | ✓            |
+| `ClassName`        | `string`              | Clean class name without generic parameters           | ✓             | ✓            |
+| `TypeParameters`   | `string`              | String representation of generic parameters           | ✓             | ✗            |
+| `Assembly`         | `string`              | Assembly name containing the type                     | ✓             | ✓            |
+| `Namespace`        | `string`              | Namespace of the type                                 | ✓             | ✓            |
+| `ResponseType`     | `Type?`               | Response type for queries/commands with return values | ✓             | ✓            |
+| `PrimaryInterface` | `string`              | Primary interface (IQuery<T>, ICommand, etc.)         | ✓             | ✓            |
+| `IsResultType`     | `bool`                | True if response implements IResult interface         | ✓             | ✓            |
+| `HandlerStatus`    | `HandlerStatus`       | Handler registration status                           | ✓             | ✓            |
+| `HandlerDetails`   | `string`              | Detailed handler information                          | Full details  | Simplified   |
+| `Handlers`         | `IReadOnlyList<Type>` | List of registered handler types                      | ✓             | ✓            |
 
 ### Notification Analysis Properties (NotificationAnalysis)
 
 The `NotificationAnalysis` record extends the analysis capabilities to include notification types, providing insights into both automatic handlers (implementing `INotificationHandler<T>`) and manual subscribers (registered via `IMediator.Subscribe()`). This dual tracking approach recognizes that notifications in Blazing.Mediator can be processed through two different patterns, and both are important for understanding the complete notification processing pipeline. The subscriber status and estimation provide visibility into dynamic subscription patterns that may not be apparent from static analysis alone.
 
-| Property | Type | Description | Detailed Mode | Compact Mode |
-|----------|------|-------------|---------------|--------------|
-| `Type` | `Type` | Actual .NET Type being analyzed | ? | ? |
-| `ClassName` | `string` | Clean class name without generic parameters | ? | ? |
-| `TypeParameters` | `string` | String representation of generic parameters | ? | ? |
-| `Assembly` | `string` | Assembly name containing the type | ? | ? |
-| `Namespace` | `string` | Namespace of the type | ? | ? |
-| `PrimaryInterface` | `string` | Primary interface (INotification) | ? | ? |
-| `HandlerStatus` | `HandlerStatus` | Automatic handler registration status | ? | ? |
-| `HandlerDetails` | `string` | Detailed handler information | Full details | Simplified |
-| `Handlers` | `IReadOnlyList<Type>` | List of automatic handler types | ? | ? |
-| `SubscriberStatus` | `SubscriberStatus` | Manual subscriber registration status | ? | ? |
-| `SubscriberDetails` | `string` | Detailed subscriber information | Full details | Simplified |
-| `EstimatedSubscribers` | `int` | Estimated number of manual subscribers | ? | ? |
+| Property               | Type                  | Description                                 | Detailed Mode | Compact Mode |
+| ---------------------- | --------------------- | ------------------------------------------- | ------------- | ------------ |
+| `Type`                 | `Type`                | Actual .NET Type being analyzed             | ✓             | ✓            |
+| `ClassName`            | `string`              | Clean class name without generic parameters | ✓             | ✓            |
+| `TypeParameters`       | `string`              | String representation of generic parameters | ✓             | ✗            |
+| `Assembly`             | `string`              | Assembly name containing the type           | ✓             | ✓            |
+| `Namespace`            | `string`              | Namespace of the type                       | ✓             | ✓            |
+| `PrimaryInterface`     | `string`              | Primary interface (INotification)           | ✓             | ✓            |
+| `HandlerStatus`        | `HandlerStatus`       | Automatic handler registration status       | ✓             | ✓            |
+| `HandlerDetails`       | `string`              | Detailed handler information                | Full details  | Simplified   |
+| `Handlers`             | `IReadOnlyList<Type>` | List of automatic handler types             | ✓             | ✓            |
+| `SubscriberStatus`     | `SubscriberStatus`    | Manual subscriber registration status       | ✓             | ✓            |
+| `SubscriberDetails`    | `string`              | Detailed subscriber information             | Full details  | Simplified   |
+| `EstimatedSubscribers` | `int`                 | Estimated number of manual subscribers      | ✓             | ✓            |
+
+`NotificationAnalysis` also exposes the following **computed properties** for convenience:
+
+| Computed Property       | Type                    | Description                                                                            |
+| ----------------------- | ----------------------- | -------------------------------------------------------------------------------------- |
+| `Pattern`               | `NotificationPattern`   | Processing pattern in use (`None`, `AutomaticHandlers`, `ManualSubscribers`, `Hybrid`) |
+| `HandlerCount`          | `int`                   | Number of automatic handlers (`Handlers.Count`)                                        |
+| `ActiveSubscriberCount` | `int`                   | Active subscriber count (alias for `EstimatedSubscribers`)                             |
+| `SubscriberTypes`       | `IReadOnlyList<string>` | Subscriber type names extracted from `SubscriberDetails`                               |
+| `TypeName`              | `string`                | Display name combining `ClassName` and `TypeParameters`                                |
+| `HandlerName`           | `string`                | Handler display name (alias for `HandlerDetails`)                                      |
+| `Status`                | `HandlerStatus`         | Handler status (alias for `HandlerStatus`)                                             |
+| `AssemblyName`          | `string`                | Assembly display name (alias for `Assembly`)                                           |
+| `SupportsBroadcast`     | `bool`                  | True when multiple handlers or subscribers are present                                 |
+| `IsResultType`          | `bool`                  | Always `false` for notifications (exists for consistency with `QueryCommandAnalysis`)  |
 
 ### Handler & Subscriber Status Enums
 
 #### HandlerStatus Enum
 
-| Value | ASCII Marker | Description | Usage |
-|-------|-------------|-------------|-------|
-| `Single` | `+` | Exactly one handler registered | ? Ideal state |
-| `Missing` | `!` | No handler registered | ? Needs attention |
-| `Multiple` | `#` | Multiple handlers registered | ?? Potential issue |
+| Value      | ASCII Marker | Description                    | Usage           |
+| ---------- | ------------ | ------------------------------ | --------------- |
+| `Single`   | `+`          | Exactly one handler registered | Ideal state     |
+| `Missing`  | `!`          | No handler registered          | Needs attention |
+| `Multiple` | `#`          | Multiple handlers registered   | Potential issue |
 
-#### SubscriberStatus Enum  
+#### SubscriberStatus Enum
 
-| Value | ASCII Marker | Description | Usage |
-|-------|-------------|-------------|-------|
-| `Present` | `+` | Subscribers are registered | ? Working |
-| `None` | `!` | No subscribers found | ?? May need attention |
-| `Unknown` | `?` | Cannot determine status | ? Check configuration |
+| Value     | ASCII Marker | Description                | Usage               |
+| --------- | ------------ | -------------------------- | ------------------- |
+| `Present` | `+`          | Subscribers are registered | Working             |
+| `None`    | `!`          | No subscribers found       | May need attention  |
+| `Unknown` | `?`          | Cannot determine status    | Check configuration |
+
+#### NotificationPattern Enum
+
+Returned by the computed `Pattern` property on `NotificationAnalysis`, this enum describes the processing pattern in use for a given notification type.
+
+| Value               | Description                                                            |
+| ------------------- | ---------------------------------------------------------------------- |
+| `None`              | No handlers or subscribers detected for this notification type.        |
+| `AutomaticHandlers` | Uses DI-registered `INotificationHandler<T>` handlers only.            |
+| `ManualSubscribers` | Uses runtime-registered `INotificationSubscriber<T>` subscribers only. |
+| `Hybrid`            | Uses both automatic handlers and manual subscribers simultaneously.    |
 
 ### Performance Metrics Properties (PerformanceMetrics)
 
 The `PerformanceMetrics` record provides detailed performance analytics for individual operation types when performance counters are enabled. This includes not only basic execution counts and timing information but also statistical measures like percentiles that help identify performance outliers and establish service level objectives. The percentile metrics (P50, P95, P99) are particularly valuable for understanding the distribution of response times and identifying when performance is acceptable for most users versus experiencing significant degradation for a small percentage of requests.
 
-| Property | Type | Description | Available When |
-|----------|------|-------------|----------------|
-| `OperationType` | `string` | Name of the operation type | `EnablePerformanceCounters = true` |
-| `TotalExecutions` | `long` | Total number of executions | `EnablePerformanceCounters = true` |
-| `FailedExecutions` | `long` | Number of failed executions | `EnablePerformanceCounters = true` |
-| `AverageTimeMs` | `double` | Average execution time in milliseconds | `EnablePerformanceCounters = true` |
-| `SuccessRate` | `double` | Success rate as percentage | `EnablePerformanceCounters = true` |
-| `LastExecution` | `DateTime` | Timestamp of last execution | `EnablePerformanceCounters = true` |
-| `P50` | `double` | 50th percentile execution time | `EnablePerformanceCounters = true` |
-| `P95` | `double` | 95th percentile execution time | `EnablePerformanceCounters = true` |
-| `P99` | `double` | 99th percentile execution time | `EnablePerformanceCounters = true` |
+| Property             | Type       | Description                            | Available When                     |
+| -------------------- | ---------- | -------------------------------------- | ---------------------------------- |
+| `OperationType`      | `string`   | Name of the operation type             | `EnablePerformanceCounters = true` |
+| `TotalExecutions`    | `long`     | Total number of executions             | `EnablePerformanceCounters = true` |
+| `FailedExecutions`   | `long`     | Number of failed executions            | `EnablePerformanceCounters = true` |
+| `AverageTimeMs`      | `double`   | Average execution time in milliseconds | `EnablePerformanceCounters = true` |
+| `SuccessRate`        | `double`   | Success rate as percentage             | `EnablePerformanceCounters = true` |
+| `LastExecutionTime`  | `DateTime` | Timestamp of last execution            | `EnablePerformanceCounters = true` |
+| `P50ExecutionTimeMs` | `double`   | 50th percentile execution time in ms   | `EnablePerformanceCounters = true` |
+| `P95ExecutionTimeMs` | `double`   | 95th percentile execution time in ms   | `EnablePerformanceCounters = true` |
+| `P99ExecutionTimeMs` | `double`   | 99th percentile execution time in ms   | `EnablePerformanceCounters = true` |
 
 ### Performance Summary Properties (PerformanceSummary)
 
 The `PerformanceSummary` record aggregates performance metrics across all operations or specific categories (requests vs notifications), providing a high-level view of system performance. This summary is essential for monitoring overall system health, establishing performance baselines, and detecting when performance degrades across the entire application rather than just individual operations. The ability to get separate summaries for requests and notifications allows you to understand how different parts of your CQRS architecture are performing and optimize them independently.
 
-| Property | Type | Description | Scope |
-|----------|------|-------------|-------|
-| `TotalOperations` | `long` | Total number of operations | Overall, Request, or Notification |
-| `TotalFailures` | `long` | Total number of failed operations | Overall, Request, or Notification |
-| `AverageExecutionTimeMs` | `double` | Average execution time in milliseconds | Overall, Request, or Notification |
-| `OverallSuccessRate` | `double` | Success rate as percentage | Overall, Request, or Notification |
-| `TotalMemoryAllocatedBytes` | `long` | Total memory allocated in bytes | Overall (shared between types) |
-| `UniqueOperationTypes` | `int` | Number of unique operation types | Overall, Request, or Notification |
+| Property                    | Type     | Description                            | Scope                             |
+| --------------------------- | -------- | -------------------------------------- | --------------------------------- |
+| `TotalOperations`           | `long`   | Total number of operations             | Overall, Request, or Notification |
+| `TotalFailures`             | `long`   | Total number of failed operations      | Overall, Request, or Notification |
+| `AverageExecutionTimeMs`    | `double` | Average execution time in milliseconds | Overall, Request, or Notification |
+| `OverallSuccessRate`        | `double` | Success rate as percentage             | Overall, Request, or Notification |
+| `TotalMemoryAllocatedBytes` | `long`   | Total memory allocated in bytes        | Overall (shared between types)    |
+| `UniqueOperationTypes`      | `int`    | Number of unique operation types       | Overall, Request, or Notification |
 
 ### Middleware Analysis Properties (MiddlewareAnalysis)
 
 The `MiddlewareAnalysis` record provides detailed information about middleware components in the request processing pipeline. This analysis is crucial for understanding middleware execution order, verifying that middleware is properly configured, and debugging pipeline issues. The order information helps ensure that middleware executes in the intended sequence, while the configuration data provides insight into how each middleware component is set up. This is particularly valuable when using auto-discovery features or complex middleware configurations where the exact setup might not be immediately apparent.
 
-| Property | Type | Description | Notes |
-|----------|------|-------------|-------|
-| `Type` | `Type` | Actual .NET Type of the middleware | Available via `IMiddlewarePipelineInspector` |
-| `ClassName` | `string` | Clean class name without generic parameters | Extracted from type name |
-| `TypeParameters` | `string` | String representation of generic parameters | For generic middleware types |
-| `Order` | `int` | Execution order of the middleware | Lower values execute first |
-| `OrderDisplay` | `string` | Formatted display of order value | Handles special values |
-| `Configuration` | `object?` | Configuration object for the middleware | May be null |
+| Property             | Type      | Description                                                                                | Notes                                                                    |
+| -------------------- | --------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `Type`               | `Type`    | Actual .NET Type of the middleware                                                         | Returned by `AnalyzeRequestMiddleware` / `AnalyzeNotificationMiddleware` |
+| `ClassName`          | `string`  | Clean class name without generic parameters                                                | Extracted from type name                                                 |
+| `TypeParameters`     | `string`  | String representation of generic parameters                                                | For generic middleware types                                             |
+| `GenericConstraints` | `string`  | Generic type constraints for the middleware (e.g., `where TRequest : ICommand<TResponse>`) | For open-generic types; empty otherwise                                  |
+| `Order`              | `int`     | Execution order of the middleware                                                          | Lower values execute first                                               |
+| `OrderDisplay`       | `string`  | Formatted display of order value                                                           | Handles special values                                                   |
+| `Configuration`      | `object?` | Configuration object for the middleware                                                    | May be null                                                              |
 
 ### Statistics Tracking Methods
 
@@ -193,35 +224,51 @@ The statistics tracking methods provide the core functionality for collecting ru
 
 The core methods handle the fundamental statistics collection that occurs automatically as your application processes requests and notifications. These methods are called internally by the mediator infrastructure and provide the foundational data for all other statistical analysis. The recording methods require specific configuration options to be enabled, allowing you to control the performance impact and level of detail based on your monitoring needs.
 
-| Method | Description | Triggered When | Requires |
-|--------|-------------|----------------|----------|
-| `IncrementQuery(string)` | Increments query execution count | Query is sent via mediator | `EnableRequestMetrics = true` |
-| `IncrementCommand(string)` | Increments command execution count | Command is sent via mediator | `EnableRequestMetrics = true` |
-| `IncrementNotification(string)` | Increments notification count | Notification is published | `EnableNotificationMetrics = true` |
-| `RecordExecutionTime(string, long, bool)` | Records execution timing | Request completes | `EnablePerformanceCounters = true` |
-| `RecordMemoryAllocation(long)` | Records memory usage | Memory is allocated | `EnablePerformanceCounters = true` |
-| `RecordMiddlewareExecution(string, long, bool)` | Records middleware metrics | Middleware executes | `EnableMiddlewareMetrics = true` |
-| `ReportStatistics()` | Outputs current statistics | Called manually | Always available |
+| Method                                          | Description                        | Triggered When               | Requires                           |
+| ----------------------------------------------- | ---------------------------------- | ---------------------------- | ---------------------------------- |
+| `IncrementQuery(string)`                        | Increments query execution count   | Query is sent via mediator   | `EnableRequestMetrics = true`      |
+| `IncrementCommand(string)`                      | Increments command execution count | Command is sent via mediator | `EnableRequestMetrics = true`      |
+| `IncrementNotification(string)`                 | Increments notification count      | Notification is published    | `EnableNotificationMetrics = true` |
+| `RecordExecutionTime(string, long, bool)`       | Records execution timing           | Request completes            | `EnablePerformanceCounters = true` |
+| `RecordMemoryAllocation(long)`                  | Records memory usage               | Memory is allocated          | `EnablePerformanceCounters = true` |
+| `RecordMiddlewareExecution(string, long, bool)` | Records middleware metrics         | Middleware executes          | `EnableMiddlewareMetrics = true`   |
+| `ReportStatistics()`                            | Outputs current statistics         | Called manually              | Always available                   |
 
 #### Analysis Methods
 
 The analysis methods examine your application's structure to discover queries, commands, and notifications, then determine their handler registration status and interface patterns. These methods are invaluable for verifying that your CQRS implementation is correctly configured, identifying missing handlers, and understanding your application's architectural patterns. The detailed analysis mode provides comprehensive information suitable for documentation generation and thorough architectural reviews.
 
-| Method | Return Type | Description | Parameters |
-|--------|------------|-------------|------------|
-| `AnalyzeQueries(IServiceProvider, bool?)` | `IReadOnlyList<QueryCommandAnalysis>` | Analyzes all query types | `serviceProvider`, `isDetailed` (optional) |
-| `AnalyzeCommands(IServiceProvider, bool?)` | `IReadOnlyList<QueryCommandAnalysis>` | Analyzes all command types | `serviceProvider`, `isDetailed` (optional) |
+**Reflection-based overloads** — use reflection to scan assemblies at runtime. These methods are annotated with `[RequiresUnreferencedCode]` and are not AOT/trim-safe. Suitable for non-trimmed applications and existing integrations.
+
+| Method                                          | Return Type                           | Description                     | Parameters                                 |
+| ----------------------------------------------- | ------------------------------------- | ------------------------------- | ------------------------------------------ |
+| `AnalyzeQueries(IServiceProvider, bool?)`       | `IReadOnlyList<QueryCommandAnalysis>` | Analyzes all query types        | `serviceProvider`, `isDetailed` (optional) |
+| `AnalyzeCommands(IServiceProvider, bool?)`      | `IReadOnlyList<QueryCommandAnalysis>` | Analyzes all command types      | `serviceProvider`, `isDetailed` (optional) |
 | `AnalyzeNotifications(IServiceProvider, bool?)` | `IReadOnlyList<NotificationAnalysis>` | Analyzes all notification types | `serviceProvider`, `isDetailed` (optional) |
+
+**Catalog-based overloads (AOT-safe)** — use the compile-time `IMediatorTypeCatalog` emitted by `Blazing.Mediator.SourceGenerators`. Zero reflection, fully trim-safe, and the recommended approach for source-generated applications.
+
+| Method                                                                   | Return Type                           | Description                                          | Notes                                    |
+| ------------------------------------------------------------------------ | ------------------------------------- | ---------------------------------------------------- | ---------------------------------------- |
+| `AnalyzeQueries(IMediatorTypeCatalog, bool?)`                            | `IReadOnlyList<QueryCommandAnalysis>` | Analyzes all query types from catalog                | AOT-safe; `isDetailed` optional          |
+| `AnalyzeCommands(IMediatorTypeCatalog, bool?)`                           | `IReadOnlyList<QueryCommandAnalysis>` | Analyzes all command types from catalog              | AOT-safe; `isDetailed` optional          |
+| `AnalyzeCqrs(IMediatorTypeCatalog, bool?)`                               | `IReadOnlyList<QueryCommandAnalysis>` | Analyzes all CQRS types (queries + commands)         | New in v3.0.0; AOT-safe                  |
+| `AnalyzeNotifications(IMediatorTypeCatalog, bool?)`                      | `IReadOnlyList<NotificationAnalysis>` | Analyzes all notification types from catalog         | AOT-safe; `isDetailed` optional          |
+| `AnalyzeNotifications(IMediatorTypeCatalog, ISubscriberTracker?, bool?)` | `IReadOnlyList<NotificationAnalysis>` | Analyzes notifications with live subscriber tracking | AOT-safe; subscriber status from tracker |
+| `AnalyzeRequestMiddleware(IMediatorTypeCatalog)`                         | `IReadOnlyList<MiddlewareAnalysis>`   | Analyzes request pipeline middleware                 | AOT-safe; sorted by execution order      |
+| `AnalyzeNotificationMiddleware(IMediatorTypeCatalog)`                    | `IReadOnlyList<MiddlewareAnalysis>`   | Analyzes notification pipeline middleware            | AOT-safe; sorted by execution order      |
+
+> **Note:** Catalog-based methods require the source generator (`Blazing.Mediator.SourceGenerators`) to be installed and the `USE_SOURCE_GENERATORS` preprocessor symbol defined in your consuming project. Retrieve the catalog via `serviceProvider.GetRequiredService<IMediatorTypeCatalog>()`.
 
 #### Performance Methods
 
 The performance methods provide access to detailed timing, throughput, and reliability metrics when performance counters are enabled. These methods are essential for monitoring application performance, establishing service level objectives, and identifying performance bottlenecks. The summary methods provide aggregated views that are suitable for dashboards and alerting, while the specific operation metrics allow for detailed investigation of individual performance issues.
 
-| Method | Return Type | Description | Requires |
-|--------|------------|-------------|----------|
-| `GetPerformanceMetrics(string)` | `PerformanceMetrics?` | Gets metrics for specific operation | `EnablePerformanceCounters = true` |
-| `GetPerformanceSummary()` | `PerformanceSummary?` | Gets overall performance summary | `EnablePerformanceCounters = true` |
-| `GetRequestPerformanceSummary()` | `PerformanceSummary?` | Gets request-only performance summary | `EnablePerformanceCounters = true` |
+| Method                                | Return Type           | Description                                | Requires                           |
+| ------------------------------------- | --------------------- | ------------------------------------------ | ---------------------------------- |
+| `GetPerformanceMetrics(string)`       | `PerformanceMetrics?` | Gets metrics for specific operation        | `EnablePerformanceCounters = true` |
+| `GetPerformanceSummary()`             | `PerformanceSummary?` | Gets overall performance summary           | `EnablePerformanceCounters = true` |
+| `GetRequestPerformanceSummary()`      | `PerformanceSummary?` | Gets request-only performance summary      | `EnablePerformanceCounters = true` |
 | `GetNotificationPerformanceSummary()` | `PerformanceSummary?` | Gets notification-only performance summary | `EnablePerformanceCounters = true` |
 
 ## 1. Basic Statistics Configuration
@@ -237,7 +284,7 @@ services.AddMediator(config =>
 {
     // Enable basic statistics tracking
     config.WithStatisticsTracking();
-}, typeof(Program).Assembly);
+});
 ```
 
 ### Custom Configuration
@@ -254,13 +301,13 @@ services.AddMediator(config =>
         options.EnableMiddlewareMetrics = false;    // Disabled by default for performance
         options.EnablePerformanceCounters = false;  // Advanced metrics disabled by default
         options.EnableDetailedAnalysis = false;     // Comprehensive analysis disabled
-        
+
         // Retention settings
         options.MetricsRetentionPeriod = TimeSpan.FromHours(24);
         options.CleanupInterval = TimeSpan.FromHours(1);
         options.MaxTrackedRequestTypes = 1000;
     });
-}, typeof(Program).Assembly);
+});
 ```
 
 ## 2. Statistics Configuration Levels
@@ -277,13 +324,13 @@ services.AddMediator(config =>
     config.WithStatisticsTracking(StatisticsOptions.Development());
     // Enables:
     // - Request metrics: true
-    // - Notification metrics: true 
+    // - Notification metrics: true
     // - Middleware metrics: true
-    // - Performance counters: false (too much overhead for development)
+    // - Performance counters: true (full metrics for comprehensive development observability)
     // - Detailed analysis: true
     // - Retention: 1 hour
     // - Cleanup: every 15 minutes
-}, typeof(Program).Assembly);
+});
 ```
 
 ### Production Configuration
@@ -302,7 +349,7 @@ services.AddMediator(config =>
     // - Detailed analysis: false (memory)
     // - Retention: 24 hours
     // - Cleanup: every 4 hours
-}, typeof(Program).Assembly);
+});
 ```
 
 ### High-Performance Configuration
@@ -314,7 +361,7 @@ services.AddMediator(config =>
 {
     config.WithStatisticsTracking(StatisticsOptions.Disabled());
     // All tracking disabled for maximum performance
-}, typeof(Program).Assembly);
+});
 ```
 
 ### Custom High-Observability Configuration
@@ -332,13 +379,13 @@ services.AddMediator(config =>
         options.EnableMiddlewareMetrics = true;
         options.EnablePerformanceCounters = true;
         options.EnableDetailedAnalysis = true;
-        
+
         // Extended retention for analysis
         options.MetricsRetentionPeriod = TimeSpan.FromDays(7);
         options.CleanupInterval = TimeSpan.FromHours(2);
         options.MaxTrackedRequestTypes = 5000; // Higher limit for large applications
     });
-}, typeof(Program).Assembly);
+});
 ```
 
 ## 3. Statistics Features by Configuration Level
@@ -366,18 +413,17 @@ statistics?.ReportStatistics();
 
 ### Notification Metrics (`EnableNotificationMetrics = true`)
 
-Detailed notification processing tracking:
+Detailed notification publication tracking:
 
 ```csharp
-// Tracks:
-// - Publication counts by type
-// - Handler execution success/failure
-// - Subscriber processing metrics
+// Tracks (requires EnableNotificationMetrics = true):
+// - Publication counts by notification type (via IncrementNotification)
 // - Cross-pattern compatibility (both automatic handlers and manual subscribers)
 
+// Structural analysis — available independently of EnableNotificationMetrics:
 var statistics = serviceProvider.GetService<MediatorStatistics>();
 var notifications = statistics?.AnalyzeNotifications(serviceProvider);
-// Returns analysis of all notification handlers and subscribers
+// Returns structural analysis of all notification types: handlers, subscribers, pattern (None/AutomaticHandlers/ManualSubscribers/Hybrid)
 ```
 
 ### Middleware Metrics (`EnableMiddlewareMetrics = true`)
@@ -422,18 +468,26 @@ Comprehensive insights and patterns:
 // Enables:
 // - Query/Command type analysis with handler detection
 // - Interface pattern detection (custom domain interfaces)
-// - Assembly and namespace organization analysis
+// - Assembly and namespace organisation analysis
 // - Handler status verification (Missing/Single/Multiple)
 // - ASP.NET Core IResult type detection
 
+// Reflection-based (non-AOT; annotated with [RequiresUnreferencedCode]):
 var queries = statistics?.AnalyzeQueries(serviceProvider, isDetailed: true);
 var commands = statistics?.AnalyzeCommands(serviceProvider, isDetailed: true);
+
+// Preferred: AOT-safe catalog-based overloads (requires source generators):
+// var catalog = serviceProvider.GetRequiredService<IMediatorTypeCatalog>();
+// var queries = statistics?.AnalyzeQueries(catalog, isDetailed: true);
+// var commands = statistics?.AnalyzeCommands(catalog, isDetailed: true);
+// var all     = statistics?.AnalyzeCqrs(catalog, isDetailed: true); // queries + commands
+
 // Returns comprehensive analysis with all properties populated
 ```
 
 ## 4. Using Statistics in Your Application
 
-Integrating statistics into your application involves more than just enabling the collection of metrics�it requires thoughtful implementation of monitoring, reporting, and alerting systems that provide actionable insights. The statistics system in Blazing.Mediator is designed to integrate seamlessly with existing monitoring infrastructure while also providing standalone capabilities for applications that need self-contained monitoring solutions. The key is to implement statistics usage in a way that provides value to both development teams for debugging and operations teams for production monitoring.
+Integrating statistics into your application involves more than just enabling the collection of metrics�it requires thoughtful implementation of monitoring, reporting, and alerting systems that provide actionable insights. The statistics system in Blazing.Mediator is designed to integrate seamlessly with existing monitoring infrastructure while also providing standalone capabilities for applications that need self-contained monitoring solutions. The key is to implement statistics usage in a way that provides value to both development teams for debugging and operations teams for production monitoring.
 
 ### Basic Statistics Reporting
 
@@ -519,7 +573,7 @@ public class PerformanceMonitoringService
         var summary = _statistics.GetPerformanceSummary();
         if (summary != null)
         {
-            _logger.LogInformation("Performance Summary: {Operations} ops, {SuccessRate:F1}% success, {AvgTime:F1}ms avg", 
+            _logger.LogInformation("Performance Summary: {Operations} ops, {SuccessRate:F1}% success, {AvgTime:F1}ms avg",
                 summary.Value.TotalOperations, summary.Value.OverallSuccessRate, summary.Value.AverageExecutionTimeMs);
 
             if (summary.Value.AverageExecutionTimeMs > 100)
@@ -582,7 +636,7 @@ public class SessionTrackingMiddleware
     private string GetOrCreateSessionId(HttpContext context)
     {
         const string sessionKey = "MediatorStatisticsSessionId";
-        
+
         if (context.Session.TryGetValue(sessionKey, out var sessionBytes))
         {
             return System.Text.Encoding.UTF8.GetString(sessionBytes);
@@ -591,7 +645,7 @@ public class SessionTrackingMiddleware
         var sessionId = $"stats_{DateTimeOffset.Now.ToUnixTimeSeconds()}_{Guid.NewGuid():N}"[..24];
         var sessionIdBytes = System.Text.Encoding.UTF8.GetBytes(sessionId);
         context.Session.Set(sessionKey, sessionIdBytes);
-        
+
         return sessionId;
     }
 }
@@ -616,11 +670,11 @@ public class StatisticsTrackingMiddleware<TRequest, TResponse> : IRequestMiddlew
 
     public int Order => 0; // Execute first
 
-    public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var sessionId = _httpContext.HttpContext?.Items["StatisticsSessionId"] as string;
         var requestType = request.GetType().Name;
-        
+
         // Track based on request type
         if (IsQuery(request))
         {
@@ -656,6 +710,8 @@ public class MediatorAnalysisService
         _statistics = serviceProvider.GetService<MediatorStatistics>();
     }
 
+    // Note: reflection-based overloads used here; see AnalyzeQueries(IMediatorTypeCatalog)
+    // for the AOT-safe catalog-based alternative (requires Blazing.Mediator.SourceGenerators).
     public async Task<AnalysisReport> GenerateAnalysisReport(IServiceProvider serviceProvider)
     {
         if (_statistics == null)
@@ -710,7 +766,7 @@ public class PerformanceInsightsService
     public List<PerformanceInsight> GetInsights()
     {
         var insights = new List<PerformanceInsight>();
-        
+
         if (_statistics == null)
         {
             insights.Add(new PerformanceInsight
@@ -723,7 +779,7 @@ public class PerformanceInsightsService
         }
 
         var summary = _statistics.GetPerformanceSummary();
-        
+
         if (summary != null)
         {
             if (summary.Value.OverallSuccessRate < 99.0)
@@ -776,7 +832,7 @@ app.MapGet("/api/mediator/statistics", (MediatorStatisticsTracker tracker) =>
 {
     var globalStats = tracker.GetGlobalStatistics();
     var sessions = tracker.GetAllSessionStatistics();
-    
+
     return Results.Ok(new
     {
         message = "Real-Time Mediator Statistics",
@@ -860,19 +916,19 @@ Implementing statistics effectively requires a systematic approach to diagnosing
 ### Performance Considerations
 
 1. **Development Environment**:
-   - Enable detailed tracking for full observability
-   - Use shorter retention periods for faster feedback
-   - Enable middleware metrics for pipeline debugging
+    - Enable detailed tracking for full observability
+    - Use shorter retention periods for faster feedback
+    - Enable middleware metrics for pipeline debugging
 
 2. **Production Environment**:
-   - Disable middleware metrics to reduce overhead
-   - Use longer retention periods for trend analysis
-   - Consider disabling performance counters for high-traffic systems
+    - Disable middleware metrics to reduce overhead
+    - Use longer retention periods for trend analysis
+    - Consider disabling performance counters for high-traffic systems
 
 3. **Memory Management**:
-   - Set appropriate `MaxTrackedRequestTypes` limits
-   - Configure reasonable `MetricsRetentionPeriod`
-   - Monitor cleanup interval effectiveness
+    - Set appropriate `MaxTrackedRequestTypes` limits
+    - Configure reasonable `MetricsRetentionPeriod`
+    - Monitor cleanup interval effectiveness
 
 ### Monitoring Setup
 
@@ -970,7 +1026,7 @@ public class Startup
         // Custom statistics services (from samples)
         services.AddScoped<MediatorStatisticsTracker>();
         services.AddHostedService<StatisticsCleanupService>();
-        
+
         // Analysis services
         services.AddScoped<PerformanceInsightsService>();
         services.AddScoped<MediatorAnalysisService>();
@@ -993,11 +1049,9 @@ public class Startup
                 options.MaxTrackedRequestTypes = 2000;
             });
 
-            // Add custom statistics tracking middleware (application-level)
-            config.AddMiddleware<StatisticsTrackingMiddleware<,>>();
-            config.AddMiddleware<StatisticsTrackingVoidMiddleware<>>();
+            // Statistics tracking middleware is auto-discovered by the source generator
 
-        }, typeof(Program).Assembly);
+        });
 
         // Health checks
         services.AddHealthChecks()
@@ -1008,7 +1062,7 @@ public class Startup
     {
         app.UseSession();
         app.UseMiddleware<SessionTrackingMiddleware>();
-        
+
         // Statistics endpoints
         app.UseRouting();
         app.UseEndpoints(endpoints =>
@@ -1027,19 +1081,19 @@ Troubleshooting statistics issues requires a systematic approach to diagnosing c
 ### Common Issues
 
 1. **Statistics Not Collecting**
-   - Verify statistics are enabled: `config.WithStatisticsTracking()`
-   - Check that `MediatorStatistics` is registered in DI
-   - Ensure `StatisticsOptions.IsEnabled` returns true
+    - Verify statistics are enabled: `config.WithStatisticsTracking()`
+    - Check that `MediatorStatistics` is registered in DI
+    - Ensure `StatisticsOptions.IsEnabled` returns true
 
 2. **High Memory Usage**
-   - Reduce `MaxTrackedRequestTypes` limit
-   - Decrease `MetricsRetentionPeriod`
-   - Disable `EnableDetailedAnalysis` if not needed
+    - Reduce `MaxTrackedRequestTypes` limit
+    - Decrease `MetricsRetentionPeriod`
+    - Disable `EnableDetailedAnalysis` if not needed
 
 3. **Performance Impact**
-   - Disable `EnableMiddlewareMetrics` in production
-   - Disable `EnablePerformanceCounters` for high-traffic scenarios
-   - Consider using `StatisticsOptions.Production()`
+    - Disable `EnableMiddlewareMetrics` in production
+    - Disable `EnablePerformanceCounters` for high-traffic scenarios
+    - Consider using `StatisticsOptions.Production()`
 
 ### Diagnostic Endpoints
 

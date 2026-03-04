@@ -5,6 +5,7 @@ using ECommerce.Api.Domain.Entities;
 using ECommerce.Api.Infrastructure.Data;
 using FluentValidation;
 using FluentValidation.Results;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ECommerce.Api.Application.Handlers.Commands;
 
@@ -14,9 +15,9 @@ namespace ECommerce.Api.Application.Handlers.Commands;
 /// </summary>
 /// <param name="context">The database context for persisting the product.</param>
 /// <param name="validator">The validator for product creation commands.</param>
-/// <param name="mediator">The mediator for publishing notifications.</param>
+/// <param name="serviceProvider">The service provider for resolving dependencies.</param>
 // Product Command Handlers
-public class CreateProductHandler(ECommerceDbContext context, IValidator<CreateProductCommand> validator, IMediator mediator)
+public class CreateProductHandler(ECommerceDbContext context, IValidator<CreateProductCommand> validator, IServiceProvider serviceProvider)
     : IRequestHandler<CreateProductCommand, int>
 {
     /// <summary>
@@ -26,8 +27,10 @@ public class CreateProductHandler(ECommerceDbContext context, IValidator<CreateP
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task containing the ID of the newly created product.</returns>
     /// <exception cref="Application.Exceptions.ValidationException">Thrown when the command validation fails.</exception>
-    public async Task<int> Handle(CreateProductCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<int> Handle(CreateProductCommand request, CancellationToken cancellationToken = default)
     {
+        // Resolve IMediator lazily to avoid circular dependency during ContainerMetadata initialization
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
         ValidationResult? validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
             throw new Application.Exceptions.ValidationException(validationResult.Errors);

@@ -9,7 +9,7 @@ namespace AnalyzerExample.Orders.Handlers;
 /// </summary>
 public class GetOrdersByStatusQueryHandler : IRequestHandler<GetOrdersByStatusQuery, List<OrderSummaryDto>>
 {
-    public async Task<List<OrderSummaryDto>> Handle(GetOrdersByStatusQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<List<OrderSummaryDto>> Handle(GetOrdersByStatusQuery request, CancellationToken cancellationToken = default)
     {
         // Simulate database query
         await Task.Delay(50, cancellationToken);

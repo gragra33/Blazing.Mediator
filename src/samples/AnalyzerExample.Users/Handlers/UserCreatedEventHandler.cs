@@ -16,7 +16,7 @@ public class UserCreatedEventHandler : INotificationHandler<UserCreatedEvent>
         _logger = logger;
     }
 
-    public async Task Handle(UserCreatedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(UserCreatedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("User {UserId} '{Email}' created", notification.UserId, notification.Email);
 

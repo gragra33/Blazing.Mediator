@@ -10,8 +10,8 @@ public interface IMediator
     /// </summary>
     /// <param name="request">The command to send</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Task representing the operation</returns>
-    Task Send(IRequest request, CancellationToken cancellationToken = default);
+    /// <returns>A <see cref="ValueTask"/> representing the operation</returns>
+    ValueTask Send(IRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Send a query that returns a value
@@ -19,8 +19,8 @@ public interface IMediator
     /// <typeparam name="TResponse">The type of response expected</typeparam>
     /// <param name="request">The query to send</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Task containing the response</returns>
-    Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
+    /// <returns>A <see cref="ValueTask{TResponse}"/> containing the response</returns>
+    ValueTask<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Send a stream request that returns an async enumerable
@@ -38,8 +38,8 @@ public interface IMediator
     /// <typeparam name="TNotification">The type of notification to publish</typeparam>
     /// <param name="notification">The notification to publish</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Task representing the operation</returns>
-    Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification;
+    /// <returns>A <see cref="ValueTask"/> representing the operation</returns>
+    ValueTask Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification;
 
     /// <summary>
     /// Subscribe to notifications of a specific type.

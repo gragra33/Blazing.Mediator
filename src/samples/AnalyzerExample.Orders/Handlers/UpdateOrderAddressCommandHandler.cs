@@ -9,7 +9,7 @@ namespace AnalyzerExample.Orders.Handlers;
 /// </summary>
 public class UpdateOrderAddressCommandHandler : IRequestHandler<UpdateOrderAddressCommand, OperationResult>
 {
-    public async Task<OperationResult> Handle(UpdateOrderAddressCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult> Handle(UpdateOrderAddressCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate address update
         await Task.Delay(45, cancellationToken);

@@ -10,7 +10,7 @@ namespace AnalyzerExample.Products.Handlers;
 /// </summary>
 public class GetProductsByCategoryQueryHandler : IRequestHandler<GetProductsByCategoryQuery, List<ProductSummaryDto>>
 {
-    public async Task<List<ProductSummaryDto>> Handle(GetProductsByCategoryQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<List<ProductSummaryDto>> Handle(GetProductsByCategoryQuery request, CancellationToken cancellationToken = default)
     {
         // Simulate database query
         await Task.Delay(45, cancellationToken);

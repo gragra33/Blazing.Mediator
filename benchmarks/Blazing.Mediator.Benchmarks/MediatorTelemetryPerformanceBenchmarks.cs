@@ -7,58 +7,57 @@ using Microsoft.Extensions.Logging;
 namespace Blazing.Mediator.Benchmarks;
 
 /// <summary>
-/// Benchmarks to measure the performance impact of OpenTelemetry instrumentation on Mediator operations.
-/// These benchmarks compare performance with telemetry enabled vs disabled to ensure minimal overhead.
+///     Benchmarks to measure the performance impact of OpenTelemetry instrumentation on Mediator operations.
+///     These benchmarks compare performance with telemetry enabled vs disabled to ensure minimal overhead.
 /// </summary>
-[SimpleJob(RuntimeMoniker.Net90)]
+[SimpleJob]
 [MemoryDiagnoser]
-[MinColumn, MaxColumn, MeanColumn, MedianColumn]
+[MinColumn]
+[MaxColumn]
+[MeanColumn]
+[MedianColumn]
 public class MediatorTelemetryPerformanceBenchmarks
 {
-    private IServiceProvider _serviceProviderWithTelemetry = null!;
-    private IServiceProvider _serviceProviderWithoutTelemetry = null!;
-    private IMediator _mediatorWithTelemetry = null!;
     private IMediator _mediatorWithoutTelemetry = null!;
-    
+    private IMediator _mediatorWithTelemetry = null!;
+    private ServiceProvider _providerWithTelemetry = null!;
+    private ServiceProvider _providerWithoutTelemetry = null!;
+    private IServiceScope _scopeWithTelemetry = null!;
+    private IServiceScope _scopeWithoutTelemetry = null!;
+
     private TestCommand _testCommand = null!;
-    private TestQuery _testQuery = null!;
     private TestNotification _testNotification = null!;
+    private TestQuery _testQuery = null!;
 
     [GlobalSetup]
     public void Setup()
     {
-        // Setup with telemetry enabled
-        var servicesWithTelemetry = new ServiceCollection();
+        ServiceCollection servicesWithTelemetry = new();
         servicesWithTelemetry.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
         servicesWithTelemetry.AddMediatorTelemetry();
         servicesWithTelemetry.AddMediator();
-        servicesWithTelemetry.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
-        servicesWithTelemetry.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
         servicesWithTelemetry.AddScoped<INotificationSubscriber<TestNotification>, TestNotificationSubscriber>();
-        
-        _serviceProviderWithTelemetry = servicesWithTelemetry.BuildServiceProvider();
-        _mediatorWithTelemetry = _serviceProviderWithTelemetry.GetRequiredService<IMediator>();
+        _providerWithTelemetry = servicesWithTelemetry.BuildServiceProvider();
+        _scopeWithTelemetry = _providerWithTelemetry.CreateScope();
+        _mediatorWithTelemetry = _scopeWithTelemetry.ServiceProvider.GetRequiredService<IMediator>();
 
-        // Setup without telemetry
-        var servicesWithoutTelemetry = new ServiceCollection();
+        ServiceCollection servicesWithoutTelemetry = new();
         servicesWithoutTelemetry.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
         servicesWithoutTelemetry.DisableMediatorTelemetry();
         servicesWithoutTelemetry.AddMediator();
-        servicesWithoutTelemetry.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
-        servicesWithoutTelemetry.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
         servicesWithoutTelemetry.AddScoped<INotificationSubscriber<TestNotification>, TestNotificationSubscriber>();
-        
-        _serviceProviderWithoutTelemetry = servicesWithoutTelemetry.BuildServiceProvider();
-        _mediatorWithoutTelemetry = _serviceProviderWithoutTelemetry.GetRequiredService<IMediator>();
+        _providerWithoutTelemetry = servicesWithoutTelemetry.BuildServiceProvider();
+        _scopeWithoutTelemetry = _providerWithoutTelemetry.CreateScope();
+        _mediatorWithoutTelemetry = _scopeWithoutTelemetry.ServiceProvider.GetRequiredService<IMediator>();
 
-        // Subscribe to notifications
-        var subscriber = _serviceProviderWithTelemetry.GetRequiredService<INotificationSubscriber<TestNotification>>();
+        INotificationSubscriber<TestNotification> subscriber =
+            _scopeWithTelemetry.ServiceProvider.GetRequiredService<INotificationSubscriber<TestNotification>>();
         _mediatorWithTelemetry.Subscribe(subscriber);
-        
-        var subscriberWithoutTelemetry = _serviceProviderWithoutTelemetry.GetRequiredService<INotificationSubscriber<TestNotification>>();
+
+        INotificationSubscriber<TestNotification> subscriberWithoutTelemetry =
+            _scopeWithoutTelemetry.ServiceProvider.GetRequiredService<INotificationSubscriber<TestNotification>>();
         _mediatorWithoutTelemetry.Subscribe(subscriberWithoutTelemetry);
 
-        // Initialize test objects
         _testCommand = new TestCommand { Value = "benchmark" };
         _testQuery = new TestQuery { Value = "benchmark" };
         _testNotification = new TestNotification { Message = "benchmark" };
@@ -67,8 +66,10 @@ public class MediatorTelemetryPerformanceBenchmarks
     [GlobalCleanup]
     public void Cleanup()
     {
-        (_serviceProviderWithTelemetry as IDisposable)?.Dispose();
-        (_serviceProviderWithoutTelemetry as IDisposable)?.Dispose();
+        _scopeWithTelemetry?.Dispose();
+        _scopeWithoutTelemetry?.Dispose();
+        _providerWithTelemetry?.Dispose();
+        _providerWithoutTelemetry?.Dispose();
     }
 
     #region Command Benchmarks
@@ -127,11 +128,8 @@ public class MediatorTelemetryPerformanceBenchmarks
     [Arguments(1000)]
     public async Task SendCommand_Batch_WithoutTelemetry(int batchSize)
     {
-        var tasks = new Task[batchSize];
-        for (int i = 0; i < batchSize; i++)
-        {
-            tasks[i] = _mediatorWithoutTelemetry.Send(_testCommand);
-        }
+        Task[] tasks = new Task[batchSize];
+        for (int i = 0; i < batchSize; i++) tasks[i] = _mediatorWithoutTelemetry.Send(_testCommand).AsTask();
         await Task.WhenAll(tasks);
     }
 
@@ -141,11 +139,8 @@ public class MediatorTelemetryPerformanceBenchmarks
     [Arguments(1000)]
     public async Task SendCommand_Batch_WithTelemetry(int batchSize)
     {
-        var tasks = new Task[batchSize];
-        for (int i = 0; i < batchSize; i++)
-        {
-            tasks[i] = _mediatorWithTelemetry.Send(_testCommand);
-        }
+        Task[] tasks = new Task[batchSize];
+        for (int i = 0; i < batchSize; i++) tasks[i] = _mediatorWithTelemetry.Send(_testCommand).AsTask();
         await Task.WhenAll(tasks);
     }
 
@@ -155,11 +150,8 @@ public class MediatorTelemetryPerformanceBenchmarks
     [Arguments(1000)]
     public async Task PublishNotification_Batch_WithoutTelemetry(int batchSize)
     {
-        var tasks = new Task[batchSize];
-        for (int i = 0; i < batchSize; i++)
-        {
-            tasks[i] = _mediatorWithoutTelemetry.Publish(_testNotification);
-        }
+        Task[] tasks = new Task[batchSize];
+        for (int i = 0; i < batchSize; i++) tasks[i] = _mediatorWithoutTelemetry.Publish(_testNotification).AsTask();
         await Task.WhenAll(tasks);
     }
 
@@ -169,11 +161,8 @@ public class MediatorTelemetryPerformanceBenchmarks
     [Arguments(1000)]
     public async Task PublishNotification_Batch_WithTelemetry(int batchSize)
     {
-        var tasks = new Task[batchSize];
-        for (int i = 0; i < batchSize; i++)
-        {
-            tasks[i] = _mediatorWithTelemetry.Publish(_testNotification);
-        }
+        Task[] tasks = new Task[batchSize];
+        for (int i = 0; i < batchSize; i++) tasks[i] = _mediatorWithTelemetry.Publish(_testNotification).AsTask();
         await Task.WhenAll(tasks);
     }
 
@@ -188,7 +177,7 @@ public class MediatorTelemetryPerformanceBenchmarks
 
     public class TestCommandHandler : IRequestHandler<TestCommand>
     {
-        public async Task Handle(TestCommand request, CancellationToken cancellationToken)
+        public async ValueTask Handle(TestCommand request, CancellationToken cancellationToken)
         {
             // Minimal work to focus on telemetry overhead
             await Task.Yield();
@@ -202,7 +191,7 @@ public class MediatorTelemetryPerformanceBenchmarks
 
     public class TestQueryHandler : IRequestHandler<TestQuery, string>
     {
-        public async Task<string> Handle(TestQuery request, CancellationToken cancellationToken)
+        public async ValueTask<string> Handle(TestQuery request, CancellationToken cancellationToken)
         {
             // Minimal work to focus on telemetry overhead
             await Task.Yield();

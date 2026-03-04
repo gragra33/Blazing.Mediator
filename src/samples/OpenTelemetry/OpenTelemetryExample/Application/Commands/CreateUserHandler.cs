@@ -16,7 +16,7 @@ public sealed class CreateUserHandler(ApplicationDbContext context, ILogger<Crea
 {
     private const string ActivityName = "CreateUserHandler.Handle";
 
-    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<int> Handle(CreateUserCommand request, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Processing CreateUserCommand for user: {UserName} with email: {UserEmail}",
             request.Name, request.Email);

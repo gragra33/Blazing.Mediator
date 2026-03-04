@@ -72,7 +72,7 @@ public class StreamContactsWithMetadataHandler(
 public class GetContactCountHandler(IContactService contactService, ILogger<GetContactCountHandler> logger)
     : IRequestHandler<GetContactCountRequest, int>
 {
-    public async Task<int> Handle(GetContactCountRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<int> Handle(GetContactCountRequest request, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Getting contact count");
         var count = await contactService.GetTotalCountAsync(cancellationToken).ConfigureAwait(false);
@@ -87,7 +87,7 @@ public class GetContactCountHandler(IContactService contactService, ILogger<GetC
 public class GetAllContactsHandler(IContactService contactService, ILogger<GetAllContactsHandler> logger)
     : IRequestHandler<GetAllContactsRequest, ContactDto[]>
 {
-    public async Task<ContactDto[]> Handle(GetAllContactsRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<ContactDto[]> Handle(GetAllContactsRequest request, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Getting all contacts, search term: {SearchTerm}", request.SearchTerm);
 

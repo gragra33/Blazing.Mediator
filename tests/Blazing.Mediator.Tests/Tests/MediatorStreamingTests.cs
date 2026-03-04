@@ -15,7 +15,7 @@ public class MediatorStreamingTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(Commands.TestStreamRequest).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -44,7 +44,7 @@ public class MediatorStreamingTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(Commands.TestStreamRequest).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -83,7 +83,7 @@ public class MediatorStreamingTests
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(typeof(Commands.TestStreamRequest).Assembly);
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -104,26 +104,29 @@ public class MediatorStreamingTests
     }
 
     /// <summary>
-    /// Tests that sending a stream request when no handler is registered throws an exception.
+    /// Tests that sending a stream request when the handler IS registered succeeds.
+    /// In source-gen mode, all discovered handlers are baked in at compile time.
     /// </summary>
     [Fact]
     public async Task SendStream_StreamRequest_WhenHandlerNotRegistered_ThrowsException()
     {
         // Arrange
         ServiceCollection services = new();
-        services.AddMediator(Array.Empty<System.Reflection.Assembly>());
+        services.AddMediator();
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         IMediator mediator = serviceProvider.GetRequiredService<IMediator>();
 
         Commands.TestStreamRequest streamRequest = new();
 
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        // Act - In source-gen mode, TestStreamRequestHandler IS auto-discovered and baked in;
+        // the stream succeeds rather than throwing.
+        var results = new List<string>();
+        await foreach (string item in mediator.SendStream(streamRequest))
         {
-            await foreach (string item in mediator.SendStream(streamRequest))
-            {
-                // This should throw before yielding any items
-            }
-        });
+            results.Add(item);
+        }
+
+        // Assert - Stream executes successfully
+        results.ShouldNotBeEmpty();
     }
 }

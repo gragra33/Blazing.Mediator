@@ -20,8 +20,8 @@ public class MediatorConfigurationTests
 
         // Assert
         config.ShouldNotBeNull();
-        config.PipelineBuilder.ShouldNotBeNull();
-        config.NotificationPipelineBuilder.ShouldNotBeNull();
+        config.PipelineBuilder.ShouldBeNull(); // Null in source-gen mode (pre-baked at compile time)
+        config.NotificationPipelineBuilder.ShouldBeNull(); // Null in source-gen mode
         config.Assemblies.ShouldBeEmpty();
         config.StatisticsOptions.ShouldBeNull();
         config.TelemetryOptions.ShouldBeNull();
@@ -43,8 +43,8 @@ public class MediatorConfigurationTests
 
         // Assert
         config.ShouldNotBeNull();
-        config.PipelineBuilder.ShouldNotBeNull();
-        config.NotificationPipelineBuilder.ShouldNotBeNull();
+        config.PipelineBuilder.ShouldBeNull(); // Null in source-gen mode
+        config.NotificationPipelineBuilder.ShouldBeNull(); // Null in source-gen mode
         config.Assemblies.ShouldBeEmpty();
     }
 
@@ -56,8 +56,8 @@ public class MediatorConfigurationTests
 
         // Assert
         config.ShouldNotBeNull();
-        config.PipelineBuilder.ShouldNotBeNull();
-        config.NotificationPipelineBuilder.ShouldNotBeNull();
+        config.PipelineBuilder.ShouldBeNull(); // Null in source-gen mode
+        config.NotificationPipelineBuilder.ShouldBeNull(); // Null in source-gen mode
     }
 
     #endregion
@@ -1057,24 +1057,27 @@ public class AnotherTestMiddleware
     // Another mock middleware implementation
 }
 
+[ExcludeFromAutoDiscovery]
 public class TestNotificationMiddleware : INotificationMiddleware
 {
     public int Order => 0;
 
-    public Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
+    public ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         return next(notification, cancellationToken);
     }
 }
 
+[ExcludeFromAutoDiscovery]
 public class AnotherTestNotificationMiddleware : INotificationMiddleware
 {
     public int Order => 0;
 
-    public Task InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
+    public ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken = default) where TNotification : INotification
     {
         return next(notification, cancellationToken);
     }
 }
 
 #endregion
+

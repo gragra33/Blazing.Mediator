@@ -1,3 +1,4 @@
 namespace Blazing.Mediator.Tests.ConfigurationTests;
 
-public record TestQuery(string Value) : IRequest<string>;
+public record CfgTestQuery(string Value) : IRequest<string>;
+

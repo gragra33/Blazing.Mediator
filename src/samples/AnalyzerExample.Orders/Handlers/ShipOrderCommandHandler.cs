@@ -9,7 +9,7 @@ namespace AnalyzerExample.Orders.Handlers;
 /// </summary>
 public class ShipOrderCommandHandler : IRequestHandler<ShipOrderCommand, OperationResult>
 {
-    public async Task<OperationResult> Handle(ShipOrderCommand request, CancellationToken cancellationToken = default)
+    public async ValueTask<OperationResult> Handle(ShipOrderCommand request, CancellationToken cancellationToken = default)
     {
         // Simulate order shipping
         await Task.Delay(60, cancellationToken);

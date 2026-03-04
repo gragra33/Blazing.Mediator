@@ -9,44 +9,47 @@ This comprehensive example demonstrates all the analysis capabilities of Blazing
 **The AnalyzerExample sample application highlights queries, commands, and notifications that have missing handlers in bright red text**, making it immediately obvious which components need to be implemented during development and debugging.
 
 ### **Missing Handlers by Design**
+
 This example includes **intentionally missing handlers** across all projects to showcase how the Analyzers help you:
+
 - **Quickly identify missing handlers** that would cause runtime errors
-- **Discover unmatched requests** in complex multi-project solutions  
+- **Discover unmatched requests** in complex multi-project solutions
 - **Validate handler registration** across assembly boundaries
 - **Understand interface implementations** and handler patterns
 - **Debug middleware configuration** and execution order
 - **Visual identification** with red console highlighting for missing components
 
 ### **Scale of the Multi-Assembly Example**
+
 This comprehensive example includes **92 total mediator components** across 5 projects:
 
-| Component Type | AnalyzerExample.Common | AnalyzerExample.Products | AnalyzerExample.Users | AnalyzerExample.Orders | Main Assembly | **Total** |
-|----------------|:----------------------:|:------------------------:|:---------------------:|:----------------------:|:-------------:|:---------:|
-| **Queries** | 1 | 6 | 7 | 7 | 0 | **21** |
-| **Commands** | 2 | 10 | 8 | 8 | 0 | **28** |
-| **Notifications** | 2 | 9 | 8 | 6 | 0 | **25** |
-| **Request Middleware** | 4 | 4 | 0 | 0 | 0 | **8** |
-| **Notification Middleware** | 2 | 0 | 0 | 0 | 0 | **2** |
-| **Handlers** | 4 | 21 | 13 | 13 | 0 | **51** |
-| **TOTAL COMPONENTS** | **15** | **50** | **36** | **34** | **0** | **135** |
+| Component Type              | AnalyzerExample.Common | AnalyzerExample.Products | AnalyzerExample.Users | AnalyzerExample.Orders | Main Assembly | **Total** |
+| --------------------------- | :--------------------: | :----------------------: | :-------------------: | :--------------------: | :-----------: | :-------: |
+| **Queries**                 |           1            |            6             |           7           |           7            |       0       |  **21**   |
+| **Commands**                |           2            |            10            |           8           |           8            |       0       |  **28**   |
+| **Notifications**           |           2            |            9             |           8           |           6            |       0       |  **25**   |
+| **Request Middleware**      |           4            |            4             |           0           |           0            |       0       |   **8**   |
+| **Notification Middleware** |           2            |            0             |           0           |           0            |       0       |   **2**   |
+| **Handlers**                |           4            |            21            |          13           |           13           |       0       |  **51**   |
+| **TOTAL COMPONENTS**        |         **15**         |          **50**          |        **36**         |         **34**         |     **0**     |  **135**  |
 
 **Note**: Some handlers are intentionally missing to demonstrate analyzer benefits - see the missing handler analysis in the output.
 
 With this many components across multiple projects, **manually tracking missing handlers would be nearly impossible**. The Blazing.Mediator Analyzers make it trivial to:
 
-* **Instantly identify all missing handlers** across the entire solution  
-* **Validate multi-project handler registration** with single commands  
-* **Understand complex domain boundaries** and interface implementations  
-* **Debug middleware pipeline configuration** across assemblies  
-* **Monitor handler status changes** during development  
-* **Ensure complete test coverage** by identifying untested components
+- **Instantly identify all missing handlers** across the entire solution
+- **Validate multi-project handler registration** with single commands
+- **Understand complex domain boundaries** and interface implementations
+- **Debug middleware pipeline configuration** across assemblies
+- **Monitor handler status changes** during development
+- **Ensure complete test coverage** by identifying untested components
 
 ## What This Example Demonstrates
 
 This multi-assembly application provides complete examples of:
 
 1. **Cross-Assembly Query Analysis** - `AnalyzeQueries()` with domain-specific patterns across projects
-2. **Cross-Assembly Command Analysis** - `AnalyzeCommands()` with business operations across modules  
+2. **Cross-Assembly Command Analysis** - `AnalyzeCommands()` with business operations across modules
 3. **Cross-Assembly Notification Analysis** - `AnalyzeNotifications()` with domain events and integration events
 4. **Multi-Project Request Middleware Analysis** - `MiddlewarePipelineBuilder.AnalyzeMiddleware()` with shared and domain-specific middleware
 5. **Multi-Project Notification Middleware Analysis** - `NotificationPipelineBuilder.AnalyzeMiddleware()` with comprehensive cross-assembly formatting
@@ -96,18 +99,21 @@ AnalyzerExample Solution/
 ## Cross-Assembly Analysis Examples
 
 ### Domain-Specific Query Patterns
+
 - **Product Queries**: Inventory search, category filtering, review aggregation
 - **User Queries**: User management, role-based filtering, activity tracking
 - **Order Queries**: Order tracking, status filtering, customer order history
 - **Cross-Domain Queries**: Complex queries spanning multiple domain boundaries
 
-### Business Command Patterns  
+### Business Command Patterns
+
 - **Product Commands**: Inventory management, pricing, review processing
 - **User Commands**: Registration, profile management, role assignments
 - **Order Commands**: Order creation, fulfillment, status updates
 - **Transaction Commands**: Multi-domain operations with distributed transactions
 
 ### Domain Event Patterns
+
 - **Product Events**: Stock changes, price updates, reviews added
 - **User Events**: Registration, profile updates, login tracking
 - **Order Events**: Status changes, shipment tracking, delivery confirmation
@@ -116,12 +122,14 @@ AnalyzerExample Solution/
 ### Multi-Project Middleware Architecture
 
 #### Shared Common Middleware
+
 - **Global Logging Middleware**: Request/response logging across all assemblies
 - **Audit Middleware**: Business operation auditing with user tracking
 - **Transaction Middleware**: Distributed transaction coordination
 - **Domain Event Middleware**: Cross-assembly domain event processing
 
 #### Domain-Specific Middleware
+
 - **Product Middleware**: Product validation, inventory checks, caching strategies
 - **User Middleware**: Authentication, authorization, profile validation
 - **Order Middleware**: Order validation, payment processing, fulfillment workflows
@@ -131,6 +139,7 @@ AnalyzerExample Solution/
 The example demonstrates comprehensive extension methods providing clean type formatting across multiple assemblies:
 
 ### Cross-Assembly Query/Command Normalization
+
 ```csharp
 // From AnalyzerExample.Products assembly
 var productQuery = analysis.FirstOrDefault(q => q.Assembly == "AnalyzerExample.Products");
@@ -139,15 +148,16 @@ var productQuery = analysis.FirstOrDefault(q => q.Assembly == "AnalyzerExample.P
 var rawResponseType = productQuery.ResponseType; // "PagedResult`1[ProductSummaryDto]"
 var rawInterface = productQuery.PrimaryInterface; // "IProductQuery<PagedResult`1>"
 
-// After: Clean cross-assembly normalization  
+// After: Clean cross-assembly normalization
 var normalizedResponse = productQuery.NormalizeResponseTypeName(); // "PagedResult<ProductSummaryDto>"
 var normalizedInterface = productQuery.NormalizePrimaryInterfaceName(); // "IProductQuery<PagedResult<ProductSummaryDto>>"
 var assemblyInfo = $"{productQuery.Namespace}, {productQuery.Assembly}"; // "AnalyzerExample.Products.Queries, AnalyzerExample.Products"
 ```
 
 ### Cross-Assembly Middleware Normalization
+
 ```csharp
-// From AnalyzerExample.Common assembly  
+// From AnalyzerExample.Common assembly
 var globalMiddleware = middlewareAnalysis.FirstOrDefault(m => m.GetAssemblyName() == "AnalyzerExample.Common");
 
 // Before: Raw middleware types with backticks
@@ -158,11 +168,12 @@ var normalizedType = globalMiddleware.NormalizeTypeName(); // "GlobalLoggingMidd
 var assemblyName = globalMiddleware.GetAssemblyName(); // "AnalyzerExample.Common"
 var namespaceName = globalMiddleware.GetNamespace(); // "AnalyzerExample.Common.Middleware"
 var summary = globalMiddleware.NormalizeSummary(); // "[1000] GlobalLoggingMiddleware<TRequest>"
-var fullSummary = globalMiddleware.NormalizeSummary(includeNamespace: true); 
+var fullSummary = globalMiddleware.NormalizeSummary(includeNamespace: true);
 // "[1000] GlobalLoggingMiddleware<TRequest> (AnalyzerExample.Common.Middleware, AnalyzerExample.Common)"
 ```
 
 ### Assembly and Namespace Analysis
+
 ```csharp
 // Cross-assembly distribution analysis
 var assembliesByQueries = queries.GroupBy(q => q.Assembly).Count(); // 4 assemblies
@@ -174,26 +185,29 @@ var middlewareDistribution = middleware.GroupBy(m => m.GetAssemblyName())
 ## Running the Multi-Assembly Example
 
 1. **Navigate to the main project directory:**
-   ```bash
-   cd src/samples/AnalyzerExample
-   ```
+
+    ```bash
+    cd src/samples/AnalyzerExample
+    ```
 
 2. **Build the solution (builds all referenced projects):**
-   ```bash
-   dotnet build
-   ```
+
+    ```bash
+    dotnet build
+    ```
 
 3. **Run the multi-assembly analysis:**
-   ```bash
-   dotnet run
-   ```
+
+    ```bash
+    dotnet run
+    ```
 
 4. **View comprehensive cross-assembly analysis** showing:
-   - Queries, commands, and notifications organized by assembly and namespace
-   - Handler discovery across multiple projects with clean names
-   - Middleware pipeline analysis showing cross-project dependencies
-   - Type normalization comparisons across assemblies
-   - Assembly distribution statistics and insights
+    - Queries, commands, and notifications organized by assembly and namespace
+    - Handler discovery across multiple projects with clean names
+    - Middleware pipeline analysis showing cross-project dependencies
+    - Type normalization comparisons across assemblies
+    - Assembly distribution statistics and insights
 
 ## Sample Multi-Assembly Output
 
@@ -203,7 +217,7 @@ BLAZING.MEDIATOR MULTI-ASSEMBLY ANALYZER EXAMPLE
 
 This example demonstrates comprehensive analysis capabilities across multiple assemblies:
   - AnalyzerExample.Common - Shared middleware and interfaces
-  - AnalyzerExample.Products - Product domain with queries, commands, and handlers  
+  - AnalyzerExample.Products - Product domain with queries, commands, and handlers
   - AnalyzerExample.Users - User management with complex domain models
   - AnalyzerExample.Orders - Order processing with status tracking
   - Main Assembly - Coordination and cross-cutting concerns
@@ -247,7 +261,7 @@ Assembly: AnalyzerExample.Common
        [NORMALIZED] Summary: [1000] GlobalLoggingMiddleware<TRequest>
        [NORMALIZED] Full Summary: [1000] GlobalLoggingMiddleware<TRequest> (AnalyzerExample.Common.Middleware, AnalyzerExample.Common)
 
-Assembly: AnalyzerExample.Products  
+Assembly: AnalyzerExample.Products
   Namespace: AnalyzerExample.Products.Middleware
     - Middleware: ProductValidationMiddleware
        Order: 150
@@ -257,82 +271,36 @@ Assembly: AnalyzerExample.Products
 
 [CROSS-ASSEMBLY DISTRIBUTION]:
    Queries across 4 assemblies
-   Commands across 4 assemblies  
+   Commands across 4 assemblies
    Notifications across 4 assemblies
    Request middleware across 2 assemblies
    Notification middleware across 1 assemblies
 
 [MISSING HANDLERS SUMMARY]:
    Missing Query Handlers: 3 queries need handlers
-   Missing Command Handlers: 8 commands without handlers detected  
+   Missing Command Handlers: 8 commands without handlers detected
    Missing Notification Handlers: 2 notifications need handlers
    Total Missing: 13 handlers need to be implemented
 ```
 
 ## Multi-Assembly Configuration
 
-The example shows how to configure mediator analysis across multiple assemblies:
+The example shows how to configure mediator analysis across multiple assemblies. The source generator discovers all handlers and middleware at compile time — no assembly arguments or `AddMiddleware` calls are needed:
 
-### Manual Configuration
 ```csharp
 services.AddMediator(config =>
 {
-    // Enable comprehensive statistics tracking across all assemblies
+    // Enable detailed statistics tracking for cross-assembly analysis
     config.WithStatisticsTracking();
-    
-    // Register common middleware that works across all assemblies
-    config.AddMiddleware(typeof(AnalyzerExample.Common.Middleware.GlobalLoggingMiddleware<>));
-    config.AddMiddleware(typeof(AnalyzerExample.Common.Middleware.GlobalLoggingMiddleware<,>));
-    config.AddMiddleware(typeof(AnalyzerExample.Common.Middleware.AuditMiddleware<>));
-    config.AddMiddleware(typeof(AnalyzerExample.Common.Middleware.TransactionMiddleware<>));
-    
-    // Register domain-specific middleware
-    config.AddMiddleware(typeof(AnalyzerExample.Products.Middleware.ProductValidationMiddleware<>));
-    config.AddMiddleware(typeof(AnalyzerExample.Products.Middleware.ProductQueryCacheMiddleware<,>));
-    
-    // Register notification middleware
-    config.AddNotificationMiddleware<AnalyzerExample.Common.Middleware.GlobalNotificationMiddleware>();
-    config.AddNotificationMiddleware(typeof(AnalyzerExample.Common.Middleware.DomainEventMiddleware<>));
-    
-},
-// Discover from all related assemblies
-typeof(AnalyzerExample.Common.Domain.BaseEntity).Assembly,      // Common
-typeof(AnalyzerExample.Products.Domain.Product).Assembly,       // Products  
-typeof(AnalyzerExample.Users.Domain.User).Assembly,             // Users
-typeof(AnalyzerExample.Orders.Domain.Order).Assembly,           // Orders
-typeof(Program).Assembly                                         // Main
-);
-```
-
-### Fully Automated Configuration
-```csharp
-// Register Blazing.Mediator with comprehensive discovery across all assemblies
-services.AddMediator(config =>
-{
-    // Enable detailed statistics tracking for comprehensive analysis
-    config.WithStatisticsTracking();
-
-    // Enable middleware discovery
-    config.WithMiddlewareDiscovery();
-
-    // Enable notification middleware discovery
-    config.WithNotificationMiddlewareDiscovery();
-
-    // Register assemblies for handler and middleware discovery
-    config.AddAssemblies(
-            typeof(Common.Domain.BaseEntity).Assembly, // Common
-            typeof(Products.Domain.Product).Assembly, // Products  
-            typeof(Users.Domain.User).Assembly, // Users
-            typeof(Orders.Domain.Order).Assembly, // Orders
-            typeof(Program).Assembly // Main
-        );
 });
 ```
+
+The source generator scans all referenced assemblies (`AnalyzerExample.Common`, `AnalyzerExample.Products`, `AnalyzerExample.Users`, `AnalyzerExample.Orders`, and the main project) at compile time, discovering every handler and middleware type automatically.
 
 ## Multi-Assembly Learning Points
 
 1. **Cross-Assembly Analysis**: How to analyze mediator usage across multiple projects and assemblies
-2. **Domain Separation**: Clean separation of concerns across business domains  
+2. **Domain Separation**: Clean separation of concerns across business domains
 3. **Shared Infrastructure**: Common interfaces and middleware across domain boundaries
 4. **Assembly Discovery**: Automatic handler and middleware discovery across multiple assemblies
 5. **Namespace Organization**: Clear namespace organization for better code organization
@@ -343,12 +311,14 @@ services.AddMediator(config =>
 ## Architecture Benefits Demonstrated
 
 ### **Modular Design**
+
 - Clear domain boundaries with separate assemblies
 - Shared common infrastructure for cross-cutting concerns
 - Independent deployment and versioning capabilities
 - Testable, maintainable code structure
 
 ### **Analysis Capabilities**
+
 - Cross-assembly type normalization without backticks
 - Assembly and namespace identification across projects
 - Middleware pipeline analysis spanning multiple assemblies
@@ -357,6 +327,7 @@ services.AddMediator(config =>
 - **Missing handler detection across all projects**
 
 ### **Type Normalization Excellence**
+
 - Consistent formatting across all assemblies and namespaces
 - Clean display of complex domain-specific generic types
 - Assembly distribution statistics and insights
@@ -368,12 +339,14 @@ services.AddMediator(config =>
 ### QueryCommandAnalysisExtensions
 
 **Type Normalization Methods:**
+
 - `NormalizeResponseTypeName()` - Clean response type names without backticks
 - `NormalizePrimaryInterfaceName()` - Clean interface names with proper generic syntax
 - `NormalizeHandlerNames()` - Clean handler type names across assemblies
 - `NormalizeHandlerDetails()` - Normalized handler information strings
 
 **Fully Qualified Methods:**
+
 - `GetFullyQualifiedResponseTypeName()` - Full namespace and assembly info for response types
 - `GetFullyQualifiedPrimaryInterfaceName()` - Full namespace info for interfaces
 - `GetFullyQualifiedHandlerNames()` - Full namespace info for handlers
@@ -381,6 +354,7 @@ services.AddMediator(config =>
 ### MiddlewareAnalysisExtensions
 
 **Type Normalization Methods:**
+
 - `NormalizeTypeName()` - Clean middleware type names without backticks
 - `NormalizeClassName()` - Clean class names without generic suffixes
 - `NormalizeTypeParameters()` - Clean generic parameter formatting
@@ -389,6 +363,7 @@ services.AddMediator(config =>
 - `NormalizeSummary(includeNamespace)` - Complete normalized summaries
 
 **Analysis Methods:**
+
 - `GetAssemblyName()` - Assembly name identification
 - `GetNamespace()` - Namespace identification
 - `IsGeneric()` - Generic type detection
@@ -399,12 +374,14 @@ services.AddMediator(config =>
 ### NotificationAnalysisExtensions
 
 **Type Normalization Methods:**
+
 - `NormalizeHandlerNames()` - Clean notification handler names
 - `NormalizeHandlerDetails()` - Normalized handler information
 - `NormalizePrimaryInterfaceName()` - Clean notification interface names
 - `NormalizeSubscriberNames()` - Clean subscriber type names
 
 **Fully Qualified Methods:**
+
 - `GetFullyQualifiedHandlerNames()` - Full namespace info for notification handlers
 - `GetFullyQualifiedPrimaryInterfaceName()` - Full namespace info for notification interfaces
 

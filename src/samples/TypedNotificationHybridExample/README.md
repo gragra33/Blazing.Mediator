@@ -7,7 +7,7 @@ This example demonstrates the **TYPED HYBRID notification pattern** in Blazing.M
 The typed hybrid pattern provides **maximum flexibility with optimal performance** by combining three powerful concepts:
 
 - **Automatic Handlers** (`INotificationHandler<T>`) - Zero configuration, automatically discovered and registered
-- **Manual Subscribers** (`INotificationSubscriber<T>`) - Explicit control, manually registered and subscribed  
+- **Manual Subscribers** (`INotificationSubscriber<T>`) - Explicit control, manually registered and subscribed
 - **Type-Constrained Middleware** - Selective processing based on notification type interfaces
 
 This gives you **ultimate control**: zero-configuration for core logic, fine-grained control for complex scenarios, and performance-optimized middleware that only processes relevant notification types.
@@ -15,18 +15,21 @@ This gives you **ultimate control**: zero-configuration for core logic, fine-gra
 ## ? Key Features Demonstrated
 
 ### Automatic Handler Discovery (Zero Configuration)
+
 - **EmailNotificationHandler** - Handles multiple notification types automatically
 - **BusinessOperationsHandler** - Processes all business notifications automatically
 - **Multi-Type Support** - Single handler can process multiple notification types
 - **No Manual Setup Required** - Just implement `INotificationHandler<T>` and it works
 
 ### Manual Subscriber Registration (Explicit Control)
+
 - **AuditNotificationSubscriber** - Comprehensive audit logging with manual subscription
 - **IntegrationNotificationSubscriber** - External system integration with explicit control
 - **Dynamic Control** - Subscribe/unsubscribe at runtime as needed
 - **Full Lifecycle Management** - You decide when, where, and how to activate
 
 ### Type-Constrained Middleware (Performance Optimized)
+
 - **OrderNotificationMiddleware** - Only processes `IOrderNotification` types
 - **CustomerNotificationMiddleware** - Only processes `ICustomerNotification` types
 - **InventoryNotificationMiddleware** - Only processes `IInventoryNotification` types
@@ -34,6 +37,7 @@ This gives you **ultimate control**: zero-configuration for core logic, fine-gra
 - **Performance Benefits** - Middleware only runs when notification types match
 
 ### Notification Categories with Type Safety
+
 - **`IOrderNotification`** - Order-related events with compile-time safety
 - **`ICustomerNotification`** - Customer-related events with type guarantees
 - **`IInventoryNotification`** - Inventory-related events with constraint validation
@@ -42,6 +46,7 @@ This gives you **ultimate control**: zero-configuration for core logic, fine-gra
 ## ??? Type System Architecture
 
 ### Marker Interfaces (Type Constraints)
+
 ```csharp
 // Define clear contracts for type-constrained processing
 public interface IOrderNotification : INotification
@@ -64,6 +69,7 @@ public interface IInventoryNotification : INotification
 ```
 
 ### Concrete Notifications
+
 ```csharp
 // Notifications can implement multiple interfaces for flexible processing
 public class OrderCreatedNotification : IOrderNotification, ICustomerNotification
@@ -85,73 +91,77 @@ public class CustomerRegisteredNotification : ICustomerNotification
 
 ## ?? Typed Hybrid Pattern Comparison
 
-| Feature | ?? Automatic Handlers | ?? Manual Subscribers | ?? Type-Constrained Middleware | ?? Best Use Case |
-|---------|----------------------|----------------------|--------------------------------|------------------|
-| **Registration** | ? Automatic Discovery | ? Manual Subscription | ? Automatic Discovery | Auto: Core / Manual: Optional / Type: Performance |
-| **Type Safety** | ? Compile-time | ? Compile-time | ? Compile-time + Runtime | All: Maximum type safety |
-| **Performance** | ? Zero overhead | ?? Subscription cost | ? Selective execution | Auto+Type: High perf / Manual: Flexibility |
-| **Flexibility** | ?? Always active | ? Dynamic control | ?? Type-based | Manual: Max flexibility / Others: Structured |
-| **Maintainability** | ? Zero config | ?? Explicit setup | ? Type-driven | Auto+Type: Low maintenance / Manual: Explicit |
-| **Scalability** | ? Easy to add | ?? Must remember to subscribe | ? Automatic categorization | All: Excellent scalability |
+| Feature             | ?? Automatic Handlers | ?? Manual Subscribers         | ?? Type-Constrained Middleware | ?? Best Use Case                                  |
+| ------------------- | --------------------- | ----------------------------- | ------------------------------ | ------------------------------------------------- |
+| **Registration**    | ? Automatic Discovery | ? Manual Subscription         | ? Automatic Discovery          | Auto: Core / Manual: Optional / Type: Performance |
+| **Type Safety**     | ? Compile-time        | ? Compile-time                | ? Compile-time + Runtime       | All: Maximum type safety                          |
+| **Performance**     | ? Zero overhead       | ?? Subscription cost          | ? Selective execution          | Auto+Type: High perf / Manual: Flexibility        |
+| **Flexibility**     | ?? Always active      | ? Dynamic control             | ?? Type-based                  | Manual: Max flexibility / Others: Structured      |
+| **Maintainability** | ? Zero config         | ?? Explicit setup             | ? Type-driven                  | Auto+Type: Low maintenance / Manual: Explicit     |
+| **Scalability**     | ? Easy to add         | ?? Must remember to subscribe | ? Automatic categorization     | All: Excellent scalability                        |
 
 ## ?? What This Example Demonstrates
 
 ### Automatic Handlers (Core Business Logic)
+
 1. **EmailNotificationHandler** ??
-   - **Multi-Type Handler**: Processes `OrderCreatedNotification` and `CustomerRegisteredNotification`
-   - **Automatic Discovery**: Zero configuration required
-   - **Type-Safe Processing**: Handles different notification types appropriately
-   - **Always Active**: Core communication that should never be disabled
+    - **Multi-Type Handler**: Processes `OrderCreatedNotification` and `CustomerRegisteredNotification`
+    - **Automatic Discovery**: Zero configuration required
+    - **Type-Safe Processing**: Handles different notification types appropriately
+    - **Always Active**: Core communication that should never be disabled
 
 2. **BusinessOperationsHandler** ??
-   - **Universal Handler**: Processes all business notification types
-   - **Business Logic Hub**: Centralized business rule processing
-   - **Zero Setup**: Automatically discovered and registered
-   - **Consistent Processing**: Ensures business rules always apply
+    - **Universal Handler**: Processes all business notification types
+    - **Business Logic Hub**: Centralized business rule processing
+    - **Zero Setup**: Automatically discovered and registered
+    - **Consistent Processing**: Ensures business rules always apply
 
 ### Manual Subscribers (Advanced Control)
+
 1. **AuditNotificationSubscriber** ??
-   - **Comprehensive Auditing**: Handles all notification types when subscribed
-   - **Conditional Activation**: Only active when compliance is required
-   - **External Integration**: Complex setup with audit systems
-   - **Manual Control**: Subscribe/unsubscribe based on regulatory needs
+    - **Comprehensive Auditing**: Handles all notification types when subscribed
+    - **Conditional Activation**: Only active when compliance is required
+    - **External Integration**: Complex setup with audit systems
+    - **Manual Control**: Subscribe/unsubscribe based on regulatory needs
 
 2. **IntegrationNotificationSubscriber** ??
-   - **External System Integration**: Handles order and customer notifications
-   - **Complex Setup**: Requires configuration and connection management
-   - **Dynamic Activation**: Enable/disable based on system availability
-   - **Explicit Control**: Full lifecycle management for integration scenarios
+    - **External System Integration**: Handles order and customer notifications
+    - **Complex Setup**: Requires configuration and connection management
+    - **Dynamic Activation**: Enable/disable based on system availability
+    - **Explicit Control**: Full lifecycle management for integration scenarios
 
 ### Type-Constrained Middleware (Performance Optimized)
+
 1. **OrderNotificationMiddleware** [200] ???
-   - **Type Constraint**: `TNotification : IOrderNotification`
-   - **Order-Specific Logic**: Validation, processing, and business rules
-   - **Performance**: Only executes for order-related notifications
-   - **Type Safety**: Compile-time guarantee of order notification properties
+    - **Type Constraint**: `TNotification : IOrderNotification`
+    - **Order-Specific Logic**: Validation, processing, and business rules
+    - **Performance**: Only executes for order-related notifications
+    - **Type Safety**: Compile-time guarantee of order notification properties
 
 2. **CustomerNotificationMiddleware** [250] ??
-   - **Type Constraint**: `TNotification : ICustomerNotification`
-   - **Customer-Specific Logic**: Email validation, customer processing
-   - **Selective Execution**: Only runs for customer-related events
-   - **Type Guarantee**: Compile-time access to customer properties
+    - **Type Constraint**: `TNotification : ICustomerNotification`
+    - **Customer-Specific Logic**: Email validation, customer processing
+    - **Selective Execution**: Only runs for customer-related events
+    - **Type Guarantee**: Compile-time access to customer properties
 
 3. **InventoryNotificationMiddleware** [300] ??
-   - **Type Constraint**: `TNotification : IInventoryNotification`
-   - **Inventory-Specific Logic**: Stock validation, quantity checks
-   - **Optimized Processing**: Only executes for inventory notifications
-   - **Type Safety**: Guaranteed access to inventory properties
+    - **Type Constraint**: `TNotification : IInventoryNotification`
+    - **Inventory-Specific Logic**: Stock validation, quantity checks
+    - **Optimized Processing**: Only executes for inventory notifications
+    - **Type Safety**: Guaranteed access to inventory properties
 
 4. **GeneralNotificationMiddleware** [100, 400] ??
-   - **No Type Constraint**: Processes all notifications
-   - **Cross-Cutting Concerns**: Logging, metrics, audit trails
-   - **Universal Pipeline**: Always executes regardless of notification type
-   - **Comprehensive Coverage**: Handles general processing for all types
+    - **No Type Constraint**: Processes all notifications
+    - **Cross-Cutting Concerns**: Logging, metrics, audit trails
+    - **Universal Pipeline**: Always executes regardless of notification type
+    - **Comprehensive Coverage**: Handles general processing for all types
 
 ## ?? Middleware Pipeline Execution
 
 ### Pipeline Flow by Notification Type
 
 **OrderCreatedNotification** (implements `IOrderNotification`, `ICustomerNotification`):
+
 ```
 GeneralNotificationMiddleware [100] (logging)
     ?
@@ -166,6 +176,7 @@ Subscribers: AuditNotificationSubscriber + IntegrationNotificationSubscriber (if
 ```
 
 **CustomerRegisteredNotification** (implements `ICustomerNotification`):
+
 ```
 GeneralNotificationMiddleware [100] (logging)
     ?
@@ -178,6 +189,7 @@ Subscribers: AuditNotificationSubscriber (if subscribed)
 ```
 
 **InventoryUpdatedNotification** (implements `IInventoryNotification`):
+
 ```
 GeneralNotificationMiddleware [100] (logging)
     ?
@@ -192,6 +204,7 @@ Subscribers: AuditNotificationSubscriber (if subscribed)
 ## ?? Configuration and Setup
 
 ### Service Registration
+
 ```csharp
 services.AddMediator(config =>
 {
@@ -202,10 +215,8 @@ services.AddMediator(config =>
             options.EnableMiddlewareMetrics = true;
             options.EnablePerformanceCounters = true;
             options.EnableDetailedAnalysis = true;
-        })
-          .WithNotificationHandlerDiscovery()    // Enable automatic handler discovery
-          .WithNotificationMiddlewareDiscovery(); // Enable automatic middleware discovery (including type-constrained)
-}, Assembly.GetExecutingAssembly());
+        });
+});
 
 // Manual subscribers must be registered in DI container
 services.AddScoped<AuditNotificationSubscriber>();
@@ -213,6 +224,7 @@ services.AddScoped<IntegrationNotificationSubscriber>();
 ```
 
 ### Type-Constrained Middleware Implementation
+
 ```csharp
 // Middleware that only processes order notifications
 public class OrderNotificationMiddleware : INotificationMiddleware
@@ -237,9 +249,10 @@ public class OrderNotificationMiddleware : INotificationMiddleware
 ```
 
 ### Multi-Type Handler Implementation
+
 ```csharp
 // Handler that processes multiple notification types automatically
-public class EmailNotificationHandler : 
+public class EmailNotificationHandler :
     INotificationHandler<OrderCreatedNotification>,
     INotificationHandler<CustomerRegisteredNotification>
 {
@@ -260,16 +273,19 @@ public class EmailNotificationHandler :
 ## ?? Running the Example
 
 ### Prerequisites
+
 - .NET 9.0 or later
 - Visual Studio 2022 or VS Code
 
 ### Running
+
 ```bash
 cd src/samples/TypedNotificationHybridExample
 dotnet run
 ```
 
 ### Expected Output
+
 ```
 ================================================================================
 *** Blazing.Mediator - TYPED HYBRID Notification Pattern Example ***
@@ -334,36 +350,42 @@ What you just experienced:
 ## ?? Advanced Use Case Decision Guide
 
 ### Use **Automatic Handlers** When:
+
 - ? **Core business logic** that should always execute
 - ? **Multi-type processing** with single handler class
 - ? **Zero configuration overhead** is desired
 - ? **Consistent behavior** across notification types
 
 **Examples:**
+
 - Email notifications for multiple events
 - Core business rule validation
 - Universal logging and metrics
 - Cross-cutting concerns
 
 ### Use **Manual Subscribers** When:
+
 - ? **Optional or conditional processing** based on configuration
 - ? **Complex external integrations** requiring setup
 - ? **Dynamic subscription control** is needed
 - ? **Compliance or regulatory** features that may be toggled
 
 **Examples:**
+
 - Optional audit logging
 - External system integrations
 - Regulatory compliance features
 - A/B testing scenarios
 
 ### Use **Type-Constrained Middleware** When:
+
 - ? **Category-specific processing** is needed
 - ? **Performance optimization** is important
 - ? **Type safety** with compile-time guarantees
 - ? **Different logic** for different notification categories
 
 **Examples:**
+
 - Order-specific validation
 - Customer-specific processing
 - Inventory-specific business rules
@@ -372,6 +394,7 @@ What you just experienced:
 ## ?? Adding Your Own Components
 
 ### Adding a New Notification Category
+
 ```csharp
 // Define the marker interface
 public interface IPaymentNotification : INotification
@@ -410,8 +433,9 @@ public class PaymentNotificationMiddleware : INotificationMiddleware
 ```
 
 ### Adding a Multi-Type Automatic Handler
+
 ```csharp
-public class SecurityNotificationHandler : 
+public class SecurityNotificationHandler :
     INotificationHandler<OrderCreatedNotification>,
     INotificationHandler<CustomerRegisteredNotification>,
     INotificationHandler<PaymentProcessedNotification>
@@ -437,21 +461,23 @@ public class SecurityNotificationHandler :
 ## ?? Performance Analysis
 
 ### Type-Constrained Middleware Benefits
+
 ```
 Traditional Approach (All middleware runs for all notifications):
-OrderCreatedNotification: 5 middleware × 100ms = 500ms
-CustomerRegisteredNotification: 5 middleware × 100ms = 500ms
-InventoryUpdatedNotification: 5 middleware × 100ms = 500ms
+OrderCreatedNotification: 5 middleware ï¿½ 100ms = 500ms
+CustomerRegisteredNotification: 5 middleware ï¿½ 100ms = 500ms
+InventoryUpdatedNotification: 5 middleware ï¿½ 100ms = 500ms
 Total: 1,500ms
 
 Type-Constrained Approach (Only relevant middleware runs):
-OrderCreatedNotification: 3 relevant middleware × 100ms = 300ms
-CustomerRegisteredNotification: 2 relevant middleware × 100ms = 200ms  
-InventoryUpdatedNotification: 2 relevant middleware × 100ms = 200ms
+OrderCreatedNotification: 3 relevant middleware ï¿½ 100ms = 300ms
+CustomerRegisteredNotification: 2 relevant middleware ï¿½ 100ms = 200ms
+InventoryUpdatedNotification: 2 relevant middleware ï¿½ 100ms = 200ms
 Total: 700ms (53% improvement!)
 ```
 
 ### Memory and CPU Benefits
+
 - ? **Reduced CPU Usage** - Middleware only executes when relevant
 - ? **Lower Memory Allocation** - No unnecessary object creation
 - ? **Better Cache Performance** - More predictable execution patterns
@@ -490,6 +516,7 @@ This advanced example teaches:
 ## ?? Production Considerations
 
 ### Scaling Strategy
+
 - **Start with automatic handlers** for core functionality
 - **Add type-constrained middleware** for performance-critical paths
 - **Use manual subscribers** for optional or feature-flagged functionality
@@ -497,6 +524,7 @@ This advanced example teaches:
 - **Evolve incrementally** as requirements change
 
 ### Monitoring and Observability
+
 - **Track execution times** by notification type and pattern
 - **Monitor middleware performance** across different categories
 - **Analyze subscription patterns** for manual subscribers

@@ -18,7 +18,7 @@ public class GlobalLoggingMiddleware<TRequest> : IRequestMiddleware<TRequest>
         _logger = logger;
     }
 
-    public async Task HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
     {
         var requestType = typeof(TRequest).Name;
         _logger.LogInformation("?? [Global] Starting execution of {RequestType}", requestType);

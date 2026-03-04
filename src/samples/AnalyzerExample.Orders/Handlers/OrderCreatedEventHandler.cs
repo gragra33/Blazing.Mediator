@@ -16,7 +16,7 @@ public class OrderCreatedEventHandler : INotificationHandler<OrderCreatedEvent>
         _logger = logger;
     }
 
-    public async Task Handle(OrderCreatedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(OrderCreatedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Processing order creation for Order {OrderId}", notification.OrderId);
 

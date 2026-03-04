@@ -16,7 +16,7 @@ public class ProductUpdatedEventHandler : INotificationHandler<ProductUpdatedEve
         _logger = logger;
     }
 
-    public async Task Handle(ProductUpdatedEvent notification, CancellationToken cancellationToken = default)
+    public async ValueTask Handle(ProductUpdatedEvent notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Product {ProductId} updated", notification.ProductId);
 

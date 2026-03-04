@@ -1,5 +1,3 @@
-using Blazing.Mediator.Pipeline;
-
 namespace Blazing.Mediator;
 
 /// <summary>

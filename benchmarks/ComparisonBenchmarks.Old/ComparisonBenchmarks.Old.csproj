@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Measures the pre-optimisation, reflection-based dispatch of Blazing.Mediator v2.0.1 (master). -->
+    <!-- No source generator is used — this is the raw DI-per-call path.                              -->
+    <NoWarn>$(NoWarn);NETSDK1057;NU1608;CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.6" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.6" />
+    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Old Blazing.Mediator v2.0.1 — reflection-based dispatch, no source generator -->
+    <PackageReference Include="Blazing.Mediator" Version="2.0.1" />
+
+    <!-- martinothamar/Mediator runtime library -->
+    <PackageReference Include="Mediator.Abstractions" Version="2.1.7" />
+
+    <!-- martinothamar/Mediator source generator as an Analyzer -->
+    <PackageReference Include="Mediator.SourceGenerator" Version="2.1.7"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+</Project>

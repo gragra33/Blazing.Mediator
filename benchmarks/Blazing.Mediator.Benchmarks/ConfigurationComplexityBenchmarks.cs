@@ -1,29 +1,34 @@
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
+using Blazing.Mediator.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Blazing.Mediator.Benchmarks;
 
 /// <summary>
-/// Performance benchmarks for configuration complexity impact in Blazing.Mediator.
-/// Measures the performance impact of different real-world configuration scenarios.
+///     Performance benchmarks for configuration complexity impact in Blazing.Mediator.
+///     Measures the performance impact of different real-world configuration scenarios.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net90)]
+[SimpleJob]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
 public class ConfigurationComplexityBenchmarks
 {
+    private ConfigTestCommand _command = null!;
+    private IMediator _mediatorEnterpriseConfig = null!;
+    private IMediator _mediatorFullConfig = null!;
     private IMediator _mediatorMinimalConfig = null!;
     private IMediator _mediatorStandardConfig = null!;
-    private IMediator _mediatorFullConfig = null!;
-    private IMediator _mediatorEnterpriseConfig = null!;
-
-    private ConfigTestCommand _command = null!;
-    private ConfigTestQuery _query = null!;
     private ConfigTestNotification _notification = null!;
+    private ConfigTestQuery _query = null!;
     private ConfigTestStreamRequest _streamRequest = null!;
+
+    // Service providers and scopes — disposed in GlobalCleanup
+    private readonly List<ServiceProvider> _providers = new();
+    private readonly List<IServiceScope> _scopes = new();
 
     [GlobalSetup]
     public void Setup()
@@ -45,61 +50,61 @@ public class ConfigurationComplexityBenchmarks
         _mediatorEnterpriseConfig.Subscribe(new ConfigTestNotificationSubscriber());
     }
 
+    private IMediator ResolveFromScope(ServiceCollection services)
+    {
+        ServiceProvider provider = services.BuildServiceProvider();
+        _providers.Add(provider);
+        IServiceScope scope = provider.CreateScope();
+        _scopes.Add(scope);
+        return scope.ServiceProvider.GetRequiredService<IMediator>();
+    }
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        foreach (IServiceScope scope in _scopes) scope.Dispose();
+        foreach (ServiceProvider provider in _providers) provider.Dispose();
+        _scopes.Clear();
+        _providers.Clear();
+    }
+
     private void SetupMinimalConfiguration()
     {
-        // Minimal configuration (basic setup) - Zero configuration approach
-        var services = new ServiceCollection();
-        services.AddMediator(typeof(ConfigurationComplexityBenchmarks).Assembly);
-        var provider = services.BuildServiceProvider();
-        _mediatorMinimalConfig = provider.GetRequiredService<IMediator>();
+        ServiceCollection services = new();
+        services.AddMediator();
+        _mediatorMinimalConfig = ResolveFromScope(services);
     }
 
     private void SetupStandardConfiguration()
     {
-        // Standard configuration (middleware + stats) - Typical production setup
-        var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, typeof(ConfigurationComplexityBenchmarks).Assembly);
-
-        // Add standard middleware
+        ServiceCollection services = new();
+        MediatorConfiguration standardConfig = new();
+        standardConfig.WithStatisticsTracking();
+        services.AddMediator(standardConfig);
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
-
-        var provider = services.BuildServiceProvider();
-        _mediatorStandardConfig = provider.GetRequiredService<IMediator>();
+        _mediatorStandardConfig = ResolveFromScope(services);
     }
 
     private void SetupFullConfiguration()
     {
-        // Full configuration (all features enabled) - Feature-rich setup
-        var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, typeof(ConfigurationComplexityBenchmarks).Assembly);
-
-        // Add comprehensive middleware pipeline
+        ServiceCollection services = new();
+        MediatorConfiguration fullConfig = new();
+        fullConfig.WithStatisticsTracking();
+        services.AddMediator(fullConfig);
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(PerformanceMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(CachingMiddleware<,>));
-
-        var provider = services.BuildServiceProvider();
-        _mediatorFullConfig = provider.GetRequiredService<IMediator>();
+        _mediatorFullConfig = ResolveFromScope(services);
     }
 
     private void SetupEnterpriseConfiguration()
     {
-        // Enterprise configuration (complex middleware chain) - Maximum feature setup
-        var services = new ServiceCollection();
-        services.AddMediator(config =>
-        {
-            config.WithStatisticsTracking();
-        }, typeof(ConfigurationComplexityBenchmarks).Assembly);
-
-        // Add enterprise-grade middleware chain
+        ServiceCollection services = new();
+        MediatorConfiguration enterpriseConfig = new();
+        enterpriseConfig.WithStatisticsTracking();
+        services.AddMediator(enterpriseConfig);
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(SecurityMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
@@ -108,9 +113,7 @@ public class ConfigurationComplexityBenchmarks
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(CachingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(ErrorHandlingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(AuditMiddleware<,>));
-
-        var provider = services.BuildServiceProvider();
-        _mediatorEnterpriseConfig = provider.GetRequiredService<IMediator>();
+        _mediatorEnterpriseConfig = ResolveFromScope(services);
     }
 
     #region Command Configuration Benchmarks
@@ -215,11 +218,8 @@ public class ConfigurationComplexityBenchmarks
     [BenchmarkCategory("Configuration_Streams")]
     public async Task<int> StreamMinimalConfiguration()
     {
-        var count = 0;
-        await foreach (var item in _mediatorMinimalConfig.SendStream(_streamRequest).ConfigureAwait(false))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorMinimalConfig.SendStream(_streamRequest).ConfigureAwait(false)) count++;
         return count;
     }
 
@@ -227,11 +227,8 @@ public class ConfigurationComplexityBenchmarks
     [BenchmarkCategory("Configuration_Streams")]
     public async Task<int> StreamStandardConfiguration()
     {
-        var count = 0;
-        await foreach (var item in _mediatorStandardConfig.SendStream(_streamRequest).ConfigureAwait(false))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorStandardConfig.SendStream(_streamRequest).ConfigureAwait(false)) count++;
         return count;
     }
 
@@ -239,11 +236,8 @@ public class ConfigurationComplexityBenchmarks
     [BenchmarkCategory("Configuration_Streams")]
     public async Task<int> StreamFullConfiguration()
     {
-        var count = 0;
-        await foreach (var item in _mediatorFullConfig.SendStream(_streamRequest).ConfigureAwait(false))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in _mediatorFullConfig.SendStream(_streamRequest).ConfigureAwait(false)) count++;
         return count;
     }
 
@@ -251,11 +245,9 @@ public class ConfigurationComplexityBenchmarks
     [BenchmarkCategory("Configuration_Streams")]
     public async Task<int> StreamEnterpriseConfiguration()
     {
-        var count = 0;
-        await foreach (var item in _mediatorEnterpriseConfig.SendStream(_streamRequest).ConfigureAwait(false))
-        {
-            count++;
-        }
+        int count = 0;
+        await foreach (string item in
+                       _mediatorEnterpriseConfig.SendStream(_streamRequest).ConfigureAwait(false)) count++;
         return count;
     }
 
@@ -268,9 +260,7 @@ public class ConfigurationComplexityBenchmarks
     public async Task BulkCommandsMinimalConfiguration()
     {
         for (int i = 0; i < 50; i++)
-        {
             await _mediatorMinimalConfig.Send(new ConfigTestCommand { Value = $"bulk {i}" }).ConfigureAwait(false);
-        }
     }
 
     [Benchmark]
@@ -278,9 +268,7 @@ public class ConfigurationComplexityBenchmarks
     public async Task BulkCommandsStandardConfiguration()
     {
         for (int i = 0; i < 50; i++)
-        {
             await _mediatorStandardConfig.Send(new ConfigTestCommand { Value = $"bulk {i}" }).ConfigureAwait(false);
-        }
     }
 
     [Benchmark]
@@ -288,9 +276,7 @@ public class ConfigurationComplexityBenchmarks
     public async Task BulkCommandsFullConfiguration()
     {
         for (int i = 0; i < 50; i++)
-        {
             await _mediatorFullConfig.Send(new ConfigTestCommand { Value = $"bulk {i}" }).ConfigureAwait(false);
-        }
     }
 
     [Benchmark]
@@ -298,9 +284,7 @@ public class ConfigurationComplexityBenchmarks
     public async Task BulkCommandsEnterpriseConfiguration()
     {
         for (int i = 0; i < 50; i++)
-        {
             await _mediatorEnterpriseConfig.Send(new ConfigTestCommand { Value = $"bulk {i}" }).ConfigureAwait(false);
-        }
     }
 
     #endregion
@@ -314,7 +298,7 @@ public class ConfigurationComplexityBenchmarks
 
     internal class ConfigTestCommandHandler : IRequestHandler<ConfigTestCommand>
     {
-        public async Task Handle(ConfigTestCommand request, CancellationToken cancellationToken = default)
+        public async ValueTask Handle(ConfigTestCommand request, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         }
@@ -327,7 +311,7 @@ public class ConfigurationComplexityBenchmarks
 
     internal class ConfigTestQueryHandler : IRequestHandler<ConfigTestQuery, string>
     {
-        public async Task<string> Handle(ConfigTestQuery request, CancellationToken cancellationToken = default)
+        public async ValueTask<string> Handle(ConfigTestQuery request, CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             return $"Processed: {request.Value}";
@@ -341,7 +325,8 @@ public class ConfigurationComplexityBenchmarks
 
     internal class ConfigTestNotificationSubscriber : INotificationSubscriber<ConfigTestNotification>
     {
-        public async Task OnNotification(ConfigTestNotification notification, CancellationToken cancellationToken = default)
+        public async Task OnNotification(ConfigTestNotification notification,
+            CancellationToken cancellationToken = default)
         {
             await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         }
@@ -355,7 +340,7 @@ public class ConfigurationComplexityBenchmarks
     internal class ConfigTestStreamHandler : IStreamRequestHandler<ConfigTestStreamRequest, string>
     {
         public async IAsyncEnumerable<string> Handle(ConfigTestStreamRequest request,
-            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             for (int i = 0; i < request.Count; i++)
             {
@@ -375,10 +360,11 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+            CancellationToken cancellationToken)
         {
             // Minimal logging overhead
-            var result = await next().ConfigureAwait(false);
+            TResponse result = await next().ConfigureAwait(false);
             return result;
         }
     }
@@ -388,7 +374,8 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+            CancellationToken cancellationToken)
         {
             // Minimal validation overhead
             if (request is null)
@@ -402,10 +389,11 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+            CancellationToken cancellationToken)
         {
             // Minimal performance tracking overhead
-            var result = await next().ConfigureAwait(false);
+            TResponse result = await next().ConfigureAwait(false);
             return result;
         }
     }
@@ -415,10 +403,11 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+            CancellationToken cancellationToken)
         {
             // Minimal caching logic overhead
-            var result = await next().ConfigureAwait(false);
+            TResponse result = await next().ConfigureAwait(false);
             return result;
         }
     }
@@ -428,10 +417,11 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+            CancellationToken cancellationToken)
         {
             // Minimal security check overhead
-            var result = await next().ConfigureAwait(false);
+            TResponse result = await next().ConfigureAwait(false);
             return result;
         }
     }
@@ -441,10 +431,11 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+            CancellationToken cancellationToken)
         {
             // Minimal authorization check overhead
-            var result = await next().ConfigureAwait(false);
+            TResponse result = await next().ConfigureAwait(false);
             return result;
         }
     }
@@ -454,7 +445,8 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+            CancellationToken cancellationToken)
         {
             // Minimal error handling overhead
             try
@@ -474,10 +466,11 @@ public class ConfigurationComplexityBenchmarks
     {
         public int Order => 0;
 
-        public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next,
+            CancellationToken cancellationToken)
         {
             // Minimal audit logging overhead
-            var result = await next().ConfigureAwait(false);
+            TResponse result = await next().ConfigureAwait(false);
             return result;
         }
     }

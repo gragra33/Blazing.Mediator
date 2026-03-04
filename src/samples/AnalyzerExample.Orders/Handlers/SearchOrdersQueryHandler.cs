@@ -10,7 +10,7 @@ namespace AnalyzerExample.Orders.Handlers;
 /// </summary>
 public class SearchOrdersQueryHandler : IRequestHandler<SearchOrdersQuery, PagedResult<OrderSummaryDto>>
 {
-    public async Task<PagedResult<OrderSummaryDto>> Handle(SearchOrdersQuery request, CancellationToken cancellationToken = default)
+    public async ValueTask<PagedResult<OrderSummaryDto>> Handle(SearchOrdersQuery request, CancellationToken cancellationToken = default)
     {
         // Simulate database search
         await Task.Delay(80, cancellationToken);

@@ -8,6 +8,9 @@ public sealed record MiddlewareInfo(
     Type Type,
     int Order,
     object? Configuration = null,
+    // When true the Order value was supplied at registration time (e.g. by the source generator)
+    // and must not be re-derived at runtime via IL analysis or instance creation.
+    bool IsOrderKnown = false,
     // Performance optimization fields for runtime caching
     string? CachedTypeName = null,
     bool? IsGenericTypeDefinition = null,

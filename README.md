@@ -42,7 +42,7 @@
 A high-performance, 100% AOT compatible, feature-rich implementation of the Mediator pattern for .NET applications. Built for modern development with comprehensive CQRS support, advanced middleware pipelines, real-time streaming, event-driven architecture, and full observability.
 
 > [!CAUTION]
-> Version 3.0.0 has breaking changes. See the **[Breaking Changes](https://github.com/gragra33/Blazing.Mediator/docs/BREAKING_CHANGES.md)** document for a complete list of API changes with before/after comparisons, and the **[MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/docs/MIGRATION_GUIDE.md)** for full upgrade steps.
+> Version 3.0.0 has breaking changes. See the **[Breaking Changes](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/BREAKING_CHANGES.md)** document for a complete list of API changes with before/after comparisons, and the **[MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MIGRATION_GUIDE.md)** for full upgrade steps.
 
 ## Key Features
 
@@ -110,7 +110,7 @@ v3.0.0 replaces all runtime reflection with compile-time source generation, deli
 
 **v3.0.0 vs v2.0.1: 71× faster · zero allocation per call**
 
-For full benchmark results including streaming and comparison against martinothamar/Mediator, see the **[Benchmark Comparison](https://github.com/gragra33/Blazing.Mediator/docs/BENCHMARK_COMPARISON.md)**.
+For full benchmark results including streaming and comparison against martinothamar/Mediator, see the **[Benchmark Comparison](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/BENCHMARK_COMPARISON.md)**.
 
 ## Quick Start
 
@@ -261,7 +261,7 @@ builder.Services.AddMediator(config =>
 });
 ```
 
-For comprehensive configuration patterns and advanced scenarios, see the **[Configuration Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_CONFIGURATION.md)**.
+For comprehensive configuration patterns and advanced scenarios, see the **[Configuration Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_CONFIGURATION.md)**.
 
 ### **Multi-Assembly Configuration**
 
@@ -315,7 +315,7 @@ public async IAsyncEnumerable<DataItem> StreamData([EnumeratorCancellation] Canc
 }
 ```
 
-For detailed streaming patterns and real-world examples, see the **[Streaming Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_STREAMING_GUIDE.md)**.
+For detailed streaming patterns and real-world examples, see the **[Streaming Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STREAMING_GUIDE.md)**.
 
 ### **Event-Driven Architecture**
 
@@ -350,7 +350,7 @@ public class AnalyticsHandler : INotificationHandler<UserCreatedNotification>
 await _mediator.Publish(new UserCreatedNotification { UserId = userId, Email = email });
 ```
 
-For complete event-driven patterns and notification strategies, see the **[Notification System Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_NOTIFICATION_GUIDE.md)**.
+For complete event-driven patterns and notification strategies, see the **[Notification System Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_NOTIFICATION_GUIDE.md)**.
 
 ### **Built-in Observability**
 
@@ -375,7 +375,7 @@ public class HealthController : ControllerBase
 }
 ```
 
-For complete observability implementation and cloud-native monitoring, see the **[OpenTelemetry Integration Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md)**, **[Statistics Guide](docs/MEDIATOR_STATISTICS_GUIDE.md)**, and **[Logging Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_LOGGING_GUIDE.md)**.
+For complete observability implementation and cloud-native monitoring, see the **[OpenTelemetry Integration Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md)**, **[Statistics Guide](docs/MEDIATOR_STATISTICS_GUIDE.md)**, and **[Logging Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_LOGGING_GUIDE.md)**.
 
 ## Contributing
 
@@ -402,16 +402,16 @@ Also, if you find this library useful, and you're feeling really generous, then 
 
 Comprehensive guides and documentation are available to help you master Blazing.Mediator:
 
-- **[Mediator Pattern Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_PATTERN_GUIDE.md)** - Complete implementation guide with CQRS patterns, middleware pipelines, and testing strategies
-- **[Streaming Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_STREAMING_GUIDE.md)** - Advanced streaming capabilities with `IAsyncEnumerable<T>` for real-time data processing
-- **[Notification System Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_NOTIFICATION_GUIDE.md)** - Event-driven architecture with domain events, observer patterns, and automatic/manual handlers
-- **[OpenTelemetry Integration Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md)** - Full observability support with distributed tracing, metrics collection, and cloud-native monitoring
-- **[Logging Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_LOGGING_GUIDE.md)** - Comprehensive debug logging infrastructure with configurable levels and performance tracking
-- **[Statistics Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_STATISTICS_GUIDE.md)** - Advanced statistics tracking with detailed performance metrics and runtime insights
-- **[Configuration Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_CONFIGURATION.md)** - In-depth guide to advanced configuration features, environment-specific settings, and JSON integration
-- **[Migration Guide](https://github.com/gragra33/Blazing.Mediator/docs/MIGRATION_GUIDE.md)** - Step-by-step upgrade guide from v2.0.1 to v3.0.0 with code examples for every breaking change
-- **[Breaking Changes](https://github.com/gragra33/Blazing.Mediator/docs/BREAKING_CHANGES.md)** - Complete list of API changes in v3.0.0 with before/after comparisons
-- **[Benchmark Comparison](https://github.com/gragra33/Blazing.Mediator/docs/BENCHMARK_COMPARISON.md)** - Full performance comparison against MediatR and Blazing.Mediator v2.0.1
+- **[Mediator Pattern Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_PATTERN_GUIDE.md)** - Complete implementation guide with CQRS patterns, middleware pipelines, and testing strategies
+- **[Streaming Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STREAMING_GUIDE.md)** - Advanced streaming capabilities with `IAsyncEnumerable<T>` for real-time data processing
+- **[Notification System Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_NOTIFICATION_GUIDE.md)** - Event-driven architecture with domain events, observer patterns, and automatic/manual handlers
+- **[OpenTelemetry Integration Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md)** - Full observability support with distributed tracing, metrics collection, and cloud-native monitoring
+- **[Logging Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_LOGGING_GUIDE.md)** - Comprehensive debug logging infrastructure with configurable levels and performance tracking
+- **[Statistics Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STATISTICS_GUIDE.md)** - Advanced statistics tracking with detailed performance metrics and runtime insights
+- **[Configuration Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_CONFIGURATION.md)** - In-depth guide to advanced configuration features, environment-specific settings, and JSON integration
+- **[Migration Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MIGRATION_GUIDE.md)** - Step-by-step upgrade guide from v2.0.1 to v3.0.0 with code examples for every breaking change
+- **[Breaking Changes](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/BREAKING_CHANGES.md)** - Complete list of API changes in v3.0.0 with before/after comparisons
+- **[Benchmark Comparison](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/BENCHMARK_COMPARISON.md)** - Full performance comparison against MediatR and Blazing.Mediator v2.0.1
 
 ### CQRS Implementation
 
@@ -603,7 +603,7 @@ The library includes comprehensive sample projects demonstrating different appro
     - **Debug Tooling Excellence**: Visual identification of missing components, assembly distribution statistics, and comprehensive runtime analysis for complex solutions
     - **Developer Productivity**: Essential tools for maintaining and debugging large-scale applications with multiple assemblies and complex mediator usage patterns
 
-All of the Example Console applications demonstrate comprehensive **MediatorStatistics** analysis and middleware analysers, with detailed performance statistics, execution tracking, and pipeline inspection capabilities. These examples showcase real-time monitoring of queries, commands, and notifications with success rates, timing metrics, and handler discovery analysis. For complete details on implementing statistics tracking and performance monitoring in your applications, see the **[Statistics Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_STATISTICS_GUIDE.md)**.
+All of the Example Console applications demonstrate comprehensive **MediatorStatistics** analysis and middleware analysers, with detailed performance statistics, execution tracking, and pipeline inspection capabilities. These examples showcase real-time monitoring of queries, commands, and notifications with success rates, timing metrics, and handler discovery analysis. For complete details on implementing statistics tracking and performance monitoring in your applications, see the **[Statistics Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STATISTICS_GUIDE.md)**.
 
 ## History
 
@@ -619,7 +619,7 @@ All of the Example Console applications demonstrate comprehensive **MediatorStat
 - **`[ExcludeFromAutoDiscovery]` Attribute**: Opt individual handlers out of source-generator discovery
 - **`MediatorDispatcherBase`**: New abstract base class bridges the pre-compiled library and the source-generated `ContainerMetadata`
 - **Performance**: 114× faster than v2.0.1 for requests (17 ns vs 2,003 ns), 71× faster for notifications, 33× faster for streaming; 75.8% faster than MediatR on the request path with zero allocations
-- **Migration Guide**: See [MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/docs/MIGRATION_GUIDE.md) for full upgrade steps; [BREAKING_CHANGES.md](https://github.com/gragra33/Blazing.Mediator/docs/BREAKING_CHANGES.md) for a concise API change reference
+- **Migration Guide**: See [MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MIGRATION_GUIDE.md) for full upgrade steps; [BREAKING_CHANGES.md](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/BREAKING_CHANGES.md) for a concise API change reference
 
 ### V2.0.1
 
@@ -657,7 +657,7 @@ All of the Example Console applications demonstrate comprehensive **MediatorStat
 - **New Sample Projects**: Added six comprehensive sample projects (OpenTelemetryExample, NotificationHandlerExample, NotificationHybridExample, TypedNotificationHandlerExample, TypedNotificationHybridExample, TypedNotificationSubscriberExample) demonstrating new fluent configuration, Telemetry, Statistics, Logging, automatic handlers, hybrid patterns, and type-constrained middleware
 - **ConfigurationExample Sample**: Demonstrates configuration features with environment-aware settings, JSON configuration, preset integration, and advanced diagnostics capabilities
 - **OpenTelemetryExample Sample**: New comprehensive sample project demonstrating OpenTelemetry integration with web API server, Blazor client, and .NET Aspire support for modern cloud-native applications with real-time telemetry visualisation
-- **New Documentation Guides**: Added comprehensive [OpenTelemetry Integration Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md), [Mediator Statistics Configuration Guide
-  ](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_STATISTICS_GUIDE.md), [Mediator Logging Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_LOGGING_GUIDE.md), and [Mediator Configuration Guide](https://github.com/gragra33/Blazing.Mediator/docs/MEDIATOR_CONFIGURATION.md) with detailed implementation examples, best practices, and troubleshooting scenarios
+- **New Documentation Guides**: Added comprehensive [OpenTelemetry Integration Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md), [Mediator Statistics Configuration Guide
+  ](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STATISTICS_GUIDE.md), [Mediator Logging Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_LOGGING_GUIDE.md), and [Mediator Configuration Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_CONFIGURATION.md) with detailed implementation examples, best practices, and troubleshooting scenarios
 - **Enhanced Documentation**: Updated all documentation with new fluent configuration examples, OpenTelemetry integration patterns, logging configuration, notification system patterns, and comprehensive migration guidance from legacy registration methods
 - **Improved Developer Experience**: Streamlined configuration process with better IntelliSense support, compile-time validation through fluent API design, enhanced debugging capabilities, and comprehensive observability features

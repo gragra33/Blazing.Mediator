@@ -79,4 +79,4 @@ app.MapRazorComponents<App>()
 app.Run();
 
 // Make Program class accessible for integration testing
-public partial class Program { }
+public partial class Program;

@@ -1,6 +1,6 @@
 ﻿# Version History
 
-### V3.0.0
+### V3.0.0 - 4 March 2026
 
 - **Source-Generated Dispatch**: All runtime reflection replaced with compile-time source generation via `Blazing.Mediator.SourceGenerators` — zero-allocation dispatch on request, notification, and streaming hot paths
 - **`ValueTask` Throughout**: All handler and middleware return types changed from `Task`/`Task<T>` to `ValueTask`/`ValueTask<T>` for reduced allocations and improved throughput
@@ -12,7 +12,7 @@
 - **`[ExcludeFromAutoDiscovery]` Attribute**: Opt individual handlers out of source-generator discovery
 - **`MediatorDispatcherBase`**: New abstract base class bridges the pre-compiled library and the source-generated `ContainerMetadata`
 - **Performance**: 114× faster than v2.0.1 for requests (17 ns vs 2,003 ns), 70× faster for notifications, 30× faster for streaming; 75.8% faster than MediatR on the request path with zero allocations
-- **Migration Guide**: See [MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/docs/MIGRATION_GUIDE.md) for full upgrade steps; [BREAKING_CHANGES.md](https://github.com/gragra33/Blazing.Mediator/docs/BREAKING_CHANGES.md) for a concise API change reference
+- **Migration Guide**: See [MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MIGRATION_GUIDE.md) for full upgrade steps; [BREAKING_CHANGES.md](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/BREAKING_CHANGES.md) for a concise API change reference
 
 ### V2.0.1 - 11 December, 2025
 
@@ -50,8 +50,8 @@
 -   **New Sample Projects**: Added six comprehensive sample projects (OpenTelemetryExample, NotificationHandlerExample, NotificationHybridExample, TypedNotificationHandlerExample, TypedNotificationHybridExample, TypedNotificationSubscriberExample) demonstrating new fluent configuration, Telemetry, Statistics, Logging, automatic handlers, hybrid patterns, and type-constrained middleware
 -   **ConfigurationExample Sample**: Demonstrates configuration features with environment-aware settings, JSON configuration, preset integration, and advanced diagnostics capabilities
 -   **OpenTelemetryExample Sample**: New comprehensive sample project demonstrating OpenTelemetry integration with web API server, Blazor client, and .NET Aspire support for modern cloud-native applications with real-time telemetry visualization
--   **New Documentation Guides**: Added comprehensive [OpenTelemetry Integration Guide](docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md), [Mediator Statistics Configuration Guide
-](docs/MEDIATOR_STATISTICS_GUIDE.md) and [Mediator Logging Guide](docs/MEDIATOR_LOGGING_GUIDE.md) with detailed implementation examples, best practices, and troubleshooting scenarios
+-   **New Documentation Guides**: Added comprehensive [OpenTelemetry Integration Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md), [Mediator Statistics Configuration Guide
+](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STATISTICS_GUIDE.md) and [Mediator Logging Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_LOGGING_GUIDE.md) with detailed implementation examples, best practices, and troubleshooting scenarios
 -   **Enhanced Documentation**: Updated all documentation with new fluent configuration examples, OpenTelemetry integration patterns, logging configuration, notification system patterns, and comprehensive migration guidance from legacy registration methods
 -   **Improved Developer Experience**: Streamlined configuration process with better IntelliSense support, compile-time validation through fluent API design, enhanced debugging capabilities, and comprehensive observability features
 
@@ -109,7 +109,7 @@
 -   **Missing Interface Fix**: Added missing `IConditionalStreamRequestMiddleware` interface for conditional stream middleware support
 -   **ECommerce.Api Enhancement**: Minor fix to `ECommerce.Api.Controllers.SimulateBulkOrder` method for improved bulk order simulation
 -   **PowerShell Testing Script**: Added new `test-notifications-endpoints.ps1` script for comprehensive notification system testing and demonstration
--   **Documentation Updates**: Updated [Notification System Guide](docs/NOTIFICATION_GUIDE.md) with detailed PowerShell script usage instructions and automated testing workflows
+-   **Documentation Updates**: Updated [Notification System Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/NOTIFICATION_GUIDE.md) with detailed PowerShell script usage instructions and automated testing workflows
 
 ### V1.4.0 - 16 July, 2025
 
@@ -118,7 +118,7 @@
 -   **Subscription Management**: Added `INotificationSubscriber` interface for managing notification subscription lifecycle
 -   **Notification Middleware**: Full middleware pipeline support for notification processing with cross-cutting concerns
 -   **Complete Test Coverage**: Comprehensive test coverage for notification infrastructure with extensive test suite
--   **Notification Documentation**: New [Notification System Guide](docs/NOTIFICATION_GUIDE.md) with comprehensive examples and patterns
+-   **Notification Documentation**: New [Notification System Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/NOTIFICATION_GUIDE.md) with comprehensive examples and patterns
 -   **Enhanced Samples**: Updated ECommerce.Api sample with notification system, domain events, and background services
 
 ### V1.3.0 - 13 July, 2025
@@ -129,7 +129,7 @@
 -   **Multiple Streaming Patterns**: Support for JSON streaming, Server-Sent Events (SSE), and real-time data feeds
 -   **Comprehensive Streaming Sample**: New Streaming.Api sample with 6 different streaming implementations across multiple Blazor render modes, APIs (Swagger)
 -   **Complete Test Coverage**: 100% test coverage for streaming middleware infrastructure with comprehensive test suite
--   **Streaming Documentation**: New [Mediator Streaming Guide](docs/MEDIATOR_STREAMING_GUIDE.md) with advanced streaming patterns and examples
+-   **Streaming Documentation**: New [Mediator Streaming Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STREAMING_GUIDE.md) with advanced streaming patterns and examples
 
 ### V1.2.0 - 12 July, 2025
 

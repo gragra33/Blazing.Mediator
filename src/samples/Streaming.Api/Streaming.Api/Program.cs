@@ -66,12 +66,11 @@ app.UseCors();
 
 app.UseAntiforgery();
 
-app.UseStaticFiles();
-
 // Map API endpoints
 app.MapContactEndpoints();
 
-// Map Blazor components
+// Map Blazor components — MapStaticAssets must precede AddInteractiveWebAssemblyRenderMode
+app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()

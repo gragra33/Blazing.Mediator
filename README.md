@@ -607,7 +607,7 @@ All of the Example Console applications demonstrate comprehensive **MediatorStat
 
 ## History
 
-### V3.0.0
+### V3.0.0 - 4 March 2026
 
 - **Source-Generated Dispatch**: All runtime reflection replaced with compile-time source generation via `Blazing.Mediator.SourceGenerators` — zero-allocation dispatch on request, notification, and streaming hot paths
 - **`ValueTask` Throughout**: All handler and middleware return types changed from `Task`/`Task<T>` to `ValueTask`/`ValueTask<T>` for reduced allocations and improved throughput
@@ -621,19 +621,19 @@ All of the Example Console applications demonstrate comprehensive **MediatorStat
 - **Performance**: 114× faster than v2.0.1 for requests (17 ns vs 2,003 ns), 71× faster for notifications, 33× faster for streaming; 75.8% faster than MediatR on the request path with zero allocations
 - **Migration Guide**: See [MIGRATION_GUIDE.md](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MIGRATION_GUIDE.md) for full upgrade steps; [BREAKING_CHANGES.md](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/BREAKING_CHANGES.md) for a concise API change reference
 
-### V2.0.1
+### V2.0.1 - 11 December 2025
 
 - Updated package dependencies to the latest versions for improved security and performance
 - Updated pipeline logging to enhance debug output formatting of generic middleware names
 
-### V2.0.0
+### V2.0.0 - 17 November 2025
 
 - **.NET 10 Support**: Now supports .NET 10 with multi-targeting for both .NET 9 and .NET 10, providing developers with the latest framework features and performance improvements while maintaining backward compatibility
 - **OpenTelemetry Middleware Pipeline Enhancement**: Updated OpenTelemetry middleware information traces to show a full generic signature for requests, streaming, and notifications
 - **Bug Fix - Duplicate OpenTelemetry Middleware Traces**: Fixed issue where generic middleware types (e.g., `ErrorHandlingMiddleware<TRequest, TResponse>`) appeared multiple times in telemetry traces due to open generic type definitions being instantiated as multiple closed generic types during execution
 - **Documentation Updates**: Updated all documentation guides to reflect .NET 10 support alongside .NET 9, including Configuration Guide, Logging Guide, Notification Guide, OpenTelemetry Guide, Pattern Guide, Statistics Guide, and Streaming Guide
 
-### V1.8.1
+### V1.8.1 - 2 October 2025
 
 - **MiddlewareAnalysisExtensions**: New extension methods providing comprehensive type normalisation for middleware analysis with clean formatting across assemblies
 - **QueryCommandAnalysisExtensions**: New extension methods for normalising query and command analysis output with proper generic type formatting
@@ -643,7 +643,7 @@ All of the Example Console applications demonstrate comprehensive **MediatorStat
 - **Comprehensive Test Coverage**: Added extensive test coverage for new extension methods and normalisation functionality
 - **Developer Experience**: Enhanced debugging capabilities with visual missing handler identification and comprehensive pipeline analysis tools
 
-### V1.8.0
+### V1.8.0 - 30 September 2025
 
 - **OpenTelemetry Integration**: Full observability support with distributed tracing, metrics collection, and performance monitoring for enhanced debugging and monitoring capabilities with seamless integration for modern cloud-native applications
 - **Extensive Debug Logging**: Comprehensive debug logging infrastructure with configurable log levels, performance tracking, and detailed execution flow analysis for enhanced troubleshooting and monitoring

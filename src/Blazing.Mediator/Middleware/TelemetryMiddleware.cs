@@ -19,19 +19,13 @@ public sealed class TelemetryMiddleware<TRequest, TResponse> : IRequestMiddlewar
     where TRequest : IRequest<TResponse>
 {
     private static readonly Histogram<double> _durationHistogram =
-        Mediator.Meter.CreateHistogram<double>(
-            "mediator.send.duration", unit: "ms",
-            description: "Duration of mediator send operations");
+        MediatorMetrics.SendDurationHistogram;
 
     private static readonly Counter<long> _successCounter =
-        Mediator.Meter.CreateCounter<long>(
-            "mediator.send.success",
-            description: "Number of successful mediator send operations");
+        MediatorMetrics.SendSuccessCounter;
 
     private static readonly Counter<long> _failureCounter =
-        Mediator.Meter.CreateCounter<long>(
-            "mediator.send.failure",
-            description: "Number of failed mediator send operations");
+        MediatorMetrics.SendFailureCounter;
 
     private readonly TelemetryOptions _options;
 
@@ -108,19 +102,13 @@ public sealed class TelemetryMiddleware<TRequest> : IRequestMiddleware<TRequest>
     where TRequest : IRequest
 {
     private static readonly Histogram<double> _durationHistogram =
-        Mediator.Meter.CreateHistogram<double>(
-            "mediator.send.duration", unit: "ms",
-            description: "Duration of mediator send operations");
+        MediatorMetrics.SendDurationHistogram;
 
     private static readonly Counter<long> _successCounter =
-        Mediator.Meter.CreateCounter<long>(
-            "mediator.send.success",
-            description: "Number of successful mediator send operations");
+        MediatorMetrics.SendSuccessCounter;
 
     private static readonly Counter<long> _failureCounter =
-        Mediator.Meter.CreateCounter<long>(
-            "mediator.send.failure",
-            description: "Number of failed mediator send operations");
+        MediatorMetrics.SendFailureCounter;
 
     private readonly TelemetryOptions _options;
 

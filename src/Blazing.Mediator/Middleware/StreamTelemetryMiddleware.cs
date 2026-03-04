@@ -22,30 +22,15 @@ namespace Blazing.Mediator.Middleware;
 public sealed class StreamTelemetryMiddleware<TRequest, TResponse> : IStreamRequestMiddleware<TRequest, TResponse>
     where TRequest : IStreamRequest<TResponse>
 {
-    private static readonly Histogram<double> _durationHistogram =
-        Mediator.Meter.CreateHistogram<double>(
-            "mediator.stream.duration", unit: "ms",
-            description: "Duration of mediator stream operations");
+    private static readonly Histogram<double> _durationHistogram = MediatorMetrics.StreamDurationHistogram;
 
-    private static readonly Counter<long> _successCounter =
-        Mediator.Meter.CreateCounter<long>(
-            "mediator.stream.success",
-            description: "Number of successful mediator stream operations");
+    private static readonly Counter<long> _successCounter = MediatorMetrics.StreamSuccessCounter;
 
-    private static readonly Counter<long> _failureCounter =
-        Mediator.Meter.CreateCounter<long>(
-            "mediator.stream.failure",
-            description: "Number of failed mediator stream operations");
+    private static readonly Counter<long> _failureCounter = MediatorMetrics.StreamFailureCounter;
 
-    private static readonly Counter<long> _packetCounter =
-        Mediator.Meter.CreateCounter<long>(
-            "mediator.stream.packet.count",
-            description: "Number of packets processed in stream operations");
+    private static readonly Counter<long> _packetCounter = MediatorMetrics.StreamPacketCounter;
 
-    private static readonly Histogram<double> _ttfbHistogram =
-        Mediator.Meter.CreateHistogram<double>(
-            "mediator.stream.ttfb", unit: "ms",
-            description: "Time to first byte for mediator stream operations");
+    private static readonly Histogram<double> _ttfbHistogram = MediatorMetrics.StreamTtfbHistogram;
 
     private readonly TelemetryOptions _options;
 

@@ -130,15 +130,12 @@ internal sealed class StreamTelemetryContext<TResponse>(IStreamRequest<TResponse
 
         // Get handler information
         var handlerType = typeof(IStreamRequestHandler<,>).MakeGenericType(_request.GetType(), typeof(TResponse));
-        if (handlerType != null)
+        var handlers = serviceProvider.GetServices(handlerType);
+        var handler = handlers.FirstOrDefault();
+        if (handler != null)
         {
-            var handlers = serviceProvider.GetServices(handlerType);
-            var handler = handlers.FirstOrDefault();
-            if (handler != null)
-            {
-                var handlerTypeName = SanitizeTypeName(handler.GetType().Name);
-                activity.SetTag(_handlerTypeTag, handlerTypeName);
-            }
+            var handlerTypeName = SanitizeTypeName(handler.GetType().Name);
+            activity?.SetTag(_handlerTypeTag, handlerTypeName);
         }
     }
 

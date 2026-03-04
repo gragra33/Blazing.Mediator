@@ -17,19 +17,13 @@ namespace Blazing.Mediator.Middleware;
 public sealed class TelemetryNotificationMiddleware : INotificationMiddleware
 {
     private static readonly Histogram<double> _durationHistogram =
-        Mediator.Meter.CreateHistogram<double>(
-            "mediator.publish.duration", unit: "ms",
-            description: "Duration of mediator publish operations");
+        MediatorMetrics.PublishDurationHistogram;
 
     private static readonly Counter<long> _successCounter =
-        Mediator.Meter.CreateCounter<long>(
-            "mediator.publish.success",
-            description: "Number of successful mediator publish operations");
+        MediatorMetrics.PublishSuccessCounter;
 
     private static readonly Counter<long> _failureCounter =
-        Mediator.Meter.CreateCounter<long>(
-            "mediator.publish.failure",
-            description: "Number of failed mediator publish operations");
+        MediatorMetrics.PublishFailureCounter;
 
     private readonly TelemetryOptions _options;
 

@@ -46,52 +46,57 @@ public sealed class TelemetryConcurrentPublisher : INotificationPublisher
     {
         var notificationName = typeof(TNotification).Name;
 
-        // Start all handlers concurrently — each wrapped in its own child span.
+        // Start all handlers concurrently — each wrapped in its own child span,
+        // without incurring an extra Task.Run per handler.
         Task[]? pending = null;
-        var count = 0;
+        var pendingCount = 0;
 
         foreach (var handler in arr)
         {
-            var handlerName = handler.GetType().Name;
-            // Capture for lambda — each handler gets its own span
-            var h = handler;
-            var hn = handlerName;
-
-            var task = Task.Run(async () =>
-            {
-                using var childSpan = Mediator.ActivitySource.StartActivity(
-                    $"Mediator.Handler.{notificationName}.{hn}",
-                    ActivityKind.Internal);
-                childSpan?.SetTag("handler.type", hn);
-                childSpan?.SetTag("notification.type", notificationName);
-
-                try
-                {
-                    await h.Handle(notification, ct).ConfigureAwait(false);
-                    childSpan?.SetStatus(ActivityStatusCode.Ok);
-                }
-                catch (Exception ex)
-                {
-                    childSpan?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                    throw;
-                }
-            }, ct);
+            var vt = InvokeHandlerWithSpan(handler, notification, notificationName, ct);
+            if (vt.IsCompletedSuccessfully) continue;
 
             pending ??= new Task[arr.Length];
-            pending[count++] = task;
+            pending[pendingCount++] = vt.AsTask();
         }
 
-        if (pending is null) return;
+        if (pendingCount == 0) return;
 
         List<Exception>? exceptions = null;
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < pendingCount; i++)
         {
-            try { await pending[i].ConfigureAwait(false); }
+            try { await pending![i].ConfigureAwait(false); }
             catch (Exception ex) { (exceptions ??= new List<Exception>()).Add(ex); }
         }
 
         if (exceptions is { Count: > 0 })
             throw new AggregateException("One or more notification handlers threw an exception.", exceptions);
+
+        static async ValueTask InvokeHandlerWithSpan(
+            INotificationHandler<TNotification> handler,
+            TNotification notification,
+            string notificationName,
+            CancellationToken ct)
+        {
+            var handlerName = handler.GetType().Name;
+
+            using var childSpan = Mediator.ActivitySource.StartActivity(
+                $"Mediator.Handler.{notificationName}.{handlerName}",
+                ActivityKind.Internal);
+            childSpan?.SetTag("handler.type", handlerName);
+            childSpan?.SetTag("notification.type", notificationName);
+
+            try
+            {
+                await handler.Handle(notification, ct).ConfigureAwait(false);
+                childSpan?.SetStatus(ActivityStatusCode.Ok);
+            }
+            catch (Exception ex)
+            {
+                childSpan?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                throw;
+            }
+        }
     }
 
     private static async ValueTask PublishConcurrent<TNotification>(

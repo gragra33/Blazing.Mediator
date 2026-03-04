@@ -4,16 +4,16 @@
 
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
-BLAZMED001 | Performance | Warning | Handler not found for request
-BLAZMED002 | Performance | Warning | Multiple handlers registered for request
-BLAZMED003 | Design | Info | Consider using IRequest<TResponse> instead of IRequest
-BLAZMED004 | Design | Warning | Request handler must implement IRequestHandler
-BLAZMED013 | Design | Warning | Notification handler must implement INotificationHandler
-BLAZMED014 | Design | Info | Consider using records for immutable requests
-BLAZMED015 | Performance | Warning | Avoid using reflection in hot paths
-BLAZMED016 | Performance | Info | Consider using source-generated dispatch
-BLAZMED017 | Design | Warning | Middleware order affects execution
-BLAZMED018 | Design | Info | Consider adding telemetry to handlers
-BLAZMED019 | Design | Warning | Stream handlers should implement IStreamRequestHandler
-BLAZMED020 | Performance | Warning | Avoid sync-over-async patterns
-BLAZMED021 | Design | Info | Consider using CancellationToken in all async methods
+BLAZMED001 | Blazing.Mediator | Error | Open generic handler detected; source generation does not support open generic handlers
+BLAZMED002 | Blazing.Mediator | Warning | Telemetry is enabled but no telemetry sink is registered
+BLAZMED003 | Blazing.Mediator | Info | Source generation completed successfully
+BLAZMED004 | Blazing.Mediator | Info | No handlers found; source generation will be skipped
+BLAZMED013 | Blazing.Mediator | Warning | Middleware has type parameter constraints not satisfied by the request type
+BLAZMED014 | Blazing.Mediator | Warning | Middleware does not have an Order property; default order (0) will be used
+BLAZMED015 | Blazing.Mediator | Warning | Subscriber is not registered in the DI container
+BLAZMED016 | Blazing.Mediator | Error | Cannot resolve subscriber from the DI container
+BLAZMED017 | Blazing.Mediator | Warning | Stream request has no middleware registered
+BLAZMED018 | Blazing.Mediator | Error | Cannot resolve stream middleware from the DI container
+BLAZMED019 | Blazing.Mediator | Warning | Type may be trimmed in AOT scenarios; consider adding DynamicallyAccessedMembers attribute
+BLAZMED020 | Blazing.Mediator | Warning | AOT compatibility attributes are not applied to the type
+BLAZMED021 | Blazing.Mediator | Error | Performance target not met (disabled by default; opt-in for benchmark builds)

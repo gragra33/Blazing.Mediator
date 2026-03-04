@@ -13,8 +13,9 @@ namespace Blazing.Mediator;
 /// </para>
 /// <para>
 /// If <c>AddMediator()</c> was not called, <see cref="GetDispatcher"/> returns
-/// <c>null</c> and the reflection-based fallback paths in <c>Mediator.Send.cs</c> and
-/// <c>Mediator.SendStream.cs</c> are used instead.
+/// <c>null</c>. Subsequent calls into <c>Mediator.Send.cs</c> and
+/// <c>Mediator.SendStream.cs</c> will throw <see cref="System.InvalidOperationException"/>
+/// when the dispatcher is missing; no reflection-based fallback is used.
 /// </para>
 /// </remarks>
 public sealed partial class Mediator
@@ -22,7 +23,7 @@ public sealed partial class Mediator
     /// <summary>
     /// Returns the source-generated <see cref="MediatorDispatcherBase"/> resolved eagerly
     /// in the constructor.  Zero allocations, zero DI on every dispatch — just a field read.
-    /// Returns <c>null</c> when source gen is not active (reflection fallback used instead).
+    /// Returns <c>null</c> when the dispatcher has not been registered via <c>AddMediator()</c>.
     /// </summary>
     [global::System.Runtime.CompilerServices.MethodImpl(
         global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

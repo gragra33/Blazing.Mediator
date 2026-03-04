@@ -236,7 +236,6 @@ public class BottleneckConfig : ManualConfig
     public BottleneckConfig()
     {
         AddJob(Job.Default
-            .WithRuntime(CoreRuntime.Core90)
             .WithPlatform(Platform.X64)
             .WithJit(Jit.RyuJit)
             .WithGcServer(true)

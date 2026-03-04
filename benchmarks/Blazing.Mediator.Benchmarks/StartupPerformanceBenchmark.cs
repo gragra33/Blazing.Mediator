@@ -9,11 +9,11 @@ namespace Blazing.Mediator.Benchmarks;
 ///     Target: 10x improvement (50ms -> 5ms for 100 handlers)
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net90)]
+[SimpleJob]
 [MarkdownExporter]
 public class StartupPerformanceBenchmark
 {
-    [Benchmark(Baseline = true, Description = "Startup with Reflection (100 handlers)")]
+    [Benchmark(Baseline = true, Description = "Startup (100 handlers)")]
     public IServiceProvider Startup_Reflection_100Handlers()
     {
         ServiceCollection services = new();

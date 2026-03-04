@@ -1,5 +1,6 @@
 namespace Blazing.Mediator.Benchmarks;
 
+[ExcludeFromAutoDiscovery]
 internal class GenericPipelineBehavior<TRequest, TResponse>(TextWriter writer)
     : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>

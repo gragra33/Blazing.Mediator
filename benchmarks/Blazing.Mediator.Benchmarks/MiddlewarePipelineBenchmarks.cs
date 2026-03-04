@@ -11,7 +11,7 @@ namespace Blazing.Mediator.Benchmarks;
 ///     Measures the performance impact of different middleware pipeline setups.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net90)]
+[SimpleJob]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
 public class MiddlewarePipelineBenchmarks
@@ -20,8 +20,6 @@ public class MiddlewarePipelineBenchmarks
     private IMediator _mediatorConditionalMiddleware = null!;
     private IMediator _mediatorEnterpriseConfig = null!;
     private IMediator _mediatorFullConfig = null!;
-
-    // Configuration complexity benchmarks
     private IMediator _mediatorMinimalConfig = null!;
     private IMediator _mediatorMultipleMiddleware = null!;
     private IMediator _mediatorNoMiddleware = null!;
@@ -29,73 +27,79 @@ public class MiddlewarePipelineBenchmarks
     private IMediator _mediatorStandardConfig = null!;
     private MiddlewareTestQuery _query = null!;
 
+    // Service providers and scopes — disposed in GlobalCleanup
+    private readonly List<ServiceProvider> _providers = new();
+    private readonly List<IServiceScope> _scopes = new();
+
     [GlobalSetup]
     public void Setup()
     {
         _command = new MiddlewareTestCommand { Value = "middleware test" };
         _query = new MiddlewareTestQuery { Value = "middleware query" };
 
-        // Setup mediator with NO middleware
         ServiceCollection servicesNoMiddleware = new();
         servicesNoMiddleware.AddMediator();
-        ServiceProvider providerNoMiddleware = servicesNoMiddleware.BuildServiceProvider();
-        _mediatorNoMiddleware = providerNoMiddleware.GetRequiredService<IMediator>();
+        _mediatorNoMiddleware = ResolveFromScope(servicesNoMiddleware);
 
-        // Setup mediator with SINGLE middleware
         ServiceCollection servicesSingleMiddleware = new();
         servicesSingleMiddleware.AddMediator();
         servicesSingleMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
-        ServiceProvider providerSingleMiddleware = servicesSingleMiddleware.BuildServiceProvider();
-        _mediatorSingleMiddleware = providerSingleMiddleware.GetRequiredService<IMediator>();
+        _mediatorSingleMiddleware = ResolveFromScope(servicesSingleMiddleware);
 
-        // Setup mediator with MULTIPLE middleware (3 middlewares)
         ServiceCollection servicesMultipleMiddleware = new();
         servicesMultipleMiddleware.AddMediator();
         servicesMultipleMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         servicesMultipleMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
         servicesMultipleMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(PerformanceMiddleware<,>));
-        ServiceProvider providerMultipleMiddleware = servicesMultipleMiddleware.BuildServiceProvider();
-        _mediatorMultipleMiddleware = providerMultipleMiddleware.GetRequiredService<IMediator>();
+        _mediatorMultipleMiddleware = ResolveFromScope(servicesMultipleMiddleware);
 
-        // Setup mediator with CONDITIONAL middleware
         ServiceCollection servicesConditionalMiddleware = new();
         servicesConditionalMiddleware.AddMediator();
         servicesConditionalMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(ConditionalLoggingMiddleware<,>));
-        ServiceProvider providerConditionalMiddleware = servicesConditionalMiddleware.BuildServiceProvider();
-        _mediatorConditionalMiddleware = providerConditionalMiddleware.GetRequiredService<IMediator>();
+        _mediatorConditionalMiddleware = ResolveFromScope(servicesConditionalMiddleware);
 
-        // Configuration Complexity Impact benchmarks
         SetupConfigurationComplexityBenchmarks();
+    }
+
+    private IMediator ResolveFromScope(ServiceCollection services)
+    {
+        ServiceProvider provider = services.BuildServiceProvider();
+        _providers.Add(provider);
+        IServiceScope scope = provider.CreateScope();
+        _scopes.Add(scope);
+        return scope.ServiceProvider.GetRequiredService<IMediator>();
+    }
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        foreach (IServiceScope scope in _scopes) scope.Dispose();
+        foreach (ServiceProvider provider in _providers) provider.Dispose();
+        _scopes.Clear();
+        _providers.Clear();
     }
 
     private void SetupConfigurationComplexityBenchmarks()
     {
-        // Minimal configuration (basic setup)
         ServiceCollection servicesMinimal = new();
         servicesMinimal.AddMediator();
-        ServiceProvider providerMinimal = servicesMinimal.BuildServiceProvider();
-        _mediatorMinimalConfig = providerMinimal.GetRequiredService<IMediator>();
+        _mediatorMinimalConfig = ResolveFromScope(servicesMinimal);
 
-        // Standard configuration (middleware + stats)
         ServiceCollection servicesStandard = new();
         MediatorConfiguration standardConfig = new();
         standardConfig.WithStatisticsTracking();
         servicesStandard.AddMediator(standardConfig);
         servicesStandard.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
-        ServiceProvider providerStandard = servicesStandard.BuildServiceProvider();
-        _mediatorStandardConfig = providerStandard.GetRequiredService<IMediator>();
+        _mediatorStandardConfig = ResolveFromScope(servicesStandard);
 
-        // Full configuration (all features enabled)
         ServiceCollection servicesFull = new();
         MediatorConfiguration fullConfig = new();
         fullConfig.WithStatisticsTracking();
         servicesFull.AddMediator(fullConfig);
         servicesFull.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         servicesFull.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
-        ServiceProvider providerFull = servicesFull.BuildServiceProvider();
-        _mediatorFullConfig = providerFull.GetRequiredService<IMediator>();
+        _mediatorFullConfig = ResolveFromScope(servicesFull);
 
-        // Enterprise configuration (complex middleware chain)
         ServiceCollection servicesEnterprise = new();
         MediatorConfiguration enterpriseConfig = new();
         enterpriseConfig.WithStatisticsTracking();
@@ -104,8 +108,7 @@ public class MiddlewarePipelineBenchmarks
         servicesEnterprise.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
         servicesEnterprise.AddScoped(typeof(IRequestMiddleware<,>), typeof(PerformanceMiddleware<,>));
         servicesEnterprise.AddScoped(typeof(IRequestMiddleware<,>), typeof(ConditionalLoggingMiddleware<,>));
-        ServiceProvider providerEnterprise = servicesEnterprise.BuildServiceProvider();
-        _mediatorEnterpriseConfig = providerEnterprise.GetRequiredService<IMediator>();
+        _mediatorEnterpriseConfig = ResolveFromScope(servicesEnterprise);
     }
 
     #region Middleware Pipeline Benchmarks

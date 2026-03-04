@@ -207,7 +207,6 @@ public class NanosecondPrecisionConfig : ManualConfig
     {
         // Use in-process toolchain for maximum precision
         Job job = Job.Default
-            .WithRuntime(CoreRuntime.Core90)
             .WithPlatform(Platform.X64)
             .WithJit(Jit.RyuJit)
             .WithGcServer(false) // Use workstation GC for more predictable timing

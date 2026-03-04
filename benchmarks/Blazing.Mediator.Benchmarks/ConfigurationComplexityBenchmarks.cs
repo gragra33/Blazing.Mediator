@@ -12,7 +12,7 @@ namespace Blazing.Mediator.Benchmarks;
 ///     Measures the performance impact of different real-world configuration scenarios.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net90)]
+[SimpleJob]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
 public class ConfigurationComplexityBenchmarks
@@ -25,6 +25,10 @@ public class ConfigurationComplexityBenchmarks
     private ConfigTestNotification _notification = null!;
     private ConfigTestQuery _query = null!;
     private ConfigTestStreamRequest _streamRequest = null!;
+
+    // Service providers and scopes — disposed in GlobalCleanup
+    private readonly List<ServiceProvider> _providers = new();
+    private readonly List<IServiceScope> _scopes = new();
 
     [GlobalSetup]
     public void Setup()
@@ -46,58 +50,61 @@ public class ConfigurationComplexityBenchmarks
         _mediatorEnterpriseConfig.Subscribe(new ConfigTestNotificationSubscriber());
     }
 
+    private IMediator ResolveFromScope(ServiceCollection services)
+    {
+        ServiceProvider provider = services.BuildServiceProvider();
+        _providers.Add(provider);
+        IServiceScope scope = provider.CreateScope();
+        _scopes.Add(scope);
+        return scope.ServiceProvider.GetRequiredService<IMediator>();
+    }
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        foreach (IServiceScope scope in _scopes) scope.Dispose();
+        foreach (ServiceProvider provider in _providers) provider.Dispose();
+        _scopes.Clear();
+        _providers.Clear();
+    }
+
     private void SetupMinimalConfiguration()
     {
-        // Minimal configuration (basic setup) - Zero configuration approach
         ServiceCollection services = new();
         services.AddMediator();
-        ServiceProvider provider = services.BuildServiceProvider();
-        _mediatorMinimalConfig = provider.GetRequiredService<IMediator>();
+        _mediatorMinimalConfig = ResolveFromScope(services);
     }
 
     private void SetupStandardConfiguration()
     {
-        // Standard configuration (middleware + stats) - Typical production setup
         ServiceCollection services = new();
         MediatorConfiguration standardConfig = new();
         standardConfig.WithStatisticsTracking();
         services.AddMediator(standardConfig);
-
-        // Add standard middleware
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
-
-        ServiceProvider provider = services.BuildServiceProvider();
-        _mediatorStandardConfig = provider.GetRequiredService<IMediator>();
+        _mediatorStandardConfig = ResolveFromScope(services);
     }
 
     private void SetupFullConfiguration()
     {
-        // Full configuration (all features enabled) - Feature-rich setup
         ServiceCollection services = new();
         MediatorConfiguration fullConfig = new();
         fullConfig.WithStatisticsTracking();
         services.AddMediator(fullConfig);
-
-        // Add comprehensive middleware pipeline
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(PerformanceMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(CachingMiddleware<,>));
-
-        ServiceProvider provider = services.BuildServiceProvider();
-        _mediatorFullConfig = provider.GetRequiredService<IMediator>();
+        _mediatorFullConfig = ResolveFromScope(services);
     }
 
     private void SetupEnterpriseConfiguration()
     {
-        // Enterprise configuration (complex middleware chain) - Maximum feature setup
         ServiceCollection services = new();
         MediatorConfiguration enterpriseConfig = new();
         enterpriseConfig.WithStatisticsTracking();
         services.AddMediator(enterpriseConfig);
-
-        // Add enterprise-grade middleware chain
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(SecurityMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(LoggingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(ValidationMiddleware<,>));
@@ -106,9 +113,7 @@ public class ConfigurationComplexityBenchmarks
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(CachingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(ErrorHandlingMiddleware<,>));
         services.AddScoped(typeof(IRequestMiddleware<,>), typeof(AuditMiddleware<,>));
-
-        ServiceProvider provider = services.BuildServiceProvider();
-        _mediatorEnterpriseConfig = provider.GetRequiredService<IMediator>();
+        _mediatorEnterpriseConfig = ResolveFromScope(services);
     }
 
     #region Command Configuration Benchmarks

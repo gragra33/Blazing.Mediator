@@ -18,7 +18,6 @@ namespace Blazing.Mediator.Benchmarks;
 [Config(typeof(PipelinePerformanceConfig))]
 [MemoryDiagnoser(false)]
 [ThreadingDiagnoser]
-[SimpleJob(RuntimeMoniker.Net90)]
 public class PipelinePerformanceBenchmarks
 {
     private RequestHandlerDelegate? _finalCommandHandler;
@@ -237,7 +236,6 @@ public class PipelinePerformanceConfig : ManualConfig
     public PipelinePerformanceConfig()
     {
         AddJob(Job.Default
-            .WithRuntime(CoreRuntime.Core90)
             .WithPlatform(Platform.X64)
             .WithJit(Jit.RyuJit)
             .WithGcServer(true)

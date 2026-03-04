@@ -10,7 +10,7 @@ namespace Blazing.Mediator.Benchmarks;
 ///     Benchmarks to measure the performance impact of OpenTelemetry instrumentation on Mediator operations.
 ///     These benchmarks compare performance with telemetry enabled vs disabled to ensure minimal overhead.
 /// </summary>
-[SimpleJob(RuntimeMoniker.Net90)]
+[SimpleJob]
 [MemoryDiagnoser]
 [MinColumn]
 [MaxColumn]
@@ -20,8 +20,10 @@ public class MediatorTelemetryPerformanceBenchmarks
 {
     private IMediator _mediatorWithoutTelemetry = null!;
     private IMediator _mediatorWithTelemetry = null!;
-    private IServiceProvider _serviceProviderWithoutTelemetry = null!;
-    private IServiceProvider _serviceProviderWithTelemetry = null!;
+    private ServiceProvider _providerWithTelemetry = null!;
+    private ServiceProvider _providerWithoutTelemetry = null!;
+    private IServiceScope _scopeWithTelemetry = null!;
+    private IServiceScope _scopeWithoutTelemetry = null!;
 
     private TestCommand _testCommand = null!;
     private TestNotification _testNotification = null!;
@@ -30,40 +32,32 @@ public class MediatorTelemetryPerformanceBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        // Setup with telemetry enabled
         ServiceCollection servicesWithTelemetry = new();
         servicesWithTelemetry.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
         servicesWithTelemetry.AddMediatorTelemetry();
         servicesWithTelemetry.AddMediator();
-        servicesWithTelemetry.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
-        servicesWithTelemetry.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
         servicesWithTelemetry.AddScoped<INotificationSubscriber<TestNotification>, TestNotificationSubscriber>();
+        _providerWithTelemetry = servicesWithTelemetry.BuildServiceProvider();
+        _scopeWithTelemetry = _providerWithTelemetry.CreateScope();
+        _mediatorWithTelemetry = _scopeWithTelemetry.ServiceProvider.GetRequiredService<IMediator>();
 
-        _serviceProviderWithTelemetry = servicesWithTelemetry.BuildServiceProvider();
-        _mediatorWithTelemetry = _serviceProviderWithTelemetry.GetRequiredService<IMediator>();
-
-        // Setup without telemetry
         ServiceCollection servicesWithoutTelemetry = new();
         servicesWithoutTelemetry.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
         servicesWithoutTelemetry.DisableMediatorTelemetry();
         servicesWithoutTelemetry.AddMediator();
-        servicesWithoutTelemetry.AddScoped<IRequestHandler<TestCommand>, TestCommandHandler>();
-        servicesWithoutTelemetry.AddScoped<IRequestHandler<TestQuery, string>, TestQueryHandler>();
         servicesWithoutTelemetry.AddScoped<INotificationSubscriber<TestNotification>, TestNotificationSubscriber>();
+        _providerWithoutTelemetry = servicesWithoutTelemetry.BuildServiceProvider();
+        _scopeWithoutTelemetry = _providerWithoutTelemetry.CreateScope();
+        _mediatorWithoutTelemetry = _scopeWithoutTelemetry.ServiceProvider.GetRequiredService<IMediator>();
 
-        _serviceProviderWithoutTelemetry = servicesWithoutTelemetry.BuildServiceProvider();
-        _mediatorWithoutTelemetry = _serviceProviderWithoutTelemetry.GetRequiredService<IMediator>();
-
-        // Subscribe to notifications
         INotificationSubscriber<TestNotification> subscriber =
-            _serviceProviderWithTelemetry.GetRequiredService<INotificationSubscriber<TestNotification>>();
+            _scopeWithTelemetry.ServiceProvider.GetRequiredService<INotificationSubscriber<TestNotification>>();
         _mediatorWithTelemetry.Subscribe(subscriber);
 
-        INotificationSubscriber<TestNotification> subscriberWithoutTelemetry = _serviceProviderWithoutTelemetry
-            .GetRequiredService<INotificationSubscriber<TestNotification>>();
+        INotificationSubscriber<TestNotification> subscriberWithoutTelemetry =
+            _scopeWithoutTelemetry.ServiceProvider.GetRequiredService<INotificationSubscriber<TestNotification>>();
         _mediatorWithoutTelemetry.Subscribe(subscriberWithoutTelemetry);
 
-        // Initialize test objects
         _testCommand = new TestCommand { Value = "benchmark" };
         _testQuery = new TestQuery { Value = "benchmark" };
         _testNotification = new TestNotification { Message = "benchmark" };
@@ -72,8 +66,10 @@ public class MediatorTelemetryPerformanceBenchmarks
     [GlobalCleanup]
     public void Cleanup()
     {
-        (_serviceProviderWithTelemetry as IDisposable)?.Dispose();
-        (_serviceProviderWithoutTelemetry as IDisposable)?.Dispose();
+        _scopeWithTelemetry?.Dispose();
+        _scopeWithoutTelemetry?.Dispose();
+        _providerWithTelemetry?.Dispose();
+        _providerWithoutTelemetry?.Dispose();
     }
 
     #region Command Benchmarks

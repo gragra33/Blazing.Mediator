@@ -1,6 +1,7 @@
 namespace Blazing.Mediator.Benchmarks;
 
 // Post-processing logic integrated into a middleware component
+[ExcludeFromAutoDiscovery]
 internal class GenericRequestPostProcessor<TRequest, TResponse>(TextWriter writer)
     : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>

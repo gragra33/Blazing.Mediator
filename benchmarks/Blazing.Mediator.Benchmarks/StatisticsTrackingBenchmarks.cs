@@ -12,7 +12,7 @@ namespace Blazing.Mediator.Benchmarks;
 ///     Measures the performance overhead of enabling/disabling statistics collection.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net90)]
+[SimpleJob]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
 public class StatisticsTrackingBenchmarks
@@ -24,6 +24,10 @@ public class StatisticsTrackingBenchmarks
     private StatisticsTestQuery _query = null!;
     private StatisticsTestStreamRequest _streamRequest = null!;
 
+    // Service providers and scopes — disposed in GlobalCleanup
+    private readonly List<ServiceProvider> _providers = new();
+    private readonly List<IServiceScope> _scopes = new();
+
     [GlobalSetup]
     public void Setup()
     {
@@ -32,27 +36,39 @@ public class StatisticsTrackingBenchmarks
         _notification = new StatisticsTestNotification { Message = "stats notification" };
         _streamRequest = new StatisticsTestStreamRequest { Count = 10 };
 
-        // Setup mediator WITHOUT statistics tracking
         ServiceCollection servicesWithoutStats = new();
         servicesWithoutStats.AddMediator();
-        ServiceProvider providerWithoutStats = servicesWithoutStats.BuildServiceProvider();
-        _mediatorWithoutStats = providerWithoutStats.GetRequiredService<IMediator>();
+        _mediatorWithoutStats = ResolveFromScope(servicesWithoutStats);
 
-        // Setup mediator WITH statistics tracking
         ServiceCollection servicesWithStats = new();
         MediatorConfiguration statsConfig = new();
         statsConfig.WithStatisticsTracking();
         servicesWithStats.AddMediator(statsConfig);
+        _mediatorWithStats = ResolveFromScope(servicesWithStats);
 
-        ServiceProvider providerWithStats = servicesWithStats.BuildServiceProvider();
-        _mediatorWithStats = providerWithStats.GetRequiredService<IMediator>();
-
-        // Subscribe to notifications
         StatisticsTestNotificationSubscriber notificationSubscriberWithoutStats = new();
         _mediatorWithoutStats.Subscribe(notificationSubscriberWithoutStats);
 
         StatisticsTestNotificationSubscriber notificationSubscriberWithStats = new();
         _mediatorWithStats.Subscribe(notificationSubscriberWithStats);
+    }
+
+    private IMediator ResolveFromScope(ServiceCollection services)
+    {
+        ServiceProvider provider = services.BuildServiceProvider();
+        _providers.Add(provider);
+        IServiceScope scope = provider.CreateScope();
+        _scopes.Add(scope);
+        return scope.ServiceProvider.GetRequiredService<IMediator>();
+    }
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        foreach (IServiceScope scope in _scopes) scope.Dispose();
+        foreach (ServiceProvider provider in _providers) provider.Dispose();
+        _scopes.Clear();
+        _providers.Clear();
     }
 
     #region Command Statistics Benchmarks

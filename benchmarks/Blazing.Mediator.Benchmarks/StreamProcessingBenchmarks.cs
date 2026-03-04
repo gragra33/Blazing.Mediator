@@ -11,7 +11,7 @@ namespace Blazing.Mediator.Benchmarks;
 ///     Measures the performance of different streaming scenarios and configurations.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net90)]
+[SimpleJob]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
 public class StreamProcessingBenchmarks
@@ -20,8 +20,11 @@ public class StreamProcessingBenchmarks
     private IMediator _mediatorNoMiddleware = null!;
     private IMediator _mediatorWithMiddleware = null!;
     private MediumStreamRequest _mediumStreamRequest = null!;
-
     private SmallStreamRequest _smallStreamRequest = null!;
+
+    // Service providers and scopes — disposed in GlobalCleanup
+    private readonly List<ServiceProvider> _providers = new();
+    private readonly List<IServiceScope> _scopes = new();
 
     [GlobalSetup]
     public void Setup()
@@ -30,18 +33,32 @@ public class StreamProcessingBenchmarks
         _mediumStreamRequest = new MediumStreamRequest { Count = 1000 };
         _largeStreamRequest = new LargeStreamRequest { Count = 10000 };
 
-        // Setup mediator WITHOUT stream middleware
         ServiceCollection servicesNoMiddleware = new();
         servicesNoMiddleware.AddMediator();
-        ServiceProvider providerNoMiddleware = servicesNoMiddleware.BuildServiceProvider();
-        _mediatorNoMiddleware = providerNoMiddleware.GetRequiredService<IMediator>();
+        _mediatorNoMiddleware = ResolveFromScope(servicesNoMiddleware);
 
-        // Setup mediator WITH stream middleware
         ServiceCollection servicesWithMiddleware = new();
         servicesWithMiddleware.AddMediator();
         servicesWithMiddleware.AddScoped(typeof(IRequestMiddleware<,>), typeof(StreamLoggingMiddleware<,>));
-        ServiceProvider providerWithMiddleware = servicesWithMiddleware.BuildServiceProvider();
-        _mediatorWithMiddleware = providerWithMiddleware.GetRequiredService<IMediator>();
+        _mediatorWithMiddleware = ResolveFromScope(servicesWithMiddleware);
+    }
+
+    private IMediator ResolveFromScope(ServiceCollection services)
+    {
+        ServiceProvider provider = services.BuildServiceProvider();
+        _providers.Add(provider);
+        IServiceScope scope = provider.CreateScope();
+        _scopes.Add(scope);
+        return scope.ServiceProvider.GetRequiredService<IMediator>();
+    }
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        foreach (IServiceScope scope in _scopes) scope.Dispose();
+        foreach (ServiceProvider provider in _providers) provider.Dispose();
+        _scopes.Clear();
+        _providers.Clear();
     }
 
     #region Stream Middleware

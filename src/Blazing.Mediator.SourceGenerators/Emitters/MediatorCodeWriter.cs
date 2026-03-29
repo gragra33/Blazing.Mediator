@@ -175,11 +175,17 @@ internal static class MediatorCodeWriter
         sb.AppendLine($"        private {req.HandlerType} _handler = null!;");
         for (int i = 0; i < req.ApplicableMiddleware.Count; i++)
             sb.AppendLine($"        private {GetDiTypeName(req.ApplicableMiddleware[i])} _mw{i} = null!;");
-        // Optional statistics middleware — soft-resolved so the field is null when statistics are not configured.
+        // Optional telemetry and statistics middleware — soft-resolved so the field is null when not configured.
         if (!req.IsVoid && !req.IsStream)
+        {
+            sb.AppendLine($"        private global::Blazing.Mediator.Middleware.TelemetryMiddleware<{req.RequestType}, {req.ResponseType}>? _telMw;");
             sb.AppendLine($"        private global::Blazing.Mediator.Middleware.StatisticsMiddleware<{req.RequestType}, {req.ResponseType}>? _statsMw;");
+        }
         if (req.IsVoid)
+        {
+            sb.AppendLine($"        private global::Blazing.Mediator.Middleware.TelemetryMiddleware<{req.RequestType}>? _telMw;");
             sb.AppendLine($"        private global::Blazing.Mediator.Middleware.StatisticsMiddleware<{req.RequestType}>? _statsMw;");
+        }
     }
 
     // ── Init method ───────────────────────────────────────────────────────────
@@ -195,11 +201,17 @@ internal static class MediatorCodeWriter
         sb.AppendLine($"            _handler = sp.GetRequiredService<{req.HandlerType}>();");
         for (int i = 0; i < req.ApplicableMiddleware.Count; i++)
             sb.AppendLine($"            _mw{i} = sp.GetRequiredService<{GetDiTypeName(req.ApplicableMiddleware[i])}>();");
-        // Soft-resolve statistics middleware — returns null when statistics are not configured.
+        // Soft-resolve telemetry and statistics middleware — returns null when not configured.
         if (!req.IsVoid && !req.IsStream)
+        {
+            sb.AppendLine($"            _telMw = sp.GetService<global::Blazing.Mediator.Middleware.TelemetryMiddleware<{req.RequestType}, {req.ResponseType}>>();");
             sb.AppendLine($"            _statsMw = sp.GetService<global::Blazing.Mediator.Middleware.StatisticsMiddleware<{req.RequestType}, {req.ResponseType}>>();");
+        }
         if (req.IsVoid)
+        {
+            sb.AppendLine($"            _telMw = sp.GetService<global::Blazing.Mediator.Middleware.TelemetryMiddleware<{req.RequestType}>>();");
             sb.AppendLine($"            _statsMw = sp.GetService<global::Blazing.Mediator.Middleware.StatisticsMiddleware<{req.RequestType}>>();");
+        }
         sb.AppendLine("            return this;");
         sb.AppendLine("        }");
     }
@@ -222,12 +234,12 @@ internal static class MediatorCodeWriter
             // By moving the slow path to HandleWithStats() (which carries [NoInlining]),
             // the closures are only emitted inside that method's frame and are never hoisted
             // into the fast-path's stack frame.
-            sb.AppendLine("            if (_statsMw is null)");
+            sb.AppendLine("            if (_statsMw is null && _telMw is null)");
             sb.AppendLine("                return _handler.Handle(request, ct);");
             sb.AppendLine("            return HandleWithStats(request, ct);");
             sb.AppendLine("        }");
             sb.AppendLine();
-            // ── HandleWithStats — statistics middleware pipeline ─────────────
+            // ── HandleWithStats — telemetry + statistics middleware pipeline ─
             // [NoInlining] ensures the lambda closures live only in this method's frame;
             // the aggressively-inlined Handle() fast path stays allocation-free.
             sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
@@ -236,14 +248,15 @@ internal static class MediatorCodeWriter
             sb.AppendLine("            global::System.Threading.CancellationToken ct)");
             sb.AppendLine("        {");
             sb.AppendLine($"            global::Blazing.Mediator.RequestHandlerDelegate<{req.ResponseType}> next = () => _handler.Handle(request, ct);");
-            sb.AppendLine("            var prevStats0 = next;");
-            sb.AppendLine("            next = () => _statsMw!.HandleAsync(request, prevStats0, ct);");
+            sb.AppendLine("            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }");
+            sb.AppendLine("            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }");
             sb.AppendLine("            return next();");
         }
         else
         {
             sb.AppendLine($"            global::Blazing.Mediator.RequestHandlerDelegate<{req.ResponseType}> next = () => _handler.Handle(request, ct);");
             AppendInstanceRequestMiddlewareChain(sb, req.ApplicableMiddleware);
+            sb.AppendLine("            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }");
             sb.AppendLine("            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }");
             sb.AppendLine("            return next();");
         }
@@ -265,7 +278,7 @@ internal static class MediatorCodeWriter
         {
             // Same fast-path / slow-path split as AppendResponseHandleMethod.
             // Prevents JIT-hoisted closure pre-allocation in the [AggressiveInlining] fast path.
-            sb.AppendLine("            if (_statsMw is null)");
+            sb.AppendLine("            if (_statsMw is null && _telMw is null)");
             sb.AppendLine("                return _handler.Handle(request, ct);");
             sb.AppendLine("            return HandleWithStats(request, ct);");
             sb.AppendLine("        }");
@@ -276,14 +289,15 @@ internal static class MediatorCodeWriter
             sb.AppendLine("            global::System.Threading.CancellationToken ct)");
             sb.AppendLine("        {");
             sb.AppendLine("            global::Blazing.Mediator.RequestHandlerDelegate next = () => _handler.Handle(request, ct);");
-            sb.AppendLine("            var prevStats0 = next;");
-            sb.AppendLine("            next = () => _statsMw!.HandleAsync(request, prevStats0, ct);");
+            sb.AppendLine("            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }");
+            sb.AppendLine("            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }");
             sb.AppendLine("            return next();");
         }
         else
         {
             sb.AppendLine("            global::Blazing.Mediator.RequestHandlerDelegate next = () => _handler.Handle(request, ct);");
             AppendInstanceVoidMiddlewareChain(sb, req.ApplicableMiddleware);
+            sb.AppendLine("            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }");
             sb.AppendLine("            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }");
             sb.AppendLine("            return next();");
         }

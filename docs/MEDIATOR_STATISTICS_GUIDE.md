@@ -656,6 +656,7 @@ public class SessionTrackingMiddleware
 Automatically track all mediator requests:
 
 ```csharp
+[Order(0)] // Execute first
 public class StatisticsTrackingMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -667,8 +668,6 @@ public class StatisticsTrackingMiddleware<TRequest, TResponse> : IRequestMiddlew
         _tracker = tracker;
         _httpContext = httpContext;
     }
-
-    public int Order => 0; // Execute first
 
     public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {

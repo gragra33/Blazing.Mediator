@@ -29,9 +29,11 @@ internal static class MediatorCodeWriter
         AppendFileHeader(sb, allowUnsafe);
 
         // Everything lives in one namespace block.
-        sb.AppendLine("namespace Blazing.Mediator.Generated");
-        sb.AppendLine("{");
-        sb.AppendLine("    using Microsoft.Extensions.DependencyInjection; // GetRequiredService, AddTransient etc.");
+        sb.AppendLine("""
+            namespace Blazing.Mediator.Generated
+            {
+                using Microsoft.Extensions.DependencyInjection; // GetRequiredService, AddTransient etc.
+            """);
 
         // ── Per-type handler wrapper classes ─────────────────────────────────
         foreach (var req in model.Requests)
@@ -81,10 +83,12 @@ internal static class MediatorCodeWriter
         // services.AddMediator() resolves with just `using Blazing.Mediator;`
         // — identical to the hand-written extension it replaces.
         sb.AppendLine();
-        sb.AppendLine("namespace Blazing.Mediator");
-        sb.AppendLine("{");
-        sb.AppendLine("    using Microsoft.Extensions.DependencyInjection; // AddSingleton, AddTransient etc.");
-        sb.AppendLine("    using Microsoft.Extensions.DependencyInjection.Extensions; // TryAddSingleton etc.");
+        sb.AppendLine("""
+            namespace Blazing.Mediator
+            {
+                using Microsoft.Extensions.DependencyInjection; // AddSingleton, AddTransient etc.
+                using Microsoft.Extensions.DependencyInjection.Extensions; // TryAddSingleton etc.
+            """);
         AppendServiceRegistrationExtension(sb, model);
         sb.AppendLine("} // namespace Blazing.Mediator");
 
@@ -114,8 +118,10 @@ internal static class MediatorCodeWriter
 
         if (allowUnsafe)
         {
-            sb.AppendLine("using global::System.Runtime.CompilerServices;");
-            sb.AppendLine("[module: global::System.Runtime.CompilerServices.SkipLocalsInit]");
+            sb.AppendLine("""
+                using global::System.Runtime.CompilerServices;
+                [module: global::System.Runtime.CompilerServices.SkipLocalsInit]
+                """);
         }
     }
 
@@ -137,16 +143,22 @@ internal static class MediatorCodeWriter
                 ? $"Generated per-scope dispatch wrapper for void command <c>{displayRequestType}</c>."
                 : $"Generated per-scope dispatch wrapper for <c>{displayRequestType}</c>.";
 
-        sb.AppendLine($"    /// <summary>{summary}</summary>");
-        sb.AppendLine("    /// <remarks>Wrappers are <c>sealed</c> instances held by <see cref=\"ContainerMetadata\"/>.");
-        sb.AppendLine("    /// <c>Init(sp)</c> is called once per DI scope, pre-resolving handler and middleware from");
-        sb.AppendLine("    /// the scope's <see cref=\"global::System.IServiceProvider\"/>. Subsequent <c>Handle()</c> calls");
-        sb.AppendLine("    /// within the same scope involve zero DI lookups.</remarks>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
+        sb.AppendLine($$$"""
+                /// <summary>{{{summary}}}</summary>
+                /// <remarks>Wrappers are <c>sealed</c> instances held by <see cref="ContainerMetadata"/>.
+                /// <c>Init(sp)</c> is called once per DI scope, pre-resolving handler and middleware from
+                /// the scope's <see cref="global::System.IServiceProvider"/>. Subsequent <c>Handle()</c> calls
+                /// within the same scope involve zero DI lookups.</remarks>
+            """);
+        sb.AppendLine("""
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+            """);
         // Sealed instance class — holds pre-resolved handler + middleware references
-        sb.AppendLine($"    internal sealed class RequestHandlerWrapper_{req.SafeName}");
-        sb.AppendLine("    {");
+        sb.AppendLine($$$"""
+                internal sealed class RequestHandlerWrapper_{{{req.SafeName}}}
+                {
+            """);
 
         // Private fields: handler + one per middleware layer
         AppendHandlerWrapperFields(sb, req);
@@ -178,13 +190,17 @@ internal static class MediatorCodeWriter
         // Optional telemetry and statistics middleware — soft-resolved so the field is null when not configured.
         if (!req.IsVoid && !req.IsStream)
         {
-            sb.AppendLine($"        private global::Blazing.Mediator.Middleware.TelemetryMiddleware<{req.RequestType}, {req.ResponseType}>? _telMw;");
-            sb.AppendLine($"        private global::Blazing.Mediator.Middleware.StatisticsMiddleware<{req.RequestType}, {req.ResponseType}>? _statsMw;");
+            sb.AppendLine($$$"""
+                    private global::Blazing.Mediator.Middleware.TelemetryMiddleware<{{{req.RequestType}}}, {{{req.ResponseType}}}>? _telMw;
+                    private global::Blazing.Mediator.Middleware.StatisticsMiddleware<{{{req.RequestType}}}, {{{req.ResponseType}}}>? _statsMw;
+                """);
         }
         if (req.IsVoid)
         {
-            sb.AppendLine($"        private global::Blazing.Mediator.Middleware.TelemetryMiddleware<{req.RequestType}>? _telMw;");
-            sb.AppendLine($"        private global::Blazing.Mediator.Middleware.StatisticsMiddleware<{req.RequestType}>? _statsMw;");
+            sb.AppendLine($$$"""
+                    private global::Blazing.Mediator.Middleware.TelemetryMiddleware<{{{req.RequestType}}}>? _telMw;
+                    private global::Blazing.Mediator.Middleware.StatisticsMiddleware<{{{req.RequestType}}}>? _statsMw;
+                """);
         }
     }
 
@@ -193,38 +209,50 @@ internal static class MediatorCodeWriter
     /// <summary>Emits the <c>Init(sp)</c> method that resolves handler and middleware from the root SP once.</summary>
     private static void AppendWrapperInitMethod(StringBuilder sb, RequestHandlerModel req)
     {
-        sb.AppendLine("        /// <summary>Resolves handler and all middleware instances from <paramref name=\"sp\"/> once.");
-        sb.AppendLine("        /// Called by <see cref=\"ContainerMetadata\"/> once per DI scope with the scope's IServiceProvider.</summary>");
-        sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"        public RequestHandlerWrapper_{req.SafeName} Init(global::System.IServiceProvider sp)");
-        sb.AppendLine("        {");
+        sb.AppendLine("""
+                    /// <summary>Resolves handler and all middleware instances from <paramref name="sp"/> once.
+                    /// Called by <see cref="ContainerMetadata"/> once per DI scope with the scope's IServiceProvider.</summary>
+                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            """);
+        sb.AppendLine($$$"""
+                public RequestHandlerWrapper_{{{req.SafeName}}} Init(global::System.IServiceProvider sp)
+                {
+            """);
         sb.AppendLine($"            _handler = sp.GetRequiredService<{req.HandlerType}>();");
         for (int i = 0; i < req.ApplicableMiddleware.Count; i++)
             sb.AppendLine($"            _mw{i} = sp.GetRequiredService<{GetDiTypeName(req.ApplicableMiddleware[i])}>();");
         // Soft-resolve telemetry and statistics middleware — returns null when not configured.
         if (!req.IsVoid && !req.IsStream)
         {
-            sb.AppendLine($"            _telMw = sp.GetService<global::Blazing.Mediator.Middleware.TelemetryMiddleware<{req.RequestType}, {req.ResponseType}>>();");
-            sb.AppendLine($"            _statsMw = sp.GetService<global::Blazing.Mediator.Middleware.StatisticsMiddleware<{req.RequestType}, {req.ResponseType}>>();");
+            sb.AppendLine($$$"""
+                            _telMw = sp.GetService<global::Blazing.Mediator.Middleware.TelemetryMiddleware<{{{req.RequestType}}}, {{{req.ResponseType}}}>>();
+                            _statsMw = sp.GetService<global::Blazing.Mediator.Middleware.StatisticsMiddleware<{{{req.RequestType}}}, {{{req.ResponseType}}}>>();
+                """);
         }
         if (req.IsVoid)
         {
-            sb.AppendLine($"            _telMw = sp.GetService<global::Blazing.Mediator.Middleware.TelemetryMiddleware<{req.RequestType}>>();");
-            sb.AppendLine($"            _statsMw = sp.GetService<global::Blazing.Mediator.Middleware.StatisticsMiddleware<{req.RequestType}>>();");
+            sb.AppendLine($$$"""
+                            _telMw = sp.GetService<global::Blazing.Mediator.Middleware.TelemetryMiddleware<{{{req.RequestType}}}>>();
+                            _statsMw = sp.GetService<global::Blazing.Mediator.Middleware.StatisticsMiddleware<{{{req.RequestType}}}>>();
+                """);
         }
-        sb.AppendLine("            return this;");
-        sb.AppendLine("        }");
+        sb.AppendLine("""
+                        return this;
+                    }
+            """);
     }
 
     // ── Response (query/command-with-response) ────────────────────────────────
 
     private static void AppendResponseHandleMethod(StringBuilder sb, RequestHandlerModel req)
     {
-        sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"        public global::System.Threading.Tasks.ValueTask<{req.ResponseType}> Handle(");
-        sb.AppendLine($"            {req.RequestType} request,");
-        sb.AppendLine("            global::System.Threading.CancellationToken ct)");
-        sb.AppendLine("        {");
+        sb.AppendLine($$$"""
+                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+                    public global::System.Threading.Tasks.ValueTask<{{{req.ResponseType}}}> Handle(
+                        {{{req.RequestType}}} request,
+                        global::System.Threading.CancellationToken ct)
+                    {
+            """);
 
         if (req.ApplicableMiddleware.Count == 0)
         {
@@ -234,31 +262,37 @@ internal static class MediatorCodeWriter
             // By moving the slow path to HandleWithStats() (which carries [NoInlining]),
             // the closures are only emitted inside that method's frame and are never hoisted
             // into the fast-path's stack frame.
-            sb.AppendLine("            if (_statsMw is null && _telMw is null)");
-            sb.AppendLine("                return _handler.Handle(request, ct);");
-            sb.AppendLine("            return HandleWithStats(request, ct);");
-            sb.AppendLine("        }");
-            sb.AppendLine();
+            sb.AppendLine("""
+                            if (_statsMw is null && _telMw is null)
+                                return _handler.Handle(request, ct);
+                            return HandleWithStats(request, ct);
+                        }
+
+                """);
             // ── HandleWithStats — telemetry + statistics middleware pipeline ─
             // [NoInlining] ensures the lambda closures live only in this method's frame;
             // the aggressively-inlined Handle() fast path stays allocation-free.
-            sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
-            sb.AppendLine($"        private global::System.Threading.Tasks.ValueTask<{req.ResponseType}> HandleWithStats(");
-            sb.AppendLine($"            {req.RequestType} request,");
-            sb.AppendLine("            global::System.Threading.CancellationToken ct)");
-            sb.AppendLine("        {");
-            sb.AppendLine($"            global::Blazing.Mediator.RequestHandlerDelegate<{req.ResponseType}> next = () => _handler.Handle(request, ct);");
-            sb.AppendLine("            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }");
-            sb.AppendLine("            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }");
-            sb.AppendLine("            return next();");
+            sb.AppendLine($$$"""
+                        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+                        private global::System.Threading.Tasks.ValueTask<{{{req.ResponseType}}}> HandleWithStats(
+                            {{{req.RequestType}}} request,
+                            global::System.Threading.CancellationToken ct)
+                        {
+                            global::Blazing.Mediator.RequestHandlerDelegate<{{{req.ResponseType}}}> next = () => _handler.Handle(request, ct);
+                            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }
+                            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }
+                            return next();
+                """);
         }
         else
         {
             sb.AppendLine($"            global::Blazing.Mediator.RequestHandlerDelegate<{req.ResponseType}> next = () => _handler.Handle(request, ct);");
             AppendInstanceRequestMiddlewareChain(sb, req.ApplicableMiddleware);
-            sb.AppendLine("            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }");
-            sb.AppendLine("            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }");
-            sb.AppendLine("            return next();");
+            sb.AppendLine("""
+                            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }
+                            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }
+                            return next();
+                """);
         }
 
         sb.AppendLine("        }");
@@ -268,38 +302,44 @@ internal static class MediatorCodeWriter
 
     private static void AppendVoidHandleMethod(StringBuilder sb, RequestHandlerModel req)
     {
-        sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"        public global::System.Threading.Tasks.ValueTask Handle(");
-        sb.AppendLine($"            {req.RequestType} request,");
-        sb.AppendLine("            global::System.Threading.CancellationToken ct)");
-        sb.AppendLine("        {");
+        sb.AppendLine($$$"""
+                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+                    public global::System.Threading.Tasks.ValueTask Handle(
+                        {{{req.RequestType}}} request,
+                        global::System.Threading.CancellationToken ct)
+                    {
+            """);
 
         if (req.ApplicableMiddleware.Count == 0)
         {
             // Same fast-path / slow-path split as AppendResponseHandleMethod.
             // Prevents JIT-hoisted closure pre-allocation in the [AggressiveInlining] fast path.
-            sb.AppendLine("            if (_statsMw is null && _telMw is null)");
-            sb.AppendLine("                return _handler.Handle(request, ct);");
-            sb.AppendLine("            return HandleWithStats(request, ct);");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
-            sb.AppendLine($"        private global::System.Threading.Tasks.ValueTask HandleWithStats(");
-            sb.AppendLine($"            {req.RequestType} request,");
-            sb.AppendLine("            global::System.Threading.CancellationToken ct)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            global::Blazing.Mediator.RequestHandlerDelegate next = () => _handler.Handle(request, ct);");
-            sb.AppendLine("            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }");
-            sb.AppendLine("            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }");
-            sb.AppendLine("            return next();");
+            sb.AppendLine($$$"""
+                            if (_statsMw is null && _telMw is null)
+                                return _handler.Handle(request, ct);
+                            return HandleWithStats(request, ct);
+                        }
+
+                        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+                        private global::System.Threading.Tasks.ValueTask HandleWithStats(
+                            {{{req.RequestType}}} request,
+                            global::System.Threading.CancellationToken ct)
+                        {
+                            global::Blazing.Mediator.RequestHandlerDelegate next = () => _handler.Handle(request, ct);
+                            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }
+                            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }
+                            return next();
+                """);
         }
         else
         {
             sb.AppendLine("            global::Blazing.Mediator.RequestHandlerDelegate next = () => _handler.Handle(request, ct);");
             AppendInstanceVoidMiddlewareChain(sb, req.ApplicableMiddleware);
-            sb.AppendLine("            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }");
-            sb.AppendLine("            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }");
-            sb.AppendLine("            return next();");
+            sb.AppendLine("""
+                            if (_telMw != null) { var prevTel0 = next; next = () => _telMw.HandleAsync(request, prevTel0, ct); }
+                            if (_statsMw != null) { var prevStats0 = next; next = () => _statsMw.HandleAsync(request, prevStats0, ct); }
+                            return next();
+                """);
         }
 
         sb.AppendLine("        }");
@@ -309,10 +349,12 @@ internal static class MediatorCodeWriter
 
     private static void AppendStreamHandleMethod(StringBuilder sb, RequestHandlerModel req)
     {
-        sb.AppendLine($"        public global::System.Collections.Generic.IAsyncEnumerable<{req.ResponseType}> Handle(");
-        sb.AppendLine($"            {req.RequestType} request,");
-        sb.AppendLine("            global::System.Threading.CancellationToken ct)");
-        sb.AppendLine("        {");
+        sb.AppendLine($$$"""
+                    public global::System.Collections.Generic.IAsyncEnumerable<{{{req.ResponseType}}}> Handle(
+                        {{{req.RequestType}}} request,
+                        global::System.Threading.CancellationToken ct)
+                    {
+            """);
 
         if (req.ApplicableMiddleware.Count == 0)
         {
@@ -337,6 +379,9 @@ internal static class MediatorCodeWriter
     /// Uses pre-resolved instance fields (<c>_mw{i}</c>) — no DI lookup per call.
     /// Middleware is applied in reverse sorted order so that the lowest-<c>Order</c>
     /// middleware ends up outermost (executes first).
+    /// Each lambda records itself via <c>MiddlewareExecutionContext</c> when
+    /// <c>MiddlewareCaptureMode.Executed</c> is active (null-conditional, so there is
+    /// zero overhead in other modes).
     /// </summary>
     private static void AppendInstanceRequestMiddlewareChain(
         StringBuilder sb,
@@ -344,45 +389,83 @@ internal static class MediatorCodeWriter
     {
         for (int i = middleware.Count - 1; i >= 0; i--)
         {
-            var mw     = middleware[i];
-            string prevVar = $"prev{i}";
+            var mw       = middleware[i];
+            string prevVar  = $"prev{i}";
+            string mwType   = GetDiTypeName(mw);
 
             sb.AppendLine($"            var {prevVar} = next;");
 
             if (mw.IsConditional)
             {
-                sb.AppendLine($"            next = () => !_mw{i}.ShouldExecute(request)");
-                sb.AppendLine($"                ? {prevVar}()");
-                sb.AppendLine($"                : _mw{i}.HandleAsync(request, {prevVar}, ct);");
+                sb.AppendLine($$$"""
+                            next = () =>
+                            {
+                                if (!_mw{{{i}}}.ShouldExecute(request))
+                                {
+                                    global::Blazing.Mediator.Mediator.TrackMiddlewareSkipped(typeof({{{mwType}}}));
+                                    return {{{prevVar}}}();
+                                }
+                                global::Blazing.Mediator.Mediator.TrackMiddlewareExecuted(typeof({{{mwType}}}));
+                                return _mw{{{i}}}.HandleAsync(request, {{{prevVar}}}, ct);
+                            };
+                """);
             }
             else
             {
-                sb.AppendLine($"            next = () => _mw{i}.HandleAsync(request, {prevVar}, ct);");
+                sb.AppendLine($$$"""
+                            next = () =>
+                            {
+                                global::Blazing.Mediator.Mediator.TrackMiddlewareExecuted(typeof({{{mwType}}}));
+                                return _mw{{{i}}}.HandleAsync(request, {{{prevVar}}}, ct);
+                            };
+                """);
             }
         }
     }
 
-    /// <summary>Emits the closure chain for void-command middleware (single type-arg).</summary>
+    /// <summary>
+    /// Emits the closure chain for void-command middleware (single type-arg).
+    /// Each lambda records itself via the public <c>Mediator.TrackMiddlewareExecuted</c> /
+    /// <c>Mediator.TrackMiddlewareSkipped</c> trampoline when
+    /// <c>MiddlewareCaptureMode.Executed</c> is active (null-conditional, so there is
+    /// zero overhead in other modes).
+    /// </summary>
     private static void AppendInstanceVoidMiddlewareChain(
         StringBuilder sb,
         List<MiddlewareModel> middleware)
     {
         for (int i = middleware.Count - 1; i >= 0; i--)
         {
-            var mw     = middleware[i];
-            string prevVar = $"prev{i}";
+            var mw       = middleware[i];
+            string prevVar  = $"prev{i}";
+            string mwType   = GetDiTypeName(mw);
 
             sb.AppendLine($"            var {prevVar} = next;");
 
             if (mw.IsConditional)
             {
-                sb.AppendLine($"            next = () => !_mw{i}.ShouldExecute(request)");
-                sb.AppendLine($"                ? {prevVar}()");
-                sb.AppendLine($"                : _mw{i}.HandleAsync(request, {prevVar}, ct);");
+                sb.AppendLine($$$"""
+                            next = () =>
+                            {
+                                if (!_mw{{{i}}}.ShouldExecute(request))
+                                {
+                                    global::Blazing.Mediator.Mediator.TrackMiddlewareSkipped(typeof({{{mwType}}}));
+                                    return {{{prevVar}}}();
+                                }
+                                global::Blazing.Mediator.Mediator.TrackMiddlewareExecuted(typeof({{{mwType}}}));
+                                return _mw{{{i}}}.HandleAsync(request, {{{prevVar}}}, ct);
+                            };
+                """);
             }
             else
             {
-                sb.AppendLine($"            next = () => _mw{i}.HandleAsync(request, {prevVar}, ct);");
+                sb.AppendLine($$$"""
+                            next = () =>
+                            {
+                                global::Blazing.Mediator.Mediator.TrackMiddlewareExecuted(typeof({{{mwType}}}));
+                                return _mw{{{i}}}.HandleAsync(request, {{{prevVar}}}, ct);
+                            };
+                """);
             }
         }
     }
@@ -395,8 +478,10 @@ internal static class MediatorCodeWriter
         for (int i = middleware.Count - 1; i >= 0; i--)
         {
             string prevVar = $"prev{i}";
-            sb.AppendLine($"            var {prevVar} = next;");
-            sb.AppendLine($"            next = () => _mw{i}.HandleAsync(request, {prevVar}, ct);");
+            sb.AppendLine($$$"""
+                        var {{{prevVar}}} = next;
+                        next = () => _mw{{{i}}}.HandleAsync(request, {{{prevVar}}}, ct);
+                """);
         }
     }
 
@@ -421,17 +506,23 @@ internal static class MediatorCodeWriter
                 ? notifType.Substring("global::".Length)
                 : notifType;
 
-        sb.AppendLine($"    /// <summary>Generated Singleton-cached dispatch wrapper for notification <c>{XmlDocTypeName(notifType)}</c>.</summary>");
-        sb.AppendLine("    /// <remarks>Pre-resolves all <c>INotificationHandler&lt;T&gt;</c> instances and <c>INotificationPublisher</c> once");
-        sb.AppendLine("    /// at startup via <c>Init(sp)</c>. Subsequent <c>Handle()</c> calls involve zero DI lookups.</remarks>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine($"    internal sealed class NotificationHandlerWrapper_{safeName}");
-        sb.AppendLine("    {");
+        sb.AppendLine($$$"""
+                /// <summary>Generated Singleton-cached dispatch wrapper for notification <c>{{{XmlDocTypeName(notifType)}}}</c>.</summary>
+                /// <remarks>Pre-resolves all <c>INotificationHandler&lt;T&gt;</c> instances and <c>INotificationPublisher</c> once
+                /// at startup via <c>Init(sp)</c>. Subsequent <c>Handle()</c> calls involve zero DI lookups.</remarks>
+            """);
+        sb.AppendLine($$$"""
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+                internal sealed class NotificationHandlerWrapper_{{{safeName}}}
+                {
+            """);
 
         // ── Cached fields ─────────────────────────────────────────────────────
-        sb.AppendLine($"        private global::Blazing.Mediator.INotificationHandler<{notifType}>[] _handlers = null!;");
-        sb.AppendLine("        private global::Blazing.Mediator.INotificationPublisher _publisher = null!;");
+        sb.AppendLine($$$"""
+                    private global::Blazing.Mediator.INotificationHandler<{{{notifType}}}>[] _handlers = null!;
+                    private global::Blazing.Mediator.INotificationPublisher _publisher = null!;
+            """);
         // Optional statistics — resolved via GetService (null-safe when stats not configured). AOT-safe: typed GetService, no reflection.
         sb.AppendLine("        private global::Blazing.Mediator.Statistics.MediatorStatistics? _statistics;");
         for (int i = 0; i < notifMiddleware.Count; i++)
@@ -439,60 +530,77 @@ internal static class MediatorCodeWriter
         sb.AppendLine();
 
         // ── Init — called once at startup ─────────────────────────────────────
-        sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"        public NotificationHandlerWrapper_{safeName} Init(global::System.IServiceProvider sp)");
-        sb.AppendLine("        {");
-        sb.AppendLine($"            _handlers = new global::Blazing.Mediator.INotificationHandler<{notifType}>[]");
-        sb.AppendLine("            {");
+        sb.AppendLine($$$"""
+                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+                    public NotificationHandlerWrapper_{{{safeName}}} Init(global::System.IServiceProvider sp)
+                    {
+                        _handlers = new global::Blazing.Mediator.INotificationHandler<{{{notifType}}}>[]                        {
+            """);
         foreach (var handlerType in notif.HandlerTypes)
             sb.AppendLine($"                (global::Blazing.Mediator.INotificationHandler<{notifType}>)sp.GetRequiredService<{handlerType}>(),");
-        sb.AppendLine("            };");
-        sb.AppendLine("            _publisher = sp.GetRequiredService<global::Blazing.Mediator.INotificationPublisher>();");
-        sb.AppendLine("            _statistics = sp.GetService<global::Blazing.Mediator.Statistics.MediatorStatistics>();");
+        sb.AppendLine("""
+                        };
+                        _publisher = sp.GetRequiredService<global::Blazing.Mediator.INotificationPublisher>();
+                        _statistics = sp.GetService<global::Blazing.Mediator.Statistics.MediatorStatistics>();
+            """);
         for (int i = 0; i < notifMiddleware.Count; i++)
             sb.AppendLine($"            _nmw{i} = sp.GetRequiredService<{notifMiddleware[i].MiddlewareType}>();");
-        sb.AppendLine("            return this;");
-        sb.AppendLine("        }");
-        sb.AppendLine();
+        sb.AppendLine("""
+                        return this;
+                    }
+
+            """);
 
         // ── Handle — fast path ────────────────────────────────────────────────
         // [AggressiveInlining] stays effective: this method stays a sync ValueTask return in all cases.
         // When _statistics is null (stats not configured) the branch is a single null-check on a
         // Singleton-cached field — effectively free. No async state machine is ever allocated here.
-        sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"        public global::System.Threading.Tasks.ValueTask Handle(");
-        sb.AppendLine($"            {notifType} notification,");
-        sb.AppendLine("            global::System.Threading.CancellationToken ct)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            if (_statistics == null)");
+        sb.AppendLine($$$"""
+                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+                    public global::System.Threading.Tasks.ValueTask Handle(
+                        {{{notifType}}} notification,
+                        global::System.Threading.CancellationToken ct)
+                    {
+                        if (_statistics == null)
+            """);
 
         if (notifMiddleware.Count == 0)
         {
             // Zero middleware — single-line return, zero allocations.
-            sb.AppendLine($"                return _publisher.Publish(");
-            sb.AppendLine($"                    new global::Blazing.Mediator.NotificationHandlers<{notifType}>(_handlers),");
-            sb.AppendLine("                    notification,");
-            sb.AppendLine("                    ct);");
+            sb.AppendLine($$$"""
+                            return _publisher.Publish(
+                                new global::Blazing.Mediator.NotificationHandlers<{{{notifType}}}>(_handlers),
+                                notification,
+                                ct);
+                """);
         }
         else
         {
             // With middleware — build chain inline, still plain ValueTask return.
-            sb.AppendLine("            {");
-            sb.AppendLine($"                global::Blazing.Mediator.NotificationDelegate<{notifType}> next =");
-            sb.AppendLine($"                    (n, token) => _publisher.Publish(new global::Blazing.Mediator.NotificationHandlers<{notifType}>(_handlers), n, token);");
+            sb.AppendLine($$$"""
+                            {
+                                global::Blazing.Mediator.NotificationDelegate<{{{notifType}}}> next =
+                                    (n, token) => _publisher.Publish(new global::Blazing.Mediator.NotificationHandlers<{{{notifType}}}>(_handlers), n, token);
+                """);
             for (int i = notifMiddleware.Count - 1; i >= 0; i--)
             {
                 string prevVar = $"nprev{i}";
-                sb.AppendLine($"                var {prevVar} = next;");
-                sb.AppendLine($"                next = (n, token) => _nmw{i}.InvokeAsync(n, {prevVar}, token);");
+                sb.AppendLine($$$"""
+                                var {{{prevVar}}} = next;
+                                next = (n, token) => _nmw{{{i}}}.InvokeAsync(n, {{{prevVar}}}, token);
+                    """);
             }
-            sb.AppendLine("                return next(notification, ct);");
-            sb.AppendLine("            }");
+            sb.AppendLine("""
+                                return next(notification, ct);
+                            }
+                """);
         }
 
-        sb.AppendLine("            return HandleTracked(notification, ct);");
-        sb.AppendLine("        }");
-        sb.AppendLine();
+        sb.AppendLine("""
+                        return HandleTracked(notification, ct);
+                    }
+
+            """);
 
         // ── HandleTracked — stats path ────────────────────────────────────────
         // async ValueTask: state machine only materialises when _statistics != null (user opted into stats).
@@ -500,50 +608,60 @@ internal static class MediatorCodeWriter
         // EnableDetailedAnalysis guards — safe to call unconditionally.
         // All operation-name strings are baked string literals (computed above at codegen time):
         //   no typeof(T).Name, no reflection anywhere in the generated output — fully AOT/trim-safe.
-        sb.AppendLine("        private async global::System.Threading.Tasks.ValueTask HandleTracked(");
-        sb.AppendLine($"            {notifType} notification,");
-        sb.AppendLine("            global::System.Threading.CancellationToken ct)");
-        sb.AppendLine("        {");
-        sb.AppendLine($"            _statistics!.IncrementNotification(\"{simpleNotifName}\");");
-        sb.AppendLine("            var _sw = global::System.Diagnostics.Stopwatch.StartNew();");
-        sb.AppendLine("            bool _success = true;");
-        sb.AppendLine("            try");
-        sb.AppendLine("            {");
+        sb.AppendLine($$$"""
+                    private async global::System.Threading.Tasks.ValueTask HandleTracked(
+                        {{{notifType}}} notification,
+                        global::System.Threading.CancellationToken ct)
+                    {
+                        _statistics!.IncrementNotification("{{{simpleNotifName}}}");
+                        var _sw = global::System.Diagnostics.Stopwatch.StartNew();
+                        bool _success = true;
+                        try
+                        {
+            """);
 
         if (notifMiddleware.Count == 0)
         {
-            sb.AppendLine($"                await _publisher.Publish(");
-            sb.AppendLine($"                    new global::Blazing.Mediator.NotificationHandlers<{notifType}>(_handlers),");
-            sb.AppendLine("                    notification,");
-            sb.AppendLine("                    ct).ConfigureAwait(false);");
+            sb.AppendLine($$$"""
+                            await _publisher.Publish(
+                                new global::Blazing.Mediator.NotificationHandlers<{{{notifType}}}>(_handlers),
+                                notification,
+                                ct).ConfigureAwait(false);
+                """);
         }
         else
         {
-            sb.AppendLine($"                global::Blazing.Mediator.NotificationDelegate<{notifType}> next =");
-            sb.AppendLine($"                    (n, token) => _publisher.Publish(new global::Blazing.Mediator.NotificationHandlers<{notifType}>(_handlers), n, token);");
+            sb.AppendLine($$$"""
+                                global::Blazing.Mediator.NotificationDelegate<{{{notifType}}}> next =
+                                    (n, token) => _publisher.Publish(new global::Blazing.Mediator.NotificationHandlers<{{{notifType}}}>(_handlers), n, token);
+                """);
             for (int i = notifMiddleware.Count - 1; i >= 0; i--)
             {
                 string prevVar = $"tnprev{i}";
-                sb.AppendLine($"                var {prevVar} = next;");
-                sb.AppendLine($"                next = (n, token) => _nmw{i}.InvokeAsync(n, {prevVar}, token);");
+                sb.AppendLine($$$"""
+                                var {{{prevVar}}} = next;
+                                next = (n, token) => _nmw{{{i}}}.InvokeAsync(n, {{{prevVar}}}, token);
+                    """);
             }
             sb.AppendLine("                await next(notification, ct).ConfigureAwait(false);");
         }
 
-        sb.AppendLine("            }");
-        sb.AppendLine("            catch");
-        sb.AppendLine("            {");
-        sb.AppendLine("                _success = false;");
-        sb.AppendLine("                throw;");
-        sb.AppendLine("            }");
-        sb.AppendLine("            finally");
-        sb.AppendLine("            {");
-        sb.AppendLine("                _sw.Stop();");
-        sb.AppendLine($"                _statistics!.RecordExecutionTime(\"Notification:{simpleNotifName}\", _sw.ElapsedMilliseconds, _success);");
-        sb.AppendLine($"                _statistics!.RecordExecutionPattern(\"Notification:{simpleNotifName}\", global::System.DateTime.UtcNow);");
-        sb.AppendLine("            }");
-        sb.AppendLine("        }");
-        sb.AppendLine("    }");
+        sb.AppendLine($$$"""
+                        }
+                        catch
+                        {
+                            _success = false;
+                            throw;
+                        }
+                        finally
+                        {
+                            _sw.Stop();
+                            _statistics!.RecordExecutionTime("Notification:{{{simpleNotifName}}}", _sw.ElapsedMilliseconds, _success);
+                            _statistics!.RecordExecutionPattern("Notification:{{{simpleNotifName}}}", global::System.DateTime.UtcNow);
+                        }
+                    }
+                }
+            """);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -560,15 +678,17 @@ internal static class MediatorCodeWriter
     /// </summary>
     private static void AppendContainerProbes(StringBuilder sb)
     {
-        sb.AppendLine("    /// <summary>Marker type registered twice to probe the DI container's backing-store type.</summary>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine("    internal sealed class ContainerProbe0 { }");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>Secondary marker — not queried directly; ensures two registrations exist for ContainerProbe0.</summary>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine("    internal sealed class ContainerProbe1 { }");
+        sb.AppendLine("""
+                /// <summary>Marker type registered twice to probe the DI container's backing-store type.</summary>
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+                internal sealed class ContainerProbe0 { }
+
+                /// <summary>Secondary marker — not queried directly; ensures two registrations exist for ContainerProbe0.</summary>
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+                internal sealed class ContainerProbe1 { }
+            """);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -582,86 +702,77 @@ internal static class MediatorCodeWriter
     /// </summary>
     private static void AppendThrowHelper(StringBuilder sb)
     {
-        sb.AppendLine("    /// <summary>Generated dispatch throw-helper — all methods annotated <c>[DoesNotReturn]</c> for JIT hot-path optimisation.</summary>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine("    internal static class ThrowHelper");
-        sb.AppendLine("    {");
+        sb.AppendLine("""
+                /// <summary>Generated dispatch throw-helper — all methods annotated <c>[DoesNotReturn]</c> for JIT hot-path optimisation.</summary>
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+                internal static class ThrowHelper
+                {
+                    // ── Void commands ──────────────────────────────────────────────────────
+                    [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+                    public static global::System.Threading.Tasks.ValueTask ThrowNoVoidCommandsDiscovered()
+                        => throw new global::System.NotImplementedException(
+                            "No void command handlers discovered during compilation. Falling back to reflection.");
 
-        // ── Void commands ────────────────────────────────────────────────────
-        sb.AppendLine("        // ── Void commands ──────────────────────────────────────────────────────");
-        sb.AppendLine("        [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]");
-        sb.AppendLine("        public static global::System.Threading.Tasks.ValueTask ThrowNoVoidCommandsDiscovered()");
-        sb.AppendLine("            => throw new global::System.NotImplementedException(");
-        sb.AppendLine("                \"No void command handlers discovered during compilation. Falling back to reflection.\");");
-        sb.AppendLine();
-        sb.AppendLine("        [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]");
-        sb.AppendLine("        public static global::System.Threading.Tasks.ValueTask ThrowUnhandledVoidRequest(");
-        sb.AppendLine("            global::Blazing.Mediator.IRequest request)");
-        sb.AppendLine("            => throw new global::System.NotImplementedException(");
-        sb.AppendLine("                $\"No void command handler registered for request type '{request.GetType().FullName}'. \" +");
-        sb.AppendLine("                \"Ensure the handler implements IRequestHandler<TRequest> and was discovered by Blazing.Mediator.SourceGenerators.\");");
-        sb.AppendLine();
+                    [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+                    public static global::System.Threading.Tasks.ValueTask ThrowUnhandledVoidRequest(
+                        global::Blazing.Mediator.IRequest request)
+                        => throw new global::System.NotImplementedException(
+                            $"No void command handler registered for request type '{request.GetType().FullName}'. " +
+                            "Ensure the handler implements IRequestHandler<TRequest> and was discovered by Blazing.Mediator.SourceGenerators.");
 
-        // ── Typed-response requests ──────────────────────────────────────────
-        sb.AppendLine("        // ── Typed-response requests ────────────────────────────────────────────");
-        sb.AppendLine("        [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]");
-        sb.AppendLine("        public static global::System.Threading.Tasks.ValueTask<TResponse> ThrowNoTypedRequestsDiscovered<TResponse>()");
-        sb.AppendLine("            => throw new global::System.NotImplementedException(");
-        sb.AppendLine("                \"No request-with-response handlers discovered during compilation. Falling back to reflection.\");");
-        sb.AppendLine();
-        sb.AppendLine("        [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]");
-        sb.AppendLine("        public static global::System.Threading.Tasks.ValueTask<TResponse> ThrowUnhandledTypedRequest<TResponse>(");
-        sb.AppendLine("            global::Blazing.Mediator.IRequest<TResponse> request)");
-        sb.AppendLine("            => throw new global::System.NotImplementedException(");
-        sb.AppendLine("                $\"No handler registered for request type '{request.GetType().FullName}'. \" +");
-        sb.AppendLine("                \"Ensure the handler implements IRequestHandler<TRequest,TResponse> and was discovered by Blazing.Mediator.SourceGenerators.\");");
-        sb.AppendLine();
+                    // ── Typed-response requests ────────────────────────────────────────────
+                    [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+                    public static global::System.Threading.Tasks.ValueTask<TResponse> ThrowNoTypedRequestsDiscovered<TResponse>()
+                        => throw new global::System.NotImplementedException(
+                            "No request-with-response handlers discovered during compilation. Falling back to reflection.");
 
-        // ── Streaming requests ───────────────────────────────────────────────
-        sb.AppendLine("        // ── Streaming requests ─────────────────────────────────────────────────");
-        sb.AppendLine("        [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]");
-        sb.AppendLine("        public static global::System.Collections.Generic.IAsyncEnumerable<TResponse> ThrowNoStreamHandlersDiscovered<TResponse>()");
-        sb.AppendLine("            => throw new global::System.NotImplementedException(");
-        sb.AppendLine("                \"No stream handlers discovered during compilation. Falling back to reflection.\");");
-        sb.AppendLine();
-        sb.AppendLine("        [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]");
-        sb.AppendLine("        public static global::System.Collections.Generic.IAsyncEnumerable<TResponse> ThrowUnhandledStreamRequest<TResponse>(");
-        sb.AppendLine("            global::Blazing.Mediator.IStreamRequest<TResponse> request)");
-        sb.AppendLine("            => throw new global::System.NotImplementedException(");
-        sb.AppendLine("                $\"No stream handler registered for request type '{request.GetType().FullName}'. \" +");
-        sb.AppendLine("                \"Ensure the handler implements IStreamRequestHandler<TRequest,TResponse> and was discovered by Blazing.Mediator.SourceGenerators.\");");
-        sb.AppendLine();
+                    [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+                    public static global::System.Threading.Tasks.ValueTask<TResponse> ThrowUnhandledTypedRequest<TResponse>(
+                        global::Blazing.Mediator.IRequest<TResponse> request)
+                        => throw new global::System.NotImplementedException(
+                            $"No handler registered for request type '{request.GetType().FullName}'. " +
+                            "Ensure the handler implements IRequestHandler<TRequest,TResponse> and was discovered by Blazing.Mediator.SourceGenerators.");
 
-        // ── Notifications ────────────────────────────────────────────────────
-        sb.AppendLine("        // ── Notifications ──────────────────────────────────────────────────────");
-        sb.AppendLine("        [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]");
-        sb.AppendLine("        public static global::System.Threading.Tasks.ValueTask ThrowNotificationFallback()");
-        sb.AppendLine("            => throw new global::System.NotImplementedException(");
-        sb.AppendLine("                \"Source-generated notification dispatch is deferred. Falling back to reflection.\");");
-        sb.AppendLine();
+                    // ── Streaming requests ─────────────────────────────────────────────────
+                    [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+                    public static global::System.Collections.Generic.IAsyncEnumerable<TResponse> ThrowNoStreamHandlersDiscovered<TResponse>()
+                        => throw new global::System.NotImplementedException(
+                            "No stream handlers discovered during compilation. Falling back to reflection.");
 
-        // ── Multiple handlers ────────────────────────────────────────────────
-        sb.AppendLine("        // ── Multiple handlers (ambiguous) ───────────────────────────────────────");
-        sb.AppendLine("        [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]");
-        sb.AppendLine("        public static global::System.Threading.Tasks.ValueTask ThrowMultipleHandlersVoidRequest(");
-        sb.AppendLine("            global::Blazing.Mediator.IRequest request)");
-        sb.AppendLine("            => throw new global::System.InvalidOperationException(");
-        sb.AppendLine("                $\"Multiple handlers found for '{request.GetType().Name}'. Only one handler per request type is allowed.\");");
-        sb.AppendLine();
-        sb.AppendLine("        [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]");
-        sb.AppendLine("        public static global::System.Threading.Tasks.ValueTask<TResponse> ThrowMultipleHandlersTypedRequest<TResponse>(");
-        sb.AppendLine("            global::Blazing.Mediator.IRequest<TResponse> request)");
-        sb.AppendLine("            => throw new global::System.InvalidOperationException(");
-        sb.AppendLine("                $\"Multiple handlers found for '{request.GetType().Name}'. Only one handler per request type is allowed.\");");
-        sb.AppendLine();
-        sb.AppendLine("        [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]");
-        sb.AppendLine("        public static global::System.Collections.Generic.IAsyncEnumerable<TResponse> ThrowMultipleHandlersStreamRequest<TResponse>(");
-        sb.AppendLine("            global::Blazing.Mediator.IStreamRequest<TResponse> request)");
-        sb.AppendLine("            => throw new global::System.InvalidOperationException(");
-        sb.AppendLine("                $\"Multiple handlers found for '{request.GetType().Name}'. Only one handler per request type is allowed.\");");
+                    [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+                    public static global::System.Collections.Generic.IAsyncEnumerable<TResponse> ThrowUnhandledStreamRequest<TResponse>(
+                        global::Blazing.Mediator.IStreamRequest<TResponse> request)
+                        => throw new global::System.NotImplementedException(
+                            $"No stream handler registered for request type '{request.GetType().FullName}'. " +
+                            "Ensure the handler implements IStreamRequestHandler<TRequest,TResponse> and was discovered by Blazing.Mediator.SourceGenerators.");
 
-        sb.AppendLine("    } // ThrowHelper");
+                    // ── Notifications ──────────────────────────────────────────────────────
+                    [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+                    public static global::System.Threading.Tasks.ValueTask ThrowNotificationFallback()
+                        => throw new global::System.NotImplementedException(
+                            "Source-generated notification dispatch is deferred. Falling back to reflection.");
+
+                    // ── Multiple handlers (ambiguous) ───────────────────────────────────────
+                    [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+                    public static global::System.Threading.Tasks.ValueTask ThrowMultipleHandlersVoidRequest(
+                        global::Blazing.Mediator.IRequest request)
+                        => throw new global::System.InvalidOperationException(
+                            $"Multiple handlers found for '{request.GetType().Name}'. Only one handler per request type is allowed.");
+
+                    [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+                    public static global::System.Threading.Tasks.ValueTask<TResponse> ThrowMultipleHandlersTypedRequest<TResponse>(
+                        global::Blazing.Mediator.IRequest<TResponse> request)
+                        => throw new global::System.InvalidOperationException(
+                            $"Multiple handlers found for '{request.GetType().Name}'. Only one handler per request type is allowed.");
+
+                    [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+                    public static global::System.Collections.Generic.IAsyncEnumerable<TResponse> ThrowMultipleHandlersStreamRequest<TResponse>(
+                        global::Blazing.Mediator.IStreamRequest<TResponse> request)
+                        => throw new global::System.InvalidOperationException(
+                            $"Multiple handlers found for '{request.GetType().Name}'. Only one handler per request type is allowed.");
+                } // ThrowHelper
+            """);
     }
 
     // ContainerMetadata — Scoped holding all pre-resolved wrapper instances (one per request scope)
@@ -675,15 +786,17 @@ internal static class MediatorCodeWriter
     /// </summary>
     private static void AppendContainerMetadata(StringBuilder sb, CompilationModel model)
     {
-        sb.AppendLine("    /// <summary>Generated per-scope cache holding all pre-initialised request handler wrappers for the current DI scope.</summary>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine("    internal sealed class ContainerMetadata : global::Blazing.Mediator.MediatorDispatcherBase");
-        sb.AppendLine("    {");
-        sb.AppendLine("        /// <summary>True when the DI container backs <c>GetServices&lt;T&gt;()</c> with a real <c>T[]</c>.</summary>");
-        sb.AppendLine("        /// <remarks>Used to enable zero-copy <c>Unsafe.As&lt;T[]&gt;</c> casts in notification dispatch.</remarks>");
-        sb.AppendLine("        public readonly bool ServicesUnderlyingTypeIsArray;");
-        sb.AppendLine();
+        sb.AppendLine("""
+                /// <summary>Generated per-scope cache holding all pre-initialised request handler wrappers for the current DI scope.</summary>
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+                internal sealed class ContainerMetadata : global::Blazing.Mediator.MediatorDispatcherBase
+                {
+                    /// <summary>True when the DI container backs <c>GetServices&lt;T&gt;()</c> with a real <c>T[]</c>.</summary>
+                    /// <remarks>Used to enable zero-copy <c>Unsafe.As&lt;T[]&gt;</c> casts in notification dispatch.</remarks>
+                    public readonly bool ServicesUnderlyingTypeIsArray;
+
+            """);
 
         foreach (var req in model.Requests)
         {
@@ -698,10 +811,12 @@ internal static class MediatorCodeWriter
         }
 
         sb.AppendLine();
-        sb.AppendLine("        public ContainerMetadata(global::System.IServiceProvider sp)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            ServicesUnderlyingTypeIsArray =");
-        sb.AppendLine("                sp.GetServices<ContainerProbe0>() is ContainerProbe0[];");
+        sb.AppendLine("""
+                    public ContainerMetadata(global::System.IServiceProvider sp)
+                    {
+                        ServicesUnderlyingTypeIsArray =
+                            sp.GetServices<ContainerProbe0>() is ContainerProbe0[];
+            """);
 
         foreach (var req in model.Requests)
         {
@@ -715,41 +830,43 @@ internal static class MediatorCodeWriter
             sb.AppendLine($"            {notif.SafeNotificationName} = new NotificationHandlerWrapper_{notif.SafeNotificationName}().Init(sp);");
         }
 
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine("        // ── MediatorDispatcherBase overrides ─────────────────────────────────");
-        sb.AppendLine("        /// <inheritdoc/>");
-        sb.AppendLine("        public override global::System.Threading.Tasks.ValueTask SendAsync(");
-        sb.AppendLine("            global::Blazing.Mediator.IRequest request,");
-        sb.AppendLine("            global::System.Threading.CancellationToken cancellationToken)");
-        sb.AppendLine("            => RequestDispatcher.Send(request, this, cancellationToken);");
-        sb.AppendLine();
-        sb.AppendLine("        /// <inheritdoc/>");
-        sb.AppendLine("        public override global::System.Threading.Tasks.ValueTask<TResponse> SendAsync<TResponse>(");
-        sb.AppendLine("            global::Blazing.Mediator.IRequest<TResponse> request,");
-        sb.AppendLine("            global::System.Threading.CancellationToken cancellationToken)");
-        sb.AppendLine("            => RequestDispatcher.Send(request, this, cancellationToken);");
-        sb.AppendLine();
-        sb.AppendLine("        /// <inheritdoc/>");
-        sb.AppendLine("        public override global::System.Collections.Generic.IAsyncEnumerable<TResponse> SendStreamAsync<TResponse>(");
-        sb.AppendLine("            global::Blazing.Mediator.IStreamRequest<TResponse> request,");
-        sb.AppendLine("            global::System.Threading.CancellationToken cancellationToken)");
-        sb.AppendLine("            => RequestDispatcher.SendStream(request, this, cancellationToken);");
-        sb.AppendLine();
-        sb.AppendLine("        /// <inheritdoc/>");
-        sb.AppendLine("        public override global::System.Threading.Tasks.ValueTask PublishAsync<TNotification>(");
-        sb.AppendLine("            TNotification notification,");
-        sb.AppendLine("            global::System.Threading.CancellationToken cancellationToken)");
-        sb.AppendLine("            => NotificationDispatcher.Publish(notification, this, cancellationToken);");
-        sb.AppendLine();
-        sb.AppendLine("        /// <inheritdoc/>");
-        sb.AppendLine("        /// <remarks>");
-        sb.AppendLine("        /// Each <c>typeof(TNotification) == typeof(...)</c> comparison is constant-folded by the");
-        sb.AppendLine("        /// JIT when <typeparamref name=\"TNotification\"/> is statically known at the call site,");
-        sb.AppendLine("        /// turning this into a compile-time constant <see langword=\"true\"/> or <see langword=\"false\"/>.");
-        sb.AppendLine("        /// </remarks>");
-        sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine("        public override bool IsNotificationHandled<TNotification>()");
+        sb.AppendLine("""
+                    }
+
+                    // ── MediatorDispatcherBase overrides ─────────────────────────────────
+                    /// <inheritdoc/>
+                    public override global::System.Threading.Tasks.ValueTask SendAsync(
+                        global::Blazing.Mediator.IRequest request,
+                        global::System.Threading.CancellationToken cancellationToken)
+                        => RequestDispatcher.Send(request, this, cancellationToken);
+
+                    /// <inheritdoc/>
+                    public override global::System.Threading.Tasks.ValueTask<TResponse> SendAsync<TResponse>(
+                        global::Blazing.Mediator.IRequest<TResponse> request,
+                        global::System.Threading.CancellationToken cancellationToken)
+                        => RequestDispatcher.Send(request, this, cancellationToken);
+
+                    /// <inheritdoc/>
+                    public override global::System.Collections.Generic.IAsyncEnumerable<TResponse> SendStreamAsync<TResponse>(
+                        global::Blazing.Mediator.IStreamRequest<TResponse> request,
+                        global::System.Threading.CancellationToken cancellationToken)
+                        => RequestDispatcher.SendStream(request, this, cancellationToken);
+
+                    /// <inheritdoc/>
+                    public override global::System.Threading.Tasks.ValueTask PublishAsync<TNotification>(
+                        TNotification notification,
+                        global::System.Threading.CancellationToken cancellationToken)
+                        => NotificationDispatcher.Publish(notification, this, cancellationToken);
+
+                    /// <inheritdoc/>
+                    /// <remarks>
+                    /// Each <c>typeof(TNotification) == typeof(...)</c> comparison is constant-folded by the
+                    /// JIT when <typeparamref name="TNotification"/> is statically known at the call site,
+                    /// turning this into a compile-time constant <see langword="true"/> or <see langword="false"/>.
+                    /// </remarks>
+                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+                    public override bool IsNotificationHandled<TNotification>()
+            """);
 
         if (model.Notifications.Count == 0)
         {
@@ -761,7 +878,9 @@ internal static class MediatorCodeWriter
         }
         else
         {
-            sb.AppendLine("        {");
+            sb.AppendLine("""
+                        {
+            """);
             sb.Append("            return");
             for (int i = 0; i < model.Notifications.Count; i++)
             {
@@ -802,22 +921,26 @@ internal static class MediatorCodeWriter
         const string cm = "global::Blazing.Mediator.Generated.ContainerMetadata";
         const string ct  = "global::System.Threading.CancellationToken";
 
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Generated zero-reflection request dispatcher.");
-        sb.AppendLine("    /// Called by <c>Mediator.Send.cs</c> and <c>Mediator.SendStream.cs</c> via <see cref=\"global::Blazing.Mediator.MediatorDispatcherBase\"/> virtual dispatch.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine("    internal static partial class RequestDispatcher");
-        sb.AppendLine("    {");
+        sb.AppendLine("""
+                /// <summary>
+                /// Generated zero-reflection request dispatcher.
+                /// Called by <c>Mediator.Send.cs</c> and <c>Mediator.SendStream.cs</c> via <see cref="global::Blazing.Mediator.MediatorDispatcherBase"/> virtual dispatch.
+                /// </summary>
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+                internal static partial class RequestDispatcher
+                {
+            """);
 
         // ── Void-command Send ──────────────────────────────────────────────────
-        sb.AppendLine($"        /// <summary>Dispatches a void command via a pre-resolved wrapper. Throws <see cref=\"global::System.NotImplementedException\"/> for unknown types, triggering the reflection fallback.</summary>");
-        sb.AppendLine($"        public static global::System.Threading.Tasks.ValueTask Send(");
-        sb.AppendLine($"            global::Blazing.Mediator.IRequest request,");
-        sb.AppendLine($"            {cm} containerMetadata,");
-        sb.AppendLine($"            {ct} cancellationToken)");
-        sb.AppendLine("        {");
+        sb.AppendLine($$$"""
+                    /// <summary>Dispatches a void command via a pre-resolved wrapper. Throws <see cref="global::System.NotImplementedException"/> for unknown types, triggering the reflection fallback.</summary>
+                    public static global::System.Threading.Tasks.ValueTask Send(
+                        global::Blazing.Mediator.IRequest request,
+                        {{{cm}}} containerMetadata,
+                        {{{ct}}} cancellationToken)
+                    {
+            """);
 
         if (voidRequests.Count == 0)
         {
@@ -825,8 +948,10 @@ internal static class MediatorCodeWriter
         }
         else
         {
-            sb.AppendLine("            return request switch");
-            sb.AppendLine("            {");
+            sb.AppendLine("""
+                            return request switch
+                            {
+                """);
             foreach (var req in voidRequests)
             {
                 if (req.IsAmbiguous)
@@ -834,20 +959,26 @@ internal static class MediatorCodeWriter
                 else
                     sb.AppendLine($"                {req.RequestType} r => containerMetadata.{req.SafeName}.Handle(r, cancellationToken),");
             }
-            sb.AppendLine("                _ => ThrowHelper.ThrowUnhandledVoidRequest(request)");
-            sb.AppendLine("            };");
+            sb.AppendLine("""
+                                _ => ThrowHelper.ThrowUnhandledVoidRequest(request)
+                            };
+                """);
         }
-        sb.AppendLine("        }");
-        sb.AppendLine();
+        sb.AppendLine("""
+                }
+
+            """);
 
         // ── Generic response Send ─────────────────────────────────────────
-        sb.AppendLine($"        /// <summary>Dispatches a request-with-response via a pre-resolved wrapper. Returns a faulted <see cref=\"global::System.Threading.Tasks.ValueTask{{TResponse}}\"/> for unknown types, triggering the reflection fallback.</summary>");
-        sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"        public static global::System.Threading.Tasks.ValueTask<TResponse> Send<TResponse>(");
-        sb.AppendLine($"            global::Blazing.Mediator.IRequest<TResponse> request,");
-        sb.AppendLine($"            {cm} containerMetadata,");
-        sb.AppendLine($"            {ct} cancellationToken)");
-        sb.AppendLine("        {");
+        sb.AppendLine($$$"""
+                    /// <summary>Dispatches a request-with-response via a pre-resolved wrapper. Returns a faulted <see cref="global::System.Threading.Tasks.ValueTask{TResponse}"/> for unknown types, triggering the reflection fallback.</summary>
+                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+                    public static global::System.Threading.Tasks.ValueTask<TResponse> Send<TResponse>(
+                        global::Blazing.Mediator.IRequest<TResponse> request,
+                        {{{cm}}} containerMetadata,
+                        {{{ct}}} cancellationToken)
+                    {
+            """);
 
         if (typedRequests.Count == 0)
         {
@@ -855,8 +986,10 @@ internal static class MediatorCodeWriter
         }
         else
         {
-            sb.AppendLine("            return request switch");
-            sb.AppendLine("            {");
+            sb.AppendLine("""
+                            return request switch
+                            {
+                """);
             foreach (var req in typedRequests)
             {
                 if (req.IsAmbiguous)
@@ -866,26 +999,34 @@ internal static class MediatorCodeWriter
                 else
                 {
                     // Unsafe.As reinterpretation — zero boxing, zero allocations.
-                    sb.AppendLine($"                {req.RequestType} r =>");
-                    sb.AppendLine($"                    global::System.Runtime.CompilerServices.Unsafe.As<");
-                    sb.AppendLine($"                        global::System.Threading.Tasks.ValueTask<{req.ResponseType}>,");
-                    sb.AppendLine($"                        global::System.Threading.Tasks.ValueTask<TResponse>>(ref global::System.Runtime.CompilerServices.Unsafe.AsRef(");
-                    sb.AppendLine($"                            containerMetadata.{req.SafeName}.Handle(r, cancellationToken))),");
+                    sb.AppendLine($$$"""
+                                {{{req.RequestType}}} r =>
+                                    global::System.Runtime.CompilerServices.Unsafe.As<
+                                        global::System.Threading.Tasks.ValueTask<{{{req.ResponseType}}}>,
+                                        global::System.Threading.Tasks.ValueTask<TResponse>>(ref global::System.Runtime.CompilerServices.Unsafe.AsRef(
+                                            containerMetadata.{{{req.SafeName}}}.Handle(r, cancellationToken))),
+                    """);
                 }
             }
-            sb.AppendLine("                _ => ThrowHelper.ThrowUnhandledTypedRequest<TResponse>(request)");
-            sb.AppendLine("            };");
+            sb.AppendLine("""
+                                _ => ThrowHelper.ThrowUnhandledTypedRequest<TResponse>(request)
+                            };
+                """);
         }
-        sb.AppendLine("        }");
-        sb.AppendLine();
+        sb.AppendLine("""
+                }
+
+            """);
 
         // ── SendStream ─────────────────────────────────────────────────────────────────────
-        sb.AppendLine($"        /// <summary>Dispatches a stream request via a pre-resolved wrapper. Throws <see cref=\"global::System.NotImplementedException\"/> for unknown types, triggering the reflection fallback.</summary>");
-        sb.AppendLine($"        public static global::System.Collections.Generic.IAsyncEnumerable<TResponse> SendStream<TResponse>(");
-        sb.AppendLine($"            global::Blazing.Mediator.IStreamRequest<TResponse> request,");
-        sb.AppendLine($"            {cm} containerMetadata,");
-        sb.AppendLine($"            {ct} cancellationToken)");
-        sb.AppendLine("        {");
+        sb.AppendLine($$$"""
+                    /// <summary>Dispatches a stream request via a pre-resolved wrapper. Throws <see cref="global::System.NotImplementedException"/> for unknown types, triggering the reflection fallback.</summary>
+                    public static global::System.Collections.Generic.IAsyncEnumerable<TResponse> SendStream<TResponse>(
+                        global::Blazing.Mediator.IStreamRequest<TResponse> request,
+                        {{{cm}}} containerMetadata,
+                        {{{ct}}} cancellationToken)
+                    {
+            """);
 
         if (streamRequests.Count == 0)
         {
@@ -893,8 +1034,10 @@ internal static class MediatorCodeWriter
         }
         else
         {
-            sb.AppendLine("            return request switch");
-            sb.AppendLine("            {");
+            sb.AppendLine("""
+                            return request switch
+                            {
+                """);
             foreach (var req in streamRequests)
             {
                 if (req.IsAmbiguous)
@@ -905,48 +1048,64 @@ internal static class MediatorCodeWriter
                 {
                     // Use Unsafe.As to reinterpret IAsyncEnumerable<ConcreteType> as IAsyncEnumerable<TResponse>
                     // without an (object) cast / runtime type check — identical to martinothamar's approach.
-                    sb.AppendLine($"                {req.RequestType} r =>");
-                    sb.AppendLine($"                    global::System.Runtime.CompilerServices.Unsafe.As<");
-                    sb.AppendLine($"                        global::System.Collections.Generic.IAsyncEnumerable<{req.ResponseType}>,");
-                    sb.AppendLine($"                        global::System.Collections.Generic.IAsyncEnumerable<TResponse>>(");
-                    sb.AppendLine($"                        ref global::System.Runtime.CompilerServices.Unsafe.AsRef(");
-                    sb.AppendLine($"                            containerMetadata.{req.SafeName}.Handle(r, cancellationToken))),");
+                    sb.AppendLine($$$"""
+                                {{{req.RequestType}}} r =>
+                                    global::System.Runtime.CompilerServices.Unsafe.As<
+                                        global::System.Collections.Generic.IAsyncEnumerable<{{{req.ResponseType}}}>,
+                                        global::System.Collections.Generic.IAsyncEnumerable<TResponse>>(
+                                        ref global::System.Runtime.CompilerServices.Unsafe.AsRef(
+                                            containerMetadata.{{{req.SafeName}}}.Handle(r, cancellationToken))),
+                    """);
                 }
             }
-            sb.AppendLine("                _ => ThrowHelper.ThrowUnhandledStreamRequest<TResponse>(request)");
-            sb.AppendLine("            };");
+            sb.AppendLine("""
+                                _ => ThrowHelper.ThrowUnhandledStreamRequest<TResponse>(request)
+                            };
+                """);
         }
-        sb.AppendLine("        }");
-        sb.AppendLine();
+        sb.AppendLine("""
+                }
+
+            """);
 
         // ── GetHandlerInterfaceType — for AOT/SendStream reflection fallback ─
-        sb.AppendLine("        /// <summary>Returns the strongly-typed handler interface <c>typeof(IRequestHandler&lt;TReq,TResp&gt;)</c> without <c>MakeGenericType</c>.</summary>");
-        sb.AppendLine("        public static global::System.Type? GetHandlerInterfaceType(");
-        sb.AppendLine("            global::System.Type requestType,");
-        sb.AppendLine("            global::System.Type? responseType = null)");
-        sb.AppendLine("        {");
+        sb.AppendLine("""
+                    /// <summary>Returns the strongly-typed handler interface <c>typeof(IRequestHandler&lt;TReq,TResp&gt;)</c> without <c>MakeGenericType</c>.</summary>
+                    public static global::System.Type? GetHandlerInterfaceType(
+                        global::System.Type requestType,
+                        global::System.Type? responseType = null)
+                    {
+            """);
 
         foreach (var req in model.Requests.Where(r => !r.IsStream))
         {
             if (req.IsVoid)
             {
-                sb.AppendLine($"            if (requestType == typeof({req.RequestType}))");
-                sb.AppendLine($"                return typeof(global::Blazing.Mediator.IRequestHandler<{req.RequestType}>);");
+                sb.AppendLine($$$"""
+                            if (requestType == typeof({{{req.RequestType}}}))
+                                return typeof(global::Blazing.Mediator.IRequestHandler<{{{req.RequestType}}}>);
+                    """);
             }
             else
             {
-                sb.AppendLine($"            if (requestType == typeof({req.RequestType}) && responseType == typeof({req.ResponseType}))");
-                sb.AppendLine($"                return typeof(global::Blazing.Mediator.IRequestHandler<{req.RequestType}, {req.ResponseType}>);");
+                sb.AppendLine($$$"""
+                            if (requestType == typeof({{{req.RequestType}}}) && responseType == typeof({{{req.ResponseType}}}))
+                                return typeof(global::Blazing.Mediator.IRequestHandler<{{{req.RequestType}}}, {{{req.ResponseType}}}>);
+                    """);
             }
         }
         foreach (var req in streamRequests)
         {
-            sb.AppendLine($"            if (requestType == typeof({req.RequestType}) && responseType == typeof({req.ResponseType}))");
-            sb.AppendLine($"                return typeof(global::Blazing.Mediator.IStreamRequestHandler<{req.RequestType}, {req.ResponseType}>);");
+            sb.AppendLine($$$"""
+                        if (requestType == typeof({{{req.RequestType}}}) && responseType == typeof({{{req.ResponseType}}}))
+                            return typeof(global::Blazing.Mediator.IStreamRequestHandler<{{{req.RequestType}}}, {{{req.ResponseType}}}>);
+                """);
         }
 
-        sb.AppendLine("            return null;");
-        sb.AppendLine("        }");
+        sb.AppendLine("""
+                        return null;
+                    }
+            """);
 
         sb.AppendLine("    }"); // RequestDispatcher
     }
@@ -967,23 +1126,25 @@ internal static class MediatorCodeWriter
         const string cm = "global::Blazing.Mediator.Generated.ContainerMetadata";
         const string ct = "global::System.Threading.CancellationToken";
 
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Generated zero-reflection notification dispatcher.");
-        sb.AppendLine("    /// Dispatches known notification types to pre-cached <c>NotificationHandlerWrapper_*</c> instances.");
-        sb.AppendLine("    /// Throws <see cref=\"global::System.NotImplementedException\"/> for unknown types so the");
-        sb.AppendLine("    /// runtime <c>PublishReflection</c> fallback can handle manual subscribers.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine("    internal static class NotificationDispatcher");
-        sb.AppendLine("    {");
-        sb.AppendLine("        /// <summary>Dispatches a notification via pre-resolved handler wrappers.</summary>");
-        sb.AppendLine($"        public static global::System.Threading.Tasks.ValueTask Publish<TNotification>(");
-        sb.AppendLine($"            TNotification notification,");
-        sb.AppendLine($"            {cm} containerMetadata,");
-        sb.AppendLine($"            {ct} cancellationToken)");
-        sb.AppendLine("            where TNotification : global::Blazing.Mediator.INotification");
-        sb.AppendLine("        {");
+        sb.AppendLine($$$"""
+                /// <summary>
+                /// Generated zero-reflection notification dispatcher.
+                /// Dispatches known notification types to pre-cached <c>NotificationHandlerWrapper_*</c> instances.
+                /// Throws <see cref="global::System.NotImplementedException"/> for unknown types so the
+                /// runtime <c>PublishReflection</c> fallback can handle manual subscribers.
+                /// </summary>
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+                internal static class NotificationDispatcher
+                {
+                    /// <summary>Dispatches a notification via pre-resolved handler wrappers.</summary>
+                    public static global::System.Threading.Tasks.ValueTask Publish<TNotification>(
+                        TNotification notification,
+                        {{{cm}}} containerMetadata,
+                        {{{ct}}} cancellationToken)
+                        where TNotification : global::Blazing.Mediator.INotification
+                    {
+            """);
 
         if (model.Notifications.Count == 0)
         {
@@ -992,8 +1153,10 @@ internal static class MediatorCodeWriter
         }
         else
         {
-            sb.AppendLine("            return notification switch");
-            sb.AppendLine("            {");
+            sb.AppendLine("""
+                            return notification switch
+                            {
+                """);
             // Concrete (non-interface) types must come before interface types in the switch.
             // If an interface arm appears before a sealed concrete type that implements it,
             // the compiler emits CS8510 (unreachable pattern) for the concrete arm.
@@ -1006,12 +1169,16 @@ internal static class MediatorCodeWriter
                 sb.AppendLine($"                {notif.NotificationType} n => containerMetadata.{notif.SafeNotificationName}.Handle(n, cancellationToken),");
             }
             // Unknown notification type — triggers PublishReflection fallback in Mediator.Notification.cs.
-            sb.AppendLine("                _ => ThrowHelper.ThrowNotificationFallback()");
-            sb.AppendLine("            };");
+            sb.AppendLine("""
+                                _ => ThrowHelper.ThrowNotificationFallback()
+                            };
+                """);
         }
 
-        sb.AppendLine("        }");
-        sb.AppendLine("    }"); // NotificationDispatcher
+        sb.AppendLine("""
+                    }
+                }
+            """); // NotificationDispatcher
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1025,21 +1192,25 @@ internal static class MediatorCodeWriter
     /// </summary>
     private static void AppendTelemetryTags(StringBuilder sb, CompilationModel model)
     {
-        sb.AppendLine("    /// <summary>Generated compile-time notification type metadata for zero-reflection telemetry label lookup.</summary>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine("    internal static class TelemetryTags");
-        sb.AppendLine("    {");
-        sb.AppendLine("        /// <summary>Returns telemetry metadata for a notification type discovered at compile time.</summary>");
-        sb.AppendLine("        public static bool TryGetNotificationMetadata(");
-        sb.AppendLine("            global::System.Type type,");
-        sb.AppendLine("            out NotificationMetadata metadata)");
-        sb.AppendLine("        {");
+        sb.AppendLine("""
+                /// <summary>Generated compile-time notification type metadata for zero-reflection telemetry label lookup.</summary>
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+                internal static class TelemetryTags
+                {
+                    /// <summary>Returns telemetry metadata for a notification type discovered at compile time.</summary>
+                    public static bool TryGetNotificationMetadata(
+                        global::System.Type type,
+                        out NotificationMetadata metadata)
+                    {
+            """);
 
         if (model.Notifications.Count == 0)
         {
-            sb.AppendLine("            metadata = default;");
-            sb.AppendLine("            return false;");
+            sb.AppendLine("""
+                            metadata = default;
+                            return false;
+                """);
         }
         else
         {
@@ -1050,31 +1221,41 @@ internal static class MediatorCodeWriter
                 string simpleName  = GetSimpleName(fqn);           // e.g. "UserCreatedNotification"
                 string sanitized   = SanitizeForOtel(simpleName);  // e.g. "UserCreated_Notification"
 
-                sb.AppendLine($"            if (type == typeof({fqn}))");
-                sb.AppendLine("            {");
-                sb.AppendLine($"                metadata = new NotificationMetadata(\"{simpleName}\", \"{sanitized}\");");
-                sb.AppendLine("                return true;");
-                sb.AppendLine("            }");
+                sb.AppendLine($$$"""
+                            if (type == typeof({{{fqn}}}))
+                            {
+                                metadata = new NotificationMetadata("{{{simpleName}}}", "{{{sanitized}}}");
+                                return true;
+                            }
+                """);
             }
-            sb.AppendLine("            metadata = default;");
-            sb.AppendLine("            return false;");
+            sb.AppendLine("""
+                            metadata = default;
+                            return false;
+                """);
         }
 
-        sb.AppendLine("        }");
-        sb.AppendLine();
+        sb.AppendLine("""
+                }
+
+            """);
 
         // ── TryGetRequestMetadata ─────────────────────────────────────────────
-        sb.AppendLine("        /// <summary>Returns telemetry metadata for a request or handler type discovered at compile time.</summary>");
-        sb.AppendLine("        public static bool TryGetRequestMetadata(");
-        sb.AppendLine("            global::System.Type type,");
-        sb.AppendLine("            out RequestMetadata metadata)");
-        sb.AppendLine("        {");
+        sb.AppendLine("""
+                    /// <summary>Returns telemetry metadata for a request or handler type discovered at compile time.</summary>
+                    public static bool TryGetRequestMetadata(
+                        global::System.Type type,
+                        out RequestMetadata metadata)
+                    {
+            """);
 
         // Emit lookup for all request types AND their handler types.
         if (model.Requests.Count == 0)
         {
-            sb.AppendLine("            metadata = default;");
-            sb.AppendLine("            return false;");
+            sb.AppendLine("""
+                            metadata = default;
+                            return false;
+                """);
         }
         else
         {
@@ -1094,75 +1275,87 @@ internal static class MediatorCodeWriter
                     // Match by request type (only emit once, from first handler)
                     if (handlerFqn == handlers[0])
                     {
-                        sb.AppendLine($"            if (type == typeof({reqFqn}))");
-                        sb.AppendLine("            {");
-                        sb.AppendLine($"                metadata = new RequestMetadata(\"{reqSimple}\", \"{reqSanitized}\", \"{handlerSimple}\", \"{handlerSanitized}\");");
-                        sb.AppendLine("                return true;");
-                        sb.AppendLine("            }");
+                        sb.AppendLine($$$"""
+                                    if (type == typeof({{{reqFqn}}}))
+                                    {
+                                        metadata = new RequestMetadata("{{{reqSimple}}}", "{{{reqSanitized}}}", "{{{handlerSimple}}}", "{{{handlerSanitized}}}");
+                                        return true;
+                                    }
+                        """);
                     }
 
                     // Match by handler type
-                    sb.AppendLine($"            if (type == typeof({handlerFqn}))");
-                    sb.AppendLine("            {");
-                    sb.AppendLine($"                metadata = new RequestMetadata(\"{reqSimple}\", \"{reqSanitized}\", \"{handlerSimple}\", \"{handlerSanitized}\");");
-                    sb.AppendLine("                return true;");
-                    sb.AppendLine("            }");
+                    sb.AppendLine($$$"""
+                                if (type == typeof({{{handlerFqn}}}))
+                                {
+                                    metadata = new RequestMetadata("{{{reqSimple}}}", "{{{reqSanitized}}}", "{{{handlerSimple}}}", "{{{handlerSanitized}}}");
+                                    return true;
+                                }
+                    """);
                 }
             }
-            sb.AppendLine("            metadata = default;");
-            sb.AppendLine("            return false;");
+            sb.AppendLine("""
+                            metadata = default;
+                            return false;
+                """);
         }
 
-        sb.AppendLine("        }");
-        sb.AppendLine("    }"); // TelemetryTags
-        sb.AppendLine();
+        sb.AppendLine("""
+                    }
+                }
+
+            """); // TelemetryTags
 
         // ── RequestMetadata struct ────────────────────────────────────────────
-        sb.AppendLine("    /// <summary>Compile-time request telemetry label metadata.</summary>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    internal readonly struct RequestMetadata");
-        sb.AppendLine("    {");
-        sb.AppendLine("        /// <summary>Initialises the metadata record.</summary>");
-        sb.AppendLine("        public RequestMetadata(string requestName, string sanitizedRequestName, string handlerName, string sanitizedHandlerName)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            RequestName = requestName;");
-        sb.AppendLine("            SanitizedRequestName = sanitizedRequestName;");
-        sb.AppendLine("            HandlerName = handlerName;");
-        sb.AppendLine("            SanitizedHandlerName = sanitizedHandlerName;");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine("        /// <summary>Simple short request type name, e.g. <c>PingRequest</c>.</summary>");
-        sb.AppendLine("        public string RequestName { get; }");
-        sb.AppendLine();
-        sb.AppendLine("        /// <summary>OTel-safe request name with special chars replaced.</summary>");
-        sb.AppendLine("        public string SanitizedRequestName { get; }");
-        sb.AppendLine();
-        sb.AppendLine("        /// <summary>Simple short handler type name.</summary>");
-        sb.AppendLine("        public string HandlerName { get; }");
-        sb.AppendLine();
-        sb.AppendLine("        /// <summary>OTel-safe handler name with special chars replaced.</summary>");
-        sb.AppendLine("        public string SanitizedHandlerName { get; }");
-        sb.AppendLine("    }"); // RequestMetadata
-        sb.AppendLine();
+        sb.AppendLine("""
+                /// <summary>Compile-time request telemetry label metadata.</summary>
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                internal readonly struct RequestMetadata
+                {
+                    /// <summary>Initialises the metadata record.</summary>
+                    public RequestMetadata(string requestName, string sanitizedRequestName, string handlerName, string sanitizedHandlerName)
+                    {
+                        RequestName = requestName;
+                        SanitizedRequestName = sanitizedRequestName;
+                        HandlerName = handlerName;
+                        SanitizedHandlerName = sanitizedHandlerName;
+                    }
+
+                    /// <summary>Simple short request type name, e.g. <c>PingRequest</c>.</summary>
+                    public string RequestName { get; }
+
+                    /// <summary>OTel-safe request name with special chars replaced.</summary>
+                    public string SanitizedRequestName { get; }
+
+                    /// <summary>Simple short handler type name.</summary>
+                    public string HandlerName { get; }
+
+                    /// <summary>OTel-safe handler name with special chars replaced.</summary>
+                    public string SanitizedHandlerName { get; }
+                } // RequestMetadata
+
+            """);
 
         // ── NotificationMetadata struct ───────────────────────────────────────
-        sb.AppendLine("    /// <summary>Compile-time notification telemetry label metadata.</summary>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    internal readonly struct NotificationMetadata");
-        sb.AppendLine("    {");
-        sb.AppendLine("        /// <summary>Initialises the metadata record.</summary>");
-        sb.AppendLine("        public NotificationMetadata(string notificationName, string sanitizedNotificationName)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            NotificationName = notificationName;");
-        sb.AppendLine("            SanitizedNotificationName = sanitizedNotificationName;");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine("        /// <summary>Simple short type name, e.g. <c>UserCreatedNotification</c>.</summary>");
-        sb.AppendLine("        public string NotificationName { get; }");
-        sb.AppendLine();
-        sb.AppendLine("        /// <summary>OTel-safe name with dots/angle-brackets replaced, e.g. <c>UserCreated_Notification</c>.</summary>");
-        sb.AppendLine("        public string SanitizedNotificationName { get; }");
-        sb.AppendLine("    }"); // NotificationMetadata
+        sb.AppendLine("""
+                /// <summary>Compile-time notification telemetry label metadata.</summary>
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                internal readonly struct NotificationMetadata
+                {
+                    /// <summary>Initialises the metadata record.</summary>
+                    public NotificationMetadata(string notificationName, string sanitizedNotificationName)
+                    {
+                        NotificationName = notificationName;
+                        SanitizedNotificationName = sanitizedNotificationName;
+                    }
+
+                    /// <summary>Simple short type name, e.g. <c>UserCreatedNotification</c>.</summary>
+                    public string NotificationName { get; }
+
+                    /// <summary>OTel-safe name with dots/angle-brackets replaced, e.g. <c>UserCreated_Notification</c>.</summary>
+                    public string SanitizedNotificationName { get; }
+                } // NotificationMetadata
+            """);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1171,22 +1364,26 @@ internal static class MediatorCodeWriter
 
     private static void AppendTypeCatalog(StringBuilder sb, CompilationModel model)
     {
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Compile-time catalog of every handler and notification type discovered by the source generator.");
-        sb.AppendLine("    /// Implements <see cref=\"global::Blazing.Mediator.Statistics.IMediatorTypeCatalog\" /> for fully AOT-clean");
-        sb.AppendLine("    /// analysis via <c>MediatorStatistics.AnalyzeQueries(IMediatorTypeCatalog)</c>.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine("    internal sealed class MediatorTypeCatalog : global::Blazing.Mediator.Statistics.IMediatorTypeCatalog");
-        sb.AppendLine("    {");
-        sb.AppendLine("        /// <summary>Singleton instance — all data is compile-time constant, no allocation on first access.</summary>");
-        sb.AppendLine("        public static readonly MediatorTypeCatalog Instance = new();");
-        sb.AppendLine();
+        sb.AppendLine("""
+                /// <summary>
+                /// Compile-time catalog of every handler and notification type discovered by the source generator.
+                /// Implements <see cref="global::Blazing.Mediator.Statistics.IMediatorTypeCatalog" /> for fully AOT-clean
+                /// analysis via <c>MediatorStatistics.AnalyzeQueries(IMediatorTypeCatalog)</c>.
+                /// </summary>
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+                internal sealed class MediatorTypeCatalog : global::Blazing.Mediator.Statistics.IMediatorTypeCatalog
+                {
+                    /// <summary>Singleton instance — all data is compile-time constant, no allocation on first access.</summary>
+                    public static readonly MediatorTypeCatalog Instance = new();
+
+            """);
 
         // ── RequestHandlers ────────────────────────────────────────────────
-        sb.AppendLine("        public global::System.Collections.Generic.IReadOnlyList<global::Blazing.Mediator.Statistics.HandlerTypeInfo> RequestHandlers { get; } =");
-        sb.AppendLine("        [");
+        sb.AppendLine("""
+                public global::System.Collections.Generic.IReadOnlyList<global::Blazing.Mediator.Statistics.HandlerTypeInfo> RequestHandlers { get; } =
+                [
+            """);
         foreach (var req in model.Requests)
         {
             string requestName = GetSimpleName(req.RequestType);
@@ -1196,12 +1393,16 @@ internal static class MediatorCodeWriter
             foreach (var handlerFqn in req.AllHandlerTypes)
                 sb.AppendLine($"            new(\"{requestName}\", typeof({req.RequestType}), {responseArg}, typeof({handlerFqn}), {category}),");
         }
-        sb.AppendLine("        ];");
-        sb.AppendLine();
+        sb.AppendLine("""
+                ];
+
+            """);
 
         // ── NotificationHandlers ───────────────────────────────────────────
-        sb.AppendLine("        public global::System.Collections.Generic.IReadOnlyList<global::Blazing.Mediator.Statistics.NotificationTypeInfo> NotificationHandlers { get; } =");
-        sb.AppendLine("        [");
+        sb.AppendLine("""
+                public global::System.Collections.Generic.IReadOnlyList<global::Blazing.Mediator.Statistics.NotificationTypeInfo> NotificationHandlers { get; } =
+                [
+            """);
         foreach (var notif in model.Notifications)
         {
             string notificationName = GetSimpleName(notif.NotificationType);
@@ -1221,12 +1422,16 @@ internal static class MediatorCodeWriter
                 sb.AppendLine("                ]),");
             }
         }
-        sb.AppendLine("        ];");
-        sb.AppendLine();
+        sb.AppendLine("""
+                ];
+
+            """);
 
         // ── RequestMiddleware ──────────────────────────────────────────────
-        sb.AppendLine("        public global::System.Collections.Generic.IReadOnlyList<global::Blazing.Mediator.Statistics.MiddlewareTypeInfo> RequestMiddleware { get; } =");
-        sb.AppendLine("        [");
+        sb.AppendLine("""
+                public global::System.Collections.Generic.IReadOnlyList<global::Blazing.Mediator.Statistics.MiddlewareTypeInfo> RequestMiddleware { get; } =
+                [
+            """);
         foreach (var mw in model.Middleware.Where(static m => !m.IsNotification))
         {
             string mwName = GetSimpleName(mw.IsOpenGeneric ? mw.OpenGenericBaseType! : mw.MiddlewareType);
@@ -1237,12 +1442,16 @@ internal static class MediatorCodeWriter
                 : $"typeof({mw.MiddlewareType})";
             sb.AppendLine($"            new(\"{mwName}\", {mwType}, {mw.Order}, {(mw.IsOpenGeneric ? "true" : "false")}, false),");
         }
-        sb.AppendLine("        ];");
-        sb.AppendLine();
+        sb.AppendLine("""
+                ];
+
+            """);
 
         // ── NotificationMiddleware ─────────────────────────────────────────
-        sb.AppendLine("        public global::System.Collections.Generic.IReadOnlyList<global::Blazing.Mediator.Statistics.MiddlewareTypeInfo> NotificationMiddleware { get; } =");
-        sb.AppendLine("        [");
+        sb.AppendLine("""
+                public global::System.Collections.Generic.IReadOnlyList<global::Blazing.Mediator.Statistics.MiddlewareTypeInfo> NotificationMiddleware { get; } =
+                [
+            """);
         foreach (var mw in model.Middleware.Where(static m => m.IsNotification))
         {
             string mwName = GetSimpleName(mw.IsOpenGeneric ? mw.OpenGenericBaseType! : mw.MiddlewareType);
@@ -1251,8 +1460,10 @@ internal static class MediatorCodeWriter
                 : $"typeof({mw.MiddlewareType})";
             sb.AppendLine($"            new(\"{mwName}\", {mwType}, {mw.Order}, {(mw.IsOpenGeneric ? "true" : "false")}, true),");
         }
-        sb.AppendLine("        ];");
-        sb.AppendLine("    } // MediatorTypeCatalog");
+        sb.AppendLine("""
+                ];
+            } // MediatorTypeCatalog
+            """);
     }
 
     /// <summary>
@@ -1272,17 +1483,19 @@ internal static class MediatorCodeWriter
 
     private static void AppendServiceRegistrationExtension(StringBuilder sb, CompilationModel model)
     {
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Generated extension method that registers all handlers and middleware discovered at compile-time.");
-        sb.AppendLine("    /// Call <c>services.AddMediator()</c> to register all compile-time-discovered handlers and middleware.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine("    public static class MediatorServiceCollectionExtensions");
-        sb.AppendLine("    {");
-        sb.AppendLine("        public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection AddMediator(");
-        sb.AppendLine("            this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
-        sb.AppendLine("        {");
+        sb.AppendLine("""
+                /// <summary>
+                /// Generated extension method that registers all handlers and middleware discovered at compile-time.
+                /// Call <c>services.AddMediator()</c> to register all compile-time-discovered handlers and middleware.
+                /// </summary>
+                [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+                public static class MediatorServiceCollectionExtensions
+                {
+                    public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection AddMediator(
+                        this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+                    {
+            """);
 
         // ── Request handlers ──────────────────────────────────────────────────
         if (model.Requests.Count > 0)
@@ -1377,8 +1590,12 @@ internal static class MediatorCodeWriter
                 if (requestMwRegistered.Add(diType))
                 {
                     if (mw.IsOpenGeneric)
-                        sb.AppendLine($"            // Closed form of open-generic middleware for {req.RequestType}");
-                    sb.AppendLine($"            services.AddTransient<{diType}>();");
+                        sb.AppendLine($$$"""
+                                    // Closed form of open-generic middleware for {{{req.RequestType}}}
+                                    services.AddTransient<{{{diType}}}>();
+                        """);
+                    else
+                        sb.AppendLine($"            services.AddTransient<{diType}>();");
                 }
             }
         }
@@ -1390,36 +1607,38 @@ internal static class MediatorCodeWriter
                 sb.AppendLine($"            services.AddTransient<{mw.MiddlewareType}>();");
         }
 
-        sb.AppendLine("            // Container probe — registered twice so GetServices<ContainerProbe0>() returns ContainerProbe0[]");
-        sb.AppendLine("            // This populates ServicesUnderlyingTypeIsArray used for zero-copy Unsafe.As<T[]> in hot paths.");
-        sb.AppendLine("            services.AddTransient<global::Blazing.Mediator.Generated.ContainerProbe0>();");
-        sb.AppendLine("            services.AddTransient<global::Blazing.Mediator.Generated.ContainerProbe0>();");
-        sb.AppendLine();
-        sb.AppendLine("            // Type catalog — singleton for AOT-clean analysis (no reflection at runtime)");
-        sb.AppendLine("            services.AddSingleton<global::Blazing.Mediator.Statistics.IMediatorTypeCatalog>(global::Blazing.Mediator.Generated.MediatorTypeCatalog.Instance);");
-        sb.AppendLine();
-        sb.AppendLine("            // ContainerMetadata — Scoped so each request scope gets its own handler instances.");
-        sb.AppendLine("            // Scoped (not Singleton) is required when any handler has scoped dependencies (e.g. DbContext,");
-        sb.AppendLine("            // IContactService). Mirrors master's AddScoped<IMediator>() pattern. Console apps that resolve");
-        sb.AppendLine("            // services from host.Services.CreateScope() are unaffected — an explicit scope is already the");
-        sb.AppendLine("            // ambient scope for those code paths.");
-        sb.AppendLine("            services.AddScoped<global::Blazing.Mediator.Generated.ContainerMetadata>();");
-        sb.AppendLine("            // MediatorDispatcherBase — allows the library's Mediator class to find the");
-        sb.AppendLine("            // generated dispatcher via DI without a compile-time type reference.");
-        sb.AppendLine("            services.AddScoped<global::Blazing.Mediator.MediatorDispatcherBase>(");
-        sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Generated.ContainerMetadata>());");
-        sb.AppendLine();
-        sb.AppendLine("            // IMediator — Scoped so each request/scope receives its own Mediator instance backed by");
-        sb.AppendLine("            // the scope's IServiceProvider. Handlers can then safely consume scoped services");
-        sb.AppendLine("            // (DbContext, per-request services) without captive-dependency issues.");
-        sb.AppendLine("            services.AddScoped<global::Blazing.Mediator.IMediator, global::Blazing.Mediator.Mediator>();");
-        sb.AppendLine();
-        sb.AppendLine("            // Default notification publisher — required by source-generated notification wrappers.");
-        sb.AppendLine("            // TryAddSingleton ensures a user-provided INotificationPublisher (registered before AddMediator())");
-        sb.AppendLine("            // is never overwritten by this default.");
-        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.INotificationPublisher,");
-        sb.AppendLine("                global::Blazing.Mediator.Notifications.SequentialNotificationPublisher>();");
-        sb.AppendLine();
+        sb.AppendLine("""
+                        // Container probe — registered twice so GetServices<ContainerProbe0>() returns ContainerProbe0[]
+                        // This populates ServicesUnderlyingTypeIsArray used for zero-copy Unsafe.As<T[]> in hot paths.
+                        services.AddTransient<global::Blazing.Mediator.Generated.ContainerProbe0>();
+                        services.AddTransient<global::Blazing.Mediator.Generated.ContainerProbe0>();
+
+                        // Type catalog — singleton for AOT-clean analysis (no reflection at runtime)
+                        services.AddSingleton<global::Blazing.Mediator.Statistics.IMediatorTypeCatalog>(global::Blazing.Mediator.Generated.MediatorTypeCatalog.Instance);
+
+                        // ContainerMetadata — Scoped so each request scope gets its own handler instances.
+                        // Scoped (not Singleton) is required when any handler has scoped dependencies (e.g. DbContext,
+                        // IContactService). Mirrors master's AddScoped<IMediator>() pattern. Console apps that resolve
+                        // services from host.Services.CreateScope() are unaffected — an explicit scope is already the
+                        // ambient scope for those code paths.
+                        services.AddScoped<global::Blazing.Mediator.Generated.ContainerMetadata>();
+                        // MediatorDispatcherBase — allows the library's Mediator class to find the
+                        // generated dispatcher via DI without a compile-time type reference.
+                        services.AddScoped<global::Blazing.Mediator.MediatorDispatcherBase>(
+                            static sp => sp.GetRequiredService<global::Blazing.Mediator.Generated.ContainerMetadata>());
+
+                        // IMediator — Scoped so each request/scope receives its own Mediator instance backed by
+                        // the scope's IServiceProvider. Handlers can then safely consume scoped services
+                        // (DbContext, per-request services) without captive-dependency issues.
+                        services.AddScoped<global::Blazing.Mediator.IMediator, global::Blazing.Mediator.Mediator>();
+
+                        // Default notification publisher — required by source-generated notification wrappers.
+                        // TryAddSingleton ensures a user-provided INotificationPublisher (registered before AddMediator())
+                        // is never overwritten by this default.
+                        services.TryAddSingleton<global::Blazing.Mediator.INotificationPublisher,
+                            global::Blazing.Mediator.Notifications.SequentialNotificationPublisher>();
+
+            """);
         // ── Pipeline inspectors — pre-seeded with compile-time-baked orders ─────
         // Register MiddlewarePipelineBuilder and NotificationPipelineBuilder as singletons that are
         // pre-populated with the exact middleware types and order values determined at compile time
@@ -1428,8 +1647,10 @@ internal static class MediatorCodeWriter
         var pbRequestMw = model.Middleware.Where(static m => !m.IsNotification).ToList();
         var pbNotifMw   = model.Middleware.Where(static m =>  m.IsNotification).ToList();
 
-        sb.AppendLine("            // Pipeline inspectors pre-seeded with compile-time order values — no runtime reflection.");
-        sb.AppendLine("            var _requestPb = new global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder();");
+        sb.AppendLine("""
+                        // Pipeline inspectors pre-seeded with compile-time order values — no runtime reflection.
+                        var _requestPb = new global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder();
+            """);
         foreach (var mw in pbRequestMw)
         {
             string mwType = mw.IsOpenGeneric
@@ -1437,12 +1658,14 @@ internal static class MediatorCodeWriter
                 : $"typeof({mw.MiddlewareType})";
             sb.AppendLine($"            _requestPb.AddMiddleware({mwType}, {mw.Order});");
         }
-        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>(_requestPb);");
-        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.IMiddlewarePipelineInspector>(");
-        sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>());");
-        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.IMiddlewarePipelineBuilder>(");
-        sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>());");
-        sb.AppendLine("            var _notifPb = new global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder();");
+        sb.AppendLine("""
+                        services.TryAddSingleton<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>(_requestPb);
+                        services.TryAddSingleton<global::Blazing.Mediator.IMiddlewarePipelineInspector>(
+                            static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>());
+                        services.TryAddSingleton<global::Blazing.Mediator.Pipeline.IMiddlewarePipelineBuilder>(
+                            static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.MiddlewarePipelineBuilder>());
+                        var _notifPb = new global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder();
+            """);
         foreach (var mw in pbNotifMw)
         {
             string mwType = mw.IsOpenGeneric
@@ -1450,112 +1673,116 @@ internal static class MediatorCodeWriter
                 : $"typeof({mw.MiddlewareType})";
             sb.AppendLine($"            _notifPb.AddMiddleware({mwType}, {mw.Order});");
         }
-        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>(_notifPb);");
-        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.INotificationMiddlewarePipelineInspector>(");
-        sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>());");
-        sb.AppendLine("            services.TryAddSingleton<global::Blazing.Mediator.Pipeline.INotificationPipelineBuilder>(");
-        sb.AppendLine("                static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>());");
-        sb.AppendLine();
-        sb.AppendLine("            return services;");
-        sb.AppendLine("        }");
-        sb.AppendLine();
+        sb.AppendLine("""
+                        services.TryAddSingleton<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>(_notifPb);
+                        services.TryAddSingleton<global::Blazing.Mediator.INotificationMiddlewarePipelineInspector>(
+                            static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>());
+                        services.TryAddSingleton<global::Blazing.Mediator.Pipeline.INotificationPipelineBuilder>(
+                            static sp => sp.GetRequiredService<global::Blazing.Mediator.Pipeline.NotificationPipelineBuilder>());
+
+                        return services;
+                    }
+
+            """);
 
         // ── Config-aware overload ─────────────────────────────────────────────
-        sb.AppendLine("        /// <summary>");
-        sb.AppendLine("        /// Registers all compile-time-discovered handlers and conditionally registers built-in");
-        sb.AppendLine("        /// feature middleware (telemetry, logging, statistics) and the appropriate");
-        sb.AppendLine("        /// <see cref=\"global::Blazing.Mediator.INotificationPublisher\"/> based on");
-        sb.AppendLine("        /// <paramref name=\"config\"/> and the optional <paramref name=\"configure\"/> delegate.");
-        sb.AppendLine("        /// </summary>");
-        sb.AppendLine("        /// <param name=\"services\">The <see cref=\"global::Microsoft.Extensions.DependencyInjection.IServiceCollection\"/> to configure.</param>");
-        sb.AppendLine("        /// <param name=\"config\">Runtime mediator configuration that drives conditional middleware registration.</param>");
-        sb.AppendLine("        /// <param name=\"configure\">Optional delegate to customise <see cref=\"global::Blazing.Mediator.Configuration.MediatorOptions\"/>.</param>");
-        sb.AppendLine("        [global::System.CodeDom.Compiler.GeneratedCode(\"Blazing.Mediator.SourceGenerators\", \"2.0.0\")]");
-        sb.AppendLine("        [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        sb.AppendLine("        public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection AddMediator(");
-        sb.AppendLine("            this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services,");
-        sb.AppendLine("            global::Blazing.Mediator.Configuration.MediatorConfiguration config,");
-        sb.AppendLine("            global::System.Action<global::Blazing.Mediator.Configuration.MediatorOptions>? configure = null)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            // Register all compile-time-discovered handlers and the type catalog.");
-        sb.AppendLine("            MediatorServiceCollectionExtensions.AddMediator(services);");
-        sb.AppendLine();
-        sb.AppendLine("            // Apply MediatorOptions customisations.");
-        sb.AppendLine("            var mediatorOptions = new global::Blazing.Mediator.Configuration.MediatorOptions();");
-        sb.AppendLine("            configure?.Invoke(mediatorOptions);");
-        sb.AppendLine();
-        sb.AppendLine("            // ── Notification publisher ─────────────────────────────────────────────");
-        sb.AppendLine("            // When telemetry is enabled with per-handler child spans, use the telemetry");
-        sb.AppendLine("            // publisher variant so that each handler invocation gets its own Activity span.");
-        sb.AppendLine("            // Otherwise use the plain sequential or concurrent publisher.");
-        sb.AppendLine("            if (config.TelemetryOptions is not null && config.TelemetryOptions.CreateHandlerChildSpans)");
-        sb.AppendLine("            {");
-        sb.AppendLine("                if (mediatorOptions.NotificationPublisher == global::Blazing.Mediator.Configuration.NotificationPublisherType.Concurrent)");
-        sb.AppendLine("                    services.AddSingleton<global::Blazing.Mediator.INotificationPublisher,");
-        sb.AppendLine("                        global::Blazing.Mediator.Notifications.TelemetryConcurrentPublisher>();");
-        sb.AppendLine("                else");
-        sb.AppendLine("                    services.AddSingleton<global::Blazing.Mediator.INotificationPublisher,");
-        sb.AppendLine("                        global::Blazing.Mediator.Notifications.TelemetrySequentialPublisher>();");
-        sb.AppendLine("            }");
-        sb.AppendLine("            else if (mediatorOptions.NotificationPublisher == global::Blazing.Mediator.Configuration.NotificationPublisherType.Concurrent)");
-        sb.AppendLine("            {");
-        sb.AppendLine("                services.AddSingleton<global::Blazing.Mediator.INotificationPublisher,");
-        sb.AppendLine("                    global::Blazing.Mediator.Notifications.ConcurrentNotificationPublisher>();");
-        sb.AppendLine("            }");
-        sb.AppendLine("            else");
-        sb.AppendLine("            {");
-        sb.AppendLine("                services.AddSingleton<global::Blazing.Mediator.INotificationPublisher,");
-        sb.AppendLine("                    global::Blazing.Mediator.Notifications.SequentialNotificationPublisher>();");
-        sb.AppendLine("            }");
-        sb.AppendLine();
-        sb.AppendLine("            // ── Telemetry middleware ───────────────────────────────────────────────");
-        sb.AppendLine("            if (config.TelemetryOptions is not null)");
-        sb.AppendLine("            {");
-        sb.AppendLine("                // Register TelemetryOptions so TelemetryNotificationMiddleware and telemetry publishers");
-        sb.AppendLine("                // (TelemetrySequentialPublisher / TelemetryConcurrentPublisher) can resolve it via DI.");
-        sb.AppendLine("                services.AddSingleton(config.TelemetryOptions!);");
-        sb.AppendLine("                services.AddTransient(");
-        sb.AppendLine("                    typeof(global::Blazing.Mediator.Middleware.TelemetryMiddleware<,>));");
-        sb.AppendLine("                services.AddTransient(");
-        sb.AppendLine("                    typeof(global::Blazing.Mediator.Middleware.TelemetryMiddleware<>));");
-        sb.AppendLine("                services.AddSingleton<global::Blazing.Mediator.Middleware.TelemetryNotificationMiddleware>();");
-        sb.AppendLine("                services.AddTransient(");
-        sb.AppendLine("                    typeof(global::Blazing.Mediator.Middleware.StreamTelemetryMiddleware<,>));");
-        sb.AppendLine("            }");
-        sb.AppendLine();
-        sb.AppendLine("            // ── Logging middleware ─────────────────────────────────────────────────");
-        sb.AppendLine("            if (config.LoggingOptions is not null)");
-        sb.AppendLine("            {");
-        sb.AppendLine("                services.AddTransient(");
-        sb.AppendLine("                    typeof(global::Blazing.Mediator.Middleware.LoggingMiddleware<,>));");
-        sb.AppendLine("                services.AddTransient(");
-        sb.AppendLine("                    typeof(global::Blazing.Mediator.Middleware.LoggingMiddleware<>));");
-        sb.AppendLine("            }");
-        sb.AppendLine();
-        sb.AppendLine("            // ── Statistics middleware ──────────────────────────────────────────────");
-        sb.AppendLine("            if (config.StatisticsOptions is not null)");
-        sb.AppendLine("            {");
-        sb.AppendLine("                services.AddTransient(");
-        sb.AppendLine("                    typeof(global::Blazing.Mediator.Middleware.StatisticsMiddleware<,>));");
-        sb.AppendLine("                services.AddTransient(");
-        sb.AppendLine("                    typeof(global::Blazing.Mediator.Middleware.StatisticsMiddleware<>));");
-        sb.AppendLine("                // Register StatisticsOptions so StatisticsMiddleware can resolve it via DI.");
-        sb.AppendLine("                services.AddSingleton(config.StatisticsOptions!);");
-        sb.AppendLine("                // Register MediatorStatistics; fall back to ConsoleStatisticsRenderer");
-        sb.AppendLine("                // if the user has not registered their own IStatisticsRenderer.");
-        sb.AppendLine("                services.AddSingleton(sp =>");
-        sb.AppendLine("                    new global::Blazing.Mediator.Statistics.MediatorStatistics(");
-        sb.AppendLine("                        sp.GetService<global::Blazing.Mediator.Statistics.IStatisticsRenderer>()");
-        sb.AppendLine("                            ?? new global::Blazing.Mediator.Statistics.ConsoleStatisticsRenderer(),");
-        sb.AppendLine("                        config.StatisticsOptions));");
-        sb.AppendLine("                // Register SubscriberTracker so Mediator.Subscribe() can record subscriptions for analysis.");
-        sb.AppendLine("                // Gated on StatisticsOptions — zero cost (tracker never allocated) when stats are disabled.");
-        sb.AppendLine("                services.AddSingleton<global::Blazing.Mediator.ISubscriberTracker, global::Blazing.Mediator.Statistics.SubscriberTracker>();");
-        sb.AppendLine("            }");
-        sb.AppendLine();
-        sb.AppendLine("            return services;");
-        sb.AppendLine("        }");
-        sb.AppendLine("    }"); // MediatorServiceCollectionExtensions
+        sb.AppendLine("""
+                    /// <summary>
+                    /// Registers all compile-time-discovered handlers and conditionally registers built-in
+                    /// feature middleware (telemetry, logging, statistics) and the appropriate
+                    /// <see cref="global::Blazing.Mediator.INotificationPublisher"/> based on
+                    /// <paramref name="config"/> and the optional <paramref name="configure"/> delegate.
+                    /// </summary>
+                    /// <param name="services">The <see cref="global::Microsoft.Extensions.DependencyInjection.IServiceCollection"/> to configure.</param>
+                    /// <param name="config">Runtime mediator configuration that drives conditional middleware registration.</param>
+                    /// <param name="configure">Optional delegate to customise <see cref="global::Blazing.Mediator.Configuration.MediatorOptions"/>.</param>
+                    [global::System.CodeDom.Compiler.GeneratedCode("Blazing.Mediator.SourceGenerators", "2.0.0")]
+                    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+                    public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection AddMediator(
+                        this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services,
+                        global::Blazing.Mediator.Configuration.MediatorConfiguration config,
+                        global::System.Action<global::Blazing.Mediator.Configuration.MediatorOptions>? configure = null)
+                    {
+                        // Register all compile-time-discovered handlers and the type catalog.
+                        MediatorServiceCollectionExtensions.AddMediator(services);
+
+                        // Apply MediatorOptions customisations.
+                        var mediatorOptions = new global::Blazing.Mediator.Configuration.MediatorOptions();
+                        configure?.Invoke(mediatorOptions);
+
+                        // ── Notification publisher ─────────────────────────────────────────────
+                        // When telemetry is enabled with per-handler child spans, use the telemetry
+                        // publisher variant so that each handler invocation gets its own Activity span.
+                        // Otherwise use the plain sequential or concurrent publisher.
+                        if (config.TelemetryOptions is not null && config.TelemetryOptions.CreateHandlerChildSpans)
+                        {
+                            if (mediatorOptions.NotificationPublisher == global::Blazing.Mediator.Configuration.NotificationPublisherType.Concurrent)
+                                services.AddSingleton<global::Blazing.Mediator.INotificationPublisher,
+                                    global::Blazing.Mediator.Notifications.TelemetryConcurrentPublisher>();
+                            else
+                                services.AddSingleton<global::Blazing.Mediator.INotificationPublisher,
+                                    global::Blazing.Mediator.Notifications.TelemetrySequentialPublisher>();
+                        }
+                        else if (mediatorOptions.NotificationPublisher == global::Blazing.Mediator.Configuration.NotificationPublisherType.Concurrent)
+                        {
+                            services.AddSingleton<global::Blazing.Mediator.INotificationPublisher,
+                                global::Blazing.Mediator.Notifications.ConcurrentNotificationPublisher>();
+                        }
+                        else
+                        {
+                            services.AddSingleton<global::Blazing.Mediator.INotificationPublisher,
+                                global::Blazing.Mediator.Notifications.SequentialNotificationPublisher>();
+                        }
+
+                        // ── Telemetry middleware ───────────────────────────────────────────────
+                        if (config.TelemetryOptions is not null)
+                        {
+                            // Register TelemetryOptions so TelemetryNotificationMiddleware and telemetry publishers
+                            // (TelemetrySequentialPublisher / TelemetryConcurrentPublisher) can resolve it via DI.
+                            services.AddSingleton(config.TelemetryOptions!);
+                            services.AddTransient(
+                                typeof(global::Blazing.Mediator.Middleware.TelemetryMiddleware<,>));
+                            services.AddTransient(
+                                typeof(global::Blazing.Mediator.Middleware.TelemetryMiddleware<>));
+                            services.AddSingleton<global::Blazing.Mediator.Middleware.TelemetryNotificationMiddleware>();
+                            services.AddTransient(
+                                typeof(global::Blazing.Mediator.Middleware.StreamTelemetryMiddleware<,>));
+                        }
+
+                        // ── Logging middleware ─────────────────────────────────────────────────
+                        if (config.LoggingOptions is not null)
+                        {
+                            services.AddTransient(
+                                typeof(global::Blazing.Mediator.Middleware.LoggingMiddleware<,>));
+                            services.AddTransient(
+                                typeof(global::Blazing.Mediator.Middleware.LoggingMiddleware<>));
+                        }
+
+                        // ── Statistics middleware ──────────────────────────────────────────────
+                        if (config.StatisticsOptions is not null)
+                        {
+                            services.AddTransient(
+                                typeof(global::Blazing.Mediator.Middleware.StatisticsMiddleware<,>));
+                            services.AddTransient(
+                                typeof(global::Blazing.Mediator.Middleware.StatisticsMiddleware<>));
+                            // Register StatisticsOptions so StatisticsMiddleware can resolve it via DI.
+                            services.AddSingleton(config.StatisticsOptions!);
+                            // Register MediatorStatistics; fall back to ConsoleStatisticsRenderer
+                            // if the user has not registered their own IStatisticsRenderer.
+                            services.AddSingleton(sp =>
+                                new global::Blazing.Mediator.Statistics.MediatorStatistics(
+                                    sp.GetService<global::Blazing.Mediator.Statistics.IStatisticsRenderer>()
+                                        ?? new global::Blazing.Mediator.Statistics.ConsoleStatisticsRenderer(),
+                                    config.StatisticsOptions));
+                            // Register SubscriberTracker so Mediator.Subscribe() can record subscriptions for analysis.
+                            // Gated on StatisticsOptions — zero cost (tracker never allocated) when stats are disabled.
+                            services.AddSingleton<global::Blazing.Mediator.ISubscriberTracker, global::Blazing.Mediator.Statistics.SubscriberTracker>();
+                        }
+
+                        return services;
+                    }
+                } // MediatorServiceCollectionExtensions
+            """);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

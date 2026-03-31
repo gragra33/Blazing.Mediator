@@ -143,10 +143,12 @@ public class NotificationPipelineBuilderComprehensiveTests
     }
 
     /// <summary>
-    /// Tests order precedence: static property > static field > attribute > instance property > fallback.
+    /// Tests order precedence: [Order] attribute &gt; static property &gt; static field &gt; instance property &gt; fallback.
+    /// The [Order(n)] attribute takes the highest priority to ensure consistent behaviour between
+    /// the runtime pipeline builder and the source generator (which reads attributes from compiled metadata).
     /// </summary>
     [Fact]
-    public void GetMiddlewareOrder_OrderPrecedence_StaticPropertyWins()
+    public void GetMiddlewareOrder_OrderPrecedence_AttributeWinsOverStaticProperty()
     {
         // Arrange
         var builder = new NotificationPipelineBuilder();
@@ -157,7 +159,7 @@ public class NotificationPipelineBuilderComprehensiveTests
 
         // Assert
         middleware.Count.ShouldBe(1);
-        middleware[0].Order.ShouldBe(100); // Static property should win
+        middleware[0].Order.ShouldBe(25); // [Order(25)] attribute wins over static Order property (100)
     }
 
     #endregion

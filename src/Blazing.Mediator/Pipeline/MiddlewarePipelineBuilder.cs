@@ -264,12 +264,14 @@ public sealed class MiddlewarePipelineBuilder
                 // Use dynamic invocation to call HandleAsync with the correct types
                 object middleware = middlewareInstance;
 
-                return middleware switch
+                if (IsConditionalMiddleware(middleware, actualRequestType, typeof(TResponse), request))
                 {
-                    // Check if this is conditional middleware and should execute
-                    _ when IsConditionalMiddleware(middleware, actualRequestType, typeof(TResponse), request) => await currentPipeline().ConfigureAwait(false),
-                    _ => await InvokeMiddlewareHandleAsync(middleware, request, currentPipeline, cancellationToken).ConfigureAwait(false)
-                };
+                    Blazing.Mediator.Middleware.MiddlewareExecutionContext.Current?.RecordSkipped(middlewareType);
+                    return await currentPipeline().ConfigureAwait(false);
+                }
+
+                Blazing.Mediator.Middleware.MiddlewareExecutionContext.Current?.RecordExecuted(middlewareType);
+                return await InvokeMiddlewareHandleAsync(middleware, request, currentPipeline, cancellationToken).ConfigureAwait(false);
             };
         }
         TResponse result = await pipeline().ConfigureAwait(false);
@@ -389,9 +391,11 @@ public sealed class MiddlewarePipelineBuilder
                     // Check if this is conditional middleware and should execute
                     case IConditionalMiddleware<TRequest> conditionalMiddleware when !conditionalMiddleware.ShouldExecute(request):
                         // Skip this middleware
+                        Blazing.Mediator.Middleware.MiddlewareExecutionContext.Current?.RecordSkipped(middlewareType);
                         await currentPipeline().ConfigureAwait(false);
                         return;
                     default:
+                        Blazing.Mediator.Middleware.MiddlewareExecutionContext.Current?.RecordExecuted(middlewareType);
                         await middleware.HandleAsync(request, currentPipeline, cancellationToken).ConfigureAwait(false);
                         break;
                 }
@@ -526,6 +530,134 @@ public sealed class MiddlewarePipelineBuilder
         {
             yield return item;
         }
+    }
+
+    #endregion
+
+    #region Pipeline Inspection
+
+    /// <summary>
+    /// Returns the statically applicable middleware for the given request/response pair,
+    /// sorted by order. Does not execute the pipeline or hit the DI container.
+    /// </summary>
+    /// <typeparam name="TRequest">The request type.</typeparam>
+    /// <typeparam name="TResponse">The response type.</typeparam>
+    /// <returns>
+    /// An ordered list of <c>(Type, Order)</c> tuples for each middleware that would be
+    /// included in the pipeline for this request/response pair.
+    /// </returns>
+    public IReadOnlyList<(Type Type, int Order)> GetApplicableMiddleware<TRequest, TResponse>()
+        where TRequest : IRequest<TResponse>
+    {
+        List<(Type Type, int Order)> applicable = [];
+
+        foreach (MiddlewareInfo middlewareInfo in _middlewareInfos)
+        {
+            Type middlewareType = middlewareInfo.Type;
+            Type? actualMiddlewareType;
+
+            if (PipelineUtilities.IsGenericTypeCached(middlewareType) && PipelineUtilities.IsGenericTypeDefinitionCached(middlewareType))
+            {
+                var genericParams = PipelineUtilities.GetGenericArgumentsCached(middlewareType);
+                switch (genericParams)
+                {
+                    case { Length: 2 }:
+                        if (!PipelineUtilities.CanSatisfyGenericConstraints(middlewareType, typeof(TRequest), typeof(TResponse)))
+                            continue;
+                        if (!PipelineUtilities.TryMakeGenericType(middlewareType, [typeof(TRequest), typeof(TResponse)], out actualMiddlewareType))
+                            continue;
+                        break;
+                    default:
+                        continue;
+                }
+            }
+            else
+            {
+                actualMiddlewareType = middlewareType;
+            }
+
+            var interfaces = PipelineUtilities.GetInterfacesCached(actualMiddlewareType!);
+            bool isCompatible = interfaces.Any(i =>
+                i.IsGenericType &&
+                i.GetGenericTypeDefinition() == typeof(IRequestMiddleware<,>) &&
+                i.GetGenericArguments()[0] == typeof(TRequest) &&
+                i.GetGenericArguments()[1] == typeof(TResponse));
+
+            if (!isCompatible)
+                continue;
+
+            applicable.Add((actualMiddlewareType!, middlewareInfo.Order));
+        }
+
+        var registrationIndices = CreateRegistrationIndices();
+        applicable.Sort((a, b) =>
+        {
+            int orderCmp = a.Order.CompareTo(b.Order);
+            if (orderCmp != 0) return orderCmp;
+            return PipelineUtilities.GetRegistrationIndex(a.Type, registrationIndices)
+                .CompareTo(PipelineUtilities.GetRegistrationIndex(b.Type, registrationIndices));
+        });
+
+        return applicable;
+    }
+
+    /// <summary>
+    /// Returns the statically applicable middleware for the given void command type,
+    /// sorted by order. Does not execute the pipeline or hit the DI container.
+    /// </summary>
+    /// <typeparam name="TRequest">The void command type.</typeparam>
+    /// <returns>
+    /// An ordered list of <c>(Type, Order)</c> tuples for each middleware that would be
+    /// included in the pipeline for this command type.
+    /// </returns>
+    public IReadOnlyList<(Type Type, int Order)> GetApplicableMiddleware<TRequest>()
+        where TRequest : IRequest
+    {
+        List<(Type Type, int Order)> applicable = [];
+
+        Type genericMiddlewareType = typeof(IRequestMiddleware<>).MakeGenericType(typeof(TRequest));
+
+        foreach (MiddlewareInfo middlewareInfo in _middlewareInfos)
+        {
+            Type middlewareType = middlewareInfo.Type;
+            Type? actualMiddlewareType;
+
+            if (PipelineUtilities.IsGenericTypeCached(middlewareType) && PipelineUtilities.IsGenericTypeDefinitionCached(middlewareType))
+            {
+                var genericParams = PipelineUtilities.GetGenericArgumentsCached(middlewareType);
+                switch (genericParams)
+                {
+                    case { Length: 1 }:
+                        if (!PipelineUtilities.CanSatisfyGenericConstraints(middlewareType, typeof(TRequest)))
+                            continue;
+                        if (!PipelineUtilities.TryMakeGenericType(middlewareType, [typeof(TRequest)], out actualMiddlewareType))
+                            continue;
+                        break;
+                    default:
+                        continue;
+                }
+            }
+            else
+            {
+                actualMiddlewareType = middlewareType;
+            }
+
+            if (PipelineUtilities.GetInterfacesCached(actualMiddlewareType!).All(i => i != genericMiddlewareType))
+                continue;
+
+            applicable.Add((actualMiddlewareType!, middlewareInfo.Order));
+        }
+
+        var registrationIndices = CreateRegistrationIndices();
+        applicable.Sort((a, b) =>
+        {
+            int orderCmp = a.Order.CompareTo(b.Order);
+            if (orderCmp != 0) return orderCmp;
+            return PipelineUtilities.GetRegistrationIndex(a.Type, registrationIndices)
+                .CompareTo(PipelineUtilities.GetRegistrationIndex(b.Type, registrationIndices));
+        });
+
+        return applicable;
     }
 
     #endregion

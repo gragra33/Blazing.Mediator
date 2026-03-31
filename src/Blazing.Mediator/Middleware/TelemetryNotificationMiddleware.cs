@@ -14,6 +14,7 @@ namespace Blazing.Mediator.Middleware;
 /// <c>config.TelemetryOptions != null</c>. When not registered, zero overhead is incurred.
 /// </para>
 /// </summary>
+[Order(int.MinValue)]
 public sealed class TelemetryNotificationMiddleware : INotificationMiddleware
 {
     private static readonly Histogram<double> _durationHistogram =

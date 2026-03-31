@@ -7,30 +7,29 @@
 Trace Summary
 =============
 Operation: Mediator.Send:CreateUserCommand
-Trace ID: ab5447e34b6f55171e0f676f806ec43b
-Span ID: 43791b05003a30c9
-Parent ID: c6a3d368006a4a7e
-Status: Error
-Duration: 73ms
-Start Time: 2026-03-02 07:45:55.444
-Source: Mediator
+Trace ID: d882449f328da5e9e6e58d7945383557
+Span ID: 7fe5aca5ba9f909d
+Parent ID: 53b959a4e1c4fc30
+Status: Ok
+Duration: 561ms
+Start Time: 2026-03-30 01:06:52.249
+Source: Blazing.Mediator
 Mediator Trace: Yes
 
-Tags & Attributes:- middleware.pipeline: ErrorHandlingMiddleware<TRequest, TResponse>,ValidationMiddleware<TRequest, TResponse>,TracingMiddleware<TRequest, TResponse>,LoggingMiddleware<TRequest, TResponse>,PerformanceMiddleware<TRequest, TResponse>
+Tags & Attributes:
+- request_middleware.pipeline: ValidationMiddleware<CreateUserCommand, CreateUserResult>,ServerAdminOnlyGuardMiddleware<CreateUserCommand, CreateUserResult>,TenantReassignmentGuardMiddleware<CreateUserCommand, CreateUserResult>,IdentityTelemetryMiddleware<CreateUserCommand, CreateUserResult>,AuditMiddleware<CreateUserCommand, CreateUserResult>,DomainEventDispatchingMiddleware<CreateUserCommand, CreateUserResult>
+- request_middleware.count: 6
+- request_middleware.orders: -10000,-9950,-9900,-9800,9800,2147483647
+- request_middleware.capture_mode: applicable
 - request.type: CreateUserCommand
-- response.type: Int32
-- handler.type: CreateUserHandler
-- request.error: Simulated CreateUser error for testing telemetry
-- error.type: InvalidOperationException
-- error.message: Simulated CreateUser error for testing telemetry
-- exception.type: InvalidOperationException
-- exception.message: Simulated CreateUser error for testing telemetry
+- response.type: CreateUserResult
+- handler.type: CreateUserCommandHandler
 - request_name: CreateUserCommand
 - request_type: command
-- response_type: Int32
+- response_type: CreateUserResult
 - activity.kind: Internal
-- activity.status: Error
-- activity.duration_ms: 701.5924
+- activity.status: Ok
+- activity.duration_ms: 561.5292
 
 ```
 
@@ -95,41 +94,44 @@ The following tables provide a comprehensive overview of all telemetry configura
 
 The TelemetryOptions class provides fine-grained control over what telemetry data is collected and how it's processed. These properties allow you to balance observability needs with performance requirements, enabling you to capture detailed information in development while optimizing for production workloads. Each property can be configured independently to create a telemetry profile that matches your specific monitoring requirements.
 
-| Property                                   | Type     | Default | Description                                                 |
-| ------------------------------------------ | -------- | ------- | ----------------------------------------------------------- |
-| `Enabled`                                  | `bool`   | `true`  | Enable/disable telemetry collection                         |
-| `CaptureMiddlewareDetails`                 | `bool`   | `true`  | Capture detailed middleware execution information           |
-| `CaptureHandlerDetails`                    | `bool`   | `true`  | Capture detailed handler execution information              |
-| `CaptureExceptionDetails`                  | `bool`   | `true`  | Capture detailed exception information                      |
-| `CaptureNotificationHandlerDetails`        | `bool`   | `true`  | Capture detailed notification handler information           |
-| `CreateHandlerChildSpans`                  | `bool`   | `true`  | Create child spans for individual notification handlers     |
-| `CaptureSubscriberMetrics`                 | `bool`   | `true`  | Capture notification subscriber metrics                     |
-| `CaptureNotificationMiddlewareDetails`     | `bool`   | `true`  | Capture notification middleware execution details           |
-| `EnableHealthChecks`                       | `bool`   | `true`  | Enable health check endpoints for telemetry                 |
-| `MaxExceptionMessageLength`                | `int`    | `200`   | Maximum length of exception messages in telemetry           |
-| `MaxStackTraceLines`                       | `int`    | `3`     | Maximum number of stack trace lines to capture              |
-| `PacketLevelTelemetryEnabled`              | `bool`   | `false` | Enable detailed streaming packet telemetry                  |
-| `PacketTelemetryBatchSize`                 | `int`    | `10`    | Batch size for packet-level telemetry                       |
-| `EnableStreamingMetrics`                   | `bool`   | `true`  | Enable enhanced streaming metrics including jitter analysis |
-| `CapturePacketSize`                        | `bool`   | `false` | Capture packet size information when possible               |
-| `EnableStreamingPerformanceClassification` | `bool`   | `true`  | Enable detailed streaming performance classification        |
-| `ExcellentPerformanceThreshold`            | `double` | `0.1`   | Threshold for "excellent" performance (10% jitter)          |
-| `GoodPerformanceThreshold`                 | `double` | `0.3`   | Threshold for "good" performance (30% jitter)               |
-| `FairPerformanceThreshold`                 | `double` | `0.5`   | Threshold for "fair" performance (50% jitter)               |
+| Property                                   | Type                    | Default      | Description                                                                                                                                                                                                           |
+| ------------------------------------------ | ----------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Enabled`                                  | `bool`                  | `true`       | Enable/disable telemetry collection                                                                                                                                                                                   |
+| `MiddlewareCaptureMode`                    | `MiddlewareCaptureMode` | `Applicable` | Controls what middleware information is added to request spans. `None` = zero overhead; `Applicable` = static pipeline shape (4 tags); `Executed` = full runtime tracking of executed vs skipped middleware (5 tags). |
+| `CaptureMiddlewareDetails`                 | `bool`                  | —            | **[Obsolete]** Use `MiddlewareCaptureMode` instead. Setting `true` maps to `Applicable`; `false` maps to `None`.                                                                                                      |
+| `CaptureHandlerDetails`                    | `bool`                  | `true`       | Capture detailed handler execution information                                                                                                                                                                        |
+| `CaptureExceptionDetails`                  | `bool`                  | `true`       | Capture detailed exception information                                                                                                                                                                                |
+| `CaptureNotificationHandlerDetails`        | `bool`                  | `true`       | Capture detailed notification handler information                                                                                                                                                                     |
+| `CreateHandlerChildSpans`                  | `bool`                  | `true`       | Create child spans for individual notification handlers                                                                                                                                                               |
+| `CaptureSubscriberMetrics`                 | `bool`                  | `true`       | Capture notification subscriber metrics                                                                                                                                                                               |
+| `CaptureNotificationMiddlewareDetails`     | `bool`                  | `true`       | Capture notification middleware execution details                                                                                                                                                                     |
+| `EnableHealthChecks`                       | `bool`                  | `true`       | Enable health check endpoints for telemetry                                                                                                                                                                           |
+| `MaxExceptionMessageLength`                | `int`                   | `200`        | Maximum length of exception messages in telemetry                                                                                                                                                                     |
+| `MaxStackTraceLines`                       | `int`                   | `3`          | Maximum number of stack trace lines to capture                                                                                                                                                                        |
+| `PacketLevelTelemetryEnabled`              | `bool`                  | `false`      | Enable detailed streaming packet telemetry                                                                                                                                                                            |
+| `PacketTelemetryBatchSize`                 | `int`                   | `10`         | Batch size for packet-level telemetry                                                                                                                                                                                 |
+| `EnableStreamingMetrics`                   | `bool`                  | `true`       | Enable enhanced streaming metrics including jitter analysis                                                                                                                                                           |
+| `CapturePacketSize`                        | `bool`                  | `false`      | Capture packet size information when possible                                                                                                                                                                         |
+| `EnableStreamingPerformanceClassification` | `bool`                  | `true`       | Enable detailed streaming performance classification                                                                                                                                                                  |
+| `ExcellentPerformanceThreshold`            | `double`                | `0.1`        | Threshold for "excellent" performance (10% jitter)                                                                                                                                                                    |
+| `GoodPerformanceThreshold`                 | `double`                | `0.3`        | Threshold for "good" performance (30% jitter)                                                                                                                                                                         |
+| `FairPerformanceThreshold`                 | `double`                | `0.5`        | Threshold for "fair" performance (50% jitter)                                                                                                                                                                         |
 
 ### TelemetryOptions Default Configurations
 
 Blazing.Mediator provides several preset configurations that are optimized for different environments and use cases. These presets represent battle-tested combinations of settings that balance observability needs with performance considerations.
 
-| Configuration                           | Core Telemetry  | Exceptions             | Streaming            | Notifications          | Health   | Performance |
-| --------------------------------------- | --------------- | ---------------------- | -------------------- | ---------------------- | -------- | ----------- |
-| **Default (new TelemetryOptions())**    | Enabled         | All enabled            | Metrics only         | All enabled            | Enabled  | Basic       |
-| **TelemetryOptions.Development()**      | All enabled     | Verbose (500/10 lines) | Full packet tracking | All enabled            | Enabled  | All enabled |
-| **TelemetryOptions.Production()**       | Core only       | Limited (200/3 lines)  | Metrics only         | Handler spans disabled | Enabled  | Optimized   |
-| **TelemetryOptions.Disabled()**         | All disabled    | Disabled               | All disabled         | All disabled           | Disabled | Disabled    |
-| **TelemetryOptions.Minimal()**          | Exceptions only | Basic (100/2 lines)    | Disabled             | Disabled               | Enabled  | Disabled    |
-| **TelemetryOptions.NotificationOnly()** | Disabled        | Exceptions only        | Disabled             | All enabled            | Disabled | N/A         |
-| **TelemetryOptions.StreamingOnly()**    | Disabled        | Exceptions only        | All enabled          | Disabled               | Disabled | N/A         |
+| Configuration                           | Core Telemetry  | MiddlewareCaptureMode | Exceptions             | Streaming            | Notifications          | Health   | Performance |
+| --------------------------------------- | --------------- | --------------------- | ---------------------- | -------------------- | ---------------------- | -------- | ----------- |
+| **Default (new TelemetryOptions())**    | Enabled         | `Applicable`          | All enabled            | Metrics only         | All enabled            | Enabled  | Basic       |
+| **TelemetryOptions.Development()**      | All enabled     | `Applicable`          | Verbose (500/10 lines) | Full packet tracking | All enabled            | Enabled  | All enabled |
+| **TelemetryOptions.Production()**       | Core only       | `None`                | Limited (200/3 lines)  | Metrics only         | Handler spans disabled | Enabled  | Optimized   |
+| **TelemetryOptions.Disabled()**         | All disabled    | `None`                | Disabled               | All disabled         | All disabled           | Disabled | Disabled    |
+| **TelemetryOptions.Minimal()**          | Exceptions only | `None`                | Basic (100/2 lines)    | Disabled             | Disabled               | Enabled  | Disabled    |
+| **TelemetryOptions.NotificationOnly()** | Notifications   | `None`                | Disabled               | Disabled             | All enabled            | Enabled  | Disabled    |
+| **TelemetryOptions.StreamingOnly()**    | Streaming       | `None`                | Disabled               | Full packet tracking | None                   | Enabled  | Disabled    |
+| **TelemetryOptions.NotificationOnly()** | Disabled        | Exceptions only       | Disabled               | All enabled          | Disabled               | N/A      |
+| **TelemetryOptions.StreamingOnly()**    | Disabled        | Exceptions only       | All enabled            | Disabled             | Disabled               | N/A      |
 
 ### Activity Sources and Metrics
 
@@ -145,27 +147,35 @@ Blazing.Mediator uses a single activity source (`Blazing.Mediator`) for all oper
 
 These standardized tags provide consistent metadata across all telemetry data, enabling effective filtering, grouping, and analysis in your observability platform. The tags are automatically sanitized to remove sensitive information and are designed to provide both technical and business context for each operation. Understanding these tags is crucial for creating effective dashboards and alerts in your monitoring system.
 
-| Tag Name                           | Type     | Applied To            | Description                                                      |
-| ---------------------------------- | -------- | --------------------- | ---------------------------------------------------------------- |
-| `request_name`                     | `string` | All requests          | Sanitized request type name                                      |
-| `request_type`                     | `string` | All requests          | "query", "command", or "stream"                                  |
-| `response_type`                    | `string` | Request/Response      | The response type name                                           |
-| `handler.type`                     | `string` | All handlers          | The handler type name (sanitized)                                |
-| `notification.type`                | `string` | Notifications         | The notification type name (sanitized)                           |
-| `notification.handler_count`       | `int`    | Notifications         | Number of handlers for the notification                          |
-| `notification.subscriber_count`    | `int`    | Notifications         | Number of subscribers for the notification                       |
-| `notification.execution_pattern`   | `string` | Notifications         | Detected execution pattern                                       |
-| `subscriber_type`                  | `string` | Notification Handlers | The subscriber/handler type name (sanitized)                     |
-| `processor_type`                   | `string` | Notification Handlers | Type of processor: "subscriber", "handler", "generic_subscriber" |
-| `middleware.pipeline`              | `string` | Requests              | Complete middleware pipeline                                     |
-| `middleware.executed`              | `string` | Requests              | List of executed middleware                                      |
-| `notification_middleware.pipeline` | `string` | Notifications         | Complete notification middleware pipeline                        |
-| `notification_middleware.executed` | `string` | Notifications         | List of executed notification middleware                         |
-| `exception.type`                   | `string` | Errors                | Exception type (sanitized)                                       |
-| `exception.message`                | `string` | Errors                | Exception message (sanitized)                                    |
-| `validation.passed`                | `bool`   | Validation            | Validation result                                                |
-| `performance.duration_ms`          | `long`   | All operations        | Operation duration in milliseconds                               |
-| `performance.classification`       | `string` | All operations        | "fast", "normal", or "slow"                                      |
+| Tag Name                               | Type     | Applied To            | Description                                                            |
+| -------------------------------------- | -------- | --------------------- | ---------------------------------------------------------------------- |
+| `request_name`                         | `string` | All requests          | Sanitized request type name                                            |
+| `request_type`                         | `string` | All requests          | "query", "command", or "stream"                                        |
+| `response_type`                        | `string` | Request/Response      | The response type name                                                 |
+| `handler.type`                         | `string` | All handlers          | The handler type name (sanitized)                                      |
+| `notification.type`                    | `string` | Notifications         | The notification type name (sanitized)                                 |
+| `notification.handler_count`           | `int`    | Notifications         | Number of handlers for the notification                                |
+| `notification.subscriber_count`        | `int`    | Notifications         | Number of subscribers for the notification                             |
+| `notification.execution_pattern`       | `string` | Notifications         | Detected execution pattern                                             |
+| `subscriber_type`                      | `string` | Notification Handlers | The subscriber/handler type name (sanitized)                           |
+| `processor_type`                       | `string` | Notification Handlers | Type of processor: "subscriber", "handler", "generic_subscriber"       |
+| `middleware.pipeline`                  | `string` | Requests              | Complete middleware pipeline                                           |
+| `middleware.executed`                  | `string` | Requests              | List of executed middleware                                            |
+| `request_middleware.pipeline`          | `string` | Requests              | Applicable middleware names (emitted in `Applicable` mode)             |
+| `request_middleware.count`             | `int`    | Requests              | Number of applicable middleware entries (emitted in `Applicable` mode) |
+| `request_middleware.orders`            | `string` | Requests              | Ordered list of middleware order values (emitted in `Applicable` mode) |
+| `request_middleware.executed_pipeline` | `string` | Requests              | Names of middleware that actually ran (emitted in `Executed` mode)     |
+| `request_middleware.executed_count`    | `int`    | Requests              | Count of middleware that ran (emitted in `Executed` mode)              |
+| `request_middleware.skipped_pipeline`  | `string` | Requests              | Names of conditionally-skipped middleware (emitted in `Executed` mode) |
+| `request_middleware.skipped_count`     | `int`    | Requests              | Count of skipped middleware (emitted in `Executed` mode)               |
+| `request_middleware.capture_mode`      | `string` | Requests              | The active capture mode: `"applicable"` or `"executed"`                |
+| `notification_middleware.pipeline`     | `string` | Notifications         | Complete notification middleware pipeline                              |
+| `notification_middleware.executed`     | `string` | Notifications         | List of executed notification middleware                               |
+| `exception.type`                       | `string` | Errors                | Exception type (sanitized)                                             |
+| `exception.message`                    | `string` | Errors                | Exception message (sanitized)                                          |
+| `validation.passed`                    | `bool`   | Validation            | Validation result                                                      |
+| `performance.duration_ms`              | `long`   | All operations        | Operation duration in milliseconds                                     |
+| `performance.classification`           | `string` | All operations        | "fast", "normal", or "slow"                                            |
 
 ### Streaming-Specific Tags
 
@@ -317,6 +327,29 @@ builder.Services.AddOpenTelemetry()
 var app = builder.Build();
 ```
 
+### MiddlewareCaptureMode Enum
+
+The `MiddlewareCaptureMode` enum controls what middleware information is added to the main request activity span by `TelemetryMiddleware`. Choose the mode that best balances observability with performance for your environment.
+
+| Value        | Int | Overhead   | Tags emitted on the request span                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------ | --- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `None`       | 0   | Zero       | None. No `request_middleware.*` tags are added.                                                                                                                                                                                                                                                                                                                                                                  |
+| `Applicable` | 1   | Negligible | `request_middleware.pipeline`, `request_middleware.count`, `request_middleware.orders`, `request_middleware.capture_mode = "applicable"`. Reads from the static pipeline builder — does not track conditional skips.                                                                                                                                                                                             |
+| `Executed`   | 2   | Higher     | `request_middleware.executed_pipeline`, `request_middleware.executed_count`, `request_middleware.skipped_pipeline`, `request_middleware.skipped_count`, `request_middleware.capture_mode = "executed"`. Full runtime tracking that distinguishes middleware that ran from those skipped by `IConditionalMiddleware`. **Not recommended as a production default** — use for diagnostic/development purposes only. |
+
+**Migration from `CaptureMiddlewareDetails`:**
+
+```csharp
+// Before (Obsolete):
+options.CaptureMiddlewareDetails = true;   // → Applicable
+options.CaptureMiddlewareDetails = false;  // → None
+
+// After:
+options.MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable;
+options.MiddlewareCaptureMode = MiddlewareCaptureMode.None;
+options.MiddlewareCaptureMode = MiddlewareCaptureMode.Executed; // diagnostic only
+```
+
 ### Advanced Telemetry Configuration
 
 Configure telemetry options for detailed control:
@@ -326,7 +359,7 @@ builder.Services.AddMediator(config =>
 {
     config.WithTelemetry(telemetryOptions =>
     {
-        telemetryOptions.CaptureMiddlewareDetails = true;
+        telemetryOptions.MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable;
         telemetryOptions.CaptureHandlerDetails = true;
         telemetryOptions.CaptureExceptionDetails = true;
         telemetryOptions.MaxExceptionMessageLength = 300;
@@ -361,7 +394,7 @@ builder.Services.AddMediator(config =>
     // Telemetry with configuration action
     config.WithTelemetry(options =>
     {
-        options.CaptureMiddlewareDetails = false;
+        options.MiddlewareCaptureMode = MiddlewareCaptureMode.None;
         options.MaxExceptionMessageLength = 500;
     });
 
@@ -709,12 +742,11 @@ public void Configure(IServiceProvider serviceProvider)
 Notification middleware is automatically instrumented:
 
 ```csharp
+[Order(0)]
 public class NotificationLoggingMiddleware<TNotification> : INotificationMiddleware<TNotification>
     where TNotification : INotification
 {
     private readonly ILogger<NotificationLoggingMiddleware<TNotification>> _logger;
-
-    public int Order => 0; // Execute first
 
     public NotificationLoggingMiddleware(ILogger<NotificationLoggingMiddleware<TNotification>> logger)
     {
@@ -758,7 +790,7 @@ builder.Services.AddMediator(config =>
     config.WithTelemetry(options =>
     {
         // Core telemetry options
-        options.CaptureMiddlewareDetails = true;
+        options.MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable;
         options.CaptureHandlerDetails = true;
         options.CaptureExceptionDetails = true;
         options.MaxExceptionMessageLength = 200;
@@ -876,11 +908,10 @@ Effective monitoring with Blazing.Mediator's telemetry involves implementing pat
 Use telemetry to monitor performance patterns:
 
 ```csharp
+[Order(0)]
 public class PerformanceMonitoringMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public int Order => 0;
-
     public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         using var activity = Activity.Current;
@@ -918,11 +949,10 @@ public class PerformanceMonitoringMiddleware<TRequest, TResponse> : IRequestMidd
 Monitor notification processing performance:
 
 ```csharp
+[Order(-100)] // Execute early
 public class NotificationPerformanceMiddleware<TNotification> : INotificationMiddleware<TNotification>
     where TNotification : INotification
 {
-    public int Order => -100; // Execute early
-
     public async ValueTask InvokeAsync(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
     {
         using var activity = Activity.Current;
@@ -973,11 +1003,10 @@ public class NotificationPerformanceMiddleware<TNotification> : INotificationMid
 Track business-relevant metrics:
 
 ```csharp
+[Order(0)]
 public class BusinessMetricsMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public int Order => 0;
-
     public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         using var activity = Activity.Current;

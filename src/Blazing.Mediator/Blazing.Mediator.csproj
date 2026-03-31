@@ -9,7 +9,7 @@
 
     <PackageId>Blazing.Mediator</PackageId>
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
-    <PackageReleaseNotes>Version 3.0.0: Source-Gen rewrite; 100% AOT compatible; Net 9 &amp; 10 support; backwards compatible with minor breaking changes.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 3.0.1: Added MiddlewareCaptureMode enum (None/Applicable/Executed) replacing the CaptureMiddlewareDetails bool; request spans now emit request_middleware.* tags; MiddlewareExecutionContext tracks executed vs conditionally-skipped middleware at runtime; MediatorCodeWriter static blocks refactored to raw string literals for readability.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>mediator;cqrs;command;query;middleware;pipeline;dependency-injection;streaming;async-enumerable;real-time;json-streaming;sse;server-sent-events;notifications;observer-pattern;event-driven;publish-subscribe;pattern;architecture;clean-code;conditional;type-constrained;samples;minimal-api;controllers;ai-streaming;high-performance;subscription-management;opentelemetry;observability;distributed-tracing;metrics;logging;statistics;fluent-configuration;environment-aware;cloud-native;production-ready</PackageTags>
 

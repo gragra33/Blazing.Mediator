@@ -1,5 +1,15 @@
 ﻿# Version History
 
+### V3.0.1 - 31 March 2026
+
+- **Fix** Generated handler wrappers now support optional TelemetryMiddleware alongside StatisticsMiddleware. Middleware fields are soft-resolved and applied in the correct order if present, with fast-path execution preserved when neither middleware is registered. This applies to both response and void request handlers.
+- **`MiddlewareCaptureMode` Enum**: Replaced the `CaptureMiddlewareDetails` boolean in `TelemetryOptions` with a three-value enum — `None` (zero overhead), `Applicable` (static pipeline shape), and `Executed` (full runtime tracking of executed vs conditionally-skipped middleware). `CaptureMiddlewareDetails` is retained as an `[Obsolete]` bridge mapping `true → Applicable` and `false → None`
+- **Request-Span Middleware Telemetry**: `TelemetryMiddleware` now emits `request_middleware.*` tags on the main request activity span — four tags in `Applicable` mode (`pipeline`, `count`, `orders`, `capture_mode`) and five in `Executed` mode (`executed_pipeline`, `executed_count`, `skipped_pipeline`, `skipped_count`, `capture_mode`). Mirrors the existing `notification_middleware.*` convention
+- **Preset Updates**: All six `TelemetryOptions` static presets (`Development`, `Production`, `Minimal`, `NotificationOnly`, `StreamingOnly`, `Disabled`) updated to use `MiddlewareCaptureMode`; `Development` defaults to `Applicable`, all others to `None`
+- **`[Order(n)]` Attribute is the Only Supported Ordering Mechanism**: The `int Order { get; }` default interface property on middleware interfaces now functions only for same-assembly middleware. The source generator reads the `[Order(n)]` class attribute from compiled metadata, so `[Order(n)]` is required for correct ordering of middleware defined in external assemblies or NuGet packages. Always decorate middleware classes with `[Order(n)]` instead of overriding the interface property.
+- **Reserved Internal Middleware Order Values**: `int.MinValue` is reserved for `TelemetryMiddleware`/`TelemetryNotificationMiddleware`; `int.MinValue + 1` for `LoggingMiddleware`; `int.MinValue + 2` for `StatisticsMiddleware`. User-defined middleware must not use these values.
+- **Updated Documentation**: All documentation updated to reflect the new telemetry configuration options, middleware ordering requirements, and generated handler capabilities. The **[Telemetry Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_TELEMETRY_GUIDE.md)** provides detailed instructions.
+
 ### V3.0.0 - 4 March 2026
 
 - **Source-Generated Dispatch**: All runtime reflection replaced with compile-time source generation via `Blazing.Mediator.SourceGenerators` — zero-allocation dispatch on request, notification, and streaming hot paths
@@ -21,142 +31,142 @@
 
 ### V2.0.0 - 17November, 2025
 
--   **.NET 10 Support**: Now supports .NET 10 with multi-targeting for both .NET 9 and .NET 10, providing developers with the latest framework features and performance improvements while maintaining backward compatibility
--   **OpenTelemetry Middleware Pipeline Enhancement**: Updated OpenTelemetry middleware information traces to show full generic signature for requests, streaming, and notifications
--   **Bug Fix - Duplicate OpenTelemetry Middleware Traces**: Fixed issue where generic middleware types (e.g., `ErrorHandlingMiddleware<TRequest, TResponse>`) appeared multiple times in telemetry traces due to open generic type definitions being instantiated as multiple closed generic types during execution
--   **Documentation Updates**: Updated all documentation guides to reflect .NET 10 support alongside .NET 9, including Configuration Guide, Logging Guide, Notification Guide, OpenTelemetry Guide, Pattern Guide, Statistics Guide, and Streaming Guide
+- **.NET 10 Support**: Now supports .NET 10 with multi-targeting for both .NET 9 and .NET 10, providing developers with the latest framework features and performance improvements while maintaining backward compatibility
+- **OpenTelemetry Middleware Pipeline Enhancement**: Updated OpenTelemetry middleware information traces to show full generic signature for requests, streaming, and notifications
+- **Bug Fix - Duplicate OpenTelemetry Middleware Traces**: Fixed issue where generic middleware types (e.g., `ErrorHandlingMiddleware<TRequest, TResponse>`) appeared multiple times in telemetry traces due to open generic type definitions being instantiated as multiple closed generic types during execution
+- **Documentation Updates**: Updated all documentation guides to reflect .NET 10 support alongside .NET 9, including Configuration Guide, Logging Guide, Notification Guide, OpenTelemetry Guide, Pattern Guide, Statistics Guide, and Streaming Guide
 
 ### V1.8.1 - 2 October, 2025
 
--   **MiddlewareAnalysisExtensions**: New extension methods providing comprehensive type normalization for middleware analysis with clean formatting across assemblies
--   **QueryCommandAnalysisExtensions**: New extension methods for normalizing query and command analysis output with proper generic type formatting
--   **Bug Fix - RegistrationService**: Fixed edge case bug in RegistrationService with generic type definitions that could cause registration failures
--   **AnalyzerExample Sample**: New comprehensive multi-assembly sample demonstrating analyzer capabilities across 92 mediator components in 5 projects with intentionally missing handlers to showcase debugging benefits
--   **Enhanced Type Normalization**: Improved cross-assembly type formatting with backtick removal, clean generic syntax, and proper namespace identification
--   **Comprehensive Test Coverage**: Added extensive test coverage for new extension methods and normalization functionality
--   **Developer Experience**: Enhanced debugging capabilities with visual missing handler identification and comprehensive pipeline analysis tools
+- **MiddlewareAnalysisExtensions**: New extension methods providing comprehensive type normalization for middleware analysis with clean formatting across assemblies
+- **QueryCommandAnalysisExtensions**: New extension methods for normalizing query and command analysis output with proper generic type formatting
+- **Bug Fix - RegistrationService**: Fixed edge case bug in RegistrationService with generic type definitions that could cause registration failures
+- **AnalyzerExample Sample**: New comprehensive multi-assembly sample demonstrating analyzer capabilities across 92 mediator components in 5 projects with intentionally missing handlers to showcase debugging benefits
+- **Enhanced Type Normalization**: Improved cross-assembly type formatting with backtick removal, clean generic syntax, and proper namespace identification
+- **Comprehensive Test Coverage**: Added extensive test coverage for new extension methods and normalization functionality
+- **Developer Experience**: Enhanced debugging capabilities with visual missing handler identification and comprehensive pipeline analysis tools
 
 ### V1.8.0 - 30 September, 2025
 
--   **OpenTelemetry Integration**: Full observability support with distributed tracing, metrics collection, and performance monitoring for enhanced debugging and monitoring capabilities with seamless integration for modern cloud-native applications
--   **Extensive Debug Logging**: Comprehensive debug logging infrastructure with configurable log levels, performance tracking, and detailed execution flow analysis for enhanced troubleshooting and monitoring
--   **Enhanced Statistics**: Advanced statistics tracking with detailed performance metrics, execution counters, pipeline analysis, and comprehensive runtime insights for production monitoring and optimization
--   **Fluent Configuration API**: New modern fluent configuration approach using `builder.Services.AddMediator(config => { ... })` for improved type safety, enhanced functionality, and streamlined developer experience with IntelliSense support
--   **Environment-Aware Configuration**: Advanced configuration management with automatic environment detection, preset application, and JSON configuration support for production-ready deployment patterns
--   **Configuration Diagnostics**: Real-time configuration diagnostics, validation reporting, and environment-specific validation for production safety and troubleshooting capabilities
--   **Legacy Method Deprecation**: Marked older `AddMediator()` and `AddMediatorFromLoadedAssemblies()` methods with boolean parameters as obsolete while maintaining backward compatibility during transition period with comprehensive migration guidance
--   **Enhanced Notification System**: Added comprehensive automatic notification handler system alongside existing manual subscriber pattern for maximum architectural flexibility
--   **Type-Constrained Middleware**: Advanced middleware system supporting generic type constraints for selective execution based on interface types (e.g., `ICommand`, `IQuery<T>`, `IOrderNotification`)
--   **New Sample Projects**: Added six comprehensive sample projects (OpenTelemetryExample, NotificationHandlerExample, NotificationHybridExample, TypedNotificationHandlerExample, TypedNotificationHybridExample, TypedNotificationSubscriberExample) demonstrating new fluent configuration, Telemetry, Statistics, Logging, automatic handlers, hybrid patterns, and type-constrained middleware
--   **ConfigurationExample Sample**: Demonstrates configuration features with environment-aware settings, JSON configuration, preset integration, and advanced diagnostics capabilities
--   **OpenTelemetryExample Sample**: New comprehensive sample project demonstrating OpenTelemetry integration with web API server, Blazor client, and .NET Aspire support for modern cloud-native applications with real-time telemetry visualization
--   **New Documentation Guides**: Added comprehensive [OpenTelemetry Integration Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md), [Mediator Statistics Configuration Guide
-](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STATISTICS_GUIDE.md) and [Mediator Logging Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_LOGGING_GUIDE.md) with detailed implementation examples, best practices, and troubleshooting scenarios
--   **Enhanced Documentation**: Updated all documentation with new fluent configuration examples, OpenTelemetry integration patterns, logging configuration, notification system patterns, and comprehensive migration guidance from legacy registration methods
--   **Improved Developer Experience**: Streamlined configuration process with better IntelliSense support, compile-time validation through fluent API design, enhanced debugging capabilities, and comprehensive observability features
+- **OpenTelemetry Integration**: Full observability support with distributed tracing, metrics collection, and performance monitoring for enhanced debugging and monitoring capabilities with seamless integration for modern cloud-native applications
+- **Extensive Debug Logging**: Comprehensive debug logging infrastructure with configurable log levels, performance tracking, and detailed execution flow analysis for enhanced troubleshooting and monitoring
+- **Enhanced Statistics**: Advanced statistics tracking with detailed performance metrics, execution counters, pipeline analysis, and comprehensive runtime insights for production monitoring and optimization
+- **Fluent Configuration API**: New modern fluent configuration approach using `builder.Services.AddMediator(config => { ... })` for improved type safety, enhanced functionality, and streamlined developer experience with IntelliSense support
+- **Environment-Aware Configuration**: Advanced configuration management with automatic environment detection, preset application, and JSON configuration support for production-ready deployment patterns
+- **Configuration Diagnostics**: Real-time configuration diagnostics, validation reporting, and environment-specific validation for production safety and troubleshooting capabilities
+- **Legacy Method Deprecation**: Marked older `AddMediator()` and `AddMediatorFromLoadedAssemblies()` methods with boolean parameters as obsolete while maintaining backward compatibility during transition period with comprehensive migration guidance
+- **Enhanced Notification System**: Added comprehensive automatic notification handler system alongside existing manual subscriber pattern for maximum architectural flexibility
+- **Type-Constrained Middleware**: Advanced middleware system supporting generic type constraints for selective execution based on interface types (e.g., `ICommand`, `IQuery<T>`, `IOrderNotification`)
+- **New Sample Projects**: Added six comprehensive sample projects (OpenTelemetryExample, NotificationHandlerExample, NotificationHybridExample, TypedNotificationHandlerExample, TypedNotificationHybridExample, TypedNotificationSubscriberExample) demonstrating new fluent configuration, Telemetry, Statistics, Logging, automatic handlers, hybrid patterns, and type-constrained middleware
+- **ConfigurationExample Sample**: Demonstrates configuration features with environment-aware settings, JSON configuration, preset integration, and advanced diagnostics capabilities
+- **OpenTelemetryExample Sample**: New comprehensive sample project demonstrating OpenTelemetry integration with web API server, Blazor client, and .NET Aspire support for modern cloud-native applications with real-time telemetry visualization
+- **New Documentation Guides**: Added comprehensive [OpenTelemetry Integration Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md), [Mediator Statistics Configuration Guide
+  ](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STATISTICS_GUIDE.md) and [Mediator Logging Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_LOGGING_GUIDE.md) with detailed implementation examples, best practices, and troubleshooting scenarios
+- **Enhanced Documentation**: Updated all documentation with new fluent configuration examples, OpenTelemetry integration patterns, logging configuration, notification system patterns, and comprehensive migration guidance from legacy registration methods
+- **Improved Developer Experience**: Streamlined configuration process with better IntelliSense support, compile-time validation through fluent API design, enhanced debugging capabilities, and comprehensive observability features
 
 ### V1.7.0 - 16 September, 2025
 
--   **Type-Constrained Middleware Support**: Enhanced middleware pipeline with support for type-constrained middleware implementations for selective middleware execution based on interface types
--   **Request Middleware Type Constraints**: Added support for constraining request middleware to specific interface types (e.g., `ICommand`, `IQuery`) for precise middleware targeting
--   **Notification Middleware Type Constraints**: Extended type constraint support to notification middleware for selective notification processing based on interface implementations
--   **Enhanced CQRS Interface Support**: Improved middleware pipeline to respect typed constraints for compile-time middleware applicability
--   **TypedMiddlewareExample Sample**: New comprehensive sample project demonstrating type-constrained middleware with clear ICommand/IQuery distinction and selective validation
--   **Enhanced Type Safety**: Compile-time enforcement of middleware applicability through generic type constraints reducing runtime errors and improving performance
--   **Enhanced Sample Projects**: Updated ECommerce.Api and UserManagement.Api with comprehensive mediator statistics endpoints for runtime monitoring and analysis
+- **Type-Constrained Middleware Support**: Enhanced middleware pipeline with support for type-constrained middleware implementations for selective middleware execution based on interface types
+- **Request Middleware Type Constraints**: Added support for constraining request middleware to specific interface types (e.g., `ICommand`, `IQuery`) for precise middleware targeting
+- **Notification Middleware Type Constraints**: Extended type constraint support to notification middleware for selective notification processing based on interface implementations
+- **Enhanced CQRS Interface Support**: Improved middleware pipeline to respect typed constraints for compile-time middleware applicability
+- **TypedMiddlewareExample Sample**: New comprehensive sample project demonstrating type-constrained middleware with clear ICommand/IQuery distinction and selective validation
+- **Enhanced Type Safety**: Compile-time enforcement of middleware applicability through generic type constraints reducing runtime errors and improving performance
+- **Enhanced Sample Projects**: Updated ECommerce.Api and UserManagement.Api with comprehensive mediator statistics endpoints for runtime monitoring and analysis
 
 ### V1.6.2 - 16 September, 2025
 
--   **Enhanced Handler Analysis**: Updated `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` with comprehensive handler detection and status reporting
--   **Handler Status Tracking**: New `HandlerStatus` enum with ASCII markers (`+` = found, `!` = missing, `#` = multiple) for easy visual identification
--   **Primary Interface Detection**: Enhanced `QueryCommandAnalysis` with `PrimaryInterface` property showing the main interface implemented (IQuery, ICommand, IRequest)
--   **IResult Detection**: New `IsResultType` property identifies ASP.NET Core IResult implementations for better API analysis
--   **Improved Statistics Display**: Enhanced console output in sample projects with multi-line, detailed analysis format for better readability
--   **Comprehensive Test Coverage**: Updated tests to cover all new `QueryCommandAnalysis` properties with full validation and edge case testing
--   **Documentation Enhancement**: Updated `MEDIATOR_PATTERN_GUIDE.md` with detailed `QueryCommandAnalysis` property table and enhanced example outputs
+- **Enhanced Handler Analysis**: Updated `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` with comprehensive handler detection and status reporting
+- **Handler Status Tracking**: New `HandlerStatus` enum with ASCII markers (`+` = found, `!` = missing, `#` = multiple) for easy visual identification
+- **Primary Interface Detection**: Enhanced `QueryCommandAnalysis` with `PrimaryInterface` property showing the main interface implemented (IQuery, ICommand, IRequest)
+- **IResult Detection**: New `IsResultType` property identifies ASP.NET Core IResult implementations for better API analysis
+- **Improved Statistics Display**: Enhanced console output in sample projects with multi-line, detailed analysis format for better readability
+- **Comprehensive Test Coverage**: Updated tests to cover all new `QueryCommandAnalysis` properties with full validation and edge case testing
+- **Documentation Enhancement**: Updated `MEDIATOR_PATTERN_GUIDE.md` with detailed `QueryCommandAnalysis` property table and enhanced example outputs
 
 ### V1.6.1 - 15 September, 2025
 
--   **MediatorStatistics Analysis**: New `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` methods for comprehensive CQRS type discovery and analysis
--   **Runtime Statistics**: Enhanced `ReportStatistics()` functionality with automatic execution tracking via `IncrementQuery`, `IncrementCommand`, and `IncrementNotification`
--   **Statistics Monitoring**: Built-in performance monitoring and usage analytics with a flexible `IStatisticsRenderer` system for custom output formats
--   **Application Insights**: Complete application discovery capabilities perfect for health checks, monitoring dashboards, and development tooling
+- **MediatorStatistics Analysis**: New `MediatorStatistics.AnalyzeQueries()` and `AnalyzeCommands()` methods for comprehensive CQRS type discovery and analysis
+- **Runtime Statistics**: Enhanced `ReportStatistics()` functionality with automatic execution tracking via `IncrementQuery`, `IncrementCommand`, and `IncrementNotification`
+- **Statistics Monitoring**: Built-in performance monitoring and usage analytics with a flexible `IStatisticsRenderer` system for custom output formats
+- **Application Insights**: Complete application discovery capabilities perfect for health checks, monitoring dashboards, and development tooling
 
 ### V1.6.0 - 12 September, 2025
 
--   **Enhanced Auto-Discovery**: `AddMediator` now separates request and notification middleware auto-discovery with new `discoverMiddleware` and `discoverNotificationMiddleware` parameters for granular control
--   **New Middleware Analysis**: Added `AnalyzeMiddleware` method to both `IMiddlewarePipelineInspector` and `INotificationMiddlewarePipelineInspector` for advanced pipeline debugging and monitoring
--   **Pipeline Enhancement**: Updated `NotificationPipelineBuilder` with improved middleware management and analysis capabilities
--   **Enhanced Testing**: Comprehensive new test coverage for `AnalyzeMiddleware` functionality and middleware discovery patterns
--   **Simple Notification Example**: New `SimpleNotificationExample` sample project demonstrating recommended scoped notification patterns with clear documentation and best practices
--   **CQRS Naming Support**: Added `IQuery`, `IQueryHandler`, `ICommand`, and `ICommandHandler` interfaces as semantic wrappers around `IRequest` and `IRequestHandler` for clearer CQRS pattern implementation
+- **Enhanced Auto-Discovery**: `AddMediator` now separates request and notification middleware auto-discovery with new `discoverMiddleware` and `discoverNotificationMiddleware` parameters for granular control
+- **New Middleware Analysis**: Added `AnalyzeMiddleware` method to both `IMiddlewarePipelineInspector` and `INotificationMiddlewarePipelineInspector` for advanced pipeline debugging and monitoring
+- **Pipeline Enhancement**: Updated `NotificationPipelineBuilder` with improved middleware management and analysis capabilities
+- **Enhanced Testing**: Comprehensive new test coverage for `AnalyzeMiddleware` functionality and middleware discovery patterns
+- **Simple Notification Example**: New `SimpleNotificationExample` sample project demonstrating recommended scoped notification patterns with clear documentation and best practices
+- **CQRS Naming Support**: Added `IQuery`, `IQueryHandler`, `ICommand`, and `ICommandHandler` interfaces as semantic wrappers around `IRequest` and `IRequestHandler` for clearer CQRS pattern implementation
 
 ### V1.5.0 - 31 July, 2025
 
--   **Expanded Middleware Order Range**: Expanded ordered middleware range from -999/999 to int.MinValue/int.MaxValue for greater flexibility
--   **Enhanced Pipeline Inspection**: Enhanced `IMiddlewarePipelineInspector` with sample usage in `MiddlewareExample` sample project
--   **New MiddlewareExample Project**: New `MiddlewareExample` project to demonstrate the simple yet powerful pipeline capabilities - includes `ErrorHandlingMiddleware` & `ValidationMiddleware` implementations. Documentation included.
+- **Expanded Middleware Order Range**: Expanded ordered middleware range from -999/999 to int.MinValue/int.MaxValue for greater flexibility
+- **Enhanced Pipeline Inspection**: Enhanced `IMiddlewarePipelineInspector` with sample usage in `MiddlewareExample` sample project
+- **New MiddlewareExample Project**: New `MiddlewareExample` project to demonstrate the simple yet powerful pipeline capabilities - includes `ErrorHandlingMiddleware` & `ValidationMiddleware` implementations. Documentation included.
 
 ### V1.4.2 - 26 July, 2025
 
--   **Middleware Order Fix**: Fixed middleware order to follow registration order rather than `Order` property for more predictable behavior
--   **Enhanced Testing**: Updated tests with stricter middleware order validation checks
--   **New Examples Project**: Added comprehensive `Blazing.Mediator.Examples` project with detailed README showcasing all features and MediatR migration patterns
--   **Benchmarking**: New `Blazing.Mediator.Benchmarks` project for performance testing and optimization
+- **Middleware Order Fix**: Fixed middleware order to follow registration order rather than `Order` property for more predictable behavior
+- **Enhanced Testing**: Updated tests with stricter middleware order validation checks
+- **New Examples Project**: Added comprehensive `Blazing.Mediator.Examples` project with detailed README showcasing all features and MediatR migration patterns
+- **Benchmarking**: New `Blazing.Mediator.Benchmarks` project for performance testing and optimization
 
 ### V1.4.1 - 16 July, 2025
 
--   **Missing Interface Fix**: Added missing `IConditionalStreamRequestMiddleware` interface for conditional stream middleware support
--   **ECommerce.Api Enhancement**: Minor fix to `ECommerce.Api.Controllers.SimulateBulkOrder` method for improved bulk order simulation
--   **PowerShell Testing Script**: Added new `test-notifications-endpoints.ps1` script for comprehensive notification system testing and demonstration
--   **Documentation Updates**: Updated [Notification System Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/NOTIFICATION_GUIDE.md) with detailed PowerShell script usage instructions and automated testing workflows
+- **Missing Interface Fix**: Added missing `IConditionalStreamRequestMiddleware` interface for conditional stream middleware support
+- **ECommerce.Api Enhancement**: Minor fix to `ECommerce.Api.Controllers.SimulateBulkOrder` method for improved bulk order simulation
+- **PowerShell Testing Script**: Added new `test-notifications-endpoints.ps1` script for comprehensive notification system testing and demonstration
+- **Documentation Updates**: Updated [Notification System Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/NOTIFICATION_GUIDE.md) with detailed PowerShell script usage instructions and automated testing workflows
 
 ### V1.4.0 - 16 July, 2025
 
--   **Notification System**: Added comprehensive notification system with observer pattern implementation
--   **Event-Driven Architecture**: Introduced `INotification` and `INotificationHandler<T>` for domain event publishing and handling
--   **Subscription Management**: Added `INotificationSubscriber` interface for managing notification subscription lifecycle
--   **Notification Middleware**: Full middleware pipeline support for notification processing with cross-cutting concerns
--   **Complete Test Coverage**: Comprehensive test coverage for notification infrastructure with extensive test suite
--   **Notification Documentation**: New [Notification System Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/NOTIFICATION_GUIDE.md) with comprehensive examples and patterns
--   **Enhanced Samples**: Updated ECommerce.Api sample with notification system, domain events, and background services
+- **Notification System**: Added comprehensive notification system with observer pattern implementation
+- **Event-Driven Architecture**: Introduced `INotification` and `INotificationHandler<T>` for domain event publishing and handling
+- **Subscription Management**: Added `INotificationSubscriber` interface for managing notification subscription lifecycle
+- **Notification Middleware**: Full middleware pipeline support for notification processing with cross-cutting concerns
+- **Complete Test Coverage**: Comprehensive test coverage for notification infrastructure with extensive test suite
+- **Notification Documentation**: New [Notification System Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/NOTIFICATION_GUIDE.md) with comprehensive examples and patterns
+- **Enhanced Samples**: Updated ECommerce.Api sample with notification system, domain events, and background services
 
 ### V1.3.0 - 13 July, 2025
 
--   **Native Streaming Support**: Added comprehensive streaming capabilities with `IStreamRequest<T>` and `IStreamRequestHandler<T,TResponse>`
--   **Stream Middleware Pipeline**: Full middleware support for streaming requests with `IStreamRequestMiddleware<TRequest,TResponse>`
--   **Memory-Efficient Processing**: Stream large datasets with `IAsyncEnumerable<T>` without loading entire datasets into memory
--   **Multiple Streaming Patterns**: Support for JSON streaming, Server-Sent Events (SSE), and real-time data feeds
--   **Comprehensive Streaming Sample**: New Streaming.Api sample with 6 different streaming implementations across multiple Blazor render modes, APIs (Swagger)
--   **Complete Test Coverage**: 100% test coverage for streaming middleware infrastructure with comprehensive test suite
--   **Streaming Documentation**: New [Mediator Streaming Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STREAMING_GUIDE.md) with advanced streaming patterns and examples
+- **Native Streaming Support**: Added comprehensive streaming capabilities with `IStreamRequest<T>` and `IStreamRequestHandler<T,TResponse>`
+- **Stream Middleware Pipeline**: Full middleware support for streaming requests with `IStreamRequestMiddleware<TRequest,TResponse>`
+- **Memory-Efficient Processing**: Stream large datasets with `IAsyncEnumerable<T>` without loading entire datasets into memory
+- **Multiple Streaming Patterns**: Support for JSON streaming, Server-Sent Events (SSE), and real-time data feeds
+- **Comprehensive Streaming Sample**: New Streaming.Api sample with 6 different streaming implementations across multiple Blazor render modes, APIs (Swagger)
+- **Complete Test Coverage**: 100% test coverage for streaming middleware infrastructure with comprehensive test suite
+- **Streaming Documentation**: New [Mediator Streaming Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STREAMING_GUIDE.md) with advanced streaming patterns and examples
 
 ### V1.2.0 - 12 July, 2025
 
--   Added automatic middleware discovery functionality for simplified configuration
--   Enhanced `AddMediator` method with `discoverMiddleware` parameter using method overloads
--   Automatic registration of all middleware implementations from specified assemblies
--   Support for middleware ordering through static/instance Order properties
--   Backward compatibility maintained with existing registration methods
--   Comprehensive documentation updates with auto-discovery examples
+- Added automatic middleware discovery functionality for simplified configuration
+- Enhanced `AddMediator` method with `discoverMiddleware` parameter using method overloads
+- Automatic registration of all middleware implementations from specified assemblies
+- Support for middleware ordering through static/instance Order properties
+- Backward compatibility maintained with existing registration methods
+- Comprehensive documentation updates with auto-discovery examples
 
 ### V1.1.0 - 1 July, 2025
 
--   Enhanced middleware pipeline with conditional middleware support
--   Added `IMiddlewarePipelineInspector` for debugging and monitoring middleware execution
--   Full dependency injection support for middleware components
--   Performant middleware with conditional execution and optional priority-based execution
--   Enhanced pipeline inspection capabilities
--   Full test coverage with Shouldly assertions (replacing FluentAssertions)
--   Cleaned up samples and added middleware
--   Improved documentation with detailed examples and usage patterns
+- Enhanced middleware pipeline with conditional middleware support
+- Added `IMiddlewarePipelineInspector` for debugging and monitoring middleware execution
+- Full dependency injection support for middleware components
+- Performant middleware with conditional execution and optional priority-based execution
+- Enhanced pipeline inspection capabilities
+- Full test coverage with Shouldly assertions (replacing FluentAssertions)
+- Cleaned up samples and added middleware
+- Improved documentation with detailed examples and usage patterns
 
 ### V1.0.0 - 28 June, 2025
 
--   Initial release of Blazing.Mediator
--   Full CQRS support with separate Command and Query interfaces
--   Dependency injection integration with automatic handler registration
--   Multiple assembly scanning support
--   Comprehensive documentation and sample projects
--   .NET 9.0 support with nullable reference types
--   Extensive test coverage with unit and integration tests
+- Initial release of Blazing.Mediator
+- Full CQRS support with separate Command and Query interfaces
+- Dependency injection integration with automatic handler registration
+- Multiple assembly scanning support
+- Comprehensive documentation and sample projects
+- .NET 9.0 support with nullable reference types
+- Extensive test coverage with unit and integration tests

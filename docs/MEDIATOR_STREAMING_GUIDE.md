@@ -374,6 +374,7 @@ builder.Services.AddMediator(config =>
 ### Basic Streaming Middleware
 
 ```csharp
+[Order(0)] // Execute first
 public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMiddleware<TRequest, TResponse>
     where TRequest : IStreamRequest<TResponse>
 {
@@ -383,8 +384,6 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
     {
         _logger = logger;
     }
-
-    public int Order => 0; // Execute first
 
     public async IAsyncEnumerable<TResponse> HandleAsync(
         TRequest request,
@@ -425,6 +424,7 @@ public class StreamingLoggingMiddleware<TRequest, TResponse> : IStreamRequestMid
 ### Performance Monitoring Middleware
 
 ```csharp
+[Order(-10)] // Execute early
 public class StreamingPerformanceMiddleware<TRequest, TResponse> : IStreamRequestMiddleware<TRequest, TResponse>
     where TRequest : IStreamRequest<TResponse>
 {
@@ -434,8 +434,6 @@ public class StreamingPerformanceMiddleware<TRequest, TResponse> : IStreamReques
     {
         _metrics = metrics;
     }
-
-    public int Order => -10; // Execute early
 
     public async IAsyncEnumerable<TResponse> HandleAsync(
         TRequest request,

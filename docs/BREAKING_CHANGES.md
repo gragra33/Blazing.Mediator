@@ -1,4 +1,69 @@
-# Breaking Changes — Blazing.Mediator v2.0.1 → v3.0.0
+# Breaking Changes — Blazing.Mediator
+
+---
+
+## v3.0.0 → v3.0.1
+
+### 1. `TelemetryOptions.CaptureMiddlewareDetails` is now `[Obsolete]`
+
+The `bool CaptureMiddlewareDetails` property in `TelemetryOptions` has been replaced by the `MiddlewareCaptureMode` enum, which provides more granular control over the overhead and information captured on request telemetry spans.
+
+```csharp
+// v3.0.0 — old (still compiles but triggers Obsolete warning)
+options.CaptureMiddlewareDetails = true;
+options.CaptureMiddlewareDetails = false;
+
+// v3.0.1 — new
+options.MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable; // was true
+options.MiddlewareCaptureMode = MiddlewareCaptureMode.None;       // was false
+options.MiddlewareCaptureMode = MiddlewareCaptureMode.Executed;   // new: full runtime tracking (dev/diagnostic only)
+```
+
+The bridge mapping (`true → Applicable`, `false → None`) is retained so existing code continues to compile. Migrate at your convenience; the obsolete property will be removed in a future major release.
+
+**Preset changes:** `TelemetryOptions.Development()` now defaults to `MiddlewareCaptureMode.Applicable`. All other presets (`Production`, `Minimal`, `NotificationOnly`, `StreamingOnly`, `Disabled`) default to `MiddlewareCaptureMode.None`.
+
+### 2. Middleware `Order` interface property deprecated in favour of `[Order(n)]` attribute
+
+The `int Order { get; }` default interface property on `IRequestMiddleware`, `IRequestMiddleware<TRequest>`, `IStreamRequestMiddleware`, `INotificationMiddleware`, and their conditional variants is no longer the preferred mechanism for specifying middleware execution order.
+
+The source generator reads the `[Order(n)]` class attribute from compiled metadata, meaning it works correctly for middleware in referenced assemblies and NuGet packages. Overriding the interface property only works when the middleware type is in the **same compilation** as the generated mediator code.
+
+```csharp
+// v3.0.0 — works only for same-assembly middleware
+public class MyMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public int Order => 5;
+    // ...
+}
+
+// v3.0.1 — correct approach; works cross-assembly
+[Order(5)]
+public class MyMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    // ...
+}
+```
+
+The interface property is still present for backwards compatibility and will continue to function for same-assembly middleware; however, `[Order(n)]` takes precedence when both are present.
+
+### 3. Reserved internal middleware order values
+
+The following order values are now occupied by built-in instrumentation middleware. User-defined middleware must not use these values:
+
+| Reserved value     | Numeric value  | Used by                                                  |
+| ------------------ | -------------- | -------------------------------------------------------- |
+| `int.MinValue`     | -2,147,483,648 | `TelemetryMiddleware`, `TelemetryNotificationMiddleware` |
+| `int.MinValue + 1` | -2,147,483,647 | `LoggingMiddleware` (both variants)                      |
+| `int.MinValue + 2` | -2,147,483,646 | `StatisticsMiddleware`                                   |
+
+Use order values ≥ `0` (or any value comfortably above `int.MinValue + 2`) for user middleware.
+
+---
+
+## v2.0.1 → v3.0.0
 
 This document lists every API change that requires updates to consuming code when upgrading from Blazing.Mediator v2.0.1 (master) to v3.0.0.
 

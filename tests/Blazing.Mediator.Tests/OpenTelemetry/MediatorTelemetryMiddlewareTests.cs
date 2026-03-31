@@ -1,3 +1,4 @@
+using Blazing.Mediator.Configuration;
 using Blazing.Mediator.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
@@ -236,6 +237,124 @@ public class MediatorTelemetryMiddlewareTests : IDisposable
         }
 
         public void Reset() => ExecutionCount = 0;
+    }
+
+    #endregion
+
+    #region MiddlewareCaptureMode Tag Accuracy Tests
+
+    [Fact]
+    public async Task Command_ApplicableMode_EmitsPipelineTag()
+    {
+        // Arrange — fresh service provider with Applicable mode
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddMediator(new MediatorConfiguration()
+            .WithTelemetry(options =>
+            {
+                options.MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable;
+            })
+            .AddFromAssembly(typeof(MiddlewareTestCommand).Assembly));
+
+        var localActivities = new List<Activity>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "Blazing.Mediator",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStarted = _ => { },
+            ActivityStopped = activity => localActivities.Add(activity)
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        await using var sp = services.BuildServiceProvider();
+        var mediator = sp.GetRequiredService<IMediator>();
+
+        // Act
+        await mediator.Send(new MiddlewareTestCommand { Value = "test" });
+
+        // Assert
+        var activity = localActivities.FirstOrDefault(a => a.OperationName == "Mediator.Send:MiddlewareTestCommand");
+        activity.ShouldNotBeNull();
+        activity.GetTagItem("request_middleware.capture_mode").ShouldBe("applicable");
+        activity.GetTagItem("request_middleware.pipeline").ShouldNotBeNull();
+        activity.GetTagItem("request_middleware.count").ShouldNotBeNull();
+        activity.GetTagItem("request_middleware.orders").ShouldNotBeNull();
+        activity.GetTagItem("request_middleware.executed_pipeline").ShouldBeNull("Applicable mode must not emit executed_pipeline");
+    }
+
+    [Fact]
+    public async Task Command_ExecutedMode_WithConditionalSkip_EmitsCorrectCounts()
+    {
+        // Arrange — fresh service provider with Executed mode; TestConditionalMiddleware skips when value == "skip_conditional"
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddMediator(new MediatorConfiguration()
+            .WithTelemetry(options =>
+            {
+                options.MiddlewareCaptureMode = MiddlewareCaptureMode.Executed;
+            })
+            .AddFromAssembly(typeof(MiddlewareTestCommand).Assembly));
+
+        var localActivities = new List<Activity>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "Blazing.Mediator",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStarted = _ => { },
+            ActivityStopped = activity => localActivities.Add(activity)
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        await using var sp = services.BuildServiceProvider();
+        var mediator = sp.GetRequiredService<IMediator>();
+
+        // Act — value triggers skip in TestConditionalMiddleware
+        await mediator.Send(new MiddlewareTestCommand { Value = "skip_conditional" });
+
+        // Assert
+        var activity = localActivities.FirstOrDefault(a => a.OperationName == "Mediator.Send:MiddlewareTestCommand");
+        activity.ShouldNotBeNull();
+        activity.GetTagItem("request_middleware.capture_mode").ShouldBe("executed");
+        var skippedCount = Convert.ToInt32(activity.GetTagItem("request_middleware.skipped_count"));
+        skippedCount.ShouldBeGreaterThanOrEqualTo(1, "TestConditionalMiddleware must appear in the skipped list");
+        activity.GetTagItem("request_middleware.pipeline").ShouldBeNull("Executed mode must not emit applicable pipeline tag");
+    }
+
+    [Fact]
+    public async Task Command_NoneMode_EmitsNoMiddlewareTags()
+    {
+        // Arrange — fresh service provider with None mode
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddMediator(new MediatorConfiguration()
+            .WithTelemetry(options =>
+            {
+                options.MiddlewareCaptureMode = MiddlewareCaptureMode.None;
+            })
+            .AddFromAssembly(typeof(MiddlewareTestCommand).Assembly));
+
+        var localActivities = new List<Activity>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "Blazing.Mediator",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStarted = _ => { },
+            ActivityStopped = activity => localActivities.Add(activity)
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        await using var sp = services.BuildServiceProvider();
+        var mediator = sp.GetRequiredService<IMediator>();
+
+        // Act
+        await mediator.Send(new MiddlewareTestCommand { Value = "test" });
+
+        // Assert
+        var activity = localActivities.FirstOrDefault(a => a.OperationName == "Mediator.Send:MiddlewareTestCommand");
+        activity.ShouldNotBeNull("Activity should still be created in None mode");
+        activity.GetTagItem("request_middleware.pipeline").ShouldBeNull("None mode must not emit pipeline tag");
+        activity.GetTagItem("request_middleware.executed_pipeline").ShouldBeNull("None mode must not emit executed_pipeline tag");
+        activity.GetTagItem("request_middleware.capture_mode").ShouldBeNull("None mode must not emit capture_mode tag");
     }
 
     #endregion

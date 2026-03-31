@@ -48,7 +48,7 @@ public static class TelemetryExtensions
         return services.ConfigureMediatorTelemetry(options =>
         {
             options.Enabled = true;
-            options.CaptureMiddlewareDetails = true;
+            options.MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable;
             options.CaptureHandlerDetails = true;
             options.CaptureExceptionDetails = true;
             options.EnableHealthChecks = true;
@@ -71,7 +71,7 @@ public static class TelemetryExtensions
         return services.ConfigureMediatorTelemetry(options =>
         {
             options.Enabled = true;
-            options.CaptureMiddlewareDetails = true;
+            options.MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable;
             options.CaptureHandlerDetails = true;
             options.CaptureExceptionDetails = true;
             options.EnableHealthChecks = true;
@@ -94,7 +94,7 @@ public static class TelemetryExtensions
         return services.ConfigureMediatorTelemetry(options =>
         {
             options.Enabled = true;
-            options.CaptureMiddlewareDetails = true;
+            options.MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable;
             options.CaptureHandlerDetails = true;
             options.CaptureExceptionDetails = true;
             options.EnableHealthChecks = true;

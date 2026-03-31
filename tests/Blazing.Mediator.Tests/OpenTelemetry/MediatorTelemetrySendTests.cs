@@ -202,5 +202,169 @@ public class MediatorTelemetrySendTests : IDisposable
         }
     }
 
+    public class SendAlwaysSkipMiddleware : IConditionalMiddleware<SendTestCommand>
+    {
+        public int Order => 10;
+        public bool ShouldExecute(SendTestCommand request) => false;
+
+        public ValueTask HandleAsync(SendTestCommand request, RequestHandlerDelegate next, CancellationToken cancellationToken)
+            => next();
+    }
+
+    #endregion
+
+    #region MiddlewareCaptureMode Tag Tests
+
+    [Fact]
+    public async Task Send_NoneMode_EmitsNoMiddlewareTags()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddMediator(new MediatorConfiguration()
+            .WithTelemetry(options =>
+            {
+                options.MiddlewareCaptureMode = MiddlewareCaptureMode.None;
+            })
+            .AddFromAssembly(typeof(SendTestCommand).Assembly));
+
+        var recordedActivities = new List<Activity>();
+        using var activityListener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "Blazing.Mediator",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStarted = _ => { },
+            ActivityStopped = activity => recordedActivities.Add(activity)
+        };
+        ActivitySource.AddActivityListener(activityListener);
+
+        await using var sp = services.BuildServiceProvider();
+        var mediator = sp.GetRequiredService<IMediator>();
+
+        // Act
+        await mediator.Send(new SendTestCommand { Value = "test" });
+
+        // Assert
+        var activity = recordedActivities.FirstOrDefault(a => a.OperationName == "Mediator.Send:SendTestCommand");
+        activity.ShouldNotBeNull("Telemetry activity should be created even in None mode");
+        activity.GetTagItem("request_middleware.pipeline").ShouldBeNull("None mode must not emit pipeline tag");
+        activity.GetTagItem("request_middleware.executed_pipeline").ShouldBeNull("None mode must not emit executed_pipeline tag");
+        activity.GetTagItem("request_middleware.capture_mode").ShouldBeNull("None mode must not emit capture_mode tag");
+    }
+
+    [Fact]
+    public async Task Send_ApplicableMode_EmitsFourMiddlewareTags()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddMediator(new MediatorConfiguration()
+            .WithTelemetry(options =>
+            {
+                options.MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable;
+            })
+            .AddFromAssembly(typeof(SendTestCommand).Assembly));
+
+        var recordedActivities = new List<Activity>();
+        using var activityListener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "Blazing.Mediator",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStarted = _ => { },
+            ActivityStopped = activity => recordedActivities.Add(activity)
+        };
+        ActivitySource.AddActivityListener(activityListener);
+
+        await using var sp = services.BuildServiceProvider();
+        var mediator = sp.GetRequiredService<IMediator>();
+
+        // Act
+        await mediator.Send(new SendTestCommand { Value = "test" });
+
+        // Assert
+        var activity = recordedActivities.FirstOrDefault(a => a.OperationName == "Mediator.Send:SendTestCommand");
+        activity.ShouldNotBeNull();
+        activity.GetTagItem("request_middleware.pipeline").ShouldNotBeNull("Applicable mode must emit pipeline tag");
+        activity.GetTagItem("request_middleware.count").ShouldNotBeNull("Applicable mode must emit count tag");
+        activity.GetTagItem("request_middleware.orders").ShouldNotBeNull("Applicable mode must emit orders tag");
+        activity.GetTagItem("request_middleware.capture_mode").ShouldBe("applicable");
+    }
+
+    [Fact]
+    public async Task Send_ExecutedMode_EmitsFiveSummaryTags()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddMediator(new MediatorConfiguration()
+            .WithTelemetry(options =>
+            {
+                options.MiddlewareCaptureMode = MiddlewareCaptureMode.Executed;
+            })
+            .AddFromAssembly(typeof(SendTestCommand).Assembly));
+
+        var recordedActivities = new List<Activity>();
+        using var activityListener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "Blazing.Mediator",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStarted = _ => { },
+            ActivityStopped = activity => recordedActivities.Add(activity)
+        };
+        ActivitySource.AddActivityListener(activityListener);
+
+        await using var sp = services.BuildServiceProvider();
+        var mediator = sp.GetRequiredService<IMediator>();
+
+        // Act
+        await mediator.Send(new SendTestCommand { Value = "test" });
+
+        // Assert
+        var activity = recordedActivities.FirstOrDefault(a => a.OperationName == "Mediator.Send:SendTestCommand");
+        activity.ShouldNotBeNull();
+        activity.GetTagItem("request_middleware.executed_pipeline").ShouldNotBeNull("Executed mode must emit executed_pipeline tag");
+        activity.GetTagItem("request_middleware.executed_count").ShouldNotBeNull("Executed mode must emit executed_count tag");
+        activity.GetTagItem("request_middleware.skipped_pipeline").ShouldNotBeNull("Executed mode must emit skipped_pipeline tag");
+        activity.GetTagItem("request_middleware.skipped_count").ShouldNotBeNull("Executed mode must emit skipped_count tag");
+        activity.GetTagItem("request_middleware.capture_mode").ShouldBe("executed");
+    }
+
+    [Fact]
+    public async Task Send_ExecutedMode_ConditionalMiddleware_CountedAsSkipped()
+    {
+        // Arrange — SendAlwaysSkipMiddleware.ShouldExecute() always returns false
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddMediator(new MediatorConfiguration()
+            .WithTelemetry(options =>
+            {
+                options.MiddlewareCaptureMode = MiddlewareCaptureMode.Executed;
+            })
+            .AddFromAssembly(typeof(SendTestCommand).Assembly));
+
+        var recordedActivities = new List<Activity>();
+        using var activityListener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "Blazing.Mediator",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStarted = _ => { },
+            ActivityStopped = activity => recordedActivities.Add(activity)
+        };
+        ActivitySource.AddActivityListener(activityListener);
+
+        await using var sp = services.BuildServiceProvider();
+        var mediator = sp.GetRequiredService<IMediator>();
+
+        // Act
+        await mediator.Send(new SendTestCommand { Value = "test" });
+
+        // Assert
+        var activity = recordedActivities.FirstOrDefault(a => a.OperationName == "Mediator.Send:SendTestCommand");
+        activity.ShouldNotBeNull();
+        var skippedCount = Convert.ToInt32(activity.GetTagItem("request_middleware.skipped_count"));
+        skippedCount.ShouldBeGreaterThanOrEqualTo(1,
+            "SendAlwaysSkipMiddleware always returns false from ShouldExecute and must appear in the skipped count");
+    }
+
     #endregion
 }

@@ -21,7 +21,7 @@
 
     <PackageId>Blazing.Mediator.SourceGenerators</PackageId>
     <PackageProjectUrl>https://github.com/gragra33/blazing.mediator</PackageProjectUrl>
-    <PackageReleaseNotes>Version 3.0.0: Source-Gen rewrite; 100% AOT compatible; Net 9 &amp; 10 support; backwards compatible with minor breaking changes.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 3.0.1: MediatorCodeWriter static emission blocks (ThrowHelper, ContainerProbes, XML doc blocks, service-registration preamble) refactored from StringBuilder.AppendLine chains to interpolated raw string literals; emitted Mediator.g.cs output is semantically unchanged.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>mediator;source-generator;roslyn;code-generation;aot;performance;cqrs;zero-reflection</PackageTags>
 

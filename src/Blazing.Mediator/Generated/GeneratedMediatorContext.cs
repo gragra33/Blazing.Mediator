@@ -29,7 +29,7 @@ internal sealed class GeneratedMediatorContext
         // Cache telemetry flags (runtime toggleable)
         IsTelemetryEnabled = configuration.TelemetryOptions?.Enabled ?? false;
         CaptureHandlerDetails = configuration.TelemetryOptions?.CaptureHandlerDetails ?? false;
-        CaptureMiddlewareDetails = configuration.TelemetryOptions?.CaptureMiddlewareDetails ?? false;
+        RequestMiddlewareCaptureMode = configuration.TelemetryOptions?.MiddlewareCaptureMode ?? MiddlewareCaptureMode.None;
         CaptureExceptionDetails = configuration.TelemetryOptions?.CaptureExceptionDetails ?? false;
         CaptureNotificationHandlerDetails = configuration.TelemetryOptions?.CaptureNotificationHandlerDetails ?? false;
         CaptureNotificationMiddlewareDetails = configuration.TelemetryOptions?.CaptureNotificationMiddlewareDetails ?? false;
@@ -83,7 +83,7 @@ internal sealed class GeneratedMediatorContext
         // Cache telemetry flags (runtime toggleable)
         IsTelemetryEnabled = telemetryOptions?.Enabled ?? false;
         CaptureHandlerDetails = telemetryOptions?.CaptureHandlerDetails ?? false;
-        CaptureMiddlewareDetails = telemetryOptions?.CaptureMiddlewareDetails ?? false;
+        RequestMiddlewareCaptureMode = telemetryOptions?.MiddlewareCaptureMode ?? MiddlewareCaptureMode.None;
         CaptureExceptionDetails = telemetryOptions?.CaptureExceptionDetails ?? false;
         CaptureNotificationHandlerDetails = telemetryOptions?.CaptureNotificationHandlerDetails ?? false;
         CaptureNotificationMiddlewareDetails = telemetryOptions?.CaptureNotificationMiddlewareDetails ?? false;
@@ -140,9 +140,9 @@ internal sealed class GeneratedMediatorContext
     public bool CaptureHandlerDetails { get; }
     
     /// <summary>
-    /// Gets whether to capture detailed middleware information in telemetry.
+    /// Controls what middleware information is captured on request telemetry spans.
     /// </summary>
-    public bool CaptureMiddlewareDetails { get; }
+    public MiddlewareCaptureMode RequestMiddlewareCaptureMode { get; }
     
     /// <summary>
     /// Gets whether to capture exception details in telemetry.

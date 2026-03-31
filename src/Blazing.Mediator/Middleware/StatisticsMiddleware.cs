@@ -14,6 +14,7 @@ namespace Blazing.Mediator.Middleware;
 /// </summary>
 /// <typeparam name="TRequest">The request type (query or command with response).</typeparam>
 /// <typeparam name="TResponse">The response type.</typeparam>
+[Order(int.MinValue + 2)]
 public sealed class StatisticsMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -90,6 +91,7 @@ public sealed class StatisticsMiddleware<TRequest, TResponse> : IRequestMiddlewa
 /// but for commands that return no value.
 /// </summary>
 /// <typeparam name="TRequest">The void command type.</typeparam>
+[Order(int.MinValue + 2)]
 public sealed class StatisticsMiddleware<TRequest> : IRequestMiddleware<TRequest>
     where TRequest : IRequest
 {

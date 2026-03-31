@@ -12,6 +12,13 @@ public interface INotificationMiddleware
     /// Gets the execution order for this middleware. Lower numbers execute first.
     /// Default is 0 if not specified (neutral order).
     /// </summary>
+    /// <remarks>
+    /// <b>Prefer the <c>[Order(n)]</c> attribute instead of overriding this property.</b>
+    /// The source generator reads <c>[Order(n)]</c> from compiled metadata and therefore
+    /// works correctly for middleware in referenced assemblies and NuGet packages.
+    /// Overriding this property only works when the middleware type is in the same
+    /// compilation as the generated mediator code (i.e. same-assembly types).
+    /// </remarks>
     int Order => 0;
 
     /// <summary>

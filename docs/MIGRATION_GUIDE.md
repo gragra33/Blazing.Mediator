@@ -295,12 +295,11 @@ public class ValidationMiddleware<TRequest, TResponse>(IServiceProvider sp, ILog
 }
 
 // v3.0.0 — new (from MiddlewareExample)
+[Order(100)]
 public class ValidationMiddleware<TRequest, TResponse>(IServiceProvider sp, ILogger logger)
     : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public int Order => 100;
-
     public async ValueTask<TResponse> HandleAsync(
         TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
@@ -350,13 +349,12 @@ public class StatisticsTrackingMiddleware<TRequest, TResponse>(
 }
 
 // v3.0.0 — new
+[Order(0)]
 public class StatisticsTrackingMiddleware<TRequest, TResponse>(
     MediatorStatisticsTracker statisticsTracker, IHttpContextAccessor httpContextAccessor)
     : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public int Order => 0;
-
     public async ValueTask<TResponse> HandleAsync(
         TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
@@ -386,10 +384,9 @@ public class NotificationLoggingMiddleware : INotificationMiddleware
 }
 
 // v3.0.0 — new
+[Order(0)]
 public class NotificationLoggingMiddleware : INotificationMiddleware
 {
-    public int Order => 0;
-
     public async ValueTask InvokeAsync<TNotification>(
         TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)
         where TNotification : INotification
@@ -475,3 +472,79 @@ The following patterns cover 95%+ of all changes needed. Apply them across your 
 | `<DefineConstants>USE_SOURCE_GENERATORS</DefineConstants>` | _(delete)_                          | `.csproj` files                   |
 
 > Do **not** apply the `Task` → `ValueTask` replacement to `INotificationSubscriber<T>.OnNotification` — that interface stays `Task`.
+
+---
+
+# Migrating from v3.0.0 to v3.0.1
+
+v3.0.1 is mostly additive and non-breaking, but two patterns are officially deprecated and one introduces a reserved value constraint.
+
+---
+
+## Change 1 — Replace `CaptureMiddlewareDetails` with `MiddlewareCaptureMode`
+
+`TelemetryOptions.CaptureMiddlewareDetails` (bool) is marked `[Obsolete]`. Replace it with the `MiddlewareCaptureMode` enum.
+
+```csharp
+// v3.0.0 — old (still works but produces Obsolete warning)
+config.WithTelemetry(options =>
+{
+    options.CaptureMiddlewareDetails = true;  // was: show middleware on span
+    options.CaptureMiddlewareDetails = false; // was: no middleware tags
+});
+
+// v3.0.1 — new
+config.WithTelemetry(options =>
+{
+    options.MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable; // was: true  — static pipeline shape, low overhead
+    options.MiddlewareCaptureMode = MiddlewareCaptureMode.None;       // was: false — zero overhead
+    options.MiddlewareCaptureMode = MiddlewareCaptureMode.Executed;   // new option — full runtime tracking (dev/diagnostic only)
+});
+```
+
+**Quick find-and-replace:**
+
+| Find                               | Replace                                                    |
+| ---------------------------------- | ---------------------------------------------------------- |
+| `CaptureMiddlewareDetails = true`  | `MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable` |
+| `CaptureMiddlewareDetails = false` | `MiddlewareCaptureMode = MiddlewareCaptureMode.None`       |
+
+---
+
+## Change 2 — Use `[Order(n)]` attribute instead of `int Order =>` property
+
+The source generator reads ordering from the `[Order(n)]` class attribute (compiled metadata). Overriding the `int Order { get; }` interface property only works for middleware defined in the same compilation as the generated mediator code; it is silently ignored for middleware in external assemblies.
+
+```csharp
+// v3.0.0 — works only for same-assembly middleware (may silently have wrong order in NuGet packages)
+public class MyMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public int Order => 10;
+    // ...
+}
+
+// v3.0.1 — correct; works everywhere including cross-assembly
+[Order(10)]
+public class MyMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    // ...
+}
+```
+
+The same applies to `INotificationMiddleware`, `IStreamRequestMiddleware`, and all conditional variants.
+
+---
+
+## Change 3 — Do not use reserved internal order values
+
+The built-in Blazing.Mediator middleware uses the following reserved order values. User middleware must not specify these values:
+
+| Reserved value     | Used by                                                  |
+| ------------------ | -------------------------------------------------------- |
+| `int.MinValue`     | `TelemetryMiddleware`, `TelemetryNotificationMiddleware` |
+| `int.MinValue + 1` | `LoggingMiddleware`                                      |
+| `int.MinValue + 2` | `StatisticsMiddleware`                                   |
+
+Use order values of `0` or higher for user middleware (negative values well above `int.MinValue + 2` are also safe).

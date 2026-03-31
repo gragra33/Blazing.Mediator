@@ -578,4 +578,80 @@ public class TelemetryOptionsTests
     }
 
     #endregion
+
+    #region MiddlewareCaptureMode Tests
+
+    [Fact]
+    public void MiddlewareCaptureMode_Default_ShouldBeApplicable()
+    {
+        // Arrange & Act
+        var options = new TelemetryOptions();
+
+        // Assert
+        options.MiddlewareCaptureMode.ShouldBe(MiddlewareCaptureMode.Applicable);
+    }
+
+    [Fact]
+    public void ObsoleteBridge_True_MapsToApplicable()
+    {
+        // Arrange
+#pragma warning disable CS0618
+        var options = new TelemetryOptions { CaptureMiddlewareDetails = true };
+#pragma warning restore CS0618
+
+        // Assert
+        options.MiddlewareCaptureMode.ShouldBe(MiddlewareCaptureMode.Applicable);
+    }
+
+    [Fact]
+    public void ObsoleteBridge_False_MapsToNone()
+    {
+        // Arrange
+#pragma warning disable CS0618
+        var options = new TelemetryOptions { CaptureMiddlewareDetails = false };
+#pragma warning restore CS0618
+
+        // Assert
+        options.MiddlewareCaptureMode.ShouldBe(MiddlewareCaptureMode.None);
+    }
+
+    [Theory]
+    [InlineData("Development", MiddlewareCaptureMode.Applicable)]
+    [InlineData("Production", MiddlewareCaptureMode.None)]
+    [InlineData("Disabled", MiddlewareCaptureMode.None)]
+    [InlineData("Minimal", MiddlewareCaptureMode.None)]
+    [InlineData("NotificationOnly", MiddlewareCaptureMode.None)]
+    [InlineData("StreamingOnly", MiddlewareCaptureMode.None)]
+    public void Presets_ShouldHaveCorrectCaptureMode(string preset, MiddlewareCaptureMode expected)
+    {
+        // Arrange & Act
+        var options = preset switch
+        {
+            "Development"    => TelemetryOptions.Development(),
+            "Production"     => TelemetryOptions.Production(),
+            "Disabled"       => TelemetryOptions.Disabled(),
+            "Minimal"        => TelemetryOptions.Minimal(),
+            "NotificationOnly" => TelemetryOptions.NotificationOnly(),
+            "StreamingOnly"  => TelemetryOptions.StreamingOnly(),
+            _ => throw new ArgumentException($"Unknown preset: {preset}")
+        };
+
+        // Assert
+        options.MiddlewareCaptureMode.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void Clone_ShouldPreserveMiddlewareCaptureMode()
+    {
+        // Arrange
+        var original = new TelemetryOptions { MiddlewareCaptureMode = MiddlewareCaptureMode.Executed };
+
+        // Act
+        var clone = original.Clone();
+
+        // Assert
+        clone.MiddlewareCaptureMode.ShouldBe(MiddlewareCaptureMode.Executed);
+    }
+
+    #endregion
 }

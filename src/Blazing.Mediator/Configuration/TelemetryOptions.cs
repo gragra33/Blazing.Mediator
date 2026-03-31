@@ -14,9 +14,25 @@ public class TelemetryOptions : IEnvironmentConfigurationOptions<TelemetryOption
     public bool Enabled { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets whether to capture middleware execution details. Default is true.
+    /// Controls what middleware information is captured on request telemetry spans.
+    /// Default is <see cref="MiddlewareCaptureMode.Applicable"/>.
     /// </summary>
-    public bool CaptureMiddlewareDetails { get; set; } = true;
+    public MiddlewareCaptureMode MiddlewareCaptureMode { get; set; } = MiddlewareCaptureMode.Applicable;
+
+    /// <summary>
+    /// Gets or sets whether to capture middleware execution details.
+    /// </summary>
+    /// <remarks>
+    /// This property is deprecated. Use <see cref="MiddlewareCaptureMode"/> instead.
+    /// Setting <c>true</c> maps to <see cref="MiddlewareCaptureMode.Applicable"/>.
+    /// Setting <c>false</c> maps to <see cref="MiddlewareCaptureMode.None"/>.
+    /// </remarks>
+    [Obsolete("Use MiddlewareCaptureMode instead. true maps to Applicable, false maps to None.")]
+    public bool CaptureMiddlewareDetails
+    {
+        get => MiddlewareCaptureMode != MiddlewareCaptureMode.None;
+        set => MiddlewareCaptureMode = value ? MiddlewareCaptureMode.Applicable : MiddlewareCaptureMode.None;
+    }
 
     /// <summary>
     /// Gets or sets whether to capture handler information. Default is true.
@@ -150,7 +166,7 @@ public class TelemetryOptions : IEnvironmentConfigurationOptions<TelemetryOption
     /// <summary>
     /// Gets whether any telemetry tracking is effectively enabled.
     /// </summary>
-    public bool IsEnabled => Enabled && (CaptureMiddlewareDetails || CaptureHandlerDetails || 
+    public bool IsEnabled => Enabled && (MiddlewareCaptureMode != MiddlewareCaptureMode.None || CaptureHandlerDetails ||
                                        CaptureNotificationHandlerDetails || EnableStreamingMetrics || EnableHealthChecks);
 
     /// <summary>
@@ -243,7 +259,7 @@ public class TelemetryOptions : IEnvironmentConfigurationOptions<TelemetryOption
         return new TelemetryOptions
         {
             Enabled = Enabled,
-            CaptureMiddlewareDetails = CaptureMiddlewareDetails,
+            MiddlewareCaptureMode = MiddlewareCaptureMode,
             CaptureHandlerDetails = CaptureHandlerDetails,
             CaptureExceptionDetails = CaptureExceptionDetails,
             EnableHealthChecks = EnableHealthChecks,
@@ -278,7 +294,7 @@ public class TelemetryOptions : IEnvironmentConfigurationOptions<TelemetryOption
         return new TelemetryOptions
         {
             Enabled = true,
-            CaptureMiddlewareDetails = true,
+            MiddlewareCaptureMode = MiddlewareCaptureMode.Applicable,
             CaptureHandlerDetails = true,
             CaptureExceptionDetails = true,
             EnableHealthChecks = true,
@@ -306,7 +322,7 @@ public class TelemetryOptions : IEnvironmentConfigurationOptions<TelemetryOption
         return new TelemetryOptions
         {
             Enabled = true,
-            CaptureMiddlewareDetails = false,
+            MiddlewareCaptureMode = MiddlewareCaptureMode.None,
             CaptureHandlerDetails = true,
             CaptureExceptionDetails = true,
             EnableHealthChecks = true,
@@ -334,7 +350,7 @@ public class TelemetryOptions : IEnvironmentConfigurationOptions<TelemetryOption
         return new TelemetryOptions
         {
             Enabled = false,
-            CaptureMiddlewareDetails = false,
+            MiddlewareCaptureMode = MiddlewareCaptureMode.None,
             CaptureHandlerDetails = false,
             CaptureExceptionDetails = false,
             EnableHealthChecks = false,
@@ -359,7 +375,7 @@ public class TelemetryOptions : IEnvironmentConfigurationOptions<TelemetryOption
         return new TelemetryOptions
         {
             Enabled = true,
-            CaptureMiddlewareDetails = false,
+            MiddlewareCaptureMode = MiddlewareCaptureMode.None,
             CaptureHandlerDetails = false,
             CaptureExceptionDetails = true,
             EnableHealthChecks = true,
@@ -387,7 +403,7 @@ public class TelemetryOptions : IEnvironmentConfigurationOptions<TelemetryOption
         return new TelemetryOptions
         {
             Enabled = true,
-            CaptureMiddlewareDetails = false,
+            MiddlewareCaptureMode = MiddlewareCaptureMode.None,
             CaptureHandlerDetails = false,
             CaptureExceptionDetails = true,
             EnableHealthChecks = false,
@@ -410,7 +426,7 @@ public class TelemetryOptions : IEnvironmentConfigurationOptions<TelemetryOption
         return new TelemetryOptions
         {
             Enabled = true,
-            CaptureMiddlewareDetails = false,
+            MiddlewareCaptureMode = MiddlewareCaptureMode.None,
             CaptureHandlerDetails = false,
             CaptureExceptionDetails = true,
             EnableHealthChecks = false,

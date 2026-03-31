@@ -103,6 +103,30 @@ public sealed partial class Mediator
     }
 
     /// <summary>
+    /// Sanitizes a middleware type name for telemetry, applying sensitive-data pattern filtering.
+    /// Callable without a <see cref="Mediator"/> instance — intended for use by middleware that
+    /// needs to emit pipeline tags (e.g. <see cref="Middleware.TelemetryMiddleware{TRequest,TResponse}"/>).
+    /// </summary>
+    /// <param name="middlewareType">The middleware <see cref="Type"/> to format.</param>
+    /// <param name="sensitivePatterns">
+    /// The collection of sensitive keywords to redact. Pass
+    /// <see cref="Configuration.TelemetryOptions.SensitiveDataPatterns"/> from the caller's options.
+    /// </param>
+    /// <returns>The formatted and redacted middleware name, safe for use as a telemetry tag value.</returns>
+    public static string SanitizeMiddlewareName(Type middlewareType, IEnumerable<string> sensitivePatterns)
+    {
+        var formattedName = PipelineUtilities.FormatTypeName(middlewareType);
+
+        foreach (var pattern in sensitivePatterns)
+        {
+            if (formattedName.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                formattedName = formattedName.Replace(pattern, "***", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return formattedName;
+    }
+
+    /// <summary>
     /// Sanitizes exception messages by removing sensitive information.
     /// </summary>
     /// <param name="message">The exception message to sanitize.</param>
@@ -168,6 +192,30 @@ public sealed partial class Mediator
 
         return string.Join(" | ", sanitizedLines);
     }
+
+    /// <summary>
+    /// Records that a middleware was executed. Called by source-generated dispatch wrappers.
+    /// </summary>
+    /// <param name="middlewareType">The middleware <see cref="Type"/> that executed.</param>
+    /// <remarks>
+    /// This method is part of the source-generator instrumentation contract and is not intended
+    /// for direct use in application code.
+    /// </remarks>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public static void TrackMiddlewareExecuted(Type middlewareType)
+        => Middleware.MiddlewareExecutionContext.Current?.RecordExecuted(middlewareType);
+
+    /// <summary>
+    /// Records that a conditional middleware was skipped. Called by source-generated dispatch wrappers.
+    /// </summary>
+    /// <param name="middlewareType">The middleware <see cref="Type"/> that was skipped.</param>
+    /// <remarks>
+    /// This method is part of the source-generator instrumentation contract and is not intended
+    /// for direct use in application code.
+    /// </remarks>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public static void TrackMiddlewareSkipped(Type middlewareType)
+        => Middleware.MiddlewareExecutionContext.Current?.RecordSkipped(middlewareType);
 
     /// <summary>
     /// Gets telemetry health status.

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
+using Blazing.Mediator.Pipeline;
 
 namespace Blazing.Mediator.Middleware;
 
@@ -15,6 +16,7 @@ namespace Blazing.Mediator.Middleware;
 /// </summary>
 /// <typeparam name="TRequest">The request type (query or command with response).</typeparam>
 /// <typeparam name="TResponse">The response type.</typeparam>
+[Order(int.MinValue)]
 public sealed class TelemetryMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -28,13 +30,18 @@ public sealed class TelemetryMiddleware<TRequest, TResponse> : IRequestMiddlewar
         MediatorMetrics.SendFailureCounter;
 
     private readonly TelemetryOptions _options;
+    private readonly MiddlewarePipelineBuilder _pipelineBuilder;
 
     /// <summary>
     /// Initialises a new <see cref="TelemetryMiddleware{TRequest, TResponse}"/>.
     /// </summary>
     /// <param name="options">Telemetry options controlling capture behaviour.</param>
-    public TelemetryMiddleware(TelemetryOptions options)
-        => _options = options ?? throw new ArgumentNullException(nameof(options));
+    /// <param name="pipelineBuilder">The pipeline builder used to resolve applicable middleware lists.</param>
+    public TelemetryMiddleware(TelemetryOptions options, MiddlewarePipelineBuilder pipelineBuilder)
+    {
+        _options         = options         ?? throw new ArgumentNullException(nameof(options));
+        _pipelineBuilder = pipelineBuilder ?? throw new ArgumentNullException(nameof(pipelineBuilder));
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -55,6 +62,22 @@ public sealed class TelemetryMiddleware<TRequest, TResponse> : IRequestMiddlewar
         activity?.SetTag("request_name", requestName);
         activity?.SetTag("request_type", requestType);
 
+        if (activity != null && _options.MiddlewareCaptureMode == Configuration.MiddlewareCaptureMode.Applicable)
+        {
+            var applicable = _pipelineBuilder.GetApplicableMiddleware<TRequest, TResponse>();
+            activity.SetTag("request_middleware.pipeline",
+                string.Join(",", applicable.Select(m => Mediator.SanitizeMiddlewareName(m.Type, _options.SensitiveDataPatterns))));
+            activity.SetTag("request_middleware.count", applicable.Count);
+            activity.SetTag("request_middleware.orders",
+                string.Join(",", applicable.Select(m => m.Order)));
+            activity.SetTag("request_middleware.capture_mode", "applicable");
+        }
+
+        // ── Executed mode: allocate tracking context before pipeline ──────────────────
+        MiddlewareExecutionContext? execCtx = null;
+        if (_options.MiddlewareCaptureMode == Configuration.MiddlewareCaptureMode.Executed)
+            execCtx = MiddlewareExecutionContext.SetCurrent(new MiddlewareExecutionContext());
+
         var sw = Stopwatch.StartNew();
         Exception? exception = null;
 
@@ -71,6 +94,20 @@ public sealed class TelemetryMiddleware<TRequest, TResponse> : IRequestMiddlewar
         finally
         {
             sw.Stop();
+
+            // ── Executed mode: emit summary from collected context ─────────────────────
+            if (activity != null && execCtx != null)
+            {
+                activity.SetTag("request_middleware.executed_pipeline",
+                    string.Join(",", execCtx.Executed.Select(t => Mediator.SanitizeMiddlewareName(t, _options.SensitiveDataPatterns))));
+                activity.SetTag("request_middleware.executed_count", execCtx.Executed.Count);
+                activity.SetTag("request_middleware.skipped_pipeline",
+                    string.Join(",", execCtx.Skipped.Select(t => Mediator.SanitizeMiddlewareName(t, _options.SensitiveDataPatterns))));
+                activity.SetTag("request_middleware.skipped_count", execCtx.Skipped.Count);
+                activity.SetTag("request_middleware.capture_mode", "executed");
+                MiddlewareExecutionContext.ClearCurrent();
+            }
+
             var tags = new TagList
             {
                 { "request_name", requestName },
@@ -98,6 +135,7 @@ public sealed class TelemetryMiddleware<TRequest, TResponse> : IRequestMiddlewar
 /// but for commands that return no value.
 /// </summary>
 /// <typeparam name="TRequest">The void command type.</typeparam>
+[Order(int.MinValue)]
 public sealed class TelemetryMiddleware<TRequest> : IRequestMiddleware<TRequest>
     where TRequest : IRequest
 {
@@ -111,13 +149,18 @@ public sealed class TelemetryMiddleware<TRequest> : IRequestMiddleware<TRequest>
         MediatorMetrics.SendFailureCounter;
 
     private readonly TelemetryOptions _options;
+    private readonly MiddlewarePipelineBuilder _pipelineBuilder;
 
     /// <summary>
     /// Initialises a new <see cref="TelemetryMiddleware{TRequest}"/>.
     /// </summary>
     /// <param name="options">Telemetry options controlling capture behaviour.</param>
-    public TelemetryMiddleware(TelemetryOptions options)
-        => _options = options ?? throw new ArgumentNullException(nameof(options));
+    /// <param name="pipelineBuilder">The pipeline builder used to resolve applicable middleware lists.</param>
+    public TelemetryMiddleware(TelemetryOptions options, MiddlewarePipelineBuilder pipelineBuilder)
+    {
+        _options         = options         ?? throw new ArgumentNullException(nameof(options));
+        _pipelineBuilder = pipelineBuilder ?? throw new ArgumentNullException(nameof(pipelineBuilder));
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -139,6 +182,22 @@ public sealed class TelemetryMiddleware<TRequest> : IRequestMiddleware<TRequest>
         activity?.SetTag("request_name", requestName);
         activity?.SetTag("request_type", "command");
 
+        if (activity != null && _options.MiddlewareCaptureMode == Configuration.MiddlewareCaptureMode.Applicable)
+        {
+            var applicable = _pipelineBuilder.GetApplicableMiddleware<TRequest>();
+            activity.SetTag("request_middleware.pipeline",
+                string.Join(",", applicable.Select(m => Mediator.SanitizeMiddlewareName(m.Type, _options.SensitiveDataPatterns))));
+            activity.SetTag("request_middleware.count", applicable.Count);
+            activity.SetTag("request_middleware.orders",
+                string.Join(",", applicable.Select(m => m.Order)));
+            activity.SetTag("request_middleware.capture_mode", "applicable");
+        }
+
+        // ── Executed mode: allocate tracking context before pipeline ──────────────────
+        MiddlewareExecutionContext? execCtx = null;
+        if (_options.MiddlewareCaptureMode == Configuration.MiddlewareCaptureMode.Executed)
+            execCtx = MiddlewareExecutionContext.SetCurrent(new MiddlewareExecutionContext());
+
         var sw = Stopwatch.StartNew();
         Exception? exception = null;
 
@@ -155,6 +214,20 @@ public sealed class TelemetryMiddleware<TRequest> : IRequestMiddleware<TRequest>
         finally
         {
             sw.Stop();
+
+            // ── Executed mode: emit summary from collected context ─────────────────────
+            if (activity != null && execCtx != null)
+            {
+                activity.SetTag("request_middleware.executed_pipeline",
+                    string.Join(",", execCtx.Executed.Select(t => Mediator.SanitizeMiddlewareName(t, _options.SensitiveDataPatterns))));
+                activity.SetTag("request_middleware.executed_count", execCtx.Executed.Count);
+                activity.SetTag("request_middleware.skipped_pipeline",
+                    string.Join(",", execCtx.Skipped.Select(t => Mediator.SanitizeMiddlewareName(t, _options.SensitiveDataPatterns))));
+                activity.SetTag("request_middleware.skipped_count", execCtx.Skipped.Count);
+                activity.SetTag("request_middleware.capture_mode", "executed");
+                MiddlewareExecutionContext.ClearCurrent();
+            }
+
             var tags = new TagList
             {
                 { "request_name", requestName },

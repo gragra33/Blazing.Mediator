@@ -29,6 +29,7 @@
     - [CQRS Implementation](#cqrs-implementation)
 - [Sample Projects](#sample-projects)
 - [History](#history)
+    - [V3.0.1](#v3.0.1)
     - [V3.0.0](#v3.0.0)
     - [V2.0.1](#v2.0.1)
     - [V2.0.0](#v2.0.0)
@@ -92,11 +93,11 @@ v3.0.0 replaces all runtime reflection with compile-time source generation, deli
 
 ### Streaming / SendStream
 
-| Library                                        |          Mean | Ratio to MediatR |       vs MediatR | Allocated |
-| ---------------------------------------------- | ------------: | ---------------: | ---------------: | --------: |
-| MediatR 12.5 _(baseline)_                      |     304.92 ns |            1.00× |                — |     488 B |
-| **Blazing.Mediator v3.0.0** (source-generated) |  **90.29 ns** |        **0.29×** | **70.9% faster** |  **96 B** |
-| Blazing.Mediator v2.0.1 (reflection)           |   3,025.45 ns |            9.74× |      872% slower |   2,768 B |
+| Library                                        |         Mean | Ratio to MediatR |       vs MediatR | Allocated |
+| ---------------------------------------------- | -----------: | ---------------: | ---------------: | --------: |
+| MediatR 12.5 _(baseline)_                      |    304.92 ns |            1.00× |                — |     488 B |
+| **Blazing.Mediator v3.0.0** (source-generated) | **90.29 ns** |        **0.29×** | **70.9% faster** |  **96 B** |
+| Blazing.Mediator v2.0.1 (reflection)           |  3,025.45 ns |            9.74× |      872% slower |   2,768 B |
 
 **v3.0.0 vs v2.0.1:** **34× faster** · **97.0% reduction** · **−2,672 B per call**
 
@@ -606,6 +607,16 @@ The library includes comprehensive sample projects demonstrating different appro
 All of the Example Console applications demonstrate comprehensive **MediatorStatistics** analysis and middleware analysers, with detailed performance statistics, execution tracking, and pipeline inspection capabilities. These examples showcase real-time monitoring of queries, commands, and notifications with success rates, timing metrics, and handler discovery analysis. For complete details on implementing statistics tracking and performance monitoring in your applications, see the **[Statistics Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_STATISTICS_GUIDE.md)**.
 
 ## History
+
+### V3.0.1 - 31 March 2026
+
+- **Fix** Generated handler wrappers now support optional TelemetryMiddleware alongside StatisticsMiddleware. Middleware fields are soft-resolved and applied in the correct order if present, with fast-path execution preserved when neither middleware is registered. This applies to both response and void request handlers.
+- **`MiddlewareCaptureMode` Enum**: Replaced the `CaptureMiddlewareDetails` boolean in `TelemetryOptions` with a three-value enum — `None` (zero overhead), `Applicable` (static pipeline shape), and `Executed` (full runtime tracking of executed vs conditionally-skipped middleware). `CaptureMiddlewareDetails` is retained as an `[Obsolete]` bridge mapping `true → Applicable` and `false → None`
+- **Request-Span Middleware Telemetry**: `TelemetryMiddleware` now emits `request_middleware.*` tags on the main request activity span — four tags in `Applicable` mode (`pipeline`, `count`, `orders`, `capture_mode`) and five in `Executed` mode (`executed_pipeline`, `executed_count`, `skipped_pipeline`, `skipped_count`, `capture_mode`). Mirrors the existing `notification_middleware.*` convention
+- **Preset Updates**: All six `TelemetryOptions` static presets (`Development`, `Production`, `Minimal`, `NotificationOnly`, `StreamingOnly`, `Disabled`) updated to use `MiddlewareCaptureMode`; `Development` defaults to `Applicable`, all others to `None`
+- **`[Order(n)]` Attribute is the Only Supported Ordering Mechanism**: The `int Order { get; }` default interface property on middleware interfaces now functions only for same-assembly middleware. The source generator reads the `[Order(n)]` class attribute from compiled metadata, so `[Order(n)]` is required for correct ordering of middleware defined in external assemblies or NuGet packages. Always decorate middleware classes with `[Order(n)]` instead of overriding the interface property.
+- **Reserved Internal Middleware Order Values**: `int.MinValue` is reserved for `TelemetryMiddleware`/`TelemetryNotificationMiddleware`; `int.MinValue + 1` for `LoggingMiddleware`; `int.MinValue + 2` for `StatisticsMiddleware`. User-defined middleware must not use these values.
+- **Updated Documentation**: All documentation updated to reflect the new telemetry configuration options, middleware ordering requirements, and generated handler capabilities. The **[Telemetry Guide](https://github.com/gragra33/Blazing.Mediator/blob/master/docs/MEDIATOR_TELEMETRY_GUIDE.md)** provides detailed instructions.
 
 ### V3.0.0 - 4 March 2026
 

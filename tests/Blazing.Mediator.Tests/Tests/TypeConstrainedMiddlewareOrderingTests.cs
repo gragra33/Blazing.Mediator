@@ -1,4 +1,5 @@
 using Blazing.Mediator.Configuration;
+using Blazing.Mediator.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
@@ -41,6 +42,53 @@ public class TypeConstrainedMiddlewareOrderingTests
 
         var interfaceMiddleware = serviceProvider.GetRequiredService<InterfaceConstrainedMiddleware<TestSimpleInterfaceRequest, string>>();
         interfaceMiddleware.Order.ShouldBe(20);
+    }
+
+    #endregion
+
+    #region [Order(n)] Attribute Tests
+
+    /// <summary>
+    /// Tests that [Order(n)] attribute is used when a request middleware has no Order property override.
+    /// This simulates cross-assembly middleware where the source generator cannot read the Order
+    /// property from syntax trees but CAN read [Order(n)] from compiled metadata.
+    /// </summary>
+    [Fact]
+    public void RequestMiddleware_WithOrderAttributeOnly_UsesAttributeOrder()
+    {
+        // Arrange — AttributeOnlyOrderMiddleware has [Order(42)] and no Order property.
+        // This is the recommended pattern for middleware in NuGet packages / referenced assemblies.
+        var builder = new MiddlewarePipelineBuilder();
+
+        // Act
+        builder.AddMiddleware<AttributeOnlyOrderMiddleware<TestConstrainedRequest, string>>();
+        var middleware = builder.GetDetailedMiddlewareInfo();
+
+        // Assert
+        middleware.Count.ShouldBe(1);
+        middleware[0].Order.ShouldBe(42); // From [Order(42)] attribute — cross-assembly safe
+        middleware[0].Type.ShouldBe(typeof(AttributeOnlyOrderMiddleware<TestConstrainedRequest, string>));
+    }
+
+    /// <summary>
+    /// Tests that [Order(n)] attribute wins over a static Order property on request middleware.
+    /// The runtime pipeline builder and the source generator share the same precedence:
+    /// [Order(n)] attribute &gt; static property &gt; static field &gt; instance property.
+    /// </summary>
+    [Fact]
+    public void RequestMiddleware_WithOrderAttributeAndStaticProperty_AttributeWins()
+    {
+        // Arrange — AttributeOverridesStaticPropertyMiddleware has both [Order(75)] and
+        // public static int Order => 999. The attribute must win.
+        var builder = new MiddlewarePipelineBuilder();
+
+        // Act
+        builder.AddMiddleware<AttributeOverridesStaticPropertyMiddleware<TestConstrainedRequest, string>>();
+        var middleware = builder.GetDetailedMiddlewareInfo();
+
+        // Assert
+        middleware.Count.ShouldBe(1);
+        middleware[0].Order.ShouldBe(75); // [Order(75)] wins over static Order => 999
     }
 
     #endregion
@@ -159,6 +207,36 @@ public class SameOrderTypeConstrainedMiddleware3<TRequest> : IRequestMiddleware<
     {
         await next();
     }
+}
+
+/// <summary>
+/// Request middleware with [Order(n)] attribute only — no Order property override.
+/// Simulates the recommended pattern for cross-assembly middleware in NuGet packages or
+/// referenced assemblies, where the source generator reads [Order(n)] from compiled metadata.
+/// </summary>
+[Order(42)]
+public class AttributeOnlyOrderMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : class, IRequest<TResponse>, ITestConstraintEntity
+{
+    // No Order property — order is expressed exclusively via [Order(42)] attribute.
+    public ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        => next();
+}
+
+/// <summary>
+/// Request middleware with [Order(75)] attribute AND a static Order property (999).
+/// Used to verify that the [Order(n)] attribute wins over the static property in both the
+/// runtime pipeline builder and the source generator.
+/// </summary>
+[Order(75)]
+public class AttributeOverridesStaticPropertyMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
+    where TRequest : class, IRequest<TResponse>, ITestConstraintEntity
+{
+    /// <summary>Superseded by the [Order(75)] attribute — attribute takes priority.</summary>
+    public static int Order => 999;
+
+    public ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        => next();
 }
 
 #endregion

@@ -969,7 +969,7 @@ Generic middleware that processes all notifications implementing `INotification`
 // Non-generic base interface — handles every notification in the system
 public interface INotificationMiddleware
 {
-    // Execution order — lower numbers run first. Defaults to 0.
+    // Execution order fallback (same-assembly only). Use [Order(n)] attribute on the class instead.
     int Order => 0;
 
     ValueTask InvokeAsync<TNotification>(TNotification notification, NotificationDelegate<TNotification> next, CancellationToken cancellationToken)

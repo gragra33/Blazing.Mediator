@@ -132,16 +132,29 @@ The middleware system in Blazing.Mediator provides flexible cross-cutting concer
 
 ### Middleware Properties and Methods
 
-Each middleware implementation requires specific properties and methods to function correctly within the pipeline. The `Order` property controls execution sequence (lower values execute first), while the `HandleAsync` method contains your cross-cutting logic. For conditional middleware, the `ShouldExecute` method provides fine-grained control over when the middleware runs, allowing for performance optimizations in complex applications.
+Each middleware implementation requires specific properties and methods to function correctly within the pipeline. Use the `[Order(n)]` attribute (on the class) to control execution sequence — lower values execute first. The `HandleAsync` / `InvokeAsync` method contains your cross-cutting logic. For conditional middleware, the `ShouldExecute` method provides fine-grained control over when the middleware runs.
 
-| Property/Method    | Type                                                                                                                                               | Purpose                                                   | Notes                                             |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------- |
-| `Order`            | `int`                                                                                                                                              | Controls middleware execution order                       | Lower values execute first (e.g., -1000, 0, 100)  |
-| `HandleAsync`      | `async ValueTask<TResponse>` or `async ValueTask`                                                                                                  | Main middleware logic (request/command middleware)        | Pre/post processing around `await next()`         |
-| `HandleAsync`      | `IAsyncEnumerable<TResponse>`                                                                                                                      | Main middleware logic (stream middleware)                 | Wraps yielded stream items around `next()`        |
-| `InvokeAsync`      | `async ValueTask`                                                                                                                                  | Main middleware logic (notification middleware)           | Pre/post processing around `await next()`         |
-| `ShouldExecute`    | `bool`                                                                                                                                             | Conditional execution logic (conditional middleware only) | Return `true` to execute, `false` to skip         |
-| `next` (parameter) | `RequestHandlerDelegate<TResponse>`, `RequestHandlerDelegate`, `StreamRequestHandlerDelegate<TResponse>`, or `NotificationDelegate<TNotification>` | Next middleware or handler in pipeline                    | Always call `await next()` / `next()` to continue |
+| Property/Method    | Type                                                                                                                                               | Purpose                                                   | Notes                                                                                                                                                                                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[Order(n)]`       | `int` (attribute)                                                                                                                                  | Controls middleware execution order                       | **Preferred.** Only mechanism that works cross-assembly. Lower values execute first (e.g., -1000, 0, 100). Values ≤ `int.MinValue + 2` are reserved — see below.                                                                                           |
+| `Order` (property) | `int`                                                                                                                                              | Controls middleware execution order (same-assembly only)  | **Prefer `[Order(n)]` attribute.** The `int Order => n;` interface property is only effective for middleware defined in the same compilation as the source-generated mediator. Use `[Order(n)]` on the class instead for correct cross-assembly behaviour. |
+| `HandleAsync`      | `async ValueTask<TResponse>` or `async ValueTask`                                                                                                  | Main middleware logic (request/command middleware)        | Pre/post processing around `await next()`                                                                                                                                                                                                                  |
+| `HandleAsync`      | `IAsyncEnumerable<TResponse>`                                                                                                                      | Main middleware logic (stream middleware)                 | Wraps yielded stream items around `next()`                                                                                                                                                                                                                 |
+| `InvokeAsync`      | `async ValueTask`                                                                                                                                  | Main middleware logic (notification middleware)           | Pre/post processing around `await next()`                                                                                                                                                                                                                  |
+| `ShouldExecute`    | `bool`                                                                                                                                             | Conditional execution logic (conditional middleware only) | Return `true` to execute, `false` to skip                                                                                                                                                                                                                  |
+| `next` (parameter) | `RequestHandlerDelegate<TResponse>`, `RequestHandlerDelegate`, `StreamRequestHandlerDelegate<TResponse>`, or `NotificationDelegate<TNotification>` | Next middleware or handler in pipeline                    | Always call `await next()` / `next()` to continue                                                                                                                                                                                                          |
+
+#### Reserved Internal Middleware Order Values
+
+The following order values are reserved by built-in Blazing.Mediator middleware and must not be used in user-defined middleware:
+
+| Order Value        | Numeric Value  | Reserved By                                              |
+| ------------------ | -------------- | -------------------------------------------------------- |
+| `int.MinValue`     | -2,147,483,648 | `TelemetryMiddleware`, `TelemetryNotificationMiddleware` |
+| `int.MinValue + 1` | -2,147,483,647 | `LoggingMiddleware` (request and void variants)          |
+| `int.MinValue + 2` | -2,147,483,646 | `StatisticsMiddleware`                                   |
+
+These built-in middleware types run at the very start of the pipeline (outermost position) to capture tracing, logging, and statistics data before any user middleware executes. User middleware should use order values of `0` or higher (or other values well above `int.MinValue + 2`) to avoid conflicts.
 
 ### Pipeline Inspection Interfaces
 
@@ -1699,6 +1712,7 @@ Standard middleware executes for **all requests** that match its generic type si
 
 ```csharp
 // Query middleware - executes for all queries
+[Order(0)]
 public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -1708,8 +1722,6 @@ public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<
     {
         _logger = logger;
     }
-
-    public int Order => 0; // Execution order (lower numbers execute first)
 
     public async ValueTask<TResponse> HandleAsync(
         TRequest request,
@@ -1748,6 +1760,7 @@ public class GeneralLoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<
 }
 
 // Command middleware - executes for all commands
+[Order(0)]
 public class GeneralCommandLoggingMiddleware<TRequest> : IRequestMiddleware<TRequest>
     where TRequest : IRequest
 {
@@ -1757,8 +1770,6 @@ public class GeneralCommandLoggingMiddleware<TRequest> : IRequestMiddleware<TReq
     {
         _logger = logger;
     }
-
-    public int Order => 0;
 
     public async ValueTask HandleAsync(
         TRequest request,
@@ -1798,6 +1809,7 @@ Conditional middleware executes **only when** the `ShouldExecute` method returns
 
 ```csharp
 // Order-specific logging middleware
+[Order(1)] // Execute after general logging middleware
 public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -1807,8 +1819,6 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
     {
         _logger = logger;
     }
-
-    public int Order => 1; // Execute after general logging middleware
 
     public bool ShouldExecute(TRequest request)
     {
@@ -1857,6 +1867,7 @@ public class OrderLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlewar
 }
 
 // Product-specific logging middleware
+[Order(2)] // Executes after order middleware
 public class ProductLoggingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -1866,8 +1877,6 @@ public class ProductLoggingMiddleware<TRequest, TResponse> : IConditionalMiddlew
     {
         _logger = logger;
     }
-
-    public int Order => 2; // Executes after order middleware
 
     public bool ShouldExecute(TRequest request)
     {
@@ -2053,14 +2062,13 @@ public class TestHandler : IRequestHandler<TestQuery, string>
 
 #### Middleware Ordering
 
-All middleware is discovered at compile time and ordered by the `Order` property. Lower values execute first (outer-most in the pipeline):
+All middleware is discovered at compile time and ordered by the `[Order(n)]` attribute. Lower values execute first (outer-most in the pipeline). Apply the `[Order(n)]` attribute directly to the middleware class — this is the **only** mechanism that works correctly for middleware defined in external assemblies or NuGet packages:
 
 ```csharp
+[Order(1)]
 public class LoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public int Order => 1;  // Executes before Order: 2, 10, etc.
-
     public async ValueTask<TResponse> HandleAsync(
         TRequest request,
         RequestHandlerDelegate<TResponse> next,
@@ -2074,13 +2082,16 @@ public class LoggingMiddleware<TRequest, TResponse> : IRequestMiddleware<TReques
 }
 ```
 
-> **v3.0.0**: Assembly scanning at runtime (`AddAssembly(...)`, `WithMiddlewareDiscovery()`, `discoverMiddleware: true`, `AddMiddleware<T>()`) is no longer required. The source generator discovers all handlers and middleware at compile time.
+> **Note:** The `int Order { get; }` default interface property is still available for backwards compatibility but is only effective for middleware compiled in the same project as the generated mediator code. The source generator reads `[Order(n)]` from compiled metadata, meaning `[Order(n)]` works correctly across assemblies whereas overriding the interface property does not. Always prefer the `[Order(n)]` attribute.
+>
+> **Reserved order values:** Do not use values at or below `int.MinValue + 2`. These are reserved by the built-in `TelemetryMiddleware` (`int.MinValue`), `LoggingMiddleware` (`int.MinValue + 1`), and `StatisticsMiddleware` (`int.MinValue + 2`).
 
 ### Advanced Middleware Examples
 
 #### Validation Middleware
 
 ```csharp
+[Order(-1)] // Execute early in the pipeline
 public class ValidationMiddleware<TRequest, TResponse> : IRequestMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -2092,8 +2103,6 @@ public class ValidationMiddleware<TRequest, TResponse> : IRequestMiddleware<TReq
         _serviceProvider = serviceProvider;
         _logger = logger;
     }
-
-    public int Order => -1; // Execute early in the pipeline
 
     public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
@@ -2125,6 +2134,7 @@ public class ValidationMiddleware<TRequest, TResponse> : IRequestMiddleware<TReq
 #### Caching Middleware
 
 ```csharp
+[Order(10)] // Execute late in the pipeline
 public class CachingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -2136,8 +2146,6 @@ public class CachingMiddleware<TRequest, TResponse> : IConditionalMiddleware<TRe
         _cache = cache;
         _logger = logger;
     }
-
-    public int Order => 10; // Execute late in the pipeline
 
     public bool ShouldExecute(TRequest request)
     {

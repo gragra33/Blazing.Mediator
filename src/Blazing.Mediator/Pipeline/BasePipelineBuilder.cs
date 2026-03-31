@@ -105,7 +105,28 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
         // For generic type definitions, we need to check the unbound generic type for Order properties
         Type typeToCheck = middlewareType;
 
-        // Try to get order from a static Order property first
+        // [Order(n)] attribute takes highest priority — it is the only mechanism readable by the
+        // source generator across assembly boundaries (from compiled metadata). Check it first so
+        // that runtime and generator behaviour are consistent.
+        var orderAttribute = typeToCheck.GetCustomAttributes(false)
+            .FirstOrDefault(attr => attr.GetType().Name == "OrderAttribute");
+        if (orderAttribute != null)
+        {
+            var orderProp = orderAttribute.GetType().GetProperty("Order");
+            if (orderProp != null && orderProp.PropertyType == typeof(int))
+            {
+                try
+                {
+                    return (int)orderProp.GetValue(orderAttribute)!;
+                }
+                catch
+                {
+                    // If attribute access fails, continue to other methods
+                }
+            }
+        }
+
+        // Try to get order from a static Order property
         var orderProperty = typeToCheck.GetProperty(_orderPropertyName, BindingFlags.Public | BindingFlags.Static);
         if (orderProperty != null && orderProperty.PropertyType == typeof(int))
         {
@@ -130,25 +151,6 @@ public abstract class BasePipelineBuilder<TBuilder> : IPipelineInspector
             catch
             {
                 // If static field access fails, continue to other methods
-            }
-        }
-
-        // Check for OrderAttribute if it exists (common pattern)
-        var orderAttribute = typeToCheck.GetCustomAttributes(false)
-            .FirstOrDefault(attr => attr.GetType().Name == "OrderAttribute");
-        if (orderAttribute != null)
-        {
-            var orderProp = orderAttribute.GetType().GetProperty("Order");
-            if (orderProp != null && orderProp.PropertyType == typeof(int))
-            {
-                try
-                {
-                    return (int)orderProp.GetValue(orderAttribute)!;
-                }
-                catch
-                {
-                    // If attribute access fails, continue to other methods
-                }
             }
         }
 

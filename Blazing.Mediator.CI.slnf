@@ -1,0 +1,9 @@
+{
+  "solution": {
+    "path": "Blazing.Mediator.sln",
+    "projects": [
+      "src\\Blazing.Mediator\\Blazing.Mediator.csproj",
+      "src\\Blazing.Mediator.SourceGenerators\\Blazing.Mediator.SourceGenerators.csproj"
+    ]
+  }
+}

@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Local CI/CD test runner for Blazing.Mediator.
@@ -172,8 +173,8 @@ if ($Mode -in @('dry', 'all') -and $dockerAvailable -and $hasAct) {
             }
 
             $out = & act @actArgs 2>&1
-            # Filter known act Windows cache bug: upload-artifact@v4 fails to remove its own
-            # .gitignore on Windows, causing a non-zero exit code even in dry-run mode.
+            # Filter known act Windows cache bug: upload-artifact (all versions) may fail to
+            # remove its own .gitignore on Windows, causing a non-zero exit code even in dry-run mode.
             # Succeed if there are no real failures (excluding DRYRUN summary lines and artifact errors).
             $failed = @($out | Where-Object {
                 $_ -match '(FAIL|error)' -and

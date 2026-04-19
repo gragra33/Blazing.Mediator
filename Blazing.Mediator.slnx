@@ -1,0 +1,80 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Blazing.Mediator.Benchmarks/Blazing.Mediator.Benchmarks.csproj" />
+    <Project Path="benchmarks/ComparisonBenchmarks.Old/ComparisonBenchmarks.Old.csproj" />
+    <Project Path="benchmarks/ComparisonBenchmarks/ComparisonBenchmarks.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="src/samples/Blazing.Mediator.Examples/Blazing.Mediator.Examples.csproj" />
+    <Project Path="src/samples/ConfigurationExample/ConfigurationExample.csproj" />
+    <Project Path="src/samples/ECommerce.Api/ECommerce.Api.csproj" />
+    <Project Path="src/samples/MiddlewareExample/MiddlewareExample.csproj" />
+    <Project Path="src/samples/NotificationHandlerExample/NotificationHandlerExample.csproj" />
+    <Project Path="src/samples/NotificationHybridExample/NotificationHybridExample.csproj" />
+    <Project Path="src/samples/NotificationSubscriberExample/NotificationSubscriberExample.csproj" />
+    <Project Path="src/samples/TypedMiddlewareExample/TypedMiddlewareExample.csproj" />
+    <Project Path="src/samples/TypedNotificationHandlerExample/TypedNotificationHandlerExample.csproj" />
+    <Project Path="src/samples/TypedNotificationHybridExample/TypedNotificationHybridExample.csproj" />
+    <Project Path="src/samples/TypedNotificationSubscriberExample/TypedNotificationSubscriberExample.csproj" />
+    <Project Path="src/samples/UserManagement.Api/UserManagement.Api.csproj" />
+  </Folder>
+  <Folder Name="/samples/Analyzers/">
+    <Project Path="src/samples/AnalyzerExample.Common/AnalyzerExample.Common.csproj" />
+    <Project Path="src/samples/AnalyzerExample.Orders/AnalyzerExample.Orders.csproj" />
+    <Project Path="src/samples/AnalyzerExample.Products/AnalyzerExample.Products.csproj" />
+    <Project Path="src/samples/AnalyzerExample.Users/AnalyzerExample.Users.csproj" />
+    <Project Path="src/samples/AnalyzerExample/AnalyzerExample.csproj" />
+  </Folder>
+  <Folder Name="/samples/libs/">
+    <Project Path="src/samples/Example.Common/Example.Common.csproj" />
+  </Folder>
+  <Folder Name="/samples/Open Telemetry/">
+    <File Path="src/samples/OpenTelemetry/OpenTelemetryExample/README.md" />
+    <Project Path="src/samples/OpenTelemetry/OpenTelemetryExample.AppHost/OpenTelemetryExample.AppHost.csproj" />
+    <Project Path="src/samples/OpenTelemetry/OpenTelemetryExample.Client/OpenTelemetryExample.Client.csproj" />
+    <Project Path="src/samples/OpenTelemetry/OpenTelemetryExample.Shared/OpenTelemetryExample.Shared.csproj" />
+    <Project Path="src/samples/OpenTelemetry/OpenTelemetryExample/OpenTelemetryExample.csproj" />
+  </Folder>
+  <Folder Name="/samples/Streaming/">
+    <Project Path="src/samples/Streaming.Api/Streaming.Api.Client/Streaming.Api.Client.csproj" />
+    <Project Path="src/samples/Streaming.Api/Streaming.Api.Shared/Streaming.Api.Shared.csproj" />
+    <Project Path="src/samples/Streaming.Api/Streaming.Api.WASM/Streaming.Api.WASM.csproj" />
+    <Project Path="src/samples/Streaming.Api/Streaming.Api/Streaming.Api.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="cleanbuild.ps1" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="test-notifications-endpoints.ps1" />
+    <File Path="test-streaming-endpoints.ps1" />
+  </Folder>
+  <Folder Name="/Solution Items/docs/">
+    <File Path="CODE_OF_CONDUCT.md" />
+    <File Path="CONTRIBUTING.md" />
+    <File Path="docs/MEDIATOR_CONFIGURATION.md" />
+    <File Path="docs/MEDIATOR_LOGGING_GUIDE.md" />
+    <File Path="docs/MEDIATOR_NOTIFICATION_GUIDE.md" />
+    <File Path="docs/MEDIATOR_OPEN_TELEMETRY_GUIDE.md" />
+    <File Path="docs/MEDIATOR_PATTERN_GUIDE.md" />
+    <File Path="docs/MEDIATOR_STATISTICS_GUIDE.md" />
+    <File Path="docs/MEDIATOR_STREAMING_GUIDE.md" />
+    <File Path="HISTORY.md" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Blazing.Mediator.SourceGenerators/Blazing.Mediator.SourceGenerators.csproj" />
+    <Project Path="src/Blazing.Mediator/Blazing.Mediator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Blazing.Mediator.Tests/Blazing.Mediator.Tests.csproj" />
+    <Project Path="tests/ECommerce.Api.Tests/ECommerce.Api.Tests.csproj" />
+    <Project Path="tests/OpenTelemetryExample.Tests/OpenTelemetryExample.Tests.csproj" />
+    <Project Path="tests/Streaming.Api.Tests/Streaming.Api.Tests.csproj" />
+    <Project Path="tests/UserManagement.Api.Tests/UserManagement.Api.Tests.csproj" />
+  </Folder>
+</Solution>

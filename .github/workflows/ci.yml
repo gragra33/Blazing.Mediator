@@ -22,9 +22,9 @@ jobs:
               env:
                   BRANCH: ${{ github.head_ref }}
               run: |
-                  if [[ ! "$BRANCH" =~ ^(feature|fix|hotfix)/.+ ]]; then
+                  if [[ ! "$BRANCH" =~ ^(feature|fix|hotfix)/.+ ]] && [[ "$BRANCH" != "develop" ]]; then
                     echo "::error::Branch '$BRANCH' does not follow naming conventions."
-                    echo "::error::PR source branches must be prefixed with 'feature/', 'fix/', or 'hotfix/'."
+                    echo "::error::PR source branches must be 'develop' or prefixed with 'feature/', 'fix/', or 'hotfix/'."
                     exit 1
                   fi
                   echo "Branch '$BRANCH' follows naming conventions."

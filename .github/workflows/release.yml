@@ -71,8 +71,9 @@ jobs:
                   gh release create "${{ steps.version.outputs.tag }}" \
                     --title "Release ${{ steps.version.outputs.tag }}" \
                     --generate-notes \
-                    ./artifacts/*.nupkg \
-                    ./artifacts/*.snupkg
+                    ./artifacts/Blazing.Mediator.${{ steps.version.outputs.version }}.nupkg \
+                    ./artifacts/Blazing.Mediator.${{ steps.version.outputs.version }}.snupkg \
+                    ./artifacts/Blazing.Mediator.SourceGenerators.${{ steps.version.outputs.version }}.nupkg
             - name: Push Blazing.Mediator to NuGet.org
               if: steps.tag_check.outputs.exists == 'false'
               run: |
@@ -94,10 +95,5 @@ jobs:
                     "./artifacts/Blazing.Mediator.SourceGenerators.${{ steps.version.outputs.version }}.nupkg" \
                     --api-key ${{ secrets.NUGET_API_KEY }} \
                     --source https://api.nuget.org/v3/index.json --skip-duplicate
-            - name: Push Blazing.Mediator.SourceGenerators symbols to NuGet.org
-              if: steps.tag_check.outputs.exists == 'false'
-              run: |
-                  dotnet nuget push \
-                    "./artifacts/Blazing.Mediator.SourceGenerators.${{ steps.version.outputs.version }}.snupkg" \
-                    --api-key ${{ secrets.NUGET_API_KEY }} \
-                    --source https://api.nuget.org/v3/index.json --skip-duplicate
+            # Note: Blazing.Mediator.SourceGenerators sets <IncludeSymbols>false</IncludeSymbols>
+            # so no .snupkg is produced and there is no symbols-push step for it.

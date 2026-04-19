@@ -47,6 +47,8 @@
     <Project Path="src/samples/Streaming.Api/Streaming.Api/Streaming.Api.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
+    <File Path="Blazing.Mediator.CI.slnf" />
+    <File Path="ci-cd-test-run.ps1" />
     <File Path="cleanbuild.ps1" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />

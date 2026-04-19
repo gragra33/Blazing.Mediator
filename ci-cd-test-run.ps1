@@ -90,7 +90,10 @@ $hasActionlint = $false
 if ($needsActionlint) {
     $hasActionlint = Test-Tool 'actionlint'
     if (-not $hasActionlint) {
-        Add-Error "Tool 'actionlint' not found. Install: winget install rhysd.actionlint"
+        $installHint = if ($IsWindows) { 'winget install rhysd.actionlint  (or: choco install actionlint)' }
+                       elseif ($IsMacOS) { 'brew install actionlint' }
+                       else { 'go install github.com/rhysd/actionlint/cmd/actionlint@latest  # or see https://github.com/rhysd/actionlint#installation' }
+        Add-Error "Tool 'actionlint' not found. Install: $installHint"
     }
 }
 
@@ -99,7 +102,10 @@ $dockerAvailable = $false
 if ($needsAct) {
     $hasAct = Test-Tool 'act'
     if (-not $hasAct) {
-        Add-Error "Tool 'act' not found. Install: winget install nektos.act"
+        $installHint = if ($IsWindows) { 'winget install nektos.act  (or: choco install act-cli)' }
+                       elseif ($IsMacOS) { 'brew install act' }
+                       else { 'curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash  # or see https://nektosact.com/installation/' }
+        Add-Error "Tool 'act' not found. Install: $installHint"
     }
 
     try {

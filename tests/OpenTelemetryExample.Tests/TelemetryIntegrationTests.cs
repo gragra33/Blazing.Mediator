@@ -315,23 +315,27 @@ public class TelemetryIntegrationTests : IClassFixture<OpenTelemetryWebApplicati
     public async Task ApplicationUnderPressure_ContinuesWorking()
     {
         // Arrange - Warm up the app first so the pressure phase measures resiliency
-        // rather than cold-start timing.
-        var warmUpResponse = await _client.GetAsync("/api/users/1");
+        // rather than cold-start timing. Use the list endpoint which always returns
+        // 200 OK regardless of database state (no dependency on specific user IDs).
+        var warmUpResponse = await _client.GetAsync("/api/users");
 
         // Act - Generate a lot of requests quickly
         var tasks = new List<Task<HttpResponseMessage>>();
         
         for (int i = 0; i < 50; i++)
         {
-            tasks.Add(_client.GetAsync("/api/users/1"));
+            tasks.Add(_client.GetAsync("/api/users"));
         }
 
         var responses = await Task.WhenAll(tasks);
 
-        // Assert - The burst may produce transient failures in CI, but the important
-        // guarantee is that the application remains responsive afterwards.
+        // Assert - Burst targets a stable endpoint (GET /api/users) so the vast majority
+        // should succeed. We require ≥ 80 % to guard against regressions while still
+        // tolerating a handful of transient CI hiccups.
         warmUpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         responses.Length.ShouldBe(50);
+        var successCount = responses.Count(r => r.StatusCode == HttpStatusCode.OK);
+        successCount.ShouldBeGreaterThanOrEqualTo(40); // ≥ 80 % success under pressure
 
         var healthResponse = await _client.GetAsync("/health");
         healthResponse.StatusCode.ShouldBe(HttpStatusCode.OK);

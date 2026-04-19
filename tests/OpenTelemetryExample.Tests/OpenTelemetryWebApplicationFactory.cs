@@ -29,9 +29,9 @@ public class OpenTelemetryWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            // Replace the shared named in-memory database with a per-factory isolated one.
-            // RemoveAll removes every DbContextOptions<ApplicationDbContext> descriptor so
-            // the subsequent AddDbContext registration is the sole authoritative one.
+            // Replace the app's ApplicationDbContext registration and its typed options
+            // with a per-factory isolated in-memory database registration.
+            services.RemoveAll(typeof(ApplicationDbContext));
             services.RemoveAll(typeof(DbContextOptions<ApplicationDbContext>));
 
             services.AddDbContext<ApplicationDbContext>(options =>

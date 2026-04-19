@@ -73,18 +73,20 @@ function Test-Tool {
 # ══════════════════════════════════════════════════════════════════════════════
 Write-Header 'Prerequisite Check'
 
-if (-not (Test-Tool 'dotnet')) {
-    Add-Error "Tool 'dotnet' not found. Install: https://dotnet.microsoft.com/download"
-} else {
-    Write-Pass "dotnet $(dotnet --version)"
+$needsActionlint = $Mode -in @('lint', 'all')
+$needsAct        = $Mode -in @('dry', 'ci', 'all')
+
+if ($needsAct) {
+    if (-not (Test-Tool 'dotnet')) {
+        Add-Error "Tool 'dotnet' not found. Install: https://dotnet.microsoft.com/download"
+    } else {
+        Write-Pass "dotnet $(dotnet --version)"
+    }
 }
 
 if (-not (Test-Path $CiYaml)) { Add-Error "Missing workflow file: $CiYaml" }
-if (-not (Test-Path $ReleaseYaml)) { Add-Error "Missing workflow file: $ReleaseYaml" }
+if (($Workflow -in @('release', 'both')) -and (-not (Test-Path $ReleaseYaml))) { Add-Error "Missing workflow file: $ReleaseYaml" }
 if (-not (Test-Path $CiSlnf)) { Add-Error "Missing CI solution file: $CiSlnf" }
-
-$needsActionlint = $Mode -in @('lint', 'all')
-$needsAct = $Mode -in @('dry', 'ci', 'all')
 
 $hasActionlint = $false
 if ($needsActionlint) {

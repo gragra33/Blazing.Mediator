@@ -3,19 +3,7 @@
     "path": "Blazing.Mediator.sln",
     "projects": [
       "src\\Blazing.Mediator\\Blazing.Mediator.csproj",
-      "src\\Blazing.Mediator.SourceGenerators\\Blazing.Mediator.SourceGenerators.csproj",
-      "tests\\Blazing.Mediator.Tests\\Blazing.Mediator.Tests.csproj",
-      "tests\\ECommerce.Api.Tests\\ECommerce.Api.Tests.csproj",
-      "src\\samples\\ECommerce.Api\\ECommerce.Api.csproj",
-      "tests\\UserManagement.Api.Tests\\UserManagement.Api.Tests.csproj",
-      "src\\samples\\UserManagement.Api\\UserManagement.Api.csproj",
-      "tests\\Streaming.Api.Tests\\Streaming.Api.Tests.csproj",
-      "src\\samples\\Streaming.Api\\Streaming.Api\\Streaming.Api.csproj",
-      "src\\samples\\Streaming.Api\\Streaming.Api.Shared\\Streaming.Api.Shared.csproj",
-      "src\\samples\\Streaming.Api\\Streaming.Api.Client\\Streaming.Api.Client.csproj",
-      "tests\\OpenTelemetryExample.Tests\\OpenTelemetryExample.Tests.csproj",
-      "src\\samples\\OpenTelemetry\\OpenTelemetryExample\\OpenTelemetryExample.csproj",
-      "src\\samples\\OpenTelemetry\\OpenTelemetryExample.Shared\\OpenTelemetryExample.Shared.csproj"
+      "src\\Blazing.Mediator.SourceGenerators\\Blazing.Mediator.SourceGenerators.csproj"
     ]
   }
 }

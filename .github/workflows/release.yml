@@ -9,12 +9,14 @@ jobs:
     release:
         name: Build, Test & Publish to NuGet
         runs-on: ubuntu-latest
+        permissions:
+            contents: write
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
               with:
                   fetch-depth: 0
             - name: Setup .NET
-              uses: actions/setup-dotnet@v4
+              uses: actions/setup-dotnet@v5
               with:
                   dotnet-version: |
                       9.0.x
@@ -25,18 +27,18 @@ jobs:
               run: dotnet build Blazing.Mediator.CI.slnf --no-restore --configuration Release -p:GeneratePackageOnBuild=false
             - name: Test (net9.0)
               run: |
-                  dotnet test tests/Blazing.Mediator.Tests/Blazing.Mediator.Tests.csproj --no-build --configuration Release --framework net9.0
-                  dotnet test tests/ECommerce.Api.Tests/ECommerce.Api.Tests.csproj --no-build --configuration Release --framework net9.0
-                  dotnet test tests/UserManagement.Api.Tests/UserManagement.Api.Tests.csproj --no-build --configuration Release --framework net9.0
-                  dotnet test tests/Streaming.Api.Tests/Streaming.Api.Tests.csproj --no-build --configuration Release --framework net9.0
-                  dotnet test tests/OpenTelemetryExample.Tests/OpenTelemetryExample.Tests.csproj --no-build --configuration Release --framework net9.0
+                  dotnet test tests/Blazing.Mediator.Tests/Blazing.Mediator.Tests.csproj --configuration Release --framework net9.0
+                  dotnet test tests/ECommerce.Api.Tests/ECommerce.Api.Tests.csproj --configuration Release --framework net9.0
+                  dotnet test tests/UserManagement.Api.Tests/UserManagement.Api.Tests.csproj --configuration Release --framework net9.0
+                  dotnet test tests/Streaming.Api.Tests/Streaming.Api.Tests.csproj --configuration Release --framework net9.0
+                  dotnet test tests/OpenTelemetryExample.Tests/OpenTelemetryExample.Tests.csproj --configuration Release --framework net9.0
             - name: Test (net10.0)
               run: |
-                  dotnet test tests/Blazing.Mediator.Tests/Blazing.Mediator.Tests.csproj --no-build --configuration Release --framework net10.0
-                  dotnet test tests/ECommerce.Api.Tests/ECommerce.Api.Tests.csproj --no-build --configuration Release --framework net10.0
-                  dotnet test tests/UserManagement.Api.Tests/UserManagement.Api.Tests.csproj --no-build --configuration Release --framework net10.0
-                  dotnet test tests/Streaming.Api.Tests/Streaming.Api.Tests.csproj --no-build --configuration Release --framework net10.0
-                  dotnet test tests/OpenTelemetryExample.Tests/OpenTelemetryExample.Tests.csproj --no-build --configuration Release --framework net10.0
+                  dotnet test tests/Blazing.Mediator.Tests/Blazing.Mediator.Tests.csproj --configuration Release --framework net10.0
+                  dotnet test tests/ECommerce.Api.Tests/ECommerce.Api.Tests.csproj --configuration Release --framework net10.0
+                  dotnet test tests/UserManagement.Api.Tests/UserManagement.Api.Tests.csproj --configuration Release --framework net10.0
+                  dotnet test tests/Streaming.Api.Tests/Streaming.Api.Tests.csproj --configuration Release --framework net10.0
+                  dotnet test tests/OpenTelemetryExample.Tests/OpenTelemetryExample.Tests.csproj --configuration Release --framework net10.0
             - name: Extract version from Directory.Build.props
               id: version
               run: |

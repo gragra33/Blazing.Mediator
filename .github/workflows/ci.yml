@@ -39,9 +39,9 @@ jobs:
             matrix:
                 framework: ["net9.0", "net10.0"]
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
             - name: Setup .NET
-              uses: actions/setup-dotnet@v4
+              uses: actions/setup-dotnet@v5
               with:
                   dotnet-version: |
                       9.0.x
@@ -49,34 +49,34 @@ jobs:
             - name: Restore
               run: dotnet restore Blazing.Mediator.CI.slnf
             - name: Build
-              run: dotnet build Blazing.Mediator.CI.slnf --no-restore --configuration Release -p:GeneratePackageOnBuild=false
+              run: dotnet build Blazing.Mediator.CI.slnf --no-restore --configuration Release --framework ${{ matrix.framework }} -p:GeneratePackageOnBuild=false
             - name: Test — Blazing.Mediator.Tests (${{ matrix.framework }})
               run: |
                   dotnet test tests/Blazing.Mediator.Tests/Blazing.Mediator.Tests.csproj \
-                    --no-build --configuration Release --framework ${{ matrix.framework }} \
+                    --configuration Release --framework ${{ matrix.framework }} \
                     --logger "trx;LogFileName=test-results-core-${{ matrix.framework }}.trx"
             - name: Test — ECommerce.Api.Tests (${{ matrix.framework }})
               run: |
                   dotnet test tests/ECommerce.Api.Tests/ECommerce.Api.Tests.csproj \
-                    --no-build --configuration Release --framework ${{ matrix.framework }} \
+                    --configuration Release --framework ${{ matrix.framework }} \
                     --logger "trx;LogFileName=test-results-ecommerce-${{ matrix.framework }}.trx"
             - name: Test — UserManagement.Api.Tests (${{ matrix.framework }})
               run: |
                   dotnet test tests/UserManagement.Api.Tests/UserManagement.Api.Tests.csproj \
-                    --no-build --configuration Release --framework ${{ matrix.framework }} \
+                    --configuration Release --framework ${{ matrix.framework }} \
                     --logger "trx;LogFileName=test-results-usermgmt-${{ matrix.framework }}.trx"
             - name: Test — Streaming.Api.Tests (${{ matrix.framework }})
               run: |
                   dotnet test tests/Streaming.Api.Tests/Streaming.Api.Tests.csproj \
-                    --no-build --configuration Release --framework ${{ matrix.framework }} \
+                    --configuration Release --framework ${{ matrix.framework }} \
                     --logger "trx;LogFileName=test-results-streaming-${{ matrix.framework }}.trx"
             - name: Test — OpenTelemetryExample.Tests (${{ matrix.framework }})
               run: |
                   dotnet test tests/OpenTelemetryExample.Tests/OpenTelemetryExample.Tests.csproj \
-                    --no-build --configuration Release --framework ${{ matrix.framework }} \
+                    --configuration Release --framework ${{ matrix.framework }} \
                     --logger "trx;LogFileName=test-results-otel-${{ matrix.framework }}.trx"
             - name: Upload test results
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               if: always()
               continue-on-error: true
               with:

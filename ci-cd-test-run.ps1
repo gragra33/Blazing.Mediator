@@ -8,26 +8,24 @@
     both .NET SDK versions required for the net9.0 and net10.0 multi-target builds.
 
 .PARAMETER Mode
-    dry      - Validate YAML + act dry-run only (no Docker execution, fastest)
-    lint     - actionlint static analysis only (no Docker required)
-    ci       - Full CI workflow execution via act (requires Docker)
+    dry      - Validate workflow graph via act dry-run only (requires Docker + act)
+    lint     - actionlint static analysis only
+    ci       - Full workflow execution via act
     all      - lint + ci (default)
 
 .PARAMETER Workflow
-    ci       - Run only ci.yml (default for Mode=ci)
+    ci       - Run only ci.yml (default)
     release  - Run only release.yml
-    both     - Run both workflows (sequential)
+    both     - Run both workflows
 
 .PARAMETER Job
-    Optionally run a single job by name, e.g. 'build-and-test'. Ignored for dry/lint modes.
+    Optionally run one job by name (for Mode=ci).
 
 .EXAMPLE
     .\ci-cd-test-run.ps1
     .\ci-cd-test-run.ps1 -Mode lint
     .\ci-cd-test-run.ps1 -Mode dry
-    .\ci-cd-test-run.ps1 -Mode ci
-    .\ci-cd-test-run.ps1 -Mode ci -Workflow release
-    .\ci-cd-test-run.ps1 -Mode ci -Job build-and-test
+    .\ci-cd-test-run.ps1 -Mode ci -Workflow ci -Job build-and-test
 #>
 
 [CmdletBinding()]
@@ -48,7 +46,6 @@ $ErrorActionPreference = 'Stop'
 function Write-Header  { param([string]$msg) Write-Host "`n━━━ $msg ━━━" -ForegroundColor Cyan }
 function Write-Pass    { param([string]$msg) Write-Host "  ✅ $msg" -ForegroundColor Green }
 function Write-Fail    { param([string]$msg) Write-Host "  ❌ $msg" -ForegroundColor Red }
-function Write-Info    { param([string]$msg) Write-Host "  ℹ  $msg" -ForegroundColor DarkGray }
 function Write-Warn    { param([string]$msg) Write-Host "  ⚠  $msg" -ForegroundColor Yellow }
 function Write-Section { param([string]$msg) Write-Host "`n  ▶ $msg" -ForegroundColor White }
 
@@ -63,23 +60,12 @@ $RepoRoot       = $PSScriptRoot
 $WorkflowDir    = Join-Path $RepoRoot '.github' 'workflows'
 $CiYaml         = Join-Path $WorkflowDir 'ci.yml'
 $ReleaseYaml    = Join-Path $WorkflowDir 'release.yml'
-$SlnFilter      = Join-Path $RepoRoot 'Blazing.Mediator.CI.slnf'
-$DbProps        = Join-Path $RepoRoot 'Directory.Build.props'
-$CoreTests      = Join-Path $RepoRoot 'tests' 'Blazing.Mediator.Tests' 'Blazing.Mediator.Tests.csproj'
-$ECommerceTests = Join-Path $RepoRoot 'tests' 'ECommerce.Api.Tests' 'ECommerce.Api.Tests.csproj'
-$UserMgmtTests  = Join-Path $RepoRoot 'tests' 'UserManagement.Api.Tests' 'UserManagement.Api.Tests.csproj'
-$StreamingTests = Join-Path $RepoRoot 'tests' 'Streaming.Api.Tests' 'Streaming.Api.Tests.csproj'
-$OtelTests      = Join-Path $RepoRoot 'tests' 'OpenTelemetryExample.Tests' 'OpenTelemetryExample.Tests.csproj'
-$Frameworks     = @('net9.0', 'net10.0')
+$CiSlnf         = Join-Path $RepoRoot 'Blazing.Mediator.CI.slnf'
 
 # ── Tool check ─────────────────────────────────────────────────────────────────
 function Test-Tool {
-    param([string]$Name, [string]$InstallHint)
-    if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-        Add-Error "Tool '$Name' not found. Install: $InstallHint"
-        return $false
-    }
-    return $true
+    param([string]$Name)
+    return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -87,47 +73,63 @@ function Test-Tool {
 # ══════════════════════════════════════════════════════════════════════════════
 Write-Header 'Prerequisite Check'
 
-$hasDotnet      = Test-Tool 'dotnet'      'https://dotnet.microsoft.com/download'
-$hasActionlint  = Test-Tool 'actionlint'  'winget install rhysd.actionlint'
-$hasAct         = Test-Tool 'act'         'winget install nektos.act'
+if (-not (Test-Tool 'dotnet')) {
+    Add-Error "Tool 'dotnet' not found. Install: https://dotnet.microsoft.com/download"
+} else {
+    Write-Pass "dotnet $(dotnet --version)"
+}
 
-if ($hasDotnet) { Write-Pass "dotnet $(dotnet --version)" }
+if (-not (Test-Path $CiYaml)) { Add-Error "Missing workflow file: $CiYaml" }
+if (-not (Test-Path $ReleaseYaml)) { Add-Error "Missing workflow file: $ReleaseYaml" }
+if (-not (Test-Path $CiSlnf)) { Add-Error "Missing CI solution file: $CiSlnf" }
 
-# Docker check (only needed for ci/all/dry modes)
+$needsActionlint = $Mode -in @('lint', 'all')
+$needsAct = $Mode -in @('dry', 'ci', 'all')
+
+$hasActionlint = $false
+if ($needsActionlint) {
+    $hasActionlint = Test-Tool 'actionlint'
+    if (-not $hasActionlint) {
+        Add-Error "Tool 'actionlint' not found. Install: winget install rhysd.actionlint"
+    }
+}
+
+$hasAct = $false
 $dockerAvailable = $false
-if ($Mode -in @('ci', 'all', 'dry')) {
+if ($needsAct) {
+    $hasAct = Test-Tool 'act'
+    if (-not $hasAct) {
+        Add-Error "Tool 'act' not found. Install: winget install nektos.act"
+    }
+
     try {
         $null = docker info 2>$null
         $dockerAvailable = $true
         Write-Pass 'Docker daemon reachable'
     } catch {
-        Add-Warning 'Docker not reachable — ci/dry modes will be skipped'
+        Add-Error 'Docker not reachable — act dry/ci modes require Docker'
     }
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STEP 2 — actionlint static analysis
 # ══════════════════════════════════════════════════════════════════════════════
-if ($Mode -in @('lint', 'all')) {
+if ($Mode -in @('lint', 'all') -and $hasActionlint) {
     Write-Header 'YAML Static Analysis (actionlint)'
 
-    if (-not $hasActionlint) {
-        Add-Error 'actionlint not installed — skipping lint'
-    } else {
-        $yamlFiles = @()
-        if ($Workflow -in @('ci',      'both')) { $yamlFiles += $CiYaml      }
-        if ($Workflow -in @('release', 'both')) { $yamlFiles += $ReleaseYaml }
+    $yamlFiles = @()
+    if ($Workflow -in @('ci', 'both')) { $yamlFiles += $CiYaml }
+    if ($Workflow -in @('release', 'both')) { $yamlFiles += $ReleaseYaml }
 
-        foreach ($yaml in $yamlFiles) {
-            $name = Split-Path $yaml -Leaf
-            Write-Section "Linting $name"
-            $out = actionlint $yaml 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                Write-Pass "$name — no issues"
-            } else {
-                $out | ForEach-Object { Write-Host "    $_" -ForegroundColor Yellow }
-                Add-Error "$name has actionlint violations (see above)"
-            }
+    foreach ($yaml in $yamlFiles) {
+        $name = Split-Path $yaml -Leaf
+        Write-Section "Linting $name"
+        $out = actionlint $yaml 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Pass "$name — no issues"
+        } else {
+            $out | ForEach-Object { Write-Host "    $_" -ForegroundColor Yellow }
+            Add-Error "$name has actionlint violations (see above)"
         }
     }
 }
@@ -146,24 +148,54 @@ if ($Mode -in @('dry', 'all') -and $dockerAvailable -and $hasAct) {
         Write-Section "Dry-run $($wf.Name) workflow"
         Push-Location $RepoRoot
         try {
-            $out = act push --workflows $wf.File -n 2>&1
+            $actArgs = @('push', '--workflows', $wf.File, '-n')
+            $eventPath = $null
+
+            # Release workflow is gated on push to master; this act version doesn't
+            # support --ref, so provide an explicit push event payload instead.
+            if ($wf.Name -eq 'Release') {
+                $eventPath = [System.IO.Path]::GetTempFileName()
+                @{
+                    ref = 'refs/heads/master'
+                    repository = @{ default_branch = 'master' }
+                    head_commit = @{ id = 'local-dry-run' }
+                } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $eventPath -Encoding UTF8
+                $actArgs += @('-e', $eventPath)
+            }
+
+            $out = & act @actArgs 2>&1
             # Filter known act Windows cache bug: upload-artifact@v4 fails to remove its own
             # .gitignore on Windows, causing a non-zero exit code even in dry-run mode.
             # Succeed if there are no real failures (excluding DRYRUN summary lines and artifact errors).
-            $failed = $out | Where-Object {
+            $failed = @($out | Where-Object {
                 $_ -match '(FAIL|error)' -and
                 $_ -notmatch 'DRYRUN' -and
                 $_ -notmatch 'upload-artifact' -and
                 $_ -notmatch '\.cache\\act\\actions-upload-artifact' -and
                 $_ -notmatch 'The system cannot find the file specified'
-            }
-            if (-not $failed) {
+            })
+            $knownArtifactCacheIssue = @($out | Where-Object {
+                $_ -match 'actions-upload-artifact' -or
+                $_ -match 'The system cannot find the file specified'
+            })
+
+            # Detect when act ran but no dry-run jobs were staged (workflow likely skipped)
+            $dryRunLines = @($out | Where-Object { $_ -match '\*DRYRUN\* \[[^\]]+\]' })
+            if ($dryRunLines.Count -eq 0) {
+                Add-Warning "$($wf.Name) dry-run: no jobs were staged — workflow may have been skipped. Verify trigger ref and branch filter."
+            } elseif ($LASTEXITCODE -eq 0 -and $failed.Count -eq 0) {
+                Write-Pass "$($wf.Name) dry-run succeeded"
+            } elseif ($LASTEXITCODE -ne 0 -and $failed.Count -eq 0 -and $knownArtifactCacheIssue.Count -gt 0) {
+                Add-Warning "$($wf.Name) dry-run hit known act artifact-cache cleanup issue; treating as success because no real failures were detected."
                 Write-Pass "$($wf.Name) dry-run succeeded"
             } else {
                 $out | Where-Object { $_ -match '(FAIL|error|warn)' } | ForEach-Object { Write-Host "    $_" -ForegroundColor Yellow }
                 Add-Error "$($wf.Name) dry-run reported issues"
             }
         } finally {
+            if ($null -ne $eventPath -and (Test-Path -LiteralPath $eventPath)) {
+                Remove-Item -LiteralPath $eventPath -Force -ErrorAction SilentlyContinue
+            }
             Pop-Location
         }
     }
@@ -175,55 +207,49 @@ if ($Mode -in @('dry', 'all') -and $dockerAvailable -and $hasAct) {
 if ($Mode -in @('ci', 'all') -and $dockerAvailable -and $hasAct) {
     Write-Header 'Full CI Execution (act)'
 
-    if (-not $dockerAvailable) {
-        Add-Warning 'Docker not available — skipping act execution'
-    } else {
-        $actWorkflows = @()
-        if ($Workflow -in @('ci',      'both')) { $actWorkflows += @{ Name = 'CI';      File = $CiYaml;      Event = 'push' } }
-        if ($Workflow -in @('release', 'both')) { $actWorkflows += @{ Name = 'Release'; File = $ReleaseYaml; Event = 'push' } }
+    $actWorkflows = @()
+    if ($Workflow -in @('ci', 'both')) { $actWorkflows += @{ Name = 'CI'; File = $CiYaml; Event = 'push' } }
+    if ($Workflow -in @('release', 'both')) { $actWorkflows += @{ Name = 'Release'; File = $ReleaseYaml; Event = 'push' } }
 
-        foreach ($wf in $actWorkflows) {
-            Write-Section "Running $($wf.Name) workflow via act"
-            Push-Location $RepoRoot
-            try {
-                $actArgs = @($wf.Event, '--workflows', $wf.File)
-                if ($Job) { $actArgs += @('-j', $Job) }
+    foreach ($wf in $actWorkflows) {
+        Write-Section "Running $($wf.Name) workflow via act"
+        Push-Location $RepoRoot
+        try {
+            $actArgs = @($wf.Event, '--workflows', $wf.File)
+            if ($Job) { $actArgs += @('-j', $Job) }
 
-                # Stream output, capture for analysis
-                $outLines = [System.Collections.Generic.List[string]]::new()
-                & act @actArgs 2>&1 | Tee-Object -Variable rawOut | ForEach-Object {
-                    $outLines.Add($_)
-                    # Echo lines that carry meaningful signal
-                    if ($_ -match '(✅|❌|🏁|PASS|FAIL|Error|error:|warning:)') {
-                        Write-Host "    $_"
-                    }
+            # Stream output, capture for analysis
+            $outLines = [System.Collections.Generic.List[string]]::new()
+            & act @actArgs 2>&1 | ForEach-Object {
+                $outLines.Add($_)
+                if ($_ -match '(✅|❌|🏁|PASS|FAIL|Error|error:|warning:)') {
+                    Write-Host "    $_"
                 }
-
-                # Parse results — wrap in @() to force array type (.Count fails on plain strings)
-                $jobSucceeded = @($outLines | Where-Object { $_ -match '🏁.*Job succeeded' })
-                $jobFailed    = @($outLines | Where-Object { $_ -match '🏁.*Job failed' })
-                $testPassed   = @($outLines | Where-Object { $_ -match 'Passed!.*Failed:\s+0' })
-                $testFailed   = @($outLines | Where-Object { $_ -match 'Failed!.*Failed:\s+[^0]' })
-
-                Write-Host ''
-                if ($testPassed.Count -gt 0) {
-                    $testPassed | ForEach-Object { Write-Pass ($_ -replace '^\|\s*', '') }
-                }
-                if ($testFailed.Count -gt 0) {
-                    $testFailed | ForEach-Object { Add-Error ($_ -replace '^\|\s*', '') }
-                }
-
-                # Ignore ACTIONS_RUNTIME_TOKEN artifact upload errors (known act limitation)
-                $realFailures = @($jobFailed | Where-Object { $_ -notmatch 'Upload test results' })
-
-                if ($LASTEXITCODE -eq 0 -or ($jobSucceeded.Count -gt 0 -and $realFailures.Count -eq 0)) {
-                    Write-Pass "$($wf.Name) workflow — all jobs succeeded"
-                } else {
-                    Add-Error "$($wf.Name) workflow had job failures (see above)"
-                }
-            } finally {
-                Pop-Location
             }
+
+            # Parse results — wrap in @() to force array type (.Count fails on plain strings)
+            $jobSucceeded = @($outLines | Where-Object { $_ -match '🏁.*Job succeeded' })
+            $jobFailed = @($outLines | Where-Object { $_ -match '🏁.*Job failed' })
+            $testPassed = @($outLines | Where-Object { $_ -match 'Passed!.*Failed:\s+0' })
+            $testFailed = @($outLines | Where-Object { $_ -match 'Failed!.*Failed:\s+[^0]' })
+
+            if ($testPassed.Count -gt 0) {
+                $testPassed | ForEach-Object { Write-Pass ($_ -replace '^\|\s*', '') }
+            }
+            if ($testFailed.Count -gt 0) {
+                $testFailed | ForEach-Object { Add-Error ($_ -replace '^\|\s*', '') }
+            }
+
+            # Ignore ACTIONS_RUNTIME_TOKEN artifact upload errors (known act limitation)
+            $realFailures = @($jobFailed | Where-Object { $_ -notmatch 'Upload test results' })
+
+            if ($LASTEXITCODE -eq 0 -or ($jobSucceeded.Count -gt 0 -and $realFailures.Count -eq 0)) {
+                Write-Pass "$($wf.Name) workflow — all jobs succeeded"
+            } else {
+                Add-Error "$($wf.Name) workflow had job failures (see above)"
+            }
+        } finally {
+            Pop-Location
         }
     }
 }

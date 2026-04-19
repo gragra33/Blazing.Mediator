@@ -49,7 +49,7 @@ jobs:
             - name: Restore
               run: dotnet restore Blazing.Mediator.CI.slnf
             - name: Build
-              run: dotnet build Blazing.Mediator.CI.slnf --no-restore --configuration Release --framework ${{ matrix.framework }} -p:GeneratePackageOnBuild=false
+              run: dotnet build Blazing.Mediator.CI.slnf --no-restore --configuration Release -p:GeneratePackageOnBuild=false
             - name: Test — Blazing.Mediator.Tests (${{ matrix.framework }})
               run: |
                   dotnet test tests/Blazing.Mediator.Tests/Blazing.Mediator.Tests.csproj \

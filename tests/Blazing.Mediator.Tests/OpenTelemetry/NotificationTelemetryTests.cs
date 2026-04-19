@@ -8,9 +8,10 @@ namespace Blazing.Mediator.Tests.OpenTelemetry;
 
 /// <summary>
 /// Tests for notification telemetry activity creation and handler span instrumentation.
-/// Uses Collection attribute to ensure tests run sequentially to avoid static state conflicts.
+/// Uses the shared OpenTelemetry collection to ensure tests run sequentially and do not
+/// mutate static telemetry state in parallel with other telemetry tests.
 /// </summary>
-[Collection("NotificationTelemetry")]
+[Collection("OpenTelemetry")]
 public class NotificationTelemetryTests : IDisposable
 {
     private readonly ServiceProvider _serviceProvider;
